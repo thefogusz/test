@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import { fetchForoFeed, getThreadContext } from './services/TwitterService';
 import { generateForoSummary, agentFilterFeed, generateContentArticle, generateGeminiBatch } from './services/GeminiService';
-import { RefreshCw, MessageSquare, ExternalLink, PenTool, Sparkles, X } from 'lucide-react';
+import { generateGrokBatch } from './services/GrokService';
+import { RefreshCw, MessageSquare, ExternalLink, PenTool, Sparkles, X, Zap } from 'lucide-react';
 
 const formatRelativeTime = (timestamp) => {
   if (!timestamp) return '24h';
@@ -87,6 +88,8 @@ const App = () => {
   const [syncDuration, setSyncDuration] = useState(null);
   const [agentPrompt, setAgentPrompt] = useState('');
   const [article, setArticle] = useState(null);
+  const [aiProvider, setAiProvider] = useState('gemini'); // 'gemini' | 'grok'
+  const [lastProvider, setLastProvider] = useState(null);
 
 
   useEffect(() => {
@@ -129,12 +132,17 @@ const App = () => {
       // 1. Direct Content Mapping (Bypassing Thread Context for Speed)
       const storyContents = tweets.map(t => t.text);
 
-      // 2. Batch Summarization (Gemini Standalone for Max Speed)
-      setStatus('FORO Gemini 3.1 Flash Lite: Processing Intel...');
+      // 2. Batch Summarization — switch based on selected provider
+      const isGrok = aiProvider === 'grok';
+      setStatus(isGrok ? 'Grok 4-1-fast: Processing Intel...' : 'Gemini 3.1 Flash Lite: Processing Intel...');
       
-      const geminiStart = performance.now();
-      const geminiSummaries = await generateGeminiBatch(storyContents);
-      console.log(`⏱️ Gemini Sync Finish: ${((performance.now() - geminiStart)/1000).toFixed(2)}s`);
+      const batchStart = performance.now();
+      const summaries = isGrok
+        ? await generateGrokBatch(storyContents)
+        : await generateGeminiBatch(storyContents);
+      const batchTime = ((performance.now() - batchStart) / 1000).toFixed(2);
+      console.log(`⏱️ ${isGrok ? 'Grok' : 'Gemini'} Batch: ${batchTime}s`);
+      setLastProvider(isGrok ? `Grok ${batchTime}s` : `Gemini ${batchTime}s`);
 
       // 3. Construct Enriched Feed
       const enrichedFeed = tweets.map((t, idx) => {
@@ -148,7 +156,7 @@ const App = () => {
         return { 
           ...t, 
           author, 
-          summary: geminiSummaries[idx],
+          summary: summaries[idx],
           fullStory: storyContents[idx] 
         };
       });
@@ -198,9 +206,23 @@ const App = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
-                {syncDuration ? `Sync Time: ${syncDuration}s` : 'Last Updated'}
+                {syncDuration ? `Total: ${syncDuration}s · AI: ${lastProvider || ''}` : 'Last Updated'}
               </div>
               <div style={{ fontSize: '12px', fontFamily: 'monospace' }}>Just now</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-800)', borderRadius: '100px', padding: '4px', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <button
+                onClick={() => setAiProvider('gemini')}
+                style={{ padding: '6px 14px', borderRadius: '100px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: '800', letterSpacing: '0.05em', background: aiProvider === 'gemini' ? 'linear-gradient(135deg, #4f8ef7, #8b5cf6)' : 'transparent', color: aiProvider === 'gemini' ? 'white' : 'var(--text-muted)', transition: 'all 0.2s' }}
+              >
+                ✦ Gemini
+              </button>
+              <button
+                onClick={() => setAiProvider('grok')}
+                style={{ padding: '6px 14px', borderRadius: '100px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: '800', letterSpacing: '0.05em', background: aiProvider === 'grok' ? 'linear-gradient(135deg, #f59e0b, #ef4444)' : 'transparent', color: aiProvider === 'grok' ? 'white' : 'var(--text-muted)', transition: 'all 0.2s' }}
+              >
+                ⚡ Grok
+              </button>
             </div>
             <button onClick={handleSync} disabled={loading || watchlist.length === 0} className="btn-sync">
               {loading ? <RefreshCw size={16} className="animate-spin" /> : <Sparkles size={16} />}
