@@ -43,7 +43,8 @@ const FeedCard = ({ tweet, onArticleGen }) => {
 
       <div className="summary-box">
         <div className="summary-label">
-          <Sparkles size={12} /> Gemini Intelligence
+          {tweet.provider === 'grok' ? <Zap size={12} fill="#f59e0b" /> : <Sparkles size={12} />} 
+          {tweet.provider === 'grok' ? ' Grok Intelligence' : ' Gemini Intelligence'}
         </div>
         <p style={{ fontSize: '14px', lineHeight: '1.6' }}>
           {tweet.summary || 'Analyzing intelligence...'}
@@ -90,6 +91,9 @@ const App = () => {
   const [article, setArticle] = useState(null);
   const [aiProvider, setAiProvider] = useState('gemini'); // 'gemini' | 'grok'
   const [lastProvider, setLastProvider] = useState(null);
+  const [liveTimer, setLiveTimer] = useState(null);
+  const timerRef = React.useRef(null);
+  const startTimeRef = React.useRef(null);
 
 
   useEffect(() => {
@@ -115,15 +119,19 @@ const App = () => {
     setLoading(true);
     setStatus('Syncing latest tweets...');
     setSyncDuration(null);
+    setLiveTimer(0);
+    startTimeRef.current = performance.now();
+    timerRef.current = setInterval(() => {
+      setLiveTimer(((performance.now() - startTimeRef.current) / 1000).toFixed(1));
+    }, 100);
 
-    const startTime = performance.now();
+    const startTime = startTimeRef.current;
     
     try {
       const tweets = await fetchForoFeed(handles);
       if (!tweets || tweets.length === 0) {
         setStatus('No new updates in the last 24h');
         setFeed([]);
-        setLoading(false);
         return;
       }
 
@@ -157,7 +165,8 @@ const App = () => {
           ...t, 
           author, 
           summary: summaries[idx],
-          fullStory: storyContents[idx] 
+          fullStory: storyContents[idx],
+          provider: aiProvider
         };
       });
       
@@ -168,8 +177,13 @@ const App = () => {
       setStatus('FORO Updated');
     } catch (err) {
       console.error(err);
-      setStatus('Error syncing feed');
+      setStatus(`Error: ${err.message || 'Check connection/API keys'}`);
     } finally {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      setLiveTimer(null);
       setLoading(false);
     }
   };
@@ -185,6 +199,8 @@ const App = () => {
     } catch (err) {
       console.error(err);
     } finally {
+      clearInterval(timerRef.current);
+      setLiveTimer(null);
       setLoading(false);
     }
   };
@@ -206,7 +222,7 @@ const App = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
-                {syncDuration ? `Total: ${syncDuration}s · AI: ${lastProvider || ''}` : 'Last Updated'}
+                {loading ? `⏱ ${liveTimer}s` : syncDuration ? `Total: ${syncDuration}s · AI: ${lastProvider || ''}` : 'Last Updated'}
               </div>
               <div style={{ fontSize: '12px', fontFamily: 'monospace' }}>Just now</div>
             </div>
@@ -224,7 +240,12 @@ const App = () => {
                 ⚡ Grok
               </button>
             </div>
-            <button onClick={handleSync} disabled={loading || watchlist.length === 0} className="btn-sync">
+            <button 
+              onClick={handleSync} 
+              disabled={loading || !watchlist || watchlist.length === 0} 
+              className="btn-sync"
+              style={{ opacity: (loading || !watchlist || watchlist.length === 0) ? 0.5 : 1, cursor: (loading || !watchlist || watchlist.length === 0) ? 'not-allowed' : 'pointer' }}
+            >
               {loading ? <RefreshCw size={16} className="animate-spin" /> : <Sparkles size={16} />}
               Sync Intelligence
             </button>
