@@ -1,6 +1,27 @@
 const TWITTER_API_KEY = import.meta.env.VITE_TWITTER_API_KEY;
 const BASE_URL = '/twitter-api/twitter';
 
+const normalizeAuthor = (author) => {
+  if (!author) return null;
+  return {
+    ...author,
+    username: author.userName || author.username,
+    profile_image_url: author.profilePicture || author.profile_image_url
+  };
+};
+
+const normalizeTweets = (tweets) => {
+  return (tweets || []).map(t => ({
+    ...t,
+    author: normalizeAuthor(t.author),
+    like_count: t.likeCount || t.like_count || 0,
+    view_count: t.viewCount || t.view_count || 0,
+    retweet_count: t.retweetCount || t.retweet_count || 0,
+    reply_count: t.replyCount || t.reply_count || 0,
+    created_at: t.createdAt || t.created_at
+  }));
+};
+
 /**
  * FEATURE 1: User Verification
  */
@@ -33,11 +54,11 @@ export const getUserInfo = async (username) => {
 };
 
 /**
- * FEATURE 2: Optimized Feed Fetching with Batching
+ * FEATURE 2: Optimized Feed Fetching with Batching & Pagination
  */
-export const fetchForoFeed = async (watchlistHandles) => {
+export const fetchForoFeed = async (watchlistHandles, cursor = '', queryType = 'Latest') => {
   const date = new Date();
-  date.setDate(date.getDate() - 2); // 2 days ago for better coverage
+  date.setHours(date.getHours() - 24); // Strict 24h for initial sync
   const sinceDate = date.toISOString().split('T')[0];
   
   const batches = [];
@@ -48,18 +69,57 @@ export const fetchForoFeed = async (watchlistHandles) => {
   }
   
   let allTweets = [];
+  let nextCursor = null;
+
   for (const batch of batches) {
-    // Removing -filter:replies to capture more content as requested by user
+    // queryType=Latest ensures chronological order (newest first)
+    // cursor='' for first page, or provided cursor for pagination
     const query = `(${batch.map(u => `from:${u}`).join(' OR ')}) since:${sinceDate}`;
-    const response = await fetch(`${BASE_URL}/tweet/advanced_search?query=${encodeURIComponent(query)}`, {
+    const url = `${BASE_URL}/tweet/advanced_search?query=${encodeURIComponent(query)}&queryType=${queryType}${cursor ? `&cursor=${cursor}` : ''}`;
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: { 'X-API-Key': TWITTER_API_KEY }
     });
     const data = await response.json();
-    allTweets = [...allTweets, ...(data.tweets || [])];
+    allTweets = [...allTweets, ...normalizeTweets(data.tweets)];
+    if (data.next_cursor) nextCursor = data.next_cursor;
   }
   
-  return allTweets;
+  // Sort all tweets from all batches to ensure consistency
+  allTweets.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  return {
+    data: allTweets,
+    meta: { next_cursor: nextCursor }
+  };
+};
+
+export const fetchWatchlistFeed = fetchForoFeed;
+
+/**
+ * FEATURE 3: Search Everything in Matrix
+ */
+export const searchEverything = async (query, cursor = '', onlyNews = true, queryType = 'Latest') => {
+  try {
+    const newsFilter = onlyNews ? ' -filter:replies' : '';
+    const fullQuery = `${query}${newsFilter}`;
+    const url = `${BASE_URL}/tweet/advanced_search?query=${encodeURIComponent(fullQuery)}&queryType=${queryType}${cursor ? `&cursor=${cursor}` : ''}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'X-API-Key': TWITTER_API_KEY }
+    });
+    if (!response.ok) throw new Error('Search failed');
+    const data = await response.json();
+    return {
+      data: normalizeTweets(data.tweets),
+      meta: { next_cursor: data.next_cursor || null }
+    };
+  } catch (error) {
+    console.error('Error in searchEverything:', error);
+    throw error;
+  }
 };
 
 /**
