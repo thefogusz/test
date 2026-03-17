@@ -182,9 +182,14 @@ const App = () => {
         setFeed(filtered);
       }
     } else if (activeView === 'home') {
-      setFeed(originalFeed);
+      const watchlistHandles = watchlist.map(w => (w.username || '').toLowerCase()).filter(Boolean);
+      const filtered = originalFeed.filter(post => 
+        post && post.author && (post.author.username || '').toLowerCase() && 
+        watchlistHandles.includes((post.author.username || '').toLowerCase())
+      );
+      setFeed(filtered);
     }
-  }, [activeListId, originalFeed, activeView, postLists]);
+  }, [activeListId, originalFeed, activeView, postLists, watchlist]);
 
   useEffect(() => {
     let interval;
