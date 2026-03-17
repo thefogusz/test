@@ -214,26 +214,7 @@ const App = () => {
         ? rawAccounts.map(u => typeof u === 'string' ? u : u.username).filter(Boolean)
         : [];
       
-      const { data, meta } = await fetchWatchlistFeed(targetAccounts, '', isLatestMode ? 'Latest' : 'Top');
-      
-      let updatedOriginal;
-      setOriginalFeed(prev => {
-        const postMap = new Map(prev.map(p => [p.id, p]));
-        data.forEach(newPost => {
-          if (postMap.has(newPost.id)) {
-            const existing = postMap.get(newPost.id);
-            postMap.set(newPost.id, {
-              ...existing,
-              ...newPost,
-              summary: existing.summary || newPost.summary
-            });
-          } else {
-            postMap.set(newPost.id, newPost);
-          }
-        });
-        updatedOriginal = Array.from(postMap.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        return updatedOriginal;
-      });
+      const { data, meta } = await fetchWatchlistFeed(targetAccounts, '', 'Latest');
       
       setNextCursor(meta.next_cursor);
       
@@ -242,33 +223,54 @@ const App = () => {
       setLastStats(`${data.length} New Signals`);
       
       if (data.length > 0) {
-        setStatus('Grok 4.1 กำลังวิเคราะห์และสรุปประเด็น...');
-        // Only summarize posts that don't have a summary yet
-        const toSummarize = data.filter(t => {
-           const existing = originalFeed.find(p => p.id === t.id);
-           return !existing || !existing.summary;
-        });
-
-        if (toSummarize.length > 0) {
-          const batchTexts = toSummarize.map(t => t.text);
-          const summaries = await generateGrokBatch(batchTexts);
+        setStatus(`พบ ${data.length} ข่าวใหม่! กำลังทยอยแปลและสรุปเป็นภาษาไทย...`);
+        
+        // Progressive Translation (Streaming effect)
+        const CHUNK_SIZE = 5;
+        for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+          const chunk = data.slice(i, i + CHUNK_SIZE);
           
+          // Find posts in chunk that need summarization
+          const toSummarize = chunk.filter(t => {
+            const existing = originalFeed.find(p => p.id === t.id);
+            return !existing || !existing.summary;
+          });
+
+          if (toSummarize.length > 0) {
+            const batchTexts = toSummarize.map(t => t.text);
+            const summaries = await generateGrokBatch(batchTexts);
+            
+            toSummarize.forEach((post, idx) => {
+              post.summary = summaries[idx] || post.text;
+            });
+          }
+
+          // Inject the Translated Chunk into the Feed state
           setOriginalFeed(prev => {
             const postMap = new Map(prev.map(p => [p.id, p]));
-            toSummarize.forEach((t, i) => {
-              const post = postMap.get(t.id);
-              if (post) postMap.set(t.id, { ...post, summary: summaries[i] });
+            chunk.forEach(newPost => {
+              if (postMap.has(newPost.id)) {
+                const existing = postMap.get(newPost.id);
+                postMap.set(newPost.id, {
+                  ...existing,
+                  ...newPost,
+                  summary: newPost.summary || existing.summary
+                });
+              } else {
+                postMap.set(newPost.id, newPost);
+              }
             });
             return Array.from(postMap.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
           });
-        }
 
-        // Merge into permanent archive (dedup by id)
-        setReadArchive(prev => {
-          const existingIds = new Set(prev.map(p => p.id));
-          const newItems = data.filter(p => !existingIds.has(p.id));
-          return [...newItems, ...prev]; // newest first
-        });
+          // Inject into Archive
+          setReadArchive(prev => {
+            const existingIds = new Set(prev.map(p => p.id));
+            const newItems = chunk.filter(p => !existingIds.has(p.id));
+            if (newItems.length > 0) return [...newItems, ...prev]; // newest first
+            return prev;
+          });
+        }
       }
       
       setStatus('อัปเดตข้อมูลเรียบร้อย');
@@ -297,7 +299,7 @@ const App = () => {
     try {
       const activeList = activeListId ? postLists.find(l => l.id === activeListId) : null;
       const targetAccounts = activeList ? activeList.members : watchlist;
-      const { data, meta } = await fetchWatchlistFeed(targetAccounts, nextCursor, isLatestMode ? 'Latest' : 'Top');
+      const { data, meta } = await fetchWatchlistFeed(targetAccounts, nextCursor, 'Latest');
       setFeed([...feed, ...data]);
       setNextCursor(meta.next_cursor);
     } catch (err) {
@@ -320,22 +322,53 @@ const App = () => {
         console.log("Expanded Query:", finalQuery);
       }
       
-      // Always prioritize 'Top' for search results as per instruction
+      // Always prioritize 'Top' for search results initially
       const { data, meta } = await searchEverything(finalQuery, isMore ? searchCursor : null, onlyNews, 'Top'); 
       const newResults = isMore ? [...searchResults, ...data] : data;
       setSearchResults(newResults);
       setFeed(newResults); 
+      setOriginalFeed(newResults); // CRITICAL: Fix sort reset bug
       setSearchCursor(meta.next_cursor);
       setStatus(`พบ ${newResults.length} รายการที่เกี่ยวข้อง`);
       
-      if (data.length > 0 && !isMore) {
-        setStatus('Grok 4.1 กำลังสรุปผลการค้นหาเป็นภาษาไทย...');
-        const batchToSummarize = data.map(t => t.text);
-        const summaries = await generateGrokBatch(batchToSummarize);
-        const updatedData = data.map((t, i) => ({ ...t, summary: summaries[i] }));
-        setSearchResults(updatedData);
-        setFeed(updatedData); 
-        setOriginalFeed(updatedData); // CRITICAL: Fix sort reset bug
+      if (data.length > 0) {
+        setStatus('Grok 4.1 กำลังทยอยแปลผลการค้นหาเป็นภาษาไทย...');
+        
+        const CHUNK_SIZE = 5;
+        // Search Streaming effect
+        for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+           const chunk = data.slice(i, i + CHUNK_SIZE);
+           const toSummarize = chunk.filter(t => {
+             const existing = newResults.find(p => p.id === t.id);
+             return !existing || !existing.summary;
+           });
+
+           if (toSummarize.length > 0) {
+             const batchTexts = toSummarize.map(t => t.text);
+             const summaries = await generateGrokBatch(batchTexts);
+             
+             toSummarize.forEach((post, idx) => {
+               post.summary = summaries[idx] || post.text;
+             });
+           }
+
+           // Inject translated chunk
+           const updateFeed = (prev) => {
+             const postMap = new Map((prev || []).map(p => [p.id, p]));
+             chunk.forEach(newPost => {
+               if (postMap.has(newPost.id)) {
+                 postMap.set(newPost.id, { ...postMap.get(newPost.id), summary: newPost.summary || postMap.get(newPost.id).summary });
+               }
+             });
+             // Maintain original array order but update matched items
+             return (prev || []).map(p => postMap.get(p.id) || p);
+           };
+
+           setSearchResults(updateFeed);
+           setFeed(updateFeed);
+           setOriginalFeed(updateFeed);
+        }
+        setStatus('แปลการค้นหาเสร็จสิ้น');
       }
     } catch (err) {
       console.error(err);
@@ -1339,10 +1372,10 @@ const App = () => {
         </div>
       </main>
 
-      {forgeTarget && !generatedContent && (
+      {forgeTarget && (
         <div className="modal-overlay">
-          <div className="modal-content animate-fade-in">
-            <button onClick={() => setForgeTarget(null)} className="modal-close-btn">
+          <div className="modal-content animate-fade-in" style={{ maxWidth: '700px' }}>
+            <button onClick={() => { setForgeTarget(null); setGeneratedContent(null); }} className="modal-close-btn">
               <X size={24} />
             </button>
             <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1352,38 +1385,64 @@ const App = () => {
               <span>สร้างเนื้อหาจากโพสต์ของ: <strong>@{forgeTarget.author?.username}</strong></span>
             </p>
 
-            <div className="forge-options-grid">
-              <button onClick={() => { handleForge('long-form'); }} className={`forge-opt ${forgeOptions.format === 'long-form' ? 'active' : ''}`}>
-                <div className="opt-title">บทวิเคราะห์เชิงลึก</div>
-                <div className="opt-desc">รายงานแบบละเอียดพร้อมข้อมูลเชิงเทคนิค</div>
-              </button>
-              <button onClick={() => { handleForge('social'); }} className={`forge-opt ${forgeOptions.format === 'social' ? 'active' : ''}`}>
-                <div className="opt-title">สรุปสั้นๆ สำหรับโซเชียล</div>
-                <div className="opt-desc">ย่อใจความสำคัญเพื่อโพสต์ลง X/LinkedIn</div>
-              </button>
-              <button onClick={() => { handleForge('analytical'); }} className={`forge-opt ${forgeOptions.format === 'analytical' ? 'active' : ''}`}>
-                <div className="opt-title">วิเคราะห์เชิงบริบท</div>
-                <div className="opt-desc">สรุปเหตุและผล พร้อมแนวโน้มที่ควรจับตามดู</div>
-              </button>
-            </div>
+            {!generatedContent ? (
+              <>
+                <div className="forge-options-grid">
+                  <button onClick={() => { handleForge('long-form'); }} className={`forge-opt ${forgeOptions.format === 'long-form' ? 'active' : ''}`}>
+                    <div className="opt-title">บทวิเคราะห์เชิงลึก</div>
+                    <div className="opt-desc">รายงานแบบละเอียดพร้อมข้อมูลเชิงเทคนิค</div>
+                  </button>
+                  <button onClick={() => { handleForge('social'); }} className={`forge-opt ${forgeOptions.format === 'social' ? 'active' : ''}`}>
+                    <div className="opt-title">สรุปสั้นๆ สำหรับโซเชียล</div>
+                    <div className="opt-desc">ย่อใจความสำคัญเพื่อโพสต์ลง X/LinkedIn</div>
+                  </button>
+                  <button onClick={() => { handleForge('analytical'); }} className={`forge-opt ${forgeOptions.format === 'analytical' ? 'active' : ''}`}>
+                    <div className="opt-title">วิเคราะห์เชิงบริบท</div>
+                    <div className="opt-desc">สรุปเหตุและผล พร้อมแนวโน้มที่ควรจับตามดู</div>
+                  </button>
+                </div>
 
-            <div style={{ marginTop: '20px' }}>
-              <div className="section-label">คำสั่งแบบกำหนดเอง</div>
-              <textarea 
-                className="custom-forge-input"
-                placeholder="ใส่คำสั่งพิเศษ (เช่น 'เขียนสไตล์นักวิเคราะห์เชิงลึก' หรือ 'สรุปเป็นข้อๆ')..."
-                value={forgeOptions.customPrompt}
-                onChange={(e) => setForgeOptions({...forgeOptions, customPrompt: e.target.value})}
-              />
-              <button 
-                onClick={() => handleForge('custom')}
-                disabled={isForging}
-                className="forge-action-btn"
-              >
-                {isForging ? <Loader2 className="animate-spin" /> : <Sparkles size={16} />}
-                เริ่มสร้างคอนเทนต์
-              </button>
-            </div>
+                <div style={{ marginTop: '20px' }}>
+                  <div className="section-label">คำสั่งแบบกำหนดเอง</div>
+                  <textarea 
+                    className="custom-forge-input"
+                    placeholder="ใส่คำสั่งพิเศษ (เช่น 'เขียนสไตล์นักวิเคราะห์เชิงลึก' หรือ 'สรุปเป็นข้อๆ')..."
+                    value={forgeOptions.customPrompt}
+                    onChange={(e) => setForgeOptions({...forgeOptions, customPrompt: e.target.value})}
+                  />
+                  <button 
+                    onClick={() => handleForge('custom')}
+                    disabled={isForging}
+                    className="forge-action-btn"
+                  >
+                    {isForging ? <Loader2 className="animate-spin" /> : <Sparkles size={16} />}
+                    เริ่มสร้างคอนเทนต์
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="animate-fade-in">
+                <div className="generated-content-box">
+                  {generatedContent}
+                </div>
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                  <button onClick={() => {
+                    navigator.clipboard.writeText(generatedContent);
+                    setStatus('คัดลอกเนื้อหาเรียบร้อยแล้ว');
+                  }} className="btn-pill" style={{ padding: '12px 24px', height: 'auto' }}>
+                    <Copy size={16} /> คัดลอกข้อความ
+                  </button>
+                  <button onClick={() => {
+                    handleBookmark({ ...forgeTarget, summary: generatedContent }, true);
+                    setStatus('บันทึกคอนเทนต์ลง Bookmarks เรียบร้อย');
+                    setForgeTarget(null);
+                    setGeneratedContent(null);
+                  }} className="btn-pill primary" style={{ padding: '12px 24px', height: 'auto' }}>
+                    <Bookmark size={16} /> บันทึกลง Bookmarks
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
