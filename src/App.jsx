@@ -19,7 +19,8 @@ import {
   List,
   LayoutGrid,
   Activity,
-  BookOpen
+  BookOpen,
+  ExternalLink
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import RightSidebar from './components/RightSidebar';
@@ -97,7 +98,8 @@ const UserCard = ({ user, onRemove }) => {
 const App = () => {
   const [watchlist, setWatchlist] = useState(() => {
     const saved = localStorage.getItem('foro_watchlist_v2');
-    return saved ? JSON.parse(saved) : [];
+    const parsed = saved ? JSON.parse(saved) : [];
+    return Array.isArray(parsed) ? parsed.filter(u => u && u.username) : [];
   });
   
   const [feed, setFeed] = useState([]);
@@ -175,7 +177,7 @@ const App = () => {
       const activeList = postLists.find(l => l.id === activeListId);
       if (activeList) {
         const filtered = originalFeed.filter(post => 
-          activeList.members.some(m => (m || '').toLowerCase() === (post.author?.username || '').toLowerCase())
+          post && post.author && activeList.members.some(m => (m || '').toLowerCase() === (post.author.username || '').toLowerCase())
         );
         setFeed(filtered);
       }
@@ -201,7 +203,11 @@ const App = () => {
     const startTime = Date.now();
     try {
       const activeList = activeListId ? postLists.find(l => l.id === activeListId) : null;
-      const targetAccounts = activeList ? activeList.members : watchlist;
+      // CRITICAL FIX: Ensure targetAccounts is ALWAYS an array of strings (usernames)
+      const rawAccounts = activeList ? activeList.members : watchlist;
+      const targetAccounts = Array.isArray(rawAccounts) 
+        ? rawAccounts.map(u => typeof u === 'string' ? u : u.username).filter(Boolean)
+        : [];
       
       const { data, meta } = await fetchWatchlistFeed(targetAccounts, '', isLatestMode ? 'Latest' : 'Top');
       
@@ -361,7 +367,7 @@ const App = () => {
         if (realData) {
           setWatchlist(current => {
             // Check if user exists (handles race condition where item was just added)
-            const exists = current.find(u => (u.username || '').toLowerCase() === (placeholder.username || '').toLowerCase());
+            const exists = current.find(u => u && (u.username || '').toLowerCase() === (placeholder.username || '').toLowerCase());
             if (exists) {
               return current.map(u => 
                 (u.username || '').toLowerCase() === (placeholder.username || '').toLowerCase() ? { ...realData, isPlaceholder: false } : u
@@ -598,7 +604,7 @@ const App = () => {
         if (activeListId) {
           const activeList = postLists.find(l => l.id === activeListId);
           sorted = originalFeed.filter(post => 
-            activeList?.members.some(m => (m || '').toLowerCase() === (post.author?.username || '').toLowerCase())
+            post && post.author && activeList?.members.some(m => (m || '').toLowerCase() === (post.author.username || '').toLowerCase())
           );
         } else {
           sorted = [...originalFeed];
@@ -643,13 +649,14 @@ const App = () => {
     setStatus(statusMsg);
     
     try {
-      const exclude = isMore ? (Array.isArray(aiSearchResults) ? aiSearchResults.map(e => e.username) : []) : [];
+      const exclude = isMore ? (Array.isArray(aiSearchResults) ? aiSearchResults.filter(Boolean).map(e => e.username) : []) : [];
       const experts = await discoverTopExperts(query, exclude);
       
-      const safeExperts = Array.isArray(experts) ? experts : [];
+      // Sanitize input array just in case Service filter failed
+      const safeExperts = Array.isArray(experts) ? experts.filter(e => e && e.username) : [];
       
       if (isMore) {
-        setAiSearchResults(prev => [...prev, ...safeExperts]);
+        setAiSearchResults(prev => [...(Array.isArray(prev) ? prev : []), ...safeExperts]);
         setStatus('เพิ่มรายชื่อผู้เชี่ยวชาญใหม่เรียบร้อย');
       } else {
         setAiSearchResults(safeExperts);
@@ -657,7 +664,7 @@ const App = () => {
       }
     } catch (e) {
       console.error('AI search error', e);
-      setAiSearchResults(prev => prev || []); // Keep previous if more, or empty
+      setAiSearchResults(prev => Array.isArray(prev) ? prev : []); 
       setStatus('ขออภัย ระบบ AI ไม่ตอบสนองในขณะนี้ กรุณาลองใหม่');
     } finally {
       setAiSearchLoading(false);
@@ -666,7 +673,7 @@ const App = () => {
 
   const handleAddExpert = async (expert) => {
     if (!expert?.username) return;
-    if (watchlist.find(w => (w.username || '').toLowerCase() === (expert.username || '').toLowerCase())) return;
+    if (watchlist.find(w => w && (w.username || '').toLowerCase() === (expert.username || '').toLowerCase())) return;
     
     setStatus(`กำลังตรวจสอบข้อมูล @${expert.username}...`);
     try {
@@ -1106,12 +1113,14 @@ const App = () => {
                     {!aiSearchLoading && aiSearchResults && aiSearchResults.length > 0 && (
                       <div style={{ marginBottom: '32px' }}>
                         <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px', fontWeight: '800', letterSpacing: '0.05em' }}>▌ AI ANALYST RECOMMENDATIONS ▌</div>
-                        <div className="expert-grid">
-                          {Array.isArray(aiSearchResults) && aiSearchResults.map((expert, i) => {
-                            const expertUsername = (expert.username || '').toLowerCase();
-                            const isAdded = !!watchlist.find(w => (w.username || '').toLowerCase() === expertUsername);
+                        <div className="expert-grid" style={{ minHeight: '400px' }}>
+                          {Array.isArray(aiSearchResults) && aiSearchResults
+                            .filter(e => e && e.username) // Double safety check
+                            .map((expert, i) => {
+                             const expertUsername = (expert.username || '').toLowerCase();
+                             const isAdded = !!watchlist.find(w => w && (w.username || '').toLowerCase() === expertUsername);
                             return (
-                              <div key={i} className="expert-card animate-fade-in" style={{ animationDelay: `${i * 0.1}s` }}>
+                              <div key={expert.username} className="expert-card" style={{ animationDelay: `${i * 0.05}s` }}>
                                 <div className="ai-pick-pill">
                                   <Sparkles size={10} /> AI PICK
                                 </div>

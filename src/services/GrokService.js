@@ -12,6 +12,27 @@ RULES FOR SUMMARIZATION (THAI INTELLIGENCE):
 5. SOCIAL MEDIA: ห้ามอ้างอิงถึง X หรือ Twitter และห้ามมี URL
 6. OUTPUT: ส่งกลับมาเฉพาะข้อความภาษาไทยเท่านั้น ห้ามมีคำอธิบายอื่น
 `;
+const safeJsonParse = (str, fallback = []) => {
+  try {
+    if (typeof str === 'object' && str !== null) return str;
+    return JSON.parse(str);
+  } catch (e) {
+    console.warn('Initial JSON parse failed, attempting healing...', e);
+    try {
+      let healed = str.trim();
+      if (!healed.endsWith(']}')) {
+        if (healed.includes('"experts"')) {
+           if (!healed.endsWith(']')) healed += ']';
+           if (!healed.endsWith('}')) healed += '}';
+           return JSON.parse(healed);
+        }
+      }
+    } catch (e2) {
+      console.error('JSON Healing failed:', e2);
+    }
+    return fallback;
+  }
+};
 
 const callGrok = async (systemPrompt, userPrompt, modelName, isJson = false) => {
   try {
@@ -153,9 +174,12 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
   Your task is to identify the TOP 6 most influential, credible, and famous expert accounts on X (Twitter) for a specific category.
   
   CORE OBJECTIVE:
-  - If the category is general or high-level (e.g., 'Business', 'Tech', 'AI', 'Economy'), prioritize WORLD-CLASS GLOBAL LEADERS and famous international experts, not just local or random accounts.
+  - If the category is general or high-level (e.g., 'Business', 'Tech', 'AI', 'Economy'), prioritize WORLD-CLASS GLOBAL LEADERS and famous international experts.
+  - USE YOUR REAL-TIME SEARCH (Websearch/X-Search) to check the LATEST POST DATE for each account.
+  - CRITICAL: Only recommend accounts that have posted QUALITY content within the LAST 7-14 DAYS.
+  - If an expert has recently changed their username, you MUST provide the NEW correct handle.
+  - OBSOLETE, DORMANT, or INACTIVE accounts (e.g., @sheevergaming who is inactive) MUST be excluded regardless of fame.
   - For specific Thai queries, you can include top-tier Thai experts.
-  - Accounts MUST be currently active, highly credible, and have a significant following/reputation.
   
   RULES:
   1. Identify exactly 6 accounts.
@@ -165,7 +189,7 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
      - reasoning: A friendly, natural, and conversational description in Thai explaining why this expert is a "must-follow" global or industry leader. 
        CRITICAL: DO NOT use technical jargon, metrics, or labels like 'Trend Signal', 'Credibility Score', 'Content Profile', or emojis like 🟢/🔴. 
        Talk like a friend recommending a world-famous specialist.
-  3. Ensure the usernames are real and currently active (not abandoned or fake).
+  3. CRITICAL: Execute a freshness check via real-time search. Only return accounts with RECENT activity (last 1-2 weeks). Discard dormant accounts immediately.
   4. EXCLUDE these usernames if provided: [${excludeUsernames.join(', ')}]. Provide DIFFERENT experts if you see this list.
   5. Format the output as a strict JSON object with an "experts" key containing the array.
   
@@ -183,13 +207,10 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
   const userMsg = `Category: ${categoryQuery}`;
   
   const result = await callGrok(systemPrompt, userMsg, MODEL_REASONING, true);
-  try {
-    const data = JSON.parse(result);
-    return data.experts || [];
-  } catch (e) {
-    console.error('Discover Experts Parse Error:', e);
-    return [];
-  }
+  const data = safeJsonParse(result, { experts: [] });
+  const experts = data.experts || [];
+  // Ultimate Stability: Sanitize results before returning to UI
+  return experts.filter(e => e && typeof e === 'object' && e.username && e.name);
 };
 
 export const generateContentArticle = generateFinalContent;

@@ -62,8 +62,13 @@ export const fetchForoFeed = async (watchlistHandles, cursor = '', queryType = '
   const sinceDate = date.toISOString().split('T')[0];
   
   const batches = [];
-  const validHandles = watchlistHandles.filter(h => h && h !== 'undefined');
+  // Ensure handles are strings (extract from object if necessary)
+  const validHandles = (watchlistHandles || [])
+    .map(h => typeof h === 'string' ? h : h?.username)
+    .filter(h => h && h !== 'undefined' && typeof h === 'string');
   
+  if (validHandles.length === 0) return { data: [], meta: { next_cursor: null } };
+
   for (let i = 0; i < validHandles.length; i += 15) {
     batches.push(validHandles.slice(i, i + 15));
   }
