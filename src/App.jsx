@@ -996,6 +996,13 @@ const App = () => {
                       />
                     ))}
                   </div>
+                  {searchCursor && (
+                    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '32px', marginBottom: '40px' }}>
+                       <button onClick={(e) => handleSearch(e, true)} disabled={isSearching} className="btn-pill primary" style={{ padding: '12px 32px' }}>
+                          {isSearching ? <Loader2 size={16} className="animate-spin" /> : 'โหลดเพิ่มเติม'}
+                       </button>
+                    </div>
+                  )}
                 </div>
               ) : null}
             </div>
