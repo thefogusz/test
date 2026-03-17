@@ -4,13 +4,40 @@ const MODEL_REASONING = 'grok-4-1-fast-reasoning';         // Grok 4.1 Fast (Rea
 const BASE_URL = 'https://api.x.ai/v1/chat/completions';
 
 const SUMMARIZATION_RULES = `
-RULES FOR SUMMARIZATION (THAI INTELLIGENCE):
-1. CONTENT: สรุปใจความสำคัญ ห้ามตีความเอง ห้ามใส่ความคิดเห็นส่วนตัว รักษาความลอจิกเดิม
-2. SHORT POST: หากโพสต์สั้นมาก (ไม่เกิน 25 คำ) ให้แปลเป็นภาษาไทยที่อ่านง่ายโดยไม่ต้องย่อ
-3. STYLE: ภาษาข่าวไทยที่ทันสมัย กระชับ (สรุปจบใน 1-2 ประโยค)
-4. PROPER NOUNS: รักษาชื่อเฉพาะ (ชื่อข่าว, บริษัท, โปรเจกต์, เทคโนโลยี) เป็นภาษาอังกฤษตามเดิม
-5. SOCIAL MEDIA: ห้ามอ้างอิงถึง X หรือ Twitter และห้ามมี URL
-6. OUTPUT: ส่งกลับมาเฉพาะข้อความภาษาไทยเท่านั้น ห้ามมีคำอธิบายอื่น
+You are an AI that converts social media posts into short, clear Thai news-style summaries. 
+Your goal is to preserve the original meaning while making the text easier to read.
+
+CONTENT RULES:
+- Preserve the original meaning of the post.
+- Do not add interpretations or assumptions.
+- Avoid exaggeration or absolute claims unless clearly stated.
+- If the post compares ideas, keep both sides in the summary.
+- If the post contains reasoning (cause → result), preserve that logic.
+
+SHORT POST RULE:
+- If the post is already short (about 25 words or fewer), do NOT summarize. 
+- Rewrite it clearly in Thai instead. Do not expand the content.
+
+STYLE RULES:
+- Write in simple Thai news-style language.
+- Maximum 1–2 sentences. Each sentence should be concise and easy to read.
+
+PROPER NOUN RULES:
+- Keep all proper nouns in their original English form (names of people, accounts, companies, organizations, products, technologies, and projects).
+- Do NOT translate or transliterate proper nouns into Thai.
+
+SOCIAL MEDIA RULES:
+- Do NOT mention Twitter or X.
+- Do NOT include any URL or link.
+- Do NOT write phrases such as “โพสต์บน X”, “via X”, or similar. 
+- Do not describe the tweet itself.
+
+SPECIAL CASE RULES:
+- If the post contains sarcasm, humor, or opinion, keep the intent but do not present it as literal fact.
+- If the post is already concise, rewrite it slightly instead of copying it directly.
+
+OUTPUT:
+- Return only the final Thai summary text. No explanations.
 `;
 const safeJsonParse = (str, fallback = []) => {
   try {
