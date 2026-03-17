@@ -240,5 +240,28 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
   return experts.filter(e => e && typeof e === 'object' && e.username && e.name);
 };
 
+export const researchContext = async (query, interactionData = '') => {
+  const systemPrompt = `You are an Intelligence Research Agent powered by Grok 4.1.
+  YOUR GOAL:
+  1. Research historical context and related facts about the given topic.
+  2. Analyze the 'vibe' and 'sentiments' from social engagement data.
+  3. Provide a structured 'Research Dossier' including:
+     - Core Facts & History
+     - Why it matters now
+     - What people are saying (Sentiment Analysis)
+     - Related entities
+  Focus on DEPTH and ACCURACY in Thai language. Return only the findings without conversational filler.`;
+
+  const userPrompt = `INPUT TOPIC: ${query}\nSOCIAL ENGAGEMENT DATA: ${interactionData}`;
+  
+  try {
+    return await callGrok(systemPrompt, userPrompt, MODEL_NON_REASONING);
+  } catch (error) {
+    console.error('Grok Research Error:', error);
+    return "Intelligence elevation unavailable at the moment.";
+  }
+};
+
 export const generateContentArticle = generateFinalContent;
 export const generateArticle = generateFinalContent;
+

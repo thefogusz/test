@@ -27,8 +27,7 @@ import RightSidebar from './components/RightSidebar';
 import TopNav from './components/TopNav';
 import FeedCard from './components/FeedCard';
 import { getUserInfo, fetchWatchlistFeed, searchEverything } from './services/TwitterService';
-import { researchContext } from './services/GeminiService';
-import { generateArticle, agentFilterFeed, generateGrokBatch, expandSearchQuery, discoverTopExperts } from './services/GrokService';
+import { generateArticle, agentFilterFeed, generateGrokBatch, expandSearchQuery, discoverTopExperts, researchContext } from './services/GrokService';
 import './index.css';
 
 // ---- UserCard: proper component with per-card menu state ----
