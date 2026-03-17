@@ -552,3 +552,158 @@ body {
 .text-accent {
   color: var(--accent-secondary);
 }
+/* EXPERT DISCOVERY STYLES */
+.expert-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.expert-card {
+  background: rgba(13, 17, 23, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 24px;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(10px);
+}
+
+.expert-card:hover {
+  background: rgba(13, 17, 23, 0.6);
+  border-color: rgba(0, 112, 243, 0.5);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.ai-pick-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 112, 243, 0.1);
+  color: #0070f3;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 100px;
+  letter-spacing: 0.05em;
+  margin-bottom: 20px;
+  width: fit-content;
+  border: 1px solid rgba(0, 112, 243, 0.2);
+}
+
+.expert-name {
+  font-size: 18px;
+  font-weight: 900;
+  color: #fff;
+  margin-bottom: 2px;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+}
+
+.expert-username {
+  font-size: 14px;
+  color: #0070f3;
+  font-weight: 700;
+  margin-bottom: 20px;
+  opacity: 0.8;
+}
+
+.expert-reasoning {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.6;
+  margin-bottom: 24px;
+  font-style: italic;
+  font-weight: 400;
+}
+
+.expert-follow-btn {
+  margin-top: auto;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 10px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.expert-follow-btn:hover:not(:disabled) {
+  background: #fff;
+  color: #000;
+  border-color: #fff;
+}
+
+.expert-follow-btn.added {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: transparent;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: default;
+}
+
+.expert-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60px;
+  height: 60px;
+  background: radial-gradient(circle at top right, rgba(0, 112, 243, 0.1), transparent 70%);
+  pointer-events: none;
+}
+
+/* Premium AI Loader & Links */
+.ai-loader-ring {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 3px solid rgba(41, 151, 255, 0.1);
+  border-top-color: var(--accent-secondary);
+  animation: spin 1s linear infinite;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.ai-loader-ring::after {
+  content: '';
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid rgba(157, 117, 255, 0.2);
+  border-bottom-color: var(--accent-purple);
+  animation: spin 0.8s linear infinite reverse;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.expert-name-link {
+  transition: all 0.2s ease;
+  display: inline-block;
+  margin-bottom: 2px;
+}
+
+.expert-name-link:hover .expert-name {
+  color: var(--accent-secondary) !important;
+  transform: translateX(4px);
+}
+
+.expert-name {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}

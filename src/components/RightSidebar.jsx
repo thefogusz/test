@@ -298,6 +298,9 @@ const RightSidebar = ({
                              src={userAcc?.profile_image_url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png'} 
                              alt={handle}
                              style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }}
+                             onError={e => { 
+                               e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(handle)}&background=random&color=fff&bold=true`; 
+                             }}
                            />
                            <div style={{ flex: 1, minWidth: 0 }}>
                              <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userAcc?.name || handle}</div>
@@ -322,6 +325,9 @@ const RightSidebar = ({
                               src={u.profile_image_url} 
                               alt={u.username}
                               style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', opacity: 0.8 }}
+                              onError={e => { 
+                                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=random&color=fff&bold=true`; 
+                              }}
                             />
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff' }}>{u.name}</div>

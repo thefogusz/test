@@ -148,5 +148,49 @@ export const expandSearchQuery = async (originalQuery) => {
   return result.replace(/"/g, '').trim(); // Clean up potential quotes
 };
 
+export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) => {
+  const systemPrompt = `You are a World-Class Industry Analyst and Search Expert.
+  Your task is to identify the TOP 6 most influential, credible, and famous expert accounts on X (Twitter) for a specific category.
+  
+  CORE OBJECTIVE:
+  - If the category is general or high-level (e.g., 'Business', 'Tech', 'AI', 'Economy'), prioritize WORLD-CLASS GLOBAL LEADERS and famous international experts, not just local or random accounts.
+  - For specific Thai queries, you can include top-tier Thai experts.
+  - Accounts MUST be currently active, highly credible, and have a significant following/reputation.
+  
+  RULES:
+  1. Identify exactly 6 accounts.
+  2. For each account, provide:
+     - name: Full name or Display name.
+     - username: The exact X handle (without @).
+     - reasoning: A friendly, natural, and conversational description in Thai explaining why this expert is a "must-follow" global or industry leader. 
+       CRITICAL: DO NOT use technical jargon, metrics, or labels like 'Trend Signal', 'Credibility Score', 'Content Profile', or emojis like 🟢/🔴. 
+       Talk like a friend recommending a world-famous specialist.
+  3. Ensure the usernames are real and currently active (not abandoned or fake).
+  4. EXCLUDE these usernames if provided: [${excludeUsernames.join(', ')}]. Provide DIFFERENT experts if you see this list.
+  5. Format the output as a strict JSON object with an "experts" key containing the array.
+  
+  Example Response:
+  {
+    "experts": [
+      {
+        "name": "Elon Musk",
+        "username": "elonmusk",
+        "reasoning": "ถ้าอยากตามเรื่องนวัตกรรมและอนาคต ต้องคนนี้เลยครับ เขาคือผู้นำระดับโลกที่เปลี่ยนวงการหลายอย่าง..."
+      }
+    ]
+  }`;
+
+  const userMsg = `Category: ${categoryQuery}`;
+  
+  const result = await callGrok(systemPrompt, userMsg, MODEL_REASONING, true);
+  try {
+    const data = JSON.parse(result);
+    return data.experts || [];
+  } catch (e) {
+    console.error('Discover Experts Parse Error:', e);
+    return [];
+  }
+};
+
 export const generateContentArticle = generateFinalContent;
 export const generateArticle = generateFinalContent;

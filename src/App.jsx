@@ -1,4 +1,4 @@
-  import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Sparkles, 
@@ -27,7 +27,7 @@ import TopNav from './components/TopNav';
 import FeedCard from './components/FeedCard';
 import { getUserInfo, fetchWatchlistFeed, searchEverything } from './services/TwitterService';
 import { researchContext } from './services/GeminiService';
-import { generateArticle, agentFilterFeed, generateGrokBatch, expandSearchQuery } from './services/GrokService';
+import { generateArticle, agentFilterFeed, generateGrokBatch, expandSearchQuery, discoverTopExperts } from './services/GrokService';
 import './index.css';
 
 // ---- UserCard: proper component with per-card menu state ----
@@ -71,7 +71,9 @@ const UserCard = ({ user, onRemove }) => {
         src={user.profile_image_url}
         alt={user.name}
         style={{ width: '80px', height: '80px', borderRadius: '50%', marginBottom: '12px', objectFit: 'cover', border: '2px solid var(--bg-700)' }}
-        onError={e => { e.target.src = 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png'; }}
+        onError={e => { 
+          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff&bold=true`; 
+        }}
       />
       <div style={{ fontWeight: '700', fontSize: '15px', marginBottom: '4px', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
       <div style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{user.username}</div>
@@ -165,6 +167,23 @@ const App = () => {
     localStorage.setItem('foro_read_archive_v1', JSON.stringify(readArchive));
   }, [readArchive]);
 
+  // Handle automatic filtering by List or View
+  useEffect(() => {
+    if (activeView === 'search') return; // Search manages its own feed results
+    
+    if (activeListId) {
+      const activeList = postLists.find(l => l.id === activeListId);
+      if (activeList) {
+        const filtered = originalFeed.filter(post => 
+          activeList.members.some(m => (m || '').toLowerCase() === (post.author?.username || '').toLowerCase())
+        );
+        setFeed(filtered);
+      }
+    } else if (activeView === 'home') {
+      setFeed(originalFeed);
+    }
+  }, [activeListId, originalFeed, activeView, postLists]);
+
   useEffect(() => {
     let interval;
     if (loading) {
@@ -185,25 +204,58 @@ const App = () => {
       const targetAccounts = activeList ? activeList.members : watchlist;
       
       const { data, meta } = await fetchWatchlistFeed(targetAccounts, '', isLatestMode ? 'Latest' : 'Top');
-      setFeed(data);
-      setOriginalFeed(data);
+      
+      let updatedOriginal;
+      setOriginalFeed(prev => {
+        const postMap = new Map(prev.map(p => [p.id, p]));
+        data.forEach(newPost => {
+          if (postMap.has(newPost.id)) {
+            const existing = postMap.get(newPost.id);
+            postMap.set(newPost.id, {
+              ...existing,
+              ...newPost,
+              summary: existing.summary || newPost.summary
+            });
+          } else {
+            postMap.set(newPost.id, newPost);
+          }
+        });
+        updatedOriginal = Array.from(postMap.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        return updatedOriginal;
+      });
+      
       setNextCursor(meta.next_cursor);
       
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
       setSyncDuration(duration);
-      setLastStats(`${data.length} Signals`);
+      setLastStats(`${data.length} New Signals`);
       
       if (data.length > 0) {
         setStatus('Grok 4.1 กำลังวิเคราะห์และสรุปประเด็น...');
-        const batchToSummarize = data.map(t => t.text);
-        const summaries = await generateGrokBatch(batchToSummarize);
-        const updatedFeed = data.map((t, i) => ({ ...t, summary: summaries[i] }));
-        setFeed(updatedFeed);
-        setOriginalFeed(updatedFeed);
+        // Only summarize posts that don't have a summary yet
+        const toSummarize = data.filter(t => {
+           const existing = originalFeed.find(p => p.id === t.id);
+           return !existing || !existing.summary;
+        });
+
+        if (toSummarize.length > 0) {
+          const batchTexts = toSummarize.map(t => t.text);
+          const summaries = await generateGrokBatch(batchTexts);
+          
+          setOriginalFeed(prev => {
+            const postMap = new Map(prev.map(p => [p.id, p]));
+            toSummarize.forEach((t, i) => {
+              const post = postMap.get(t.id);
+              if (post) postMap.set(t.id, { ...post, summary: summaries[i] });
+            });
+            return Array.from(postMap.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          });
+        }
+
         // Merge into permanent archive (dedup by id)
         setReadArchive(prev => {
           const existingIds = new Set(prev.map(p => p.id));
-          const newItems = updatedFeed.filter(p => !existingIds.has(p.id));
+          const newItems = data.filter(p => !existingIds.has(p.id));
           return [...newItems, ...prev]; // newest first
         });
       }
@@ -296,6 +348,7 @@ const App = () => {
   };
 
   const resolvePlaceholders = async (nodes) => {
+    if (!Array.isArray(nodes)) return;
     const placeholders = nodes.filter(u => u.isPlaceholder);
     if (placeholders.length === 0) return;
 
@@ -308,13 +361,12 @@ const App = () => {
         if (realData) {
           setWatchlist(current => {
             // Check if user exists (handles race condition where item was just added)
-            const exists = current.find(u => u.username.toLowerCase() === placeholder.username.toLowerCase());
+            const exists = current.find(u => (u.username || '').toLowerCase() === (placeholder.username || '').toLowerCase());
             if (exists) {
               return current.map(u => 
-                u.username.toLowerCase() === placeholder.username.toLowerCase() ? { ...realData, isPlaceholder: false } : u
+                (u.username || '').toLowerCase() === (placeholder.username || '').toLowerCase() ? { ...realData, isPlaceholder: false } : u
               );
             }
-            // If doesn't exist yet, we can't update. But it SHOULD exist since we just added it.
             return current;
           });
         }
@@ -368,8 +420,14 @@ const App = () => {
           // SYNC TO GLOBAL NODES: Add members to watchlist if they don't exist
           const newItems = [];
           newList.members.forEach(handle => {
-            if (!watchlist.find(u => u.username.toLowerCase() === handle.toLowerCase())) {
-              newItems.push({ id: handle, username: handle, name: handle, profile_image_url: 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png', isPlaceholder: true });
+            if (!watchlist.find(u => (u.username || '').toLowerCase() === (handle || '').toLowerCase())) {
+              newItems.push({ 
+                id: handle, 
+                username: handle, 
+                name: handle, 
+                profile_image_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(handle)}&background=random&color=fff&bold=true`, 
+                isPlaceholder: true 
+              });
             }
           });
           
@@ -388,8 +446,14 @@ const App = () => {
           setPostLists([...postLists, newList]);
           setActiveListId(newList.id);
           
-          const newItems = handles.filter(h => !watchlist.find(w => w.username.toLowerCase() === h.toLowerCase()))
-            .map(h => ({ id: h, username: h, name: h, profile_image_url: 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png', isPlaceholder: true }));
+          const newItems = handles.filter(h => !watchlist.find(w => (w.username || '').toLowerCase() === (h || '').toLowerCase()))
+            .map(h => ({ 
+              id: h, 
+              username: h, 
+              name: h, 
+              profile_image_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(h)}&background=random&color=fff&bold=true`, 
+              isPlaceholder: true 
+            }));
           if (newItems.length > 0) {
             setWatchlist(prev => [...prev, ...newItems]);
             resolvePlaceholders(newItems);
@@ -403,18 +467,21 @@ const App = () => {
     setListModal({ show: false, mode: 'create', value: '' });
   };
 
-  const handleRemoveAccountGlobal = (id) => {
-    // 1. Resolve handle
-    const target = watchlist.find(u => u.id === id);
-    const handle = target ? target.username : id;
+  const handleRemoveAccountGlobal = (idOrHandle) => {
+    // 1. Resolve handle and id safely
+    const target = watchlist.find(u => u.id === idOrHandle || u.username === idOrHandle);
+    if (!target) return;
+    
+    const id = target.id;
+    const handle = target.username;
 
     // 2. Remove from global watchlist
-    setWatchlist(prev => prev.filter(w => w.id !== id && w.username !== id));
+    setWatchlist(prev => prev.filter(w => w.id !== id && w.username !== handle));
 
     // 3. Remove from ALL post lists
     setPostLists(prev => prev.map(list => ({
       ...list,
-      members: list.members.filter(m => m.toLowerCase() !== handle.toLowerCase())
+      members: list.members.filter(m => (m || '').toLowerCase() !== (handle || '').toLowerCase())
     })));
 
     setStatus(`ลบ @${handle} ออกจากทุกรายการติดตามแล้ว`);
@@ -455,13 +522,13 @@ const App = () => {
     }));
 
     // Also add to global watchlist if not exists
-    const exists = watchlist.find(u => u.username.toLowerCase() === cleanHandle.toLowerCase());
+    const exists = watchlist.find(u => (u.username || '').toLowerCase() === (cleanHandle || '').toLowerCase());
     if (!exists) {
       const newUser = {
         id: cleanHandle,
         username: cleanHandle,
         name: cleanHandle,
-        profile_image_url: 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png',
+        profile_image_url: `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanHandle)}&background=random&color=fff&bold=true`,
         isPlaceholder: true
       };
       setWatchlist(prev => [...prev, newUser]);
@@ -519,17 +586,23 @@ const App = () => {
       let sorted = [...feed];
       if (next.view || next.engagement) {
         sorted.sort((a, b) => {
-          // Engagement = retweet + comment
-          const engagementA = parseInt(a.retweet_count || 0) + parseInt(a.reply_count || 0);
-          const engagementB = parseInt(b.retweet_count || 0) + parseInt(b.reply_count || 0);
+          const engagementA = (parseInt(a.retweet_count) || 0) + (parseInt(a.reply_count) || 0) + (parseInt(a.like_count) || 0);
+          const engagementB = (parseInt(b.retweet_count) || 0) + (parseInt(b.reply_count) || 0) + (parseInt(b.like_count) || 0);
 
-          const scoreA = (next.view ? parseInt(a.view_count || 0) : 0) + (next.engagement ? engagementA : 0);
-          const scoreB = (next.view ? parseInt(b.view_count || 0) : 0) + (next.engagement ? engagementB : 0);
+          const scoreA = (next.view ? (parseInt(a.view_count) || 0) : 0) + (next.engagement ? engagementA : 0);
+          const scoreB = (next.view ? (parseInt(b.view_count) || 0) : 0) + (next.engagement ? engagementB : 0);
           return scoreB - scoreA;
         });
       } else {
-        // Reset to chronological if no filters
-        sorted = [...originalFeed];
+        // Reset to chronological: find the base to reset to
+        if (activeListId) {
+          const activeList = postLists.find(l => l.id === activeListId);
+          sorted = originalFeed.filter(post => 
+            activeList?.members.some(m => (m || '').toLowerCase() === (post.author?.username || '').toLowerCase())
+          );
+        } else {
+          sorted = [...originalFeed];
+        }
       }
       
       setFeed(sorted);
@@ -554,6 +627,83 @@ const App = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAiSearchAudience = async (q, isMore = false) => {
+    const query = q || aiQuery;
+    if (!query.trim()) return;
+    
+    setAiSearchLoading(true);
+    if (!isMore) setAiSearchResults([]); // Clear only if new search
+    
+    const statusMsg = isMore 
+      ? `Grok 4.1 กำลังมองหาผู้เชี่ยวชาญเพิ่มเติมสำหรับ ${query}...` 
+      : `Grok 4.1 กำลังวิเคราะห์ผู้เชี่ยวชาญระดับโลกด้าน ${query}...`;
+      
+    setStatus(statusMsg);
+    
+    try {
+      const exclude = isMore ? (Array.isArray(aiSearchResults) ? aiSearchResults.map(e => e.username) : []) : [];
+      const experts = await discoverTopExperts(query, exclude);
+      
+      const safeExperts = Array.isArray(experts) ? experts : [];
+      
+      if (isMore) {
+        setAiSearchResults(prev => [...prev, ...safeExperts]);
+        setStatus('เพิ่มรายชื่อผู้เชี่ยวชาญใหม่เรียบร้อย');
+      } else {
+        setAiSearchResults(safeExperts);
+        setStatus('ค้นพบรายชื่อผู้เชี่ยวชาญชั้นนำเรียบร้อย');
+      }
+    } catch (e) {
+      console.error('AI search error', e);
+      setAiSearchResults(prev => prev || []); // Keep previous if more, or empty
+      setStatus('ขออภัย ระบบ AI ไม่ตอบสนองในขณะนี้ กรุณาลองใหม่');
+    } finally {
+      setAiSearchLoading(false);
+    }
+  };
+
+  const handleAddExpert = async (expert) => {
+    if (!expert?.username) return;
+    if (watchlist.find(w => (w.username || '').toLowerCase() === (expert.username || '').toLowerCase())) return;
+    
+    setStatus(`กำลังตรวจสอบข้อมูล @${expert.username}...`);
+    try {
+      const fullInfo = await getUserInfo(expert.username);
+      if (fullInfo) {
+        setWatchlist(prev => [...prev, fullInfo]);
+        setStatus(`เพิ่ม @${expert.username} เรียบร้อย`);
+      } else {
+        throw new Error('No user data returned');
+      }
+    } catch (err) {
+      console.error('Verify expert error', err);
+      setStatus(`ไม่สามารถเพิ่ม @${expert.username} ได้ (ไม่พบข้อมูลบัญชี)`);
+    }
+  };
+
+  const handleManualSearch = async (e) => {
+    if (e) e.preventDefault();
+    if (!manualQuery.trim()) return;
+    setManualLoading(true);
+    setManualPreview(null);
+    try {
+      const data = await getUserInfo(manualQuery.trim());
+      setManualPreview(data);
+    } catch (err) {
+      alert(`ไม่พบผู้ใช้: ${err.message || 'เกิดข้อผิดพลาด'}`);
+    } finally {
+      setManualLoading(false);
+    }
+  };
+
+  const handleAddUser = (user) => {
+    if (!watchlist.find(w => w.id === user.id)) {
+      setWatchlist(prev => [...prev, user]);
+    }
+    setManualPreview(null);
+    setManualQuery('');
   };
 
   return (
@@ -592,7 +742,14 @@ const App = () => {
                   <div style={{ color: 'var(--text-dim)', fontSize: '12px', fontWeight: '500' }}>
                     {activeView === 'search' ? 'ค้นหาจากฐานข้อมูล' : activeView === 'read' ? 'บทความที่คัดสรร' : 'รายการที่ติดตาม'}
                   </div>
-                  <h1 style={{ margin: 0, fontSize: '32px', fontWeight: '800', letterSpacing: '-0.02em', lineHeight: '1' }}>
+                  <h1 style={{ 
+                    margin: 0, 
+                    fontSize: '32px', 
+                    fontWeight: '800', 
+                    letterSpacing: '-0.02em', 
+                    lineHeight: '1',
+                    color: activeListId ? (postLists.find(l => l.id === activeListId)?.color || 'inherit') : 'inherit'
+                  }}>
                     {activeView === 'search' ? 'ค้นหาคอนเทนต์' : activeView === 'read' ? 'อ่านข่าว' : activeListId ? postLists.find(l => l.id === activeListId)?.name : 'หน้าหลัก'}
                   </h1>
                 </div>
@@ -802,62 +959,61 @@ const App = () => {
           {/* ===== READ VIEW: THE LIBRARY ===== */}
           {activeView === 'read' && (
             <div className="reader-library-view animate-fade-in">
-               <header className="reader-header">
-                 <h1 className="reader-title">อ่านข่าว</h1>
-                 <p className="reader-subtitle">บทความและข่าวสารที่คุณบันทึกไว้อ่านแบบ Deep Read</p>
-               </header>
+                <header className="reader-header">
+                  <h1 className="reader-title">อ่านข่าว</h1>
+                  <p className="reader-subtitle">บทความและข่าวสารที่คุณบันทึกไว้อ่านแบบ Deep Read</p>
+                </header>
 
-               {/* Sort Filter Bar - matches Home view style */}
-               {readArchive.length > 0 && (
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                   <span style={{ fontSize: '13px', color: 'var(--text-dim)', marginRight: '4px' }}>เรียงตาม:</span>
-                   <button
-                     onClick={() => setReadFilters(prev => ({ ...prev, view: !prev.view }))}
-                     className={`btn-pill ${readFilters.view ? 'active' : ''}`}
-                     style={{ height: '32px', padding: '0 16px', fontSize: '12px' }}
-                   >ยอดวิว</button>
-                   <button
-                     onClick={() => setReadFilters(prev => ({ ...prev, engagement: !prev.engagement }))}
-                     className={`btn-pill ${readFilters.engagement ? 'active' : ''}`}
-                     style={{ height: '32px', padding: '0 16px', fontSize: '12px' }}
-                   >เอนเกจเมนต์</button>
-                 </div>
-               )}
-               
-               {readArchive.length === 0 ? (
-                 <div className="reader-empty-state">
-                    <BookOpen size={48} style={{ opacity: 0.2, margin: '0 auto 16px' }} />
-                    <p>ยังไม่มีบทความในห้องสมุดของคุณ</p>
-                    <button onClick={() => setActiveView('home')} className="reader-explore-btn">สำรวจข่าววันนี้</button>
-                 </div>
-               ) : (
-                 <div className="feed-grid">
-                   {[...readArchive]
-                     .sort((a, b) => {
-                       if (!readFilters.view && !readFilters.engagement) return 0;
-                       const engagementA = (parseInt(a.retweet_count) || 0) + (parseInt(a.reply_count) || 0) + (parseInt(a.like_count) || 0);
-                       const engagementB = (parseInt(b.retweet_count) || 0) + (parseInt(b.reply_count) || 0) + (parseInt(b.like_count) || 0);
-                       const scoreA = (readFilters.view ? (parseInt(a.view_count) || 0) : 0) + (readFilters.engagement ? engagementA : 0);
-                       const scoreB = (readFilters.view ? (parseInt(b.view_count) || 0) : 0) + (readFilters.engagement ? engagementB : 0);
-                       return scoreB - scoreA;
-                     })
-                     .map((item, idx) => (
-                       <FeedCard key={item.id || idx} 
-                         tweet={item} 
-                         isBookmarked={bookmarks.some(b => b.id === item.id)}
-                         onBookmark={handleBookmark}
-                         onElevate={async (it) => {
-                          setStatus('กำลังวิเคราะห์ข้อมูลเชิงลึก...');
-                          const research = await researchContext(it.text);
-                          setReadArchive(prev => prev.map(p => p.id === it.id ? {...p, summary: `${p.summary}\n\n[DEEP INTEL]: ${research}`} : p));
-                          setStatus('วิเคราะห์เชิงลึกเสร็จสิ้น');
-                         }}
-                         onArticleGen={(it) => setForgeTarget(it)}
-                       />
-                     ))
-                   }
-                 </div>
-               )}
+                {readArchive.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-dim)', marginRight: '4px' }}>เรียงตาม:</span>
+                    <button
+                      onClick={() => setReadFilters(prev => ({ ...prev, view: !prev.view }))}
+                      className={`btn-pill ${readFilters.view ? 'active' : ''}`}
+                      style={{ height: '32px', padding: '0 16px', fontSize: '12px' }}
+                    >ยอดวิว</button>
+                    <button
+                      onClick={() => setReadFilters(prev => ({ ...prev, engagement: !prev.engagement }))}
+                      className={`btn-pill ${readFilters.engagement ? 'active' : ''}`}
+                      style={{ height: '32px', padding: '0 16px', fontSize: '12px' }}
+                    >เอนเกจเมนต์</button>
+                  </div>
+                )}
+                
+                {readArchive.length === 0 ? (
+                  <div className="reader-empty-state">
+                     <BookOpen size={48} style={{ opacity: 0.2, margin: '0 auto 16px' }} />
+                     <p>ยังไม่มีบทความในห้องสมุดของคุณ</p>
+                     <button onClick={() => setActiveView('home')} className="reader-explore-btn">สำรวจข่าววันนี้</button>
+                  </div>
+                ) : (
+                  <div className="feed-grid">
+                    {[...readArchive]
+                      .sort((a, b) => {
+                        if (!readFilters.view && !readFilters.engagement) return 0;
+                        const engagementA = (parseInt(a.retweet_count) || 0) + (parseInt(a.reply_count) || 0) + (parseInt(a.like_count) || 0);
+                        const engagementB = (parseInt(b.retweet_count) || 0) + (parseInt(b.reply_count) || 0) + (parseInt(b.like_count) || 0);
+                        const scoreA = (readFilters.view ? (parseInt(a.view_count) || 0) : 0) + (readFilters.engagement ? engagementA : 0);
+                        const scoreB = (readFilters.view ? (parseInt(b.view_count) || 0) : 0) + (readFilters.engagement ? engagementB : 0);
+                        return scoreB - scoreA;
+                      })
+                      .map((item, idx) => (
+                        <FeedCard key={item.id || idx} 
+                          tweet={item} 
+                          isBookmarked={bookmarks.some(b => b.id === item.id)}
+                          onBookmark={handleBookmark}
+                          onElevate={async (it) => {
+                           setStatus('กำลังวิเคราะห์ข้อมูลเชิงลึก...');
+                           const research = await researchContext(it.text);
+                           setReadArchive(prev => prev.map(p => p.id === it.id ? {...p, summary: `${p.summary}\n\n[DEEP INTEL]: ${research}`} : p));
+                           setStatus('วิเคราะห์เชิงลึกเสร็จสิ้น');
+                          }}
+                          onArticleGen={(it) => setForgeTarget(it)}
+                        />
+                      ))
+                    }
+                  </div>
+                )}
             </div>
           )}
 
@@ -872,45 +1028,6 @@ const App = () => {
               { icon: '🌿', label: 'ไลฟ์สไตล์' }, { icon: '🌐', label: 'เศรษฐกิจ' },
               { icon: '🏛️', label: 'การเมือง' }, { icon: '🧠', label: 'การพัฒนาตัวเอง' },
             ];
-
-            const handleAiSearch = async (q) => {
-              const query = q || aiQuery;
-              if (!query.trim()) return;
-              setAiSearchLoading(true);
-              setAiSearchResults([]);
-              try {
-                const expanded = await expandSearchQuery(query);
-                const results = await searchEverything(expanded || query, 'top', 8);
-                setAiSearchResults(results || []);
-              } catch (e) {
-                console.error('AI search error', e);
-              } finally {
-                setAiSearchLoading(false);
-              }
-            };
-
-            const handleManualSearch = async (e) => {
-              e.preventDefault();
-              if (!manualQuery.trim()) return;
-              setManualLoading(true);
-              setManualPreview(null);
-              try {
-                const data = await getUserInfo(manualQuery.trim());
-                setManualPreview(data);
-              } catch (err) {
-                alert(`ไม่พบผู้ใช้: ${err.message || 'เกิดข้อผิดพลาด'}`);
-              } finally {
-                setManualLoading(false);
-              }
-            };
-
-            const handleAddUser = (user) => {
-              if (!watchlist.find(w => w.id === user.id)) {
-                setWatchlist(prev => [...prev, user]);
-              }
-              setManualPreview(null);
-              setManualQuery('');
-            };
 
             return (
               <div className="animate-fade-in">
@@ -941,7 +1058,7 @@ const App = () => {
                       color: audienceTab === 'manual' ? '#fff' : 'var(--text-muted)',
                     }}
                   >
-                    🔍 ค้นเอง
+                    🔍 ค้นหาชื่อ
                   </button>
                 </div>
 
@@ -956,39 +1073,96 @@ const App = () => {
                           placeholder="ฉันอยากติดตามเรื่องเทคโนโลยี AI และแนะนำว่าควรติดตามใคร"
                           value={aiQuery}
                           onChange={e => setAiQuery(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && handleAiSearch()}
+                          onKeyDown={e => e.key === 'Enter' && handleAiSearchAudience()}
                           style={{ background: 'transparent', border: 'none', color: '#fff', flex: 1, fontSize: '14px', outline: 'none' }}
                         />
                       </div>
                       <button
-                        onClick={() => handleAiSearch()}
+                        onClick={() => handleAiSearchAudience()}
                         disabled={aiSearchLoading}
-                        style={{ background: 'var(--accent-gradient)', color: '#fff', border: 'none', borderRadius: '12px', padding: '0 24px', fontWeight: '800', fontSize: '13px', letterSpacing: '0.05em', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 16px var(--accent-glow-blue)', whiteSpace: 'nowrap' }}
+                        style={{ background: 'var(--accent-gradient)', color: '#fff', border: 'none', borderRadius: '12px', padding: '0 24px', fontWeight: '800', fontSize: '13px', letterSpacing: '0.05em', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 16px var(--accent-glow-blue)', whiteSpace: 'nowrap', transition: 'all 0.3s' }}
                       >
-                        {aiSearchLoading ? <RefreshCw size={15} className="animate-spin" /> : null}
-                        SEARCH →
+                        {aiSearchLoading ? (
+                          <>
+                            <RefreshCw size={15} className="animate-spin" />
+                            SEARCHING...
+                          </>
+                        ) : (
+                          <>SEARCH →</>
+                        )}
                       </button>
                     </div>
 
-                    {aiSearchResults.length > 0 && (
-                      <div style={{ marginBottom: '32px' }}>
-                        <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px', fontWeight: '600' }}>ผลการค้นหาจาก AI</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
-                          {aiSearchResults.map((user, i) => (
-                            <div key={i} style={{ background: 'var(--bg-800)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                              <img src={user.profile_image_url || user.avatar} alt="" style={{ width: '56px', height: '56px', borderRadius: '50%', marginBottom: '10px', objectFit: 'cover' }} />
-                              <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '2px', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
-                              <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '12px' }}>@{user.username}</div>
-                              <button
-                                onClick={() => { if (!watchlist.find(w => w.id === user.id)) setWatchlist(prev => [...prev, user]); }}
-                                disabled={!!watchlist.find(w => w.id === user.id)}
-                                style={{ background: watchlist.find(w => w.id === user.id) ? 'var(--bg-700)' : 'var(--accent-gradient)', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 16px', fontSize: '12px', fontWeight: '700', cursor: watchlist.find(w => w.id === user.id) ? 'default' : 'pointer', width: '100%' }}
-                              >
-                                {watchlist.find(w => w.id === user.id) ? '✓ ติดตามแล้ว' : '+ เพิ่ม'}
-                              </button>
-                            </div>
-                          ))}
+                    {aiSearchLoading && aiSearchResults.length === 0 && (
+                      <div className="animate-fade-in" style={{ padding: '60px 0', textAlign: 'center' }}>
+                        <div className="ai-loader-ring" style={{ margin: '0 auto 20px' }}></div>
+                        <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--accent-secondary)', letterSpacing: '0.05em' }} className="animate-pulse">
+                          AI ANALYST IS SCANNING GLOBAL EXPERTS...
                         </div>
+                        <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '8px' }}>กำลังค้นหาบุคคลสำคัญระดับโลกที่เชี่ยวชาญด้านนี้เพื่อคุณ</p>
+                      </div>
+                    )}
+
+                    {!aiSearchLoading && aiSearchResults && aiSearchResults.length > 0 && (
+                      <div style={{ marginBottom: '32px' }}>
+                        <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px', fontWeight: '800', letterSpacing: '0.05em' }}>▌ AI ANALYST RECOMMENDATIONS ▌</div>
+                        <div className="expert-grid">
+                          {Array.isArray(aiSearchResults) && aiSearchResults.map((expert, i) => {
+                            const expertUsername = (expert.username || '').toLowerCase();
+                            const isAdded = !!watchlist.find(w => (w.username || '').toLowerCase() === expertUsername);
+                            return (
+                              <div key={i} className="expert-card animate-fade-in" style={{ animationDelay: `${i * 0.1}s` }}>
+                                <div className="ai-pick-pill">
+                                  <Sparkles size={10} /> AI PICK
+                                </div>
+                                <img 
+                                  src={`https://unavatar.io/twitter/${expert.username}`} 
+                                  alt="" 
+                                  style={{ width: '60px', height: '60px', borderRadius: '50%', marginBottom: '12px', border: '2px solid var(--bg-700)' }} 
+                                  onError={e => { 
+                                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(expert.name)}&background=random&color=fff&bold=true`; 
+                                  }}
+                                />
+                                <a 
+                                  href={`https://twitter.com/${expert.username}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="expert-name-link"
+                                  style={{ textDecoration: 'none', color: 'inherit' }}
+                                >
+                                  <div className="expert-name" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    {expert.name} <ExternalLink size={12} style={{ opacity: 0.5 }} />
+                                  </div>
+                                </a>
+                                <div className="expert-username">@{expert.username || 'unknown'}</div>
+                                <div className="expert-reasoning">“{expert.reasoning}”</div>
+                                <button
+                                  onClick={() => handleAddExpert(expert)}
+                                  disabled={isAdded}
+                                  className={`expert-follow-btn ${isAdded ? 'added' : ''}`}
+                                >
+                                  {isAdded ? (
+                                    <>✓ เพิ่มแล้ว</>
+                                  ) : (
+                                    <>+ เพิ่มเข้า Watchlist</>
+                                  )}
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {!aiSearchLoading && aiSearchResults.length > 0 && (
+                          <div style={{ textAlign: 'center', marginTop: '32px' }}>
+                             <button
+                               onClick={() => handleAiSearchAudience(aiQuery, true)}
+                               className="btn-pill"
+                               style={{ height: '40px', padding: '0 24px', fontSize: '13px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+                             >
+                               <RefreshCw size={14} /> ค้นหาผู้เชี่ยวชาญเพิ่มเติม
+                             </button>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -1000,7 +1174,7 @@ const App = () => {
                         {CATEGORIES.map(cat => (
                           <button
                             key={cat.label}
-                            onClick={() => { setAiQuery(cat.label); handleAiSearch(cat.label); }}
+                            onClick={() => { setAiQuery(cat.label); handleAiSearchAudience(cat.label); }}
                             style={{ background: 'var(--bg-800)', border: '1px solid var(--glass-border)', borderRadius: '10px', padding: '16px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer', transition: 'all 0.2s', color: 'var(--text-muted)', fontSize: '13px', fontWeight: '500' }}
                             onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--accent-blue)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'var(--bg-700)'; }}
                             onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'var(--bg-800)'; }}
@@ -1038,7 +1212,14 @@ const App = () => {
 
                     {manualPreview && (
                       <div style={{ background: 'var(--bg-800)', border: '1px solid var(--card-border)', borderRadius: '16px', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px' }}>
-                        <img src={manualPreview.profile_image_url} alt="" style={{ width: '72px', height: '72px', borderRadius: '50%', border: '3px solid var(--bg-700)', flexShrink: 0 }} />
+                        <img 
+                          src={manualPreview.profile_image_url} 
+                          alt="" 
+                          style={{ width: '72px', height: '72px', borderRadius: '50%', border: '3px solid var(--bg-700)', flexShrink: 0 }} 
+                          onError={e => { 
+                            e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(manualPreview.name)}&background=random&color=fff&bold=true`; 
+                          }}
+                        />
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontWeight: '700', fontSize: '18px', marginBottom: '4px' }}>{manualPreview.name}</div>
                           <div style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '12px' }}>@{manualPreview.username}</div>
@@ -1060,7 +1241,14 @@ const App = () => {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                           {watchlist.map(u => (
                             <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '10px', background: 'var(--bg-800)' }}>
-                              <img src={u.profile_image_url} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+                              <img 
+                                src={u.profile_image_url} 
+                                alt="" 
+                                style={{ width: '40px', height: '40px', borderRadius: '50%' }} 
+                                onError={e => { 
+                                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=random&color=fff&bold=true`; 
+                                }}
+                              />
                               <div style={{ flex: 1 }}>
                                 <div style={{ fontWeight: '600', fontSize: '14px' }}>{u.name}</div>
                                 <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>@{u.username}</div>

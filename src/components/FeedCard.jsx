@@ -46,6 +46,9 @@ const FeedCard = ({ tweet, onElevate, onArticleGen, onBookmark, isBookmarked: in
             src={tweet.author?.profile_image_url} 
             alt="" 
             style={{ width: '44px', height: '44px', borderRadius: '50%', border: '2px solid var(--glass-border)' }} 
+            onError={e => { 
+              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tweet.author?.name || 'User')}&background=random&color=fff&bold=true`; 
+            }}
           />
           <div>
             <div style={{ fontWeight: '700', fontSize: '15px', color: '#fff' }}>{tweet.author?.name}</div>
