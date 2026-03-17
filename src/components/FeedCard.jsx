@@ -1,24 +1,23 @@
 import React, { useState } from 'react';
 import { 
-  BarChart2, 
-  Heart, 
-  MessageCircle, 
-  Repeat, 
-  ExternalLink,
-  Sparkles,
-  PenTool,
-  Bookmark
+  BarChart2, Heart, MessageCircle, Repeat,
+  ExternalLink, Sparkles, PenTool, Bookmark
 } from 'lucide-react';
 
 const getRelativeTime = (dateString) => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now - date) / 1000);
-  
-  if (diffInSeconds < 60) return `เมื่อ ${Math.max(1, diffInSeconds)} วินาทีที่แล้ว`;
-  if (diffInSeconds < 3600) return `เมื่อ ${Math.floor(diffInSeconds / 60)} นาทีที่แล้ว`;
-  if (diffInSeconds < 86400) return `เมื่อ ${Math.floor(diffInSeconds / 3600)} ชั่วโมงที่แล้ว`;
-  return `เมื่อ ${Math.floor(diffInSeconds / 86400)} วันที่แล้ว`;
+  const diff = Math.floor((new Date() - new Date(dateString)) / 1000);
+  if (diff < 60) return `${Math.max(1, diff)}s`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  return `${Math.floor(diff / 86400)}d`;
+};
+
+const fmt = (num) => {
+  const n = parseInt((num || '0').toString().replace(/,/g, ''), 10);
+  if (isNaN(n)) return '0';
+  if (n >= 1000000) return Math.floor(n / 1000000) + 'M';
+  if (n >= 1000) return Math.floor(n / 1000) + 'K';
+  return n.toString();
 };
 
 const FeedCard = ({ tweet, onElevate, onArticleGen, onBookmark, isBookmarked: initialBookmarked = false }) => {
@@ -31,108 +30,116 @@ const FeedCard = ({ tweet, onElevate, onArticleGen, onBookmark, isBookmarked: in
   };
 
   const stats = [
-    { icon: <BarChart2 size={12} />, value: tweet.view_count || '0' },
-    { icon: <Heart size={12} />, value: tweet.like_count || '0' },
-    { icon: <Repeat size={12} />, value: tweet.retweet_count || '0' },
-    { icon: <MessageCircle size={12} />, value: tweet.reply_count || '0' },
+    { icon: BarChart2, v: tweet.view_count },
+    { icon: Heart, v: tweet.like_count },
+    { icon: Repeat, v: tweet.retweet_count },
+    { icon: MessageCircle, v: tweet.reply_count },
   ];
 
   return (
     <div className="feed-card animate-fade-in">
-      {/* Header: Author + Bookmark + External Link */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <img 
-            src={tweet.author?.profile_image_url} 
-            alt="" 
-            style={{ width: '44px', height: '44px', borderRadius: '50%', border: '2px solid var(--glass-border)' }} 
-            onError={e => { 
-              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tweet.author?.name || 'User')}&background=random&color=fff&bold=true`; 
-            }}
-          />
-          <div>
-            <div style={{ fontWeight: '700', fontSize: '15px', color: '#fff' }}>{tweet.author?.name}</div>
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>@{tweet.author?.username}</span>
-              <span style={{ color: 'var(--text-muted)', fontSize: '13px', opacity: 0.9 }}>&bull; {getRelativeTime(tweet.created_at)}</span>
+      {/* ── HEADER: Avatar, Author & Time ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+          <div style={{ 
+            width: '42px', height: '42px', borderRadius: '50%', overflow: 'hidden', 
+            border: '2px solid rgba(255,255,255,0.08)', flexShrink: 0 
+          }}>
+            <img
+              src={tweet.author?.profile_image_url?.replace('_normal', '')}
+              alt=""
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              onError={e => {
+                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tweet.author?.name || 'U')}&background=random&color=fff&bold=true`;
+              }}
+            />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: '800', fontSize: '13px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {tweet.author?.name}
+            </div>
+            <div style={{ color: 'var(--text-dim)', fontSize: '11px' }}>
+              @{tweet.author?.username}
             </div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
-          <button
-            onClick={handleBookmark}
-            title={bookmarked ? 'ลบออกจาก Bookmarks' : 'บันทึกใน Bookmarks'}
-            className="bookmark-btn"
-            style={{
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '8px',
-              borderRadius: '8px',
-              color: bookmarked ? '#fff' : 'var(--text-dim)',
-              transition: 'color 0.2s ease, transform 0.15s ease',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Bookmark size={16} fill={bookmarked ? 'currentColor' : 'none'} strokeWidth={bookmarked ? 2.5 : 1.5} />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {/* Time Badge - Standardized Height for Alignment */}
+          <div style={{
+            background: 'rgba(255,255,255,0.06)', 
+            padding: '0 10px', 
+            borderRadius: '100px',
+            fontSize: '10px', 
+            fontWeight: '900', 
+            color: 'rgba(255,255,255,0.9)', 
+            border: '1px solid rgba(255,255,255,0.08)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '26px'
+          }}>
+            {getRelativeTime(tweet.created_at)}
+          </div>
+          
+          <button onClick={handleBookmark} className="icon-hover" style={{ 
+            background: 'transparent', border: 'none', cursor: 'pointer', 
+            width: '26px', height: '26px', borderRadius: '6px',
+            color: bookmarked ? '#fff' : 'rgba(255,255,255,0.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 0
+          }}>
+            <Bookmark size={15} fill={bookmarked ? 'currentColor' : 'none'} strokeWidth={2.5} />
           </button>
-          <a 
-            href={`https://twitter.com/any/status/${tweet.id}`} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="icon-btn"
-            style={{ padding: '8px' }}
-          >
-            <ExternalLink size={14} color="#00aaff" />
+          
+          <a href={`https://twitter.com/any/status/${tweet.id}`} target="_blank" rel="noopener noreferrer" style={{ 
+            width: '26px', height: '26px', borderRadius: '6px',
+            color: 'rgba(255,255,255,0.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 0
+          }} className="icon-hover">
+            <ExternalLink size={15} strokeWidth={2.5} />
           </a>
         </div>
       </div>
 
-      {/* Content */}
-      {!tweet.summary ? (
-        <p style={{ fontSize: '17px', lineHeight: '1.65', marginBottom: '24px', color: 'rgba(255,255,255,0.98)', fontWeight: '500', flex: 1, letterSpacing: '0.2px' }}>
-          {tweet.text}
+      {/* ── BODY: The Star Content ── */}
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
+        <p style={{
+          fontSize: '16px', lineHeight: '1.6', color: 'rgba(255, 255, 255, 0.9)',
+          fontWeight: '500', margin: 0, display: '-webkit-box',
+          WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          letterSpacing: '-0.01em'
+        }}>
+          {tweet.summary || tweet.text}
         </p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, marginBottom: '24px' }}>
-          <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.98)', lineHeight: '1.75', whiteSpace: 'pre-wrap', fontWeight: '500', marginBottom: '16px', letterSpacing: '0.2px' }}>
-            {tweet.summary}
-          </p>
-        </div>
-      )}
-
-      {/* Stats row */}
-      <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', borderTop: '1px solid var(--glass-border)', paddingTop: '16px' }}>
-        {stats.map((stat, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <span style={{ color: 'var(--text-muted)', display: 'flex', opacity: 0.7 }}>{stat.icon}</span>
-            <span style={{ fontWeight: '600', fontSize: '12px', color: 'var(--text-muted)' }}>{stat.value}</span>
-          </div>
-        ))}
       </div>
 
-      {/* Action buttons */}
-      <div style={{ display: 'flex', gap: '10px' }}>
-        {onElevate && (
-          <button 
-            onClick={() => onElevate(tweet)} 
-            className="forge-action-btn"
-            style={{ flex: 1, padding: '10px', borderRadius: 'var(--radius-lg)', background: 'var(--bg-800)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', fontWeight: '500', fontSize: '12px' }}
-          >
-            <Sparkles size={14} /> วิเคราะห์เชิงลึก
-          </button>
-        )}
-        {onArticleGen && (
-          <button 
-            onClick={() => onArticleGen(tweet)} 
-            className="forge-action-btn"
-            style={{ flex: 1, padding: '10px', borderRadius: 'var(--radius-lg)', background: 'var(--bg-800)', border: '1px solid var(--glass-border)', color: 'var(--text-main)', fontWeight: '500', fontSize: '12px' }}
-          >
-            <PenTool size={14} /> สร้างคอนเทนต์
-          </button>
-        )}
+      {/* ── FOOTER: Stats & Sublte Actions ── */}
+      <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        {/* Minimalist Stats */}
+        <div style={{ display: 'flex', gap: '12px' }}>
+          {stats.map((s, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-dim)', fontSize: '11px' }}>
+              <s.icon size={12} strokeWidth={2.5} opacity={0.5} />
+              <span style={{ fontWeight: '700' }}>{fmt(s.v)}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Mini-Ghost Actions */}
+        <div style={{ display: 'flex', gap: '4px' }}>
+          {onElevate && (
+            <button onClick={() => onElevate(tweet)} className="btn-mini-ghost accent-gold">
+              <Sparkles size={13} strokeWidth={2.5} /> วิเคราะห์
+            </button>
+          )}
+          {onArticleGen && (
+            <button onClick={() => onArticleGen(tweet)} className="btn-mini-ghost accent-blue">
+              <PenTool size={13} strokeWidth={2.5} /> สร้างคอนเทนต์
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

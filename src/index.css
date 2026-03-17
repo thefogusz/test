@@ -215,8 +215,9 @@ body {
 /* Feed Grid */
 .feed-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* Strictly force 2 columns as requested */
-  gap: 24px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  grid-auto-rows: 260px;
 }
 
 @media (max-width: 1300px) {
@@ -228,19 +229,54 @@ body {
 .feed-card {
   background: var(--bg-800);
   border: 1px solid var(--card-border);
-  border-radius: var(--radius-xl);
-  padding: 24px;
-  transition: all 0.2s ease;
+  border-radius: 24px;
+  padding: 20px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: var(--card-shadow);
-  /* Flexbox column so the bottom action bar always aligns */
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
 
 .feed-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--blue-border);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px var(--accent-glow-subtle);
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05);
+}
+
+/* Minimalist Mini-Ghost Buttons */
+.btn-mini-ghost {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-mini-ghost:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.btn-mini-ghost.accent-blue:hover {
+  background: rgba(0, 170, 255, 0.08);
+  border-color: rgba(0, 170, 255, 0.2);
+  color: var(--accent-secondary);
+}
+
+.btn-mini-ghost.accent-gold:hover {
+  background: rgba(255, 215, 0, 0.08);
+  border-color: rgba(255, 215, 0, 0.2);
+  color: #ffd700;
 }
 
 /* Spotify List Styles (Right Sidebar) */
