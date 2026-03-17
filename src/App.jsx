@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+  import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Sparkles, 
@@ -18,14 +18,79 @@ import {
   Copy,
   List,
   LayoutGrid,
-  Activity
+  Activity,
+  BookOpen
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
+import RightSidebar from './components/RightSidebar';
+import TopNav from './components/TopNav';
 import FeedCard from './components/FeedCard';
 import { getUserInfo, fetchWatchlistFeed, searchEverything } from './services/TwitterService';
 import { researchContext } from './services/GeminiService';
 import { generateArticle, agentFilterFeed, generateGrokBatch, expandSearchQuery } from './services/GrokService';
 import './index.css';
+
+// ---- UserCard: proper component with per-card menu state ----
+const UserCard = ({ user, onRemove }) => {
+  const [menuOpen, setMenuOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!menuOpen) return;
+    const close = () => setMenuOpen(false);
+    window.addEventListener('click', close);
+    return () => window.removeEventListener('click', close);
+  }, [menuOpen]);
+
+  return (
+    <div
+      style={{ background: 'var(--bg-800)', borderRadius: '16px', border: '1px solid var(--card-border)', padding: '20px 16px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', position: 'relative', transition: 'border-color 0.2s' }}
+      onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'}
+      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--card-border)'}
+    >
+      {/* 3-dot menu */}
+      <div style={{ position: 'absolute', top: '10px', right: '10px' }} onClick={e => e.stopPropagation()}>
+        <button
+          onClick={() => setMenuOpen(prev => !prev)}
+          style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: '4px 6px', fontSize: '18px', letterSpacing: '1px', lineHeight: 1, borderRadius: '6px' }}
+        >···</button>
+        {menuOpen && (
+          <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', background: 'var(--bg-900)', border: '1px solid var(--glass-border)', borderRadius: '10px', zIndex: 100, width: '160px', overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+            <button
+              onClick={() => { onRemove(user.id); setMenuOpen(false); }}
+              style={{ width: '100%', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              ✕ ลบออกจากรายการ
+            </button>
+          </div>
+        )}
+      </div>
+
+      <img
+        src={user.profile_image_url}
+        alt={user.name}
+        style={{ width: '80px', height: '80px', borderRadius: '50%', marginBottom: '12px', objectFit: 'cover', border: '2px solid var(--bg-700)' }}
+        onError={e => { e.target.src = 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png'; }}
+      />
+      <div style={{ fontWeight: '700', fontSize: '15px', marginBottom: '4px', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
+      <div style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{user.username}</div>
+
+      <a
+        href={`https://x.com/${user.username}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', width: '100%', padding: '8px 0', background: 'var(--bg-700)', borderRadius: '8px', color: 'var(--text-muted)', fontSize: '13px', fontWeight: '600', textDecoration: 'none', transition: 'all 0.2s' }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#fff'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-700)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        Profile
+      </a>
+    </div>
+  );
+};
+// ---- End UserCard ----
 
 const App = () => {
   const [watchlist, setWatchlist] = useState(() => {
@@ -50,7 +115,15 @@ const App = () => {
   const [searchCursor, setSearchCursor] = useState(null);
   const [onlyNews, setOnlyNews] = useState(true);
   const [nextCursor, setNextCursor] = useState(null);
-  const [isLatestMode, setIsLatestMode] = useState(false); // Default to False (High Quality/Top)
+  const [isLatestMode, setIsLatestMode] = useState(false);
+  const [bookmarks, setBookmarks] = useState(() => {
+    const saved = localStorage.getItem('foro_bookmarks_v1');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [readArchive, setReadArchive] = useState(() => {
+    const saved = localStorage.getItem('foro_read_archive_v1');
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const [forgeTarget, setForgeTarget] = useState(null);
   const [isForging, setIsForging] = useState(false);
@@ -62,8 +135,19 @@ const App = () => {
     return saved ? JSON.parse(saved) : [];
   });
   const [activeListId, setActiveListId] = useState(null);
+  const [activeView, setActiveView] = useState('home');
   const [listModal, setListModal] = useState({ show: false, mode: 'create', value: '' });
   const [filterModal, setFilterModal] = useState({ show: false, prompt: '' });
+  const [readFilters, setReadFilters] = useState({ view: false, engagement: false });
+
+  // Audience / Smart Discovery state
+  const [audienceTab, setAudienceTab] = useState('ai'); // 'ai' | 'manual'
+  const [aiQuery, setAiQuery] = useState('');
+  const [aiSearchLoading, setAiSearchLoading] = useState(false);
+  const [aiSearchResults, setAiSearchResults] = useState([]);
+  const [manualQuery, setManualQuery] = useState('');
+  const [manualPreview, setManualPreview] = useState(null);
+  const [manualLoading, setManualLoading] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('foro_watchlist_v2', JSON.stringify(watchlist));
@@ -72,6 +156,14 @@ const App = () => {
   useEffect(() => {
     localStorage.setItem('foro_postlists_v2', JSON.stringify(postLists));
   }, [postLists]);
+
+  useEffect(() => {
+    localStorage.setItem('foro_bookmarks_v1', JSON.stringify(bookmarks));
+  }, [bookmarks]);
+
+  useEffect(() => {
+    localStorage.setItem('foro_read_archive_v1', JSON.stringify(readArchive));
+  }, [readArchive]);
 
   useEffect(() => {
     let interval;
@@ -108,6 +200,12 @@ const App = () => {
         const updatedFeed = data.map((t, i) => ({ ...t, summary: summaries[i] }));
         setFeed(updatedFeed);
         setOriginalFeed(updatedFeed);
+        // Merge into permanent archive (dedup by id)
+        setReadArchive(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const newItems = updatedFeed.filter(p => !existingIds.has(p.id));
+          return [...newItems, ...prev]; // newest first
+        });
       }
       
       setStatus('อัปเดตข้อมูลเรียบร้อย');
@@ -116,6 +214,17 @@ const App = () => {
       setStatus('เกิดข้อผิดพลาดในการซิงค์ข้อมูล');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBookmark = (tweet, isSaving) => {
+    if (isSaving) {
+      setBookmarks(prev => {
+        if (prev.find(p => p.id === tweet.id)) return prev;
+        return [tweet, ...prev];
+      });
+    } else {
+      setBookmarks(prev => prev.filter(p => p.id !== tweet.id));
     }
   };
 
@@ -193,15 +302,25 @@ const App = () => {
     setStatus(`กำลังดึงข้อมูลบัญชี X จำนวน ${placeholders.length} บัญชี...`);
     
     for (const placeholder of placeholders) {
+      if (!placeholder.username) continue;
       try {
         const realData = await getUserInfo(placeholder.username);
-        setWatchlist(current => current.map(u => 
-          u.username === placeholder.username ? { ...realData, isPlaceholder: false } : u
-        ));
+        if (realData) {
+          setWatchlist(current => {
+            // Check if user exists (handles race condition where item was just added)
+            const exists = current.find(u => u.username.toLowerCase() === placeholder.username.toLowerCase());
+            if (exists) {
+              return current.map(u => 
+                u.username.toLowerCase() === placeholder.username.toLowerCase() ? { ...realData, isPlaceholder: false } : u
+              );
+            }
+            // If doesn't exist yet, we can't update. But it SHOULD exist since we just added it.
+            return current;
+          });
+        }
       } catch (err) {
         console.error(`Failed to resolve node: ${placeholder.username}`, err);
       }
-      // Small delay to be polite to API
       await new Promise(r => setTimeout(r, 300));
     }
     setStatus('ตรวจสอบบัญชีทั้งหมดเรียบร้อยแล้ว');
@@ -220,15 +339,17 @@ const App = () => {
       const newList = {
         id: Date.now().toString(),
         name: listModal.value,
+        color: 'var(--accent-secondary)', // Initial luminous blue
         members: [],
         createdAt: new Date().toISOString()
       };
       setPostLists([...postLists, newList]);
       setActiveListId(newList.id);
-      setStatus(`Matrix Created: ${newList.name}`);
+      setStatus(`สร้างรายการใหม่เสร็จสิ้น: ${newList.name}`);
     } else {
       try {
-        const decoded = JSON.parse(atob(listModal.value));
+        // UTF-8 safe base64 decoding
+        const decoded = JSON.parse(decodeURIComponent(escape(atob(listModal.value))));
         if (!decoded.members || !Array.isArray(decoded.members)) {
           throw new Error('Malformed protocol data');
         }
@@ -236,44 +357,67 @@ const App = () => {
         const newList = { 
           ...decoded, 
           id: Date.now().toString(),
+          color: decoded.color || 'var(--accent-secondary)',
           createdAt: new Date().toISOString()
         };
         
-        // Show confirmation with details
-        const confirmMsg = `Importing Protocol: ${newList.name}\nTotal Accounts: ${newList.members.length}\n\nMembers:\n${newList.members.slice(0, 5).join(', ')}${newList.members.length > 5 ? '...' : ''}\n\nInitialize this Matrix?`;
-        
-        if (window.confirm(confirmMsg)) {
+        if (window.confirm(`ยืนยันนำเข้ารายการ: ${newList.name}\nจำนวนบัญชี: ${newList.members.length}`)) {
           setPostLists([...postLists, newList]);
           setActiveListId(newList.id);
           
           // SYNC TO GLOBAL NODES: Add members to watchlist if they don't exist
-          const newWatchlistItems = [];
+          const newItems = [];
           newList.members.forEach(handle => {
-            const exists = watchlist.find(u => u.username.toLowerCase() === handle.toLowerCase());
-            if (!exists) {
-              newWatchlistItems.push({
-                id: handle, // Use handle as ID for placeholder
-                username: handle,
-                name: handle,
-                profile_image_url: 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png',
-                isPlaceholder: true
-              });
+            if (!watchlist.find(u => u.username.toLowerCase() === handle.toLowerCase())) {
+              newItems.push({ id: handle, username: handle, name: handle, profile_image_url: 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png', isPlaceholder: true });
             }
           });
           
-          if (newWatchlistItems.length > 0) {
-            setWatchlist(prev => [...prev, ...newWatchlistItems]);
-            resolvePlaceholders(newWatchlistItems);
+          if (newItems.length > 0) {
+            setWatchlist(prev => [...prev, ...newItems]);
+            resolvePlaceholders(newItems);
           }
-          
-          setStatus(`Matrix Integrated: ${newList.name} (${newList.members.length} Nodes Synchronized)`);
+          setStatus(`นำเข้ารายการ "${newList.name}" สำเร็จ`);
         }
       } catch (err) {
-        alert('Invalid or Corrupt Matrix Protocol Code.');
-        console.error('Import Fault:', err);
+        console.error('Import error:', err);
+        // Fallback for raw handles
+        if (listModal.value.includes(',') || listModal.value.includes('@')) {
+          const handles = listModal.value.replace(/@/g, '').split(/[\s,]+/).filter(Boolean);
+          const newList = { id: Date.now().toString(), name: 'Imported List', color: 'var(--accent-secondary)', members: handles, createdAt: new Date().toISOString() };
+          setPostLists([...postLists, newList]);
+          setActiveListId(newList.id);
+          
+          const newItems = handles.filter(h => !watchlist.find(w => w.username.toLowerCase() === h.toLowerCase()))
+            .map(h => ({ id: h, username: h, name: h, profile_image_url: 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png', isPlaceholder: true }));
+          if (newItems.length > 0) {
+            setWatchlist(prev => [...prev, ...newItems]);
+            resolvePlaceholders(newItems);
+          }
+          setStatus(`นำเข้ารายชื่อเสร็จสิ้น (${handles.length} บัญชี)`);
+        } else {
+          setStatus('รหัสไม่ถูกต้อง หรือรูปแบบไม่รองรับ');
+        }
       }
     }
     setListModal({ show: false, mode: 'create', value: '' });
+  };
+
+  const handleRemoveAccountGlobal = (id) => {
+    // 1. Resolve handle
+    const target = watchlist.find(u => u.id === id);
+    const handle = target ? target.username : id;
+
+    // 2. Remove from global watchlist
+    setWatchlist(prev => prev.filter(w => w.id !== id && w.username !== id));
+
+    // 3. Remove from ALL post lists
+    setPostLists(prev => prev.map(list => ({
+      ...list,
+      members: list.members.filter(m => m.toLowerCase() !== handle.toLowerCase())
+    })));
+
+    setStatus(`ลบ @${handle} ออกจากทุกรายการติดตามแล้ว`);
   };
 
   const handleDeleteAll = () => {
@@ -286,17 +430,74 @@ const App = () => {
   const handleRemoveList = (listId) => {
     setPostLists(prev => prev.filter(l => l.id !== listId));
     if (activeListId === listId) setActiveListId(null);
-    setStatus('ลบรายการเรียบร้อยแล้ว');
+  };
+
+  const handleUpdateList = (listId, updates) => {
+    setPostLists(prev => prev.map(l => l.id === listId ? { ...l, ...updates } : l));
+    setStatus('อัปเดตรายการเรียบร้อย');
+  };
+
+  const handleAddMember = (listId, handle) => {
+    if (!handle) return;
+    const cleanHandle = handle.trim().replace(/^@/, '');
+    if (!cleanHandle) return;
+
+    setPostLists(prev => prev.map(list => {
+      if (list.id === listId) {
+        if (list.members.includes(cleanHandle)) {
+          setStatus(`@${cleanHandle} มีอยู่ในรายการแล้ว`);
+          return list;
+        }
+        setStatus(`เพิ่ม @${cleanHandle} เข้าใน "${list.name}" แล้ว`);
+        return { ...list, members: [...list.members, cleanHandle] };
+      }
+      return list;
+    }));
+
+    // Also add to global watchlist if not exists
+    const exists = watchlist.find(u => u.username.toLowerCase() === cleanHandle.toLowerCase());
+    if (!exists) {
+      const newUser = {
+        id: cleanHandle,
+        username: cleanHandle,
+        name: cleanHandle,
+        profile_image_url: 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png',
+        isPlaceholder: true
+      };
+      setWatchlist(prev => [...prev, newUser]);
+      resolvePlaceholders([newUser]);
+    }
+  };
+
+  const handleRemoveMember = (handle, listId) => {
+    setPostLists(prev => prev.map(list => {
+      if (list.id === listId) {
+        return { ...list, members: list.members.filter(m => m !== handle) };
+      }
+      return list;
+    }));
+    setStatus(`ลบ @${handle} ออกจากรายการแล้ว`);
   };
 
   const handleShareList = (list) => {
-    const handles = list.members.join(', @');
-    const text = handles ? `@${handles}` : '(ไม่มีสมาชิก)';
-    navigator.clipboard.writeText(text).then(() => {
-      setStatus(`คัดลอก ${list.members.length} บัญชีจาก "${list.name}" แล้ว`);
-    }).catch(() => {
-      setStatus(`รายชื่อ "${list.name}": ${text}`);
-    });
+    try {
+      const data = {
+        name: list.name,
+        members: list.members,
+        color: list.color
+      };
+      // UTF-16/UTF-8 safe base64 encoding
+      const code = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+      
+      navigator.clipboard.writeText(code).then(() => {
+        setStatus(`FORO: คัดลอกรหัสแชร์รายการ "${list.name}" แล้ว`);
+      }).catch((err) => {
+        console.error('Clipboard error:', err);
+        setStatus(`คัดลอกรหัสล้มเหลว: ${code}`);
+      });
+    } catch (err) {
+      console.error('Share error:', err);
+    }
   };
 
   const handleUndo = () => {
@@ -307,7 +508,7 @@ const App = () => {
     } else if (originalFeed.length > 0) {
       setFeed(originalFeed);
       setAiReport('');
-      setStatus('Signal Restore: Matrix Reset');
+      setStatus('ล้างความจำ: กลับสู่ค่าฟีดเริ่มต้น');
     }
   };
 
@@ -345,7 +546,7 @@ const App = () => {
       if (originalFeed.length === 0) setOriginalFeed([...feed]);
       const filtered = await agentFilterFeed(feed, filterModal.prompt);
       setFeed(filtered);
-      setAiReport(`Signal Synthesis: ${filtered.length} matches identified for "${filterModal.prompt}"`);
+      setAiReport(`สรุปผล AI: พบ ${filtered.length} รายการที่สอดคล้องกับ "${filterModal.prompt}"`);
       setFilterModal({ show: false, prompt: '' });
     } catch (err) {
       console.error(err);
@@ -358,248 +559,582 @@ const App = () => {
   return (
     <div className="foro-layout">
       <Sidebar 
-        watchlist={watchlist} 
-        onAdd={(u) => {
-          if (!watchlist.find(w => w.id === u.id)) {
-            setWatchlist([...watchlist, u]);
+        activeView={activeView}
+        onNavClick={(view) => {
+          setActiveView(view);
+          if (view === 'home' || view === 'read' || view === 'search') {
+             setActiveListId(null);
+             if (view === 'home') {
+               setSearchQuery('');
+               setSearchResults([]);
+               // Assuming user wants the home feed back
+             }
           }
-          if (activeListId) {
-            setPostLists(postLists.map(l => {
-              if (l.id === activeListId && !l.members.includes(u.username)) {
-                return { ...l, members: [...l.members, u.username] };
-              }
-              return l;
-            }));
-          }
-        }}
-        onRemoveAccount={(id) => {
-          // Functional setState to avoid stale closure
-          setWatchlist(prev => {
-            const acc = prev.find(u => u.id === id || u.username === id);
-            const usernameToRemove = acc ? acc.username : id;
-            // Cascade delete from all post lists
-            setPostLists(lists => lists.map(l => ({
-              ...l,
-              members: l.members.filter(m => m !== usernameToRemove)
-            })));
-            return prev.filter(u => u.id !== id && u.username !== id);
-          });
-          setStatus('ลบบัญชีเรียบร้อย');
-        }}
-        postLists={postLists}
-        activeListId={activeListId}
-        onSelectList={setActiveListId}
-        onCreateList={() => setListModal({ show: true, mode: 'create', value: '' })}
-        onImportList={() => setListModal({ show: true, mode: 'import', value: '' })}
-        onRemoveList={handleRemoveList}
-        onShareList={handleShareList}
-        onRemoveMember={(username, listId) => {
-          setPostLists(prev => prev.map(l => {
-            if (l.id === listId) return { ...l, members: l.members.filter(m => m !== username) };
-            return l;
-          }));
         }}
       />
 
       <main className="foro-main">
-        <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', gap: '24px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: 0 }}>
-            <div style={{ color: 'var(--text-dim)', fontSize: '12px', fontWeight: '500', letterSpacing: '0' }}>
-              {activeListId ? postLists.find(l => l.id === activeListId)?.name : 'รายการที่ติดตาม'}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-              <h1 style={{ margin: 0, fontSize: '32px', fontWeight: '700', letterSpacing: '-0.02em', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
-                {activeListId ? postLists.find(l => l.id === activeListId)?.name : 'หน้าหลัก'}
-              </h1>
-              <div className="control-group">
-                 <button onClick={handleDeleteAll} className="icon-btn-large" title="ล้างฟีดทั้งหมด"><Trash2 size={16} /></button>
-                 <button onClick={handleUndo} className="icon-btn-large" title="เรียกคืนฟีดที่ลบ"><Undo2 size={16} /></button>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-            <div style={{ fontSize: '12px', fontWeight: '500', color: loading ? 'var(--text-main)' : 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-              {loading ? `กำลังซิงค์... (${liveTimer}s)` : lastStats ? `อัปเดต: ${lastStats}` : ''}
-            </div>
-            
-            <div className="feed-management-zone-v2" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <button 
-                onClick={() => setFilterModal({ show: true, prompt: '' })} 
-                className="btn-ai-filter-premium"
-                style={{ height: '48px', padding: '0 24px' }}
-              >
-                <Sparkles size={18} /> AI Filter
-              </button>
-
-              <button 
-                onClick={handleSync} 
-                disabled={loading || watchlist.length === 0} 
-                className="btn-sync-premium"
-                style={{ height: '48px', padding: '0 32px' }}
-              >
-                {loading ? <RefreshCw size={18} className="animate-spin" /> : <RefreshCw size={18} />}
-                ซิงค์ข้อมูล
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <section className="command-center animate-fade-in">
-          <div className="search-discovery-zone">
-            <form onSubmit={(e) => handleSearch(e)} className="universal-search-container">
-              <Search size={16} style={{ color: 'var(--text-dim)', flexShrink: 0 }} />
-              <input
-                type="text"
-                placeholder="ค้นหาอะไรก็ได้..."
-                className="universal-search-input"
-                style={{ fontSize: '15px', padding: '10px 0' }}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              
-              <button 
-                type="submit" 
-                className="btn-discover-premium"
-                disabled={isSearching || !searchQuery}
-              >
-                {isSearching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                ค้นหา
-              </button>
-
-              <div className="search-controls" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
-                <button 
-                  className={`mode-btn ${isLatestMode ? 'active' : ''}`}
-                  onClick={() => setIsLatestMode(!isLatestMode)}
-                  type="button"
-                  title={isLatestMode ? "ข่าวสารล่าสุด" : "คัดกรองเฉพาะคุณภาพสูง"}
-                  style={{ minWidth: '80px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}
-                >
-                  <Zap size={14} fill={isLatestMode ? "currentColor" : "none"} />
-                  ล่าสุด
-                </button>
-              </div>
-            </form>
-          </div>
-        </section>
-
-        <section className="filter-shelf-container animate-fade-in" style={{ marginBottom: '32px' }}>
-             <div className="sort-label">เรียงตาม:</div>
-             <div className="simple-filter-group" style={{ display: 'flex', gap: '24px' }}>
-                <button onClick={() => handleSort('view')} className={`sort-action-btn ${activeFilters.view ? 'active' : ''}`}>
-                  <div className="filter-icon"><Eye size={14} /></div> ยอดวิว
-                </button>
-                <button onClick={() => handleSort('engagement')} className={`sort-action-btn ${activeFilters.engagement ? 'active' : ''}`}>
-                  <div className="filter-icon"><Activity size={14} /></div> เอนเกจเมนต์
-                </button>
-             </div>
-        </section>
+        <TopNav 
+          activeView={activeView}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          handleSearch={handleSearch}
+          isSearching={isSearching}
+        />
         
-        {status && (
-          <div style={{ marginBottom: '24px', padding: '0 12px' }}>
-            <span style={{ fontSize: '11px', color: 'var(--accent-secondary)', fontWeight: '700', letterSpacing: '0.05em' }}>{status}</span>
-          </div>
-        )}
+        <div className="foro-main-scroll">
 
-        {aiReport && (
-          <div className="ai-report-banner animate-fade-in" style={{ marginBottom: '32px' }}>
-             <div className="zap-glow"><Sparkles size={16} /></div>
-             <span>{aiReport}</span>
-             <button onClick={() => setAiReport('')} className="close-btn"><X size={14} /></button>
-          </div>
-        )}
-
-        {generatedContent && (
-          <section className="forge-workspace-section animate-slide-up" style={{ marginBottom: '48px' }}>
-            <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ background: 'var(--accent-secondary)', padding: '8px', borderRadius: '10px', boxShadow: '0 0 20px rgba(0,112,243,0.4)' }}>
-                  <PenTool size={20} color="white" />
+          {/* ===== HOME VIEW ===== */}
+          {activeView === 'home' && (
+            <div className="animate-fade-in">
+              <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', gap: '24px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
+                  <div style={{ color: 'var(--text-dim)', fontSize: '12px', fontWeight: '500' }}>
+                    {activeView === 'search' ? 'ค้นหาจากฐานข้อมูล' : activeView === 'read' ? 'บทความที่คัดสรร' : 'รายการที่ติดตาม'}
+                  </div>
+                  <h1 style={{ margin: 0, fontSize: '32px', fontWeight: '800', letterSpacing: '-0.02em', lineHeight: '1' }}>
+                    {activeView === 'search' ? 'ค้นหาคอนเทนต์' : activeView === 'read' ? 'อ่านข่าว' : activeListId ? postLists.find(l => l.id === activeListId)?.name : 'หน้าหลัก'}
+                  </h1>
                 </div>
-                <div>
-                  <h2 style={{ fontSize: '18px', fontWeight: '800', color: '#fff', margin: 0, letterSpacing: '-0.02em' }}>INTELLIGENCE FORGE</h2>
-                  <div style={{ fontSize: '10px', color: 'var(--accent-secondary)', fontWeight: '800', letterSpacing: '0.1em' }}>USER CONTENT GENERATOR V1.0</div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    {/* Move Trash/Undo here for symmetry */}
+                    <button onClick={handleDeleteAll} className="icon-btn-large" title="ล้างฟีดทั้งหมด"><Trash2 size={18} /></button>
+                    <button onClick={handleUndo} className="icon-btn-large" title="เรียกคืนฟีดที่ลบ"><Undo2 size={18} /></button>
+                    
+                    <div style={{ width: '1px', height: '20px', background: 'var(--glass-border)', margin: '0 4px' }} />
+                    
+                    <button onClick={() => setFilterModal({ show: true, prompt: '' })} className="btn-pill">
+                      <Sparkles size={16} /> AI Filter
+                    </button>
+                    <button onClick={handleSync} disabled={loading || watchlist.length === 0} className="btn-pill primary">
+                      {loading ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} ซิงค์ข้อมูล
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <button onClick={() => setGeneratedContent(null)} className="icon-btn-large" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                <X size={18} />
-              </button>
-            </div>
-            
-            <div className="forge-document">
-              <div className="forge-doc-header">
-                <h3>{forgeTarget?.author?.name || 'Intelligence Report'}</h3>
-                <div style={{ fontSize: '11px', opacity: 0.5 }}>Source: @{forgeTarget?.author?.username} &bull; Generated via Grok 4.1</div>
-              </div>
-              
-              <div className="forge-doc-body">
-                 {isForging ? (
-                   <div style={{ padding: '60px 0', textAlign: 'center' }}>
-                     <Loader2 size={32} className="animate-spin" style={{ margin: '0 auto 16px', color: 'var(--accent-secondary)' }} />
-                     <div style={{ fontWeight: '600' }}>Grok 4.1 กำลังสร้างเนื้อหาเชิงลึก...</div>
-                   </div>
-                 ) : (
-                   <div className="content-render" style={{ lineHeight: '1.8', whiteSpace: 'pre-wrap' }}>
-                     {generatedContent}
-                   </div>
-                 )}
-              </div>
-              
-              <div className="forge-doc-footer" style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--glass-border)', display: 'flex', gap: '12px' }}>
-                 <button onClick={() => { navigator.clipboard.writeText(generatedContent); setStatus('คัดลอกเนื้อหาเรียบร้อย'); }} className="forge-action-btn" style={{ flex: 1, background: 'var(--accent-secondary)', color: 'var(--bg-950)' }}>
-                   <Copy size={14} /> คัดลอกข้อความ
-                 </button>
-                 <button onClick={() => setGeneratedContent(null)} className="forge-action-btn" style={{ flex: 1, background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-main)' }}>
-                    ปิดหน้าต่าง
-                 </button>
-              </div>
-            </div>
-          </section>
-        )}
+              </header>
 
-        <div className="section-title" style={{ margin: '0 0 20px 0' }}>โพสต์ล่าสุด</div>
-        <div className="feed-grid">
-          {feed.length === 0 ? (
-            <div style={{ gridColumn: '1 / -1', padding: '100px 0', textAlign: 'center', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.01)', borderRadius: '24px', color: 'var(--text-muted)', fontSize: '14px' }}>
-              {isSearching ? (
-                <div className="animate-pulse">AI กำลังค้นหาข้อมูลสำหรับ "{searchQuery}"...</div>
-              ) : searchQuery && searchResults.length === 0 ? (
-                <div>ไม่พบข้อมูลสำหรับ "{searchQuery}" ลองใช้คำค้นหาที่กว้างขึ้น</div>
-              ) : status === 'No new updates in the last 24h' ? (
-                "ไม่มีอัปเดตใหม่จากบัญชีที่คุณติดตามในช่วง 24 ชั่วโมงที่ผ่านมา"
-              ) : watchlist.length === 0 ? (
-                "เริ่มโดยการเพิ่มบัญชี X (Twitter) ที่คุณต้องการติดตาม" 
-              ) : (
-                "ระบบพร้อมทำงาน กดปุ่ม 'ซิงค์ข้อมูลล่าสุด' เพื่อเริ่มสรุปข่าว"
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                <span style={{ fontSize: '13px', color: 'var(--text-dim)' }}>เรียงตาม:</span>
+                <button onClick={() => handleSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`} style={{ height: '32px', padding: '0 16px', fontSize: '12px' }}>ยอดวิว</button>
+                <button onClick={() => handleSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`} style={{ height: '32px', padding: '0 16px', fontSize: '12px' }}>เอนเกจเมนต์</button>
+              </div>
+
+              {status && (
+                <div style={{ marginBottom: '16px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--accent-secondary)', fontWeight: '700', letterSpacing: '0.05em' }}>{status}</span>
+                </div>
+              )}
+
+              {aiReport && (
+                <div className="ai-report-banner animate-fade-in" style={{ marginBottom: '24px' }}>
+                  <div className="zap-glow"><Sparkles size={16} /></div>
+                  <span>{aiReport}</span>
+                  <button onClick={() => setAiReport('')} className="close-btn"><X size={14} /></button>
+                </div>
+              )}
+
+              {generatedContent && (
+                <section className="forge-workspace-section animate-slide-up" style={{ marginBottom: '32px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ background: 'var(--accent-secondary)', padding: '8px', borderRadius: '10px' }}>
+                        <PenTool size={20} color="white" />
+                      </div>
+                      <h2 style={{ fontSize: '18px', fontWeight: '800', margin: 0 }}>ระบบสร้างคอนเทนต์ผู้เชี่ยวชาญ (FORGE)</h2>
+                    </div>
+                    <button onClick={() => setGeneratedContent(null)} className="icon-btn-large"><X size={18} /></button>
+                  </div>
+                  <div className="forge-document">
+                    <div className="forge-doc-header">
+                      <h3>{forgeTarget?.author?.name || 'รายงานสรุปผล'}</h3>
+                      <div style={{ fontSize: '11px', opacity: 0.5 }}>ที่มา: @{forgeTarget?.author?.username} • สร้างโดย Grok 4.1</div>
+                    </div>
+                    <div className="forge-doc-body">
+                      {isForging ? (
+                        <div style={{ padding: '60px 0', textAlign: 'center' }}>
+                          <Loader2 size={32} className="animate-spin" style={{ margin: '0 auto 16px', color: 'var(--accent-secondary)' }} />
+                          <div style={{ fontWeight: '600' }}>Grok 4.1 กำลังสร้างเนื้อหาเชิงลึก...</div>
+                        </div>
+                      ) : (
+                        <div className="content-render" style={{ lineHeight: '1.8', whiteSpace: 'pre-wrap' }}>{generatedContent}</div>
+                      )}
+                    </div>
+                    <div className="forge-doc-footer" style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--glass-border)', display: 'flex', gap: '12px' }}>
+                      <button onClick={() => { navigator.clipboard.writeText(generatedContent); setStatus('คัดลอกเนื้อหาเรียบร้อย'); }} className="forge-action-btn" style={{ flex: 1, background: 'var(--accent-secondary)', color: 'var(--bg-950)' }}>
+                        <Copy size={14} /> คัดลอกข้อความ
+                      </button>
+                      <button onClick={() => setGeneratedContent(null)} className="forge-action-btn" style={{ flex: 1, background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-main)' }}>
+                        ปิดหน้าต่าง
+                      </button>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              <div className="section-title" style={{ margin: '0 0 16px 0' }}>โพสต์ล่าสุด</div>
+              <div className="feed-grid">
+                {feed.length === 0 ? (
+                  <div style={{ gridColumn: '1 / -1', padding: '80px 0', textAlign: 'center', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.01)', borderRadius: '20px', color: 'var(--text-muted)', fontSize: '14px' }}>
+                    {isSearching ? (
+                      <div className="animate-pulse">AI กำลังค้นหาข้อมูลสำหรับ "{searchQuery}"...</div>
+                    ) : searchQuery && searchResults.length === 0 ? (
+                      <div>ไม่พบข้อมูลสำหรับ "{searchQuery}"</div>
+                    ) : status === 'No new updates in the last 24h' ? (
+                      'ไม่มีอัปเดตใหม่จากบัญชีที่คุณติดตามในช่วง 24 ชั่วโมงที่ผ่านมา'
+                    ) : watchlist.length === 0 ? (
+                      'เริ่มโดยการเพิ่มบัญชี X (Twitter) ที่คุณต้องการติดตาม'
+                    ) : (
+                      "ระบบพร้อมทำงาน กดปุ่ม 'ซิงค์ข้อมูล' เพื่อเริ่มสรุปข่าว"
+                    )}
+                  </div>
+                ) : (
+                  feed.map((item, idx) => (
+                    <FeedCard key={item.id || idx} tweet={item} 
+                      isBookmarked={bookmarks.some(b => b.id === item.id)}
+                      onBookmark={handleBookmark}
+                      onElevate={async (it) => {
+                        setStatus('กำลังวิเคราะห์ข้อมูลเชิงลึก...');
+                        const research = await researchContext(it.text);
+                        setFeed(prev => prev.map(p => p.id === it.id ? {...p, summary: `${p.summary}\n\n[DEEP INTEL]: ${research}`} : p));
+                        setStatus('วิเคราะห์เชิงลึกเสร็จสิ้น');
+                      }}
+                      onArticleGen={(it) => setForgeTarget(it)} 
+                    />
+                  ))
+                )}
+              </div>
+
+              {nextCursor && !loading && (
+                <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                  <button onClick={handleLoadMore} style={{ padding: '12px 40px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--bg-900)', color: 'white', fontWeight: '600', cursor: 'pointer' }}>
+                    โหลดข้อมูลเพิ่มเติม
+                  </button>
+                </div>
               )}
             </div>
-          ) : (
-            feed.map((item, idx) => (
-              <FeedCard key={item.id || idx} tweet={item} 
-                onElevate={async (it) => {
-                  setStatus('Model: Gemini 3 | Researching context...');
-                  const research = await researchContext(it.text);
-                  const enrichedSummary = `${it.summary}\n\n[DEEP INTEL - Gemini 3]: ${research}`;
-                  setFeed(prev => prev.map(p => p.id === it.id ? {...p, summary: enrichedSummary} : p));
-                  setStatus('Matrix: Intelligence Elevated via Gemini 3');
-                }}
-                onArticleGen={(it) => setForgeTarget(it)} 
-              />
-            ))
           )}
-        </div>
 
-        {nextCursor && !loading && (
-          <div style={{ padding: '48px 0', textAlign: 'center' }}>
-            <button 
-              onClick={handleLoadMore}
-              className="action-link"
-              style={{ padding: '12px 40px', borderRadius: '12px', border: '1px solid var(--glass-border)', background: 'var(--bg-900)', color: 'white', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' }}
-            >
-              โหลดข้อมูลเพิ่มเติม
-            </button>
-          </div>
-        )}
+          {/* ===== SEARCH VIEW: HERO DISCOVERY ===== */}
+          {activeView === 'search' && (
+            <div className="search-discovery-view animate-fade-in">
+              <div className="hero-search-container">
+                <h1 className="hero-search-title">ค้นหาคอนเทนต์</h1>
+                <p className="hero-search-subtitle">เจาะลึกทุกเรื่องราวจากคลังข้อมูลและโซเชียลมีเดีย</p>
+                
+                <form onSubmit={(e) => handleSearch(e)} className="hero-search-form">
+                  <Search size={24} className="hero-search-icon" />
+                  <input
+                    type="text"
+                    className="hero-search-input"
+                    placeholder="พิมพ์คีย์เวิร์ดที่สนใจ..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    autoFocus
+                  />
+                  {searchQuery && (
+                     <button type="button" className="hero-clear-btn" onClick={() => setSearchQuery('')}>
+                       <X size={20} />
+                     </button>
+                  )}
+                  <button type="submit" className="hero-submit-btn" disabled={isSearching}>
+                    {isSearching ? <Loader2 size={20} className="animate-spin" /> : 'ค้นหา'}
+                  </button>
+                </form>
+
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
+                  <button 
+                    className={`btn-pill ${isLatestMode ? 'active' : ''}`} 
+                    onClick={() => setIsLatestMode(!isLatestMode)}
+                  >
+                    <Zap size={14} fill={isLatestMode ? "currentColor" : "none"} /> ล่าสุด
+                  </button>
+                </div>
+
+                {!searchQuery && searchResults.length === 0 && (
+                  <div className="search-idea-tags">
+                    <p>ไอเดียการค้นหาวันนี้:</p>
+                    <div className="tags-row">
+                      {['แนวโน้มเศรษฐกิจ 2026', 'สรุปข่าว AI', 'รีวิว Gadget ใหม่', 'วิเคราะห์การเมืองไทย'].map(tag => (
+                        <button key={tag} className="idea-tag" onClick={(e) => { 
+                          setSearchQuery(tag);
+                          handleSearch({ preventDefault: () => {} }, false, tag); 
+                        }}>
+                          {tag}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* SEARCH RESULTS */}
+              {isSearching ? (
+                 <div style={{ padding: '80px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <Loader2 size={32} className="animate-spin" style={{ margin: '0 auto 16px', color: 'var(--accent-secondary)' }} />
+                    <div className="animate-pulse">AI กำลังรวบรวมข้อมูลสำหรับ "{searchQuery}"...</div>
+                 </div>
+              ) : searchResults.length > 0 ? (
+                <div className="search-results-container">
+                  <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '24px', paddingLeft: '8px' }}>ผลการค้นหา "{searchQuery}"</h2>
+                  <div className="feed-grid">
+                    {searchResults.map((item, idx) => (
+                      <FeedCard key={item.id || idx} 
+                        tweet={item} 
+                        isBookmarked={bookmarks.some(b => b.id === item.id)}
+                        onBookmark={handleBookmark}
+                        onElevate={async (it) => {
+                          setStatus('กำลังวิเคราะห์ข้อมูลเชิงลึก...');
+                          const research = await researchContext(it.text);
+                          setSearchResults(prev => prev.map(p => p.id === it.id ? {...p, summary: `${p.summary}\n\n[DEEP INTEL]: ${research}`} : p));
+                          setStatus('วิเคราะห์เชิงลึกเสร็จสิ้น');
+                        }}
+                        onArticleGen={(it) => setForgeTarget(it)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {/* ===== READ VIEW: THE LIBRARY ===== */}
+          {activeView === 'read' && (
+            <div className="reader-library-view animate-fade-in">
+               <header className="reader-header">
+                 <h1 className="reader-title">อ่านข่าว</h1>
+                 <p className="reader-subtitle">บทความและข่าวสารที่คุณบันทึกไว้อ่านแบบ Deep Read</p>
+               </header>
+
+               {/* Sort Filter Bar - matches Home view style */}
+               {readArchive.length > 0 && (
+                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                   <span style={{ fontSize: '13px', color: 'var(--text-dim)', marginRight: '4px' }}>เรียงตาม:</span>
+                   <button
+                     onClick={() => setReadFilters(prev => ({ ...prev, view: !prev.view }))}
+                     className={`btn-pill ${readFilters.view ? 'active' : ''}`}
+                     style={{ height: '32px', padding: '0 16px', fontSize: '12px' }}
+                   >ยอดวิว</button>
+                   <button
+                     onClick={() => setReadFilters(prev => ({ ...prev, engagement: !prev.engagement }))}
+                     className={`btn-pill ${readFilters.engagement ? 'active' : ''}`}
+                     style={{ height: '32px', padding: '0 16px', fontSize: '12px' }}
+                   >เอนเกจเมนต์</button>
+                 </div>
+               )}
+               
+               {readArchive.length === 0 ? (
+                 <div className="reader-empty-state">
+                    <BookOpen size={48} style={{ opacity: 0.2, margin: '0 auto 16px' }} />
+                    <p>ยังไม่มีบทความในห้องสมุดของคุณ</p>
+                    <button onClick={() => setActiveView('home')} className="reader-explore-btn">สำรวจข่าววันนี้</button>
+                 </div>
+               ) : (
+                 <div className="feed-grid">
+                   {[...readArchive]
+                     .sort((a, b) => {
+                       if (!readFilters.view && !readFilters.engagement) return 0;
+                       const engagementA = (parseInt(a.retweet_count) || 0) + (parseInt(a.reply_count) || 0) + (parseInt(a.like_count) || 0);
+                       const engagementB = (parseInt(b.retweet_count) || 0) + (parseInt(b.reply_count) || 0) + (parseInt(b.like_count) || 0);
+                       const scoreA = (readFilters.view ? (parseInt(a.view_count) || 0) : 0) + (readFilters.engagement ? engagementA : 0);
+                       const scoreB = (readFilters.view ? (parseInt(b.view_count) || 0) : 0) + (readFilters.engagement ? engagementB : 0);
+                       return scoreB - scoreA;
+                     })
+                     .map((item, idx) => (
+                       <FeedCard key={item.id || idx} 
+                         tweet={item} 
+                         isBookmarked={bookmarks.some(b => b.id === item.id)}
+                         onBookmark={handleBookmark}
+                         onElevate={async (it) => {
+                          setStatus('กำลังวิเคราะห์ข้อมูลเชิงลึก...');
+                          const research = await researchContext(it.text);
+                          setReadArchive(prev => prev.map(p => p.id === it.id ? {...p, summary: `${p.summary}\n\n[DEEP INTEL]: ${research}`} : p));
+                          setStatus('วิเคราะห์เชิงลึกเสร็จสิ้น');
+                         }}
+                         onArticleGen={(it) => setForgeTarget(it)}
+                       />
+                     ))
+                   }
+                 </div>
+               )}
+            </div>
+          )}
+
+
+          {/* ===== AUDIENCE VIEW: SMART TARGET DISCOVERY ===== */}
+          {activeView === 'audience' && (() => {
+            const CATEGORIES = [
+              { icon: '⚙️', label: 'เทคโนโลยี' }, { icon: '🤖', label: 'AI' },
+              { icon: '💼', label: 'ธุรกิจ' }, { icon: '📈', label: 'การตลาด' },
+              { icon: '💹', label: 'การเงิน' }, { icon: '📊', label: 'การลงทุน' },
+              { icon: '₿', label: 'คริปโต' }, { icon: '🏥', label: 'สุขภาพ' },
+              { icon: '🌿', label: 'ไลฟ์สไตล์' }, { icon: '🌐', label: 'เศรษฐกิจ' },
+              { icon: '🏛️', label: 'การเมือง' }, { icon: '🧠', label: 'การพัฒนาตัวเอง' },
+            ];
+
+            const handleAiSearch = async (q) => {
+              const query = q || aiQuery;
+              if (!query.trim()) return;
+              setAiSearchLoading(true);
+              setAiSearchResults([]);
+              try {
+                const expanded = await expandSearchQuery(query);
+                const results = await searchEverything(expanded || query, 'top', 8);
+                setAiSearchResults(results || []);
+              } catch (e) {
+                console.error('AI search error', e);
+              } finally {
+                setAiSearchLoading(false);
+              }
+            };
+
+            const handleManualSearch = async (e) => {
+              e.preventDefault();
+              if (!manualQuery.trim()) return;
+              setManualLoading(true);
+              setManualPreview(null);
+              try {
+                const data = await getUserInfo(manualQuery.trim());
+                setManualPreview(data);
+              } catch (err) {
+                alert(`ไม่พบผู้ใช้: ${err.message || 'เกิดข้อผิดพลาด'}`);
+              } finally {
+                setManualLoading(false);
+              }
+            };
+
+            const handleAddUser = (user) => {
+              if (!watchlist.find(w => w.id === user.id)) {
+                setWatchlist(prev => [...prev, user]);
+              }
+              setManualPreview(null);
+              setManualQuery('');
+            };
+
+            return (
+              <div className="animate-fade-in">
+                <header style={{ marginBottom: '28px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '22px' }}>⚡</span>
+                    <h1 style={{ fontSize: '28px', fontWeight: '800', letterSpacing: '-0.03em' }}>Smart Target Discovery</h1>
+                  </div>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginLeft: '32px' }}>ค้นหาและเพิ่มแหล่งข้อมูลที่ตรงกับความสนใจของคุณ</p>
+                </header>
+
+                {/* TAB SWITCHER */}
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '28px', padding: '4px', background: 'var(--bg-800)', borderRadius: '10px', width: 'fit-content' }}>
+                  <button
+                    onClick={() => setAudienceTab('ai')}
+                    style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s',
+                      background: audienceTab === 'ai' ? 'var(--accent-gradient)' : 'transparent',
+                      color: audienceTab === 'ai' ? '#fff' : 'var(--text-muted)',
+                      boxShadow: audienceTab === 'ai' ? '0 4px 12px var(--accent-glow-blue)' : 'none',
+                    }}
+                  >
+                    ✨ แนะนำโดย AI
+                  </button>
+                  <button
+                    onClick={() => setAudienceTab('manual')}
+                    style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s',
+                      background: audienceTab === 'manual' ? 'var(--bg-700)' : 'transparent',
+                      color: audienceTab === 'manual' ? '#fff' : 'var(--text-muted)',
+                    }}
+                  >
+                    🔍 ค้นเอง
+                  </button>
+                </div>
+
+                {/* AI TAB */}
+                {audienceTab === 'ai' && (
+                  <div className="animate-fade-in">
+                    <div style={{ display: 'flex', gap: '12px', marginBottom: '32px', maxWidth: '680px' }}>
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg-800)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '12px 16px' }}>
+                        <span style={{ fontSize: '16px' }}>🎯</span>
+                        <input
+                          type="text"
+                          placeholder="ฉันอยากติดตามเรื่องเทคโนโลยี AI และแนะนำว่าควรติดตามใคร"
+                          value={aiQuery}
+                          onChange={e => setAiQuery(e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && handleAiSearch()}
+                          style={{ background: 'transparent', border: 'none', color: '#fff', flex: 1, fontSize: '14px', outline: 'none' }}
+                        />
+                      </div>
+                      <button
+                        onClick={() => handleAiSearch()}
+                        disabled={aiSearchLoading}
+                        style={{ background: 'var(--accent-gradient)', color: '#fff', border: 'none', borderRadius: '12px', padding: '0 24px', fontWeight: '800', fontSize: '13px', letterSpacing: '0.05em', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 4px 16px var(--accent-glow-blue)', whiteSpace: 'nowrap' }}
+                      >
+                        {aiSearchLoading ? <RefreshCw size={15} className="animate-spin" /> : null}
+                        SEARCH →
+                      </button>
+                    </div>
+
+                    {aiSearchResults.length > 0 && (
+                      <div style={{ marginBottom: '32px' }}>
+                        <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px', fontWeight: '600' }}>ผลการค้นหาจาก AI</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+                          {aiSearchResults.map((user, i) => (
+                            <div key={i} style={{ background: 'var(--bg-800)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                              <img src={user.profile_image_url || user.avatar} alt="" style={{ width: '56px', height: '56px', borderRadius: '50%', marginBottom: '10px', objectFit: 'cover' }} />
+                              <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '2px', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
+                              <div style={{ color: 'var(--text-muted)', fontSize: '12px', marginBottom: '12px' }}>@{user.username}</div>
+                              <button
+                                onClick={() => { if (!watchlist.find(w => w.id === user.id)) setWatchlist(prev => [...prev, user]); }}
+                                disabled={!!watchlist.find(w => w.id === user.id)}
+                                style={{ background: watchlist.find(w => w.id === user.id) ? 'var(--bg-700)' : 'var(--accent-gradient)', color: '#fff', border: 'none', borderRadius: '8px', padding: '6px 16px', fontSize: '12px', fontWeight: '700', cursor: watchlist.find(w => w.id === user.id) ? 'default' : 'pointer', width: '100%' }}
+                              >
+                                {watchlist.find(w => w.id === user.id) ? '✓ ติดตามแล้ว' : '+ เพิ่ม'}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '28px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '700', textAlign: 'center', marginBottom: '20px', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>
+                        ▌ ลองติดตามผู้เชี่ยวชาญจากหมวดหมู่ที่คุณสนใจ ▌
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
+                        {CATEGORIES.map(cat => (
+                          <button
+                            key={cat.label}
+                            onClick={() => { setAiQuery(cat.label); handleAiSearch(cat.label); }}
+                            style={{ background: 'var(--bg-800)', border: '1px solid var(--glass-border)', borderRadius: '10px', padding: '16px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer', transition: 'all 0.2s', color: 'var(--text-muted)', fontSize: '13px', fontWeight: '500' }}
+                            onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--accent-blue)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'var(--bg-700)'; }}
+                            onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'var(--bg-800)'; }}
+                          >
+                            <span style={{ fontSize: '22px' }}>{cat.icon}</span>
+                            <span>{cat.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* MANUAL TAB */}
+                {audienceTab === 'manual' && (
+                  <div className="animate-fade-in" style={{ maxWidth: '560px' }}>
+                    <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '20px' }}>ค้นหาด้วย X Username โดยตรง</div>
+                    <form onSubmit={handleManualSearch} style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg-800)', border: '1px solid var(--glass-border)', borderRadius: '10px', padding: '10px 16px' }}>
+                        <Search size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                        <input
+                          type="text"
+                          placeholder="กรอก X Username (เช่น elonmusk)"
+                          value={manualQuery}
+                          onChange={e => setManualQuery(e.target.value)}
+                          style={{ background: 'transparent', border: 'none', color: '#fff', flex: 1, fontSize: '14px', outline: 'none' }}
+                          autoFocus
+                        />
+                      </div>
+                      <button type="submit" disabled={manualLoading} className="btn-sync-premium" style={{ height: '44px', padding: '0 24px', flexShrink: 0 }}>
+                        {manualLoading ? <RefreshCw size={15} className="animate-spin" /> : <Search size={15} />}
+                        ค้นหา
+                      </button>
+                    </form>
+
+                    {manualPreview && (
+                      <div style={{ background: 'var(--bg-800)', border: '1px solid var(--card-border)', borderRadius: '16px', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '24px' }}>
+                        <img src={manualPreview.profile_image_url} alt="" style={{ width: '72px', height: '72px', borderRadius: '50%', border: '3px solid var(--bg-700)', flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontWeight: '700', fontSize: '18px', marginBottom: '4px' }}>{manualPreview.name}</div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '14px', marginBottom: '12px' }}>@{manualPreview.username}</div>
+                          {manualPreview.description && <div style={{ fontSize: '13px', color: 'var(--text-dim)', lineHeight: '1.5' }}>{manualPreview.description}</div>}
+                        </div>
+                        <button
+                          onClick={() => handleAddUser(manualPreview)}
+                          disabled={!!watchlist.find(w => w.id === manualPreview.id)}
+                          style={{ background: watchlist.find(w => w.id === manualPreview.id) ? 'var(--bg-700)' : 'var(--accent-gradient-orange)', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 24px', fontWeight: '700', fontSize: '14px', cursor: watchlist.find(w => w.id === manualPreview.id) ? 'default' : 'pointer', flexShrink: 0 }}
+                        >
+                          {watchlist.find(w => w.id === manualPreview.id) ? '✓ ติดตามแล้ว' : '+ เพิ่ม'}
+                        </button>
+                      </div>
+                    )}
+
+                    {watchlist.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '12px' }}>บัญชีที่ติดตามอยู่ ({watchlist.length})</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {watchlist.map(u => (
+                            <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '10px', background: 'var(--bg-800)' }}>
+                              <img src={u.profile_image_url} alt="" style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontWeight: '600', fontSize: '14px' }}>{u.name}</div>
+                                <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>@{u.username}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+
+          {/* ===== FOLLOWING VIEW ===== */}
+          {activeView === 'following' && (
+            <div className="animate-fade-in">
+              <header className="dashboard-header" style={{ marginBottom: '8px' }}>
+                <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px' }}>บัญชีที่คุณกำลังติดตาม</h1>
+                <p style={{ color: 'var(--text-muted)' }}>ผู้คนล่าสุดที่ติดตามข่าวสาร</p>
+              </header>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '16px', marginTop: '24px' }}>
+                {watchlist.map(user => (
+                  <UserCard
+                    key={user.id}
+                    user={user}
+                    onRemove={handleRemoveAccountGlobal}
+                  />
+                ))}
+                {watchlist.length === 0 && (
+                  <div style={{ padding: '60px 0', textAlign: 'center', color: 'var(--text-muted)', gridColumn: '1 / -1', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '16px' }}>
+                    ยังไม่ได้ติดตามบัญชีใด — ค้นหาและเพิ่มได้จากแถบด้านขวา
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ===== BOOKMARKS VIEW ===== */}
+          {activeView === 'bookmarks' && (
+            <div className="animate-fade-in">
+              <header className="dashboard-header" style={{ marginBottom: '32px' }}>
+                <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px' }}>Bookmarks</h1>
+                <p style={{ color: 'var(--text-muted)' }}>ข่าวและบทความที่บันทึกไว้สำหรับอ่านภายหลัง</p>
+              </header>
+              
+              {bookmarks.length === 0 ? (
+                <div style={{ padding: '80px 0', textAlign: 'center', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', color: 'var(--text-muted)' }}>
+                  ยังไม่มีบทความที่บันทึกไว้ในขณะนี้
+                </div>
+              ) : (
+                <div className="feed-grid">
+                  {bookmarks.map((item, idx) => (
+                    <FeedCard key={item.id || idx} 
+                      tweet={item} 
+                      isBookmarked={true}
+                      onBookmark={handleBookmark}
+                      onElevate={async (it) => {
+                        setStatus('กำลังวิเคราะห์ข้อมูลเชิงลึก...');
+                        const research = await researchContext(it.text);
+                        setBookmarks(prev => prev.map(p => p.id === it.id ? {...p, summary: `${p.summary}\n\n[DEEP INTEL]: ${research}`} : p));
+                        setStatus('วิเคราะห์เชิงลึกเสร็จสิ้น');
+                      }}
+                      onArticleGen={(it) => setForgeTarget(it)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
       </main>
 
       {forgeTarget && !generatedContent && (
@@ -631,10 +1166,10 @@ const App = () => {
             </div>
 
             <div style={{ marginTop: '20px' }}>
-              <div className="section-label">Custom Command</div>
+              <div className="section-label">คำสั่งแบบกำหนดเอง</div>
               <textarea 
                 className="custom-forge-input"
-                placeholder="Enter custom forging protocol (e.g., 'Write in aggressive VC style')..."
+                placeholder="ใส่คำสั่งพิเศษ (เช่น 'เขียนสไตล์นักวิเคราะห์เชิงลึก' หรือ 'สรุปเป็นข้อๆ')..."
                 value={forgeOptions.customPrompt}
                 onChange={(e) => setForgeOptions({...forgeOptions, customPrompt: e.target.value})}
               />
@@ -644,7 +1179,7 @@ const App = () => {
                 className="forge-action-btn"
               >
                 {isForging ? <Loader2 className="animate-spin" /> : <Sparkles size={16} />}
-                Forge New Intelligence
+                เริ่มสร้างคอนเทนต์
               </button>
             </div>
           </div>
@@ -663,7 +1198,7 @@ const App = () => {
             <input 
               className="custom-forge-input"
               style={{ minHeight: 'auto', marginBottom: '20px' }}
-              placeholder={listModal.mode === 'create' ? "ชื่อรายการติดตาม (เช่น คริปโต, การเมือง, เทคโนโลยี)" : "วางข้อมูลบัญชีหรือไฟล์รายชื่อที่นี่..."}
+              placeholder={listModal.mode === 'create' ? "ชื่อรายการติดตาม (เช่น คริปโต, การเมือง, เทคโนโลยี)" : "วางรหัสแชร์รายการที่นี่..."}
               value={listModal.value}
               onChange={(e) => setListModal({ ...listModal, value: e.target.value })}
               autoFocus
@@ -686,28 +1221,43 @@ const App = () => {
                 <Sparkles size={24} className="text-accent" /> AI Filter
              </h2>
              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>Define filtration parameters for the Matrix...</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: 0 }}>กำหนดเงื่อนไขและคีย์เวิร์ดสำหรับการคัดกรองข่าว...</p>
                 <span style={{ fontSize: '10px', color: 'var(--accent-secondary)', fontWeight: '800', background: 'rgba(0,112,243,0.1)', padding: '4px 8px', borderRadius: '4px' }}>MODEL: GROK 4.1</span>
              </div>
              <textarea 
                 className="custom-forge-input"
-                placeholder="e.g., 'Signals related to Layer 2 and ZK Proofs' or 'High sentiment geopolitical shifts'..."
+                placeholder="เช่น 'ข่าวที่เกี่ยวกับ Layer 2 และ ZK Proofs' หรือ 'ข่าวการเมืองที่สำคัญ'..."
                 value={filterModal.prompt}
                 onChange={(e) => setFilterModal({ ...filterModal, prompt: e.target.value })}
                 autoFocus
              />
              <button onClick={handleAiFilter} className="forge-action-btn">
-                <Filter size={16} /> EXECUTE FILTRATION
+                <Filter size={16} /> เริ่มคัดกรองข้อมูล
              </button>
           </div>
         </div>
       )}
 
       {status && (loading || status.startsWith('FORO') || status.startsWith('Matrix')) && (
-        <div style={{ position: 'fixed', bottom: '32px', right: '32px', background: 'white', color: 'black', padding: '10px 20px', borderRadius: '100px', fontSize: '11px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', zIndex: 2000 }}>
+        <div style={{ position: 'fixed', bottom: '32px', right: '350px', background: 'white', color: 'black', padding: '10px 20px', borderRadius: '100px', fontSize: '11px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', zIndex: 2000 }}>
           {status}
         </div>
       )}
+
+      <RightSidebar 
+        watchlist={watchlist} 
+        postLists={postLists}
+        activeListId={activeListId}
+        onSelectList={setActiveListId}
+        onCreateList={() => setListModal({ show: true, mode: 'create', value: '' })}
+        onImportList={() => setListModal({ show: true, mode: 'import', value: '' })}
+        onRemoveList={handleRemoveList}
+        onAddMember={handleAddMember}
+        onRemoveMember={handleRemoveMember}
+        onUpdateList={handleUpdateList}
+        onShareList={handleShareList}
+        onRemoveAccount={handleRemoveAccountGlobal}
+      />
     </div>
   );
 };
