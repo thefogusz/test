@@ -139,10 +139,10 @@ const CreateContent = ({ sourceNode, onRemoveSource }) => {
       // If we have an attached source from Feed
       let factIntel = '';
       if (sourceNode) {
-        factIntel = `[แหล่งข้อมูลอ้างอิงหลักจาก @${sourceNode.author?.username}]:\n${sourceNode.summary || sourceNode.text}\n\n`;
+        factIntel = `[ATTACHED INTEL - ข้อมูลตั้งต้นที่แนบมา]\nหัวข้อ: ${sourceNode.title || 'ไม่มีหัวข้อ'}\nเนื้อหา: ${sourceNode.summary || sourceNode.text}\nแหล่งที่มา: @${sourceNode.author?.username || 'Unknown'}\n\n`;
       }
       
-      const combinedInputForResearch = `${factIntel}คำสั่งแบบกำหนดเอง: ${input}`;
+      const combinedInputForResearch = `${factIntel}คำสั่ง/ประเด็นหลักที่ต้องการ: ${input}`;
 
       // 1. Research Phase
       const facts = await researchAndPreventHallucination(combinedInputForResearch);
@@ -388,6 +388,16 @@ const CreateContent = ({ sourceNode, onRemoveSource }) => {
         <div style={{ textAlign: 'center', marginTop: '20px', color: 'var(--text-muted)', fontSize: '14px', animation: 'pulse 2s infinite', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
           <Loader2 size={16} className="spinner text-accent" /> 
           {phase === 'researching' ? 'AI กำลังค้นหาข้อมูลอ้างอิงและ Fact-check แบบเรียลไทม์...' : 'กำลังวิเคราะห์รูปแบบและเรียบเรียงเนื้อหาเป็น ' + format + '...'}
+        </div>
+      )}
+
+      {/* Error Message Display */}
+      {error && !isGenerating && (
+        <div style={{ marginTop: '24px', padding: '16px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', display: 'flex', alignItems: 'center', gap: '12px', fontSize: '14px', animation: 'fadeIn 0.3s ease-out' }}>
+          <ShieldCheck size={20} />
+          <div>
+            <strong>เกิดข้อผิดพลาด:</strong> {error}
+          </div>
         </div>
       )}
 

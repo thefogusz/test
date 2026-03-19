@@ -1,7 +1,6 @@
 const XAI_API_KEY = import.meta.env.VITE_XAI_API_KEY;
-const XAI_MULTIAGENT_API_KEY = import.meta.env.VITE_XAI_MULTIAGENT_API_KEY || XAI_API_KEY;
-const MODEL_NON_REASONING = 'grok-4-1-fast-non-reasoning'; // Grok 4.1 Fast (Non-Reasoning)
-const MODEL_REASONING = 'grok-4.20-multi-agent-beta-0309'; // Grok 4.2 Multiagent (Replaces old reasoning model)
+const MODEL_NON_REASONING = 'grok-4.20-0309-non-reasoning'; // Grok 4.20 Fast
+const MODEL_REASONING = 'grok-4.20-0309-reasoning'; // Grok 4.20 Expert
 const BASE_URL = 'https://api.x.ai/v1/chat/completions';
 
 const SUMMARIZATION_RULES = `
@@ -62,16 +61,13 @@ const safeJsonParse = (str, fallback = []) => {
   }
 };
 
-const callGrok = async (systemPrompt, userPrompt, modelName, isJson = false, tools = null) => {
-  const isMultiAgent = modelName.includes('multi-agent');
-  const apiKeyToUse = isMultiAgent ? XAI_MULTIAGENT_API_KEY : XAI_API_KEY;
-  
+const callGrok = async (systemPrompt, userPrompt, modelName, isJson = false) => {
   try {
     const response = await fetch(BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKeyToUse}`
+        'Authorization': `Bearer ${XAI_API_KEY}`
       },
       body: JSON.stringify({
         model: modelName,
@@ -80,8 +76,7 @@ const callGrok = async (systemPrompt, userPrompt, modelName, isJson = false, too
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.7,
-        ...(isJson ? { response_format: { type: 'json_object' } } : {}),
-        ...(tools ? { tools: tools } : {})
+        ...(isJson ? { response_format: { type: 'json_object' } } : {})
       })
     });
 
@@ -277,35 +272,20 @@ export const researchAndPreventHallucination = async (input) => {
   2. YOU MUST USE YOUR NATIVE 'x_search' to scan Twitter/X for the current public sentiment, trending opinions, and related posts.
   
   RULES:
-  1. Act as the bridge between user intent and truth. Combine live web facts with live X/Twitter sentiments.
-  2. Synthesize a comprehensive "Live Fact & Sentiment Sheet" covering reality, history, and the current social vibe.
-  3. ALWAYS list actionable sources and specific X accounts/trends at the end to prove zero-hallucination.
-  4. The output MUST be in Thai and highly structured with bullet points.
-  5. DO NOT write the final article. ONLY provide the Fact & Sentiment Sheet.`;
+  RULES:
+  1. Act as the bridge between user intent and truth. Synthesize the most up-to-date information utilizing your massive internal knowledge base (up to 2026).
+  2. **CRITICAL FOR [ATTACHED INTEL]**: If the user provides [ATTACHED INTEL], you MUST NOT accept it blindly. You must heavily cross-reference its claims against global X (Twitter) sentiment, popularity, and credibility. Verify if it is a verified fact, a rumor, or heavily disputed. Search for alternative viewpoints and related discussions.
+  3. Synthesize a comprehensive "Fact & Sentiment Sheet" covering:
+     - The verified reality of the topic.
+     - X/Twitter Sentiment & Popularity (Are people supporting it? What are the counter-arguments?).
+  4. ALWAYS list actionable sources WITH THEIR ACTUAL URL LINKS. YOU MUST PROVIDE EXACT DEEP-LINKS (e.g., https://.../article-name-here) OR SPECIFIC SEARCH LINKS (e.g., https://www.google.com/search?q=XYZ or https://twitter.com/search?q=XYZ). 
+  NEVER provide generic homepage links (like https://twitter.com or https://coinmarketcap.com). If you don't know the exact article URL, you MUST generate a specific Google Search URL that links directly to the topic to prove zero-hallucination.
+  5. The output MUST be in Thai and highly structured with bullet points.
+  6. DO NOT write the final article. ONLY provide the Fact & Sentiment Sheet.`;
 
-  const userMsg = `Input data to research: "${input}"\nGenerate a Live Fact & Sentiment Sheet. Trigger your internal web_search and x_search capabilities now.`;
-  
-  // Instruct xAI backend to enable these native tools with strict JSON schema
-  const nativeTools = [
-    { 
-      type: "function", 
-      function: { 
-        name: "web_search", 
-        description: "Search the global internet for real-time facts",
-        parameters: { type: "object", properties: {}, required: [] }
-      } 
-    },
-    { 
-      type: "function", 
-      function: { 
-        name: "x_search", 
-        description: "Search X/Twitter platform for real-time sentiments and viral posts",
-        parameters: { type: "object", properties: {}, required: [] }
-      } 
-    }
-  ];
+  const userMsg = `Input data to research:\n${input}\n\nGenerate a Deep Cross-Referenced Fact & Sentiment Sheet.`;
 
-  return await callGrok(systemPrompt, userMsg, MODEL_NON_REASONING, false, nativeTools);
+  return await callGrok(systemPrompt, userMsg, MODEL_NON_REASONING, false);
 };
 
 export const generateStructuredContent = async (factSheet, length, tone, format) => {
@@ -319,7 +299,7 @@ export const generateStructuredContent = async (factSheet, length, tone, format)
   3. Benjamin Logic: Ensure the structure is perfectly sound and the reasoning flows naturally.
   
   --- ORCHESTRATION INSTRUCTIONS ---
-  Goal: ${promptGoal}
+  Goal: Generate the ultimate content strictly utilizing the provided Fact Sheet.
   Target Length: ${length}
   Target Tone: ${tone}
   Target Format: ${format}
@@ -331,7 +311,7 @@ export const generateStructuredContent = async (factSheet, length, tone, format)
   
   CRITICAL MISSION RULES (For Harper & Captain Grok):
   1. ZERO HALLUCINATION: All substantive claims MUST strictly originate from the provided Fact Sheet.
-  2. MANDATORY CITATION: You absolutely must include a "แหล่งที่มาอ้างอิง" (Sources) section at the very end, extracting sources from the Fact Sheet.
+  2. MANDATORY CITATION: You absolutely must include a "แหล่งที่มาอ้างอิง" (Sources) section at the very end, extracting sources from the Fact Sheet. YOU MUST INCLUDE ACTUAL CLICKABLE DEEP-LINKS (https://...) for every source. NEVER USE GENERIC HOMEPAGES. If you do not have the exact article link, generate a precise Google Search link (https://www.google.com/search?q=...) or Twitter Search link. Format them as Markdown links if possible.
   3. OUTPUT: Output only the final synthesized Thai Markdown content. Do not output the internal debate.`;
 
   const userMsg = `[FACT SHEET เริ่มต้น]\n${factSheet}\n[FACT SHEET สิ้นสุด]\n\nโปรดสร้างคอนเทนต์ตามข้อกำหนดด้านบนด้วยภาษาไทยที่สละสลวย เป็นมืออาชีพ พร้อมใช้งานทันที.`;
