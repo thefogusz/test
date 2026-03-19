@@ -1,0 +1,453 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Sparkles, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Wand2, Plus, ArrowRight, Loader2, Info, ChevronDown, Smile, Maximize2, X } from 'lucide-react';
+import { researchAndPreventHallucination, generateStructuredContent } from '../services/GrokService';
+import { marked } from 'marked';
+
+const FORMAT_OPTIONS = [
+  { id: 'โพสต์โซเชียล', title: 'โพสต์โซเชียล', icon: MessageSquare },
+  { id: 'สคริปต์วิดีโอสั้น', title: 'วิดีโอสั้น / Reels', icon: ListVideo },
+  { id: 'บทความ SEO / บล็อก', title: 'บทความ Blog/SEO', icon: FileText },
+  { id: 'โพสต์ให้ความรู้ (Thread)', title: 'X Thread', icon: Hash },
+];
+
+const TONE_OPTIONS = ['ให้ข้อมูล/ปกติ', 'กระตือรือร้น/ไวรัล', 'ทางการ/วิชาการ', 'เป็นกันเอง/เพื่อนเล่าให้ฟัง', 'ตลก/มีอารมณ์ขัน', 'ดุดัน/วิจารณ์เชิงลึก', 'ฮาร์ดเซลล์/ขายของ'];
+const LENGTH_OPTIONS = ['สั้น กระชับ', 'ขนาดกลาง (มาตรฐาน)', 'ยาว แบบเจาะลึก'];
+
+const CustomDropdown = ({ icon: Icon, value, onChange, options, isObject }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectedTitle = isObject ? options.find(o => o.id === value)?.title : value;
+
+  return (
+    <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block' }}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          background: isOpen ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
+          border: '1px solid',
+          borderColor: isOpen ? 'var(--accent-secondary)' : 'var(--glass-border)',
+          borderRadius: '100px', color: '#fff',
+          padding: '8px 16px', fontSize: '13px', fontWeight: '600',
+          cursor: 'pointer', outline: 'none', transition: 'all 0.2s',
+          fontFamily: 'inherit'
+        }}
+        onMouseOver={(e) => { 
+          if(!isOpen) { 
+            e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; 
+            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; 
+          } 
+        }}
+        onMouseOut={(e) => { 
+          if(!isOpen) { 
+            e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; 
+            e.currentTarget.style.borderColor = 'var(--glass-border)'; 
+          } 
+        }}
+      >
+        <Icon size={14} style={{ color: isOpen ? 'var(--accent-secondary)' : 'var(--text-dim)' }} />
+        {selectedTitle}
+        <ChevronDown size={14} style={{ color: 'var(--text-dim)', marginLeft: '4px', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+      </button>
+
+      {isOpen && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 8px)', left: 0,
+          background: 'var(--bg-800)', border: '1px solid var(--glass-border)',
+          borderRadius: '16px', padding: '8px', minWidth: '220px',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.6)', zIndex: 100,
+          display: 'flex', flexDirection: 'column', gap: '4px',
+          animation: 'fadeIn 0.15s ease-out'
+        }}>
+          {options.map(opt => {
+            const optValue = isObject ? opt.id : opt;
+            const optTitle = isObject ? opt.title : opt;
+            const OptIcon = isObject ? opt.icon : null;
+            const isSelected = optValue === value;
+            
+            return (
+              <button
+                key={optValue}
+                onClick={() => { onChange(optValue); setIsOpen(false); }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  width: '100%', padding: '10px 12px',
+                  background: isSelected ? 'rgba(41, 151, 255, 0.1)' : 'transparent',
+                  color: isSelected ? 'var(--accent-secondary)' : '#fff',
+                  border: 'none', borderRadius: '8px',
+                  fontSize: '13px', fontWeight: isSelected ? '700' : '500',
+                  cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s',
+                  fontFamily: 'inherit'
+                }}
+                onMouseOver={(e) => { if(!isSelected) e.currentTarget.style.background = 'rgba(255,255,255,0.05)' }}
+                onMouseOut={(e) => { if(!isSelected) e.currentTarget.style.background = 'transparent' }}
+              >
+                {OptIcon && <OptIcon size={14} />}
+                {optTitle}
+                {isSelected && <CheckCircle2 size={14} style={{ marginLeft: 'auto' }} />}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const CreateContent = ({ sourceNode, onRemoveSource }) => {
+  const [input, setInput] = useState('');
+  
+  // Settings
+  const [length, setLength] = useState('ขนาดกลาง (มาตรฐาน)');
+  const [tone, setTone] = useState('ให้ข้อมูล/ปกติ');
+  const [format, setFormat] = useState('โพสต์โซเชียล');
+  const [customInstructions, setCustomInstructions] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Generation state
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [phase, setPhase] = useState('idle'); // 'idle', 'researching', 'generating', 'done'
+  const [factSheet, setFactSheet] = useState(null);
+  const [generatedMarkdown, setGeneratedMarkdown] = useState('');
+  const [error, setError] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleGenerate = async () => {
+    const isManualInputValid = input.trim().length > 0;
+    const hasSource = !!sourceNode;
+    
+    if (!isManualInputValid && !hasSource) return;
+
+    setIsGenerating(true);
+    setFactSheet(null);
+    setGeneratedMarkdown('');
+    setError(null);
+    setPhase('researching');
+    
+    try {
+      // If we have an attached source from Feed
+      let factIntel = '';
+      if (sourceNode) {
+        factIntel = `[แหล่งข้อมูลอ้างอิงหลักจาก @${sourceNode.author?.username}]:\n${sourceNode.summary || sourceNode.text}\n\n`;
+      }
+      
+      const combinedInputForResearch = `${factIntel}คำสั่งแบบกำหนดเอง: ${input}`;
+
+      // 1. Research Phase
+      const facts = await researchAndPreventHallucination(combinedInputForResearch);
+      setFactSheet(facts);
+      setPhase('generating');
+
+      // 2. Generation Phase
+      const appliedTone = customInstructions ? `${tone} (คำสั่งพิเศษ: ${customInstructions})` : tone;
+      
+      const content = await generateStructuredContent(
+        facts,
+        length,
+        appliedTone,
+        format
+      );
+      
+      setGeneratedMarkdown(content);
+      setPhase('done'); // Done
+      
+      // Auto-scroll to result gracefully only after it's done
+      setTimeout(() => {
+        const resEl = document.getElementById('content-result');
+        if (resEl) resEl.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+
+    } catch (err) {
+      console.error('Generation Error:', err);
+      setError('เกิดข้อผิดพลาดในการสร้างคอนเทนต์ ขออภัยในความไม่สะดวก');
+      setPhase('done');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const copyToClipboard = () => {
+    if (!generatedMarkdown) return;
+    navigator.clipboard.writeText(generatedMarkdown);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const clearForm = () => {
+    setInput('');
+    setCustomInstructions('');
+    setShowAdvanced(false);
+    setPhase('idle');
+    setGeneratedMarkdown('');
+    setFactSheet(null);
+    setError(null);
+  };
+
+  return (
+    <div style={{ padding: '0 20px 40px', maxWidth: '840px', margin: '0 auto', color: '#fff', animation: 'fadeIn 0.3s ease-out' }}>
+      
+      {/* Compact Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', marginTop: '10px' }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '800', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Sparkles className="text-accent" size={24} /> สร้างคอนเทนต์
+          </h1>
+          <p style={{ color: 'var(--text-dim)', margin: '4px 0 0', fontSize: '14px' }}>
+            เปลี่ยนไอเดียให้เป็นคอนเทนต์ระดับมืออาชีพ พร้อม Zero-Hallucination
+          </p>
+        </div>
+        {generatedMarkdown && (
+          <button onClick={clearForm} className="btn-mini-ghost" style={{ padding: '8px 16px' }}>
+            <Plus size={14} /> สร้างคอนเทนต์ใหม่
+          </button>
+        )}
+      </div>
+
+      {/* Unified Editor Interface */}
+      <div style={{ 
+        background: 'var(--bg-800)', 
+        borderRadius: '20px',
+        border: '1px solid var(--card-border)',
+        boxShadow: '0 12px 40px rgba(0,0,0,0.3)',
+        /* Removed overflow: hidden because it clips the dropdown menus */
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative'
+      }}>
+        
+        {/* Attached Source Notification Area */}
+        {sourceNode && (
+          <div style={{ 
+            background: 'linear-gradient(90deg, rgba(41, 151, 255, 0.1), transparent)', 
+            borderBottom: '1px solid var(--glass-border)', 
+            padding: '16px 24px', 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'flex-start',
+            animation: 'fadeIn 0.3s ease-out'
+          }}>
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+              <div style={{ 
+                background: 'rgba(41, 151, 255, 0.2)', padding: '10px', 
+                borderRadius: '12px', color: 'var(--accent-secondary)' 
+              }}>
+                <Sparkles size={20} />
+              </div>
+              <div>
+                <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--accent-secondary)', letterSpacing: '0.05em', marginBottom: '4px' }}>
+                  แหล่งข้อมูลอ้างอิงแนบมาแล้ว (ATTACHED INTEL)
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <img 
+                    src={sourceNode.author?.profile_image_url} 
+                    alt="" 
+                    style={{ width: '20px', height: '20px', borderRadius: '50%' }}
+                    onError={e => { e.target.style.display = 'none'; }}
+                  />
+                  <div style={{ fontSize: '14px', color: '#fff', fontWeight: '500' }}>@{sourceNode.author?.username}</div>
+                </div>
+                <div style={{ color: 'var(--text-dim)', fontSize: '13px', marginTop: '4px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  "{sourceNode.summary || sourceNode.text}"
+                </div>
+              </div>
+            </div>
+            <button onClick={onRemoveSource} className="icon-btn" style={{ padding: '8px', color: 'var(--text-muted)' }}>
+              <X size={18} />
+            </button>
+          </div>
+        )}
+
+        {/* Huge Main Input Area */}
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder={sourceNode ? "คุณต้องการให้สร้างคอนเทนต์รูปแบบไหน หรือเน้นย้ำประเด็นใดเป็นพิเศษ? (ระบุเพิ่มเติมได้)..." : "คุณอยากเล่าเรื่องอะไร? (วางลิงก์ข่าว, เรื่องย่อ, หรือพิมพ์ไอเดียที่นี่หัวข้อเดียวจบ...)"}
+          disabled={isGenerating}
+          style={{ 
+            width: '100%', minHeight: sourceNode ? '160px' : '240px', resize: 'vertical', fontSize: '16px', lineHeight: '1.6',
+            padding: '24px', background: 'transparent', border: 'none', color: '#ffffff', outline: 'none',
+            fontFamily: 'inherit'
+          }}
+        />
+
+        {/* Optional Custom Instructions Ribbon */}
+        {showAdvanced && (
+           <div style={{ padding: '0 24px 16px', animation: 'fadeIn 0.2s ease-out', position: 'relative' }}>
+             <input
+               type="text"
+               placeholder="📝 คำสั่งเพิ่มเติม (เช่น เน้นคำพาดหัวแรงๆ, ใส่ Emoji เยอะๆ, แปะช่องทางติดต่อ...)"
+               value={customInstructions}
+               onChange={(e) => setCustomInstructions(e.target.value)}
+               disabled={isGenerating}
+               autoFocus
+               style={{
+                 width: '100%', padding: '12px 40px 12px 16px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)',
+                 borderRadius: '12px', color: '#fff', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s'
+               }}
+               onFocus={(e) => e.target.style.borderColor = 'var(--accent-secondary)'}
+               onBlur={(e) => e.target.style.borderColor = 'var(--glass-border)'}
+             />
+             <button 
+               onClick={() => { setShowAdvanced(false); setCustomInstructions(''); }}
+               style={{ position: 'absolute', right: '36px', top: '12px', background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}
+             >
+               <X size={16} />
+             </button>
+           </div>
+        )}
+
+        {/* Powerful Compact Toolbar */}
+        <div style={{ 
+          background: 'var(--bg-900)', 
+          borderTop: '1px solid var(--glass-border)', 
+          borderRadius: '0 0 20px 20px',
+          padding: '16px 24px', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '16px'
+        }}>
+          {/* Left: Settings Group & Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ 
+              display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center',
+              background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '100px',
+              border: '1px solid rgba(255,255,255,0.03)'
+            }}>
+              <CustomDropdown icon={FileText} value={format} onChange={setFormat} options={FORMAT_OPTIONS} isObject={true} />
+              <CustomDropdown icon={Smile} value={tone} onChange={setTone} options={TONE_OPTIONS} />
+              <CustomDropdown icon={Maximize2} value={length} onChange={setLength} options={LENGTH_OPTIONS} />
+            </div>
+            
+            {!showAdvanced && (
+              <button 
+                onClick={() => setShowAdvanced(true)}
+                style={{
+                  background: 'transparent', border: 'none', color: 'var(--text-dim)',
+                  fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '6px',
+                  padding: '8px 12px', borderRadius: '100px', transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.background = 'transparent'; }}
+              >
+                <Plus size={14} /> คำสั่งพิเศษ
+              </button>
+            )}
+          </div>
+          
+          {/* Right: Premium Generate Button */}
+          <button 
+            onClick={handleGenerate}
+            disabled={isGenerating || (!input.trim() && !sourceNode)}
+            style={{
+              marginLeft: 'auto', // Guarantee right alignment even if wrapped
+              background: (isGenerating || (!input.trim() && !sourceNode)) ? 'transparent' : 'var(--accent-secondary)',
+              color: (isGenerating || (!input.trim() && !sourceNode)) ? 'var(--text-muted)' : '#ffffff',
+              border: (isGenerating || (!input.trim() && !sourceNode)) ? '1px solid var(--glass-border)' : '1px solid rgba(255,255,255,0.1)', 
+              borderRadius: '100px',
+              padding: '12px 32px', 
+              fontSize: '15px', 
+              fontWeight: '800',
+              cursor: (isGenerating || (!input.trim() && !sourceNode)) ? 'not-allowed' : 'pointer',
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '10px',
+              boxShadow: (isGenerating || (!input.trim() && !sourceNode)) ? 'none' : '0 8px 24px rgba(41, 151, 255, 0.4)',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            {isGenerating ? (
+              <><Loader2 size={18} className="spinner" /> กำลังสร้าง...</>
+            ) : (
+              <><Sparkles size={18} /> สร้างคอนเทนต์</>
+            )}
+          </button>
+        </div>
+        
+        {/* Progress Bar */}
+        {isGenerating && (
+           <div style={{ position: 'absolute', bottom: 0, left: 0, height: '3px', background: 'var(--accent-secondary)', width: phase === 'researching' ? '50%' : '90%', transition: 'width 2s ease-in-out', borderBottomLeftRadius: '20px', borderBottomRightRadius: '20px' }} />
+        )}
+      </div>
+
+      {/* Simple Status Message while generating */}
+      {isGenerating && (
+        <div style={{ textAlign: 'center', marginTop: '20px', color: 'var(--text-muted)', fontSize: '14px', animation: 'pulse 2s infinite', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          <Loader2 size={16} className="spinner text-accent" /> 
+          {phase === 'researching' ? 'AI กำลังค้นหาข้อมูลอ้างอิงและ Fact-check แบบเรียลไทม์...' : 'กำลังวิเคราะห์รูปแบบและเรียบเรียงเนื้อหาเป็น ' + format + '...'}
+        </div>
+      )}
+
+      {/* Result Display */}
+      {generatedMarkdown && (
+        <div id="content-result" className="animate-fade-in" style={{ marginTop: '32px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px', margin: 0, fontWeight: '800' }}>
+              <ShieldCheck className="text-accent" size={24} />
+              ผลลัพธ์พร้อมใช้งาน
+            </h2>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={copyToClipboard}
+                className="btn-pill"
+                style={{ background: 'var(--bg-800)', height: '36px', padding: '0 16px', fontSize: '13px' }}
+                onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-700)'}
+                onMouseOut={(e) => e.currentTarget.style.background = 'var(--bg-800)'}
+              >
+                {copied ? <CheckCircle2 size={14} color="#10b981" /> : <Copy size={14} />}
+                {copied ? 'คัดลอกสำเร็จ' : 'คัดลอกเนื้อหา'}
+              </button>
+            </div>
+          </div>
+          
+          <div style={{ 
+            background: 'var(--bg-800)', 
+            borderRadius: '20px', 
+            padding: '32px', 
+            border: '1px solid var(--card-border)',
+            lineHeight: '1.8',
+            fontSize: '15px',
+            color: 'var(--text-main)',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.15)'
+          }} className="markdown-body">
+            <div dangerouslySetInnerHTML={{ __html: marked.parse(generatedMarkdown) }} />
+          </div>
+          
+          {/* Transparency: Fact Sheet Toggle */}
+          {factSheet && (
+            <div style={{ marginTop: '16px', background: 'transparent', padding: '0', border: 'transparent' }}>
+              <button 
+                onClick={() => {
+                  const details = document.getElementById('fact-sheet-details');
+                  if (details) details.style.display = details.style.display === 'none' ? 'block' : 'none';
+                }}
+                style={{ background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-dim)', fontSize: '13px', fontWeight: '600', cursor: 'pointer', padding: '0' }}
+              >
+                <Info size={14} /> ดูโครงสร้าง Fact Sheet อ้างอิงเบื้องหลัง (Zero-Hallucination)
+              </button>
+              <div id="fact-sheet-details" style={{ display: 'none', marginTop: '12px', padding: '16px', background: 'var(--bg-900)', borderRadius: '12px', fontSize: '12px', color: '#94a3b8', whiteSpace: 'pre-wrap', maxHeight: '300px', overflowY: 'auto', border: '1px solid var(--glass-border)' }}>
+                {factSheet}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+    </div>
+  );
+};
+
+export default CreateContent;

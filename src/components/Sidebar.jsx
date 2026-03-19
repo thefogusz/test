@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, BookOpen, Search, Users, UserCheck, Bookmark } from 'lucide-react';
+import { Home, BookOpen, Search, Users, UserCheck, Bookmark, PenTool } from 'lucide-react';
 
 const Sidebar = ({ activeView, onNavClick }) => {
   return (
@@ -31,6 +31,13 @@ const Sidebar = ({ activeView, onNavClick }) => {
         >
           <BookOpen size={24} />
           <span className="nav-text">อ่านข่าว</span>
+        </button>
+        <button 
+          className={`nav-item ${activeView === 'create' ? 'active' : ''}`}
+          onClick={() => onNavClick('create')}
+        >
+          <PenTool size={24} />
+          <span className="nav-text">สร้างคอนเทนต์</span>
         </button>
         <button 
           className={`nav-item ${activeView === 'audience' ? 'active' : ''}`}

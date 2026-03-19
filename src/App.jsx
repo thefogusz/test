@@ -26,6 +26,7 @@ import Sidebar from './components/Sidebar';
 import RightSidebar from './components/RightSidebar';
 import TopNav from './components/TopNav';
 import FeedCard from './components/FeedCard';
+import CreateContent from './components/CreateContent';
 import { getUserInfo, fetchWatchlistFeed, searchEverything } from './services/TwitterService';
 import { generateArticle, agentFilterFeed, generateGrokBatch, expandSearchQuery, discoverTopExperts, researchContext } from './services/GrokService';
 import './index.css';
@@ -128,10 +129,7 @@ const App = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [forgeTarget, setForgeTarget] = useState(null);
-  const [isForging, setIsForging] = useState(false);
-  const [generatedContent, setGeneratedContent] = useState(null);
-  const [forgeOptions, setForgeOptions] = useState({ format: 'social', customPrompt: '' });
+  const [createContentSource, setCreateContentSource] = useState(null);
 
   const [postLists, setPostLists] = useState(() => {
     const saved = localStorage.getItem('foro_postlists_v2');
@@ -374,19 +372,6 @@ const App = () => {
       setStatus('เกิดข้อผิดพลาดในการค้นหา');
     } finally {
       setIsSearching(false);
-    }
-  };
-
-  const handleForge = async (format) => {
-    setIsForging(true);
-    setForgeOptions({ ...forgeOptions, format });
-    try {
-      const result = await generateArticle(forgeTarget.text, format, forgeOptions.customPrompt);
-      setGeneratedContent(result);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsForging(false);
     }
   };
 
@@ -756,7 +741,7 @@ const App = () => {
         activeView={activeView}
         onNavClick={(view) => {
           setActiveView(view);
-          if (view === 'home' || view === 'read' || view === 'search') {
+          if (view === 'home' || view === 'read' || view === 'search' || view === 'create') {
              setActiveListId(null);
              if (view === 'home') {
                setSearchQuery('');
@@ -777,6 +762,16 @@ const App = () => {
         />
         
         <div className="foro-main-scroll">
+
+          {/* ===== CREATE CONTENT VIEW ===== */}
+          {activeView === 'create' && (
+            <div className="animate-fade-in">
+              <CreateContent 
+                sourceNode={createContentSource} 
+                onRemoveSource={() => setCreateContentSource(null)} 
+              />
+            </div>
+          )}
 
           {/* ===== HOME VIEW ===== */}
           {activeView === 'home' && (
@@ -836,42 +831,12 @@ const App = () => {
                 </div>
               )}
 
-              {generatedContent && (
-                <section className="forge-workspace-section animate-slide-up" style={{ marginBottom: '32px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div style={{ background: 'var(--accent-secondary)', padding: '8px', borderRadius: '10px' }}>
-                        <PenTool size={20} color="white" />
-                      </div>
-                      <h2 style={{ fontSize: '18px', fontWeight: '800', margin: 0 }}>ระบบสร้างคอนเทนต์ผู้เชี่ยวชาญ (FORGE)</h2>
-                    </div>
-                    <button onClick={() => setGeneratedContent(null)} className="icon-btn-large"><X size={18} /></button>
-                  </div>
-                  <div className="forge-document">
-                    <div className="forge-doc-header">
-                      <h3>{forgeTarget?.author?.name || 'รายงานสรุปผล'}</h3>
-                      <div style={{ fontSize: '11px', opacity: 0.5 }}>ที่มา: @{forgeTarget?.author?.username} • สร้างโดย Grok 4.1</div>
-                    </div>
-                    <div className="forge-doc-body">
-                      {isForging ? (
-                        <div style={{ padding: '60px 0', textAlign: 'center' }}>
-                          <Loader2 size={32} className="animate-spin" style={{ margin: '0 auto 16px', color: 'var(--accent-secondary)' }} />
-                          <div style={{ fontWeight: '600' }}>Grok 4.1 กำลังสร้างเนื้อหาเชิงลึก...</div>
-                        </div>
-                      ) : (
-                        <div className="content-render" style={{ lineHeight: '1.8', whiteSpace: 'pre-wrap' }}>{generatedContent}</div>
-                      )}
-                    </div>
-                    <div className="forge-doc-footer" style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--glass-border)', display: 'flex', gap: '12px' }}>
-                      <button onClick={() => { navigator.clipboard.writeText(generatedContent); setStatus('คัดลอกเนื้อหาเรียบร้อย'); }} className="forge-action-btn" style={{ flex: 1, background: 'var(--accent-secondary)', color: 'var(--bg-950)' }}>
-                        <Copy size={14} /> คัดลอกข้อความ
-                      </button>
-                      <button onClick={() => setGeneratedContent(null)} className="forge-action-btn" style={{ flex: 1, background: 'transparent', border: '1px solid var(--glass-border)', color: 'var(--text-main)' }}>
-                        ปิดหน้าต่าง
-                      </button>
-                    </div>
-                  </div>
-                </section>
+              {aiReport && (
+                <div className="ai-report-banner animate-fade-in" style={{ marginBottom: '24px' }}>
+                  <div className="zap-glow"><Sparkles size={16} /></div>
+                  <span>{aiReport}</span>
+                  <button onClick={() => setAiReport('')} className="close-btn"><X size={14} /></button>
+                </div>
               )}
 
               <div className="section-title" style={{ margin: '0 0 16px 0' }}>โพสต์ล่าสุด</div>
@@ -901,7 +866,10 @@ const App = () => {
                         setFeed(prev => prev.map(p => p.id === it.id ? {...p, summary: `${p.summary}\n\n[DEEP INTEL]: ${research}`} : p));
                         setStatus('วิเคราะห์เชิงลึกเสร็จสิ้น');
                       }}
-                      onArticleGen={(it) => setForgeTarget(it)} 
+                      onArticleGen={(it) => {
+                        setCreateContentSource(it);
+                        setActiveView('create');
+                      }} 
                     />
                   ))
                 )}
@@ -991,7 +959,10 @@ const App = () => {
                           setSearchResults(prev => prev.map(p => p.id === it.id ? {...p, summary: `${p.summary}\n\n[DEEP INTEL]: ${research}`} : p));
                           setStatus('วิเคราะห์เชิงลึกเสร็จสิ้น');
                         }}
-                        onArticleGen={(it) => setForgeTarget(it)}
+                        onArticleGen={(it) => {
+                          setCreateContentSource(it);
+                          setActiveView('create');
+                        }}
                       />
                     ))}
                   </div>
@@ -1059,7 +1030,10 @@ const App = () => {
                            setReadArchive(prev => prev.map(p => p.id === it.id ? {...p, summary: `${p.summary}\n\n[DEEP INTEL]: ${research}`} : p));
                            setStatus('วิเคราะห์เชิงลึกเสร็จสิ้น');
                           }}
-                          onArticleGen={(it) => setForgeTarget(it)}
+                          onArticleGen={(it) => {
+                            setCreateContentSource(it);
+                            setActiveView('create');
+                          }}
                         />
                       ))
                     }
@@ -1367,7 +1341,10 @@ const App = () => {
                         setBookmarks(prev => prev.map(p => p.id === it.id ? {...p, summary: `${p.summary}\n\n[DEEP INTEL]: ${research}`} : p));
                         setStatus('วิเคราะห์เชิงลึกเสร็จสิ้น');
                       }}
-                      onArticleGen={(it) => setForgeTarget(it)}
+                      onArticleGen={(it) => {
+                        setCreateContentSource(it);
+                        setActiveView('create');
+                      }}
                     />
                   ))}
                 </div>
@@ -1377,81 +1354,6 @@ const App = () => {
 
         </div>
       </main>
-
-      {forgeTarget && (
-        <div className="modal-overlay">
-          <div className="modal-content animate-fade-in" style={{ maxWidth: '700px' }}>
-            <button onClick={() => { setForgeTarget(null); setGeneratedContent(null); }} className="modal-close-btn">
-              <X size={24} />
-            </button>
-            <h2 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <PenTool size={24} className="text-accent" /> Content Forge
-            </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between' }}>
-              <span>สร้างเนื้อหาจากโพสต์ของ: <strong>@{forgeTarget.author?.username}</strong></span>
-            </p>
-
-            {!generatedContent ? (
-              <>
-                <div className="forge-options-grid">
-                  <button onClick={() => { handleForge('long-form'); }} className={`forge-opt ${forgeOptions.format === 'long-form' ? 'active' : ''}`}>
-                    <div className="opt-title">บทวิเคราะห์เชิงลึก</div>
-                    <div className="opt-desc">รายงานแบบละเอียดพร้อมข้อมูลเชิงเทคนิค</div>
-                  </button>
-                  <button onClick={() => { handleForge('social'); }} className={`forge-opt ${forgeOptions.format === 'social' ? 'active' : ''}`}>
-                    <div className="opt-title">สรุปสั้นๆ สำหรับโซเชียล</div>
-                    <div className="opt-desc">ย่อใจความสำคัญเพื่อโพสต์ลง X/LinkedIn</div>
-                  </button>
-                  <button onClick={() => { handleForge('analytical'); }} className={`forge-opt ${forgeOptions.format === 'analytical' ? 'active' : ''}`}>
-                    <div className="opt-title">วิเคราะห์เชิงบริบท</div>
-                    <div className="opt-desc">สรุปเหตุและผล พร้อมแนวโน้มที่ควรจับตามดู</div>
-                  </button>
-                </div>
-
-                <div style={{ marginTop: '20px' }}>
-                  <div className="section-label">คำสั่งแบบกำหนดเอง</div>
-                  <textarea 
-                    className="custom-forge-input"
-                    placeholder="ใส่คำสั่งพิเศษ (เช่น 'เขียนสไตล์นักวิเคราะห์เชิงลึก' หรือ 'สรุปเป็นข้อๆ')..."
-                    value={forgeOptions.customPrompt}
-                    onChange={(e) => setForgeOptions({...forgeOptions, customPrompt: e.target.value})}
-                  />
-                  <button 
-                    onClick={() => handleForge('custom')}
-                    disabled={isForging}
-                    className="forge-action-btn"
-                  >
-                    {isForging ? <Loader2 className="animate-spin" /> : <Sparkles size={16} />}
-                    เริ่มสร้างคอนเทนต์
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="animate-fade-in">
-                <div className="generated-content-box">
-                  {generatedContent}
-                </div>
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                  <button onClick={() => {
-                    navigator.clipboard.writeText(generatedContent);
-                    setStatus('คัดลอกเนื้อหาเรียบร้อยแล้ว');
-                  }} className="btn-pill" style={{ padding: '12px 24px', height: 'auto' }}>
-                    <Copy size={16} /> คัดลอกข้อความ
-                  </button>
-                  <button onClick={() => {
-                    handleBookmark({ ...forgeTarget, summary: generatedContent }, true);
-                    setStatus('บันทึกคอนเทนต์ลง Bookmarks เรียบร้อย');
-                    setForgeTarget(null);
-                    setGeneratedContent(null);
-                  }} className="btn-pill primary" style={{ padding: '12px 24px', height: 'auto' }}>
-                    <Bookmark size={16} /> บันทึกลง Bookmarks
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {listModal.show && (
         <div className="modal-overlay">

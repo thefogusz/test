@@ -1,6 +1,7 @@
 const XAI_API_KEY = import.meta.env.VITE_XAI_API_KEY;
+const XAI_MULTIAGENT_API_KEY = import.meta.env.VITE_XAI_MULTIAGENT_API_KEY || XAI_API_KEY;
 const MODEL_NON_REASONING = 'grok-4-1-fast-non-reasoning'; // Grok 4.1 Fast (Non-Reasoning)
-const MODEL_REASONING = 'grok-4-1-fast-reasoning';         // Grok 4.1 Fast (Reasoning)
+const MODEL_REASONING = 'grok-4.20-multi-agent-beta-0309'; // Grok 4.2 Multiagent (Replaces old reasoning model)
 const BASE_URL = 'https://api.x.ai/v1/chat/completions';
 
 const SUMMARIZATION_RULES = `
@@ -61,13 +62,16 @@ const safeJsonParse = (str, fallback = []) => {
   }
 };
 
-const callGrok = async (systemPrompt, userPrompt, modelName, isJson = false) => {
+const callGrok = async (systemPrompt, userPrompt, modelName, isJson = false, tools = null) => {
+  const isMultiAgent = modelName.includes('multi-agent');
+  const apiKeyToUse = isMultiAgent ? XAI_MULTIAGENT_API_KEY : XAI_API_KEY;
+  
   try {
     const response = await fetch(BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${XAI_API_KEY}`
+        'Authorization': `Bearer ${apiKeyToUse}`
       },
       body: JSON.stringify({
         model: modelName,
@@ -76,7 +80,8 @@ const callGrok = async (systemPrompt, userPrompt, modelName, isJson = false) => 
           { role: 'user', content: userPrompt }
         ],
         temperature: 0.7,
-        ...(isJson ? { response_format: { type: 'json_object' } } : {})
+        ...(isJson ? { response_format: { type: 'json_object' } } : {}),
+        ...(tools ? { tools: tools } : {})
       })
     });
 
@@ -260,6 +265,78 @@ export const researchContext = async (query, interactionData = '') => {
     console.error('Grok Research Error:', error);
     return "Intelligence elevation unavailable at the moment.";
   }
+};
+
+export const researchAndPreventHallucination = async (input) => {
+  const systemPrompt = `[MODE: GROK 4.20 MULTI-AGENT ORCHESTRATION]
+  You are Harper Research, the elite fact-checking agent for FORO.
+  Your task is to analyze the user's input (which could be a short phrase, long text, or a URL).
+  
+  CRITICAL NATIVE TOOLS MISSION:
+  1. YOU MUST USE YOUR NATIVE 'web_search' to find the most up-to-date, real-time facts globally.
+  2. YOU MUST USE YOUR NATIVE 'x_search' to scan Twitter/X for the current public sentiment, trending opinions, and related posts.
+  
+  RULES:
+  1. Act as the bridge between user intent and truth. Combine live web facts with live X/Twitter sentiments.
+  2. Synthesize a comprehensive "Live Fact & Sentiment Sheet" covering reality, history, and the current social vibe.
+  3. ALWAYS list actionable sources and specific X accounts/trends at the end to prove zero-hallucination.
+  4. The output MUST be in Thai and highly structured with bullet points.
+  5. DO NOT write the final article. ONLY provide the Fact & Sentiment Sheet.`;
+
+  const userMsg = `Input data to research: "${input}"\nGenerate a Live Fact & Sentiment Sheet. Trigger your internal web_search and x_search capabilities now.`;
+  
+  // Instruct xAI backend to enable these native tools with strict JSON schema
+  const nativeTools = [
+    { 
+      type: "function", 
+      function: { 
+        name: "web_search", 
+        description: "Search the global internet for real-time facts",
+        parameters: { type: "object", properties: {}, required: [] }
+      } 
+    },
+    { 
+      type: "function", 
+      function: { 
+        name: "x_search", 
+        description: "Search X/Twitter platform for real-time sentiments and viral posts",
+        parameters: { type: "object", properties: {}, required: [] }
+      } 
+    }
+  ];
+
+  return await callGrok(systemPrompt, userMsg, MODEL_NON_REASONING, false, nativeTools);
+};
+
+export const generateStructuredContent = async (factSheet, length, tone, format) => {
+  const systemPrompt = `[MODE: GROK 4.20 MULTI-AGENT ORCHESTRATION]
+  You are Captain Grok, coordinating a native 4-Agent expert panel to generate the ultimate content.
+  You must synthesize the work of your 3 sub-agents to produce a final, flawless Thai response.
+  
+  --- THE EXPERT PANEL ---
+  1. Harper Research: Verify all facts against the provided Fact Sheet. Ensure zero hallucinations.
+  2. Lucas Creative: Craft an engaging, platform-perfect Hook and narrative flow matching the Tone.
+  3. Benjamin Logic: Ensure the structure is perfectly sound and the reasoning flows naturally.
+  
+  --- ORCHESTRATION INSTRUCTIONS ---
+  Goal: ${promptGoal}
+  Target Length: ${length}
+  Target Tone: ${tone}
+  Target Format: ${format}
+  
+  Format-Specific Directives (For Lucas & Benjamin):
+  - If Video/Reels: Provide a 3-second visual hook, B-Roll suggestions in brackets, and natural spoken dialogue.
+  - If SEO/Blog: Use bold keywords, clear H1/H2 hierarchy, and build up reading momentum.
+  - All other formats: Maximize professional formatting for that specific medium.
+  
+  CRITICAL MISSION RULES (For Harper & Captain Grok):
+  1. ZERO HALLUCINATION: All substantive claims MUST strictly originate from the provided Fact Sheet.
+  2. MANDATORY CITATION: You absolutely must include a "แหล่งที่มาอ้างอิง" (Sources) section at the very end, extracting sources from the Fact Sheet.
+  3. OUTPUT: Output only the final synthesized Thai Markdown content. Do not output the internal debate.`;
+
+  const userMsg = `[FACT SHEET เริ่มต้น]\n${factSheet}\n[FACT SHEET สิ้นสุด]\n\nโปรดสร้างคอนเทนต์ตามข้อกำหนดด้านบนด้วยภาษาไทยที่สละสลวย เป็นมืออาชีพ พร้อมใช้งานทันที.`;
+  
+  return await callGrok(systemPrompt, userMsg, MODEL_REASONING);
 };
 
 export const generateContentArticle = generateFinalContent;
