@@ -1001,12 +1001,7 @@ const App = () => {
                       type="button" 
                       title="ใหม่ล่าสุด" 
                       onClick={() => { 
-                        const next = !isLatestMode;
-                        setIsLatestMode(next); 
-                        if(searchQuery) {
-                           // Small timeout to ensure state update is processed or just pass the next value
-                           handleSearch(null, false, searchQuery, next);
-                        }
+                        setIsLatestMode(!isLatestMode); 
                       }} 
                       style={{ 
                         background: isLatestMode ? 'rgba(41,151,255,0.15)' : 'transparent', 
@@ -1026,11 +1021,6 @@ const App = () => {
                     </button>
                   </div>
 
-                  {searchQuery && (
-                     <button type="button" className="hero-clear-btn" style={{ marginRight: '8px' }} onClick={() => setSearchQuery('')}>
-                       <X size={20} />
-                     </button>
-                  )}
                   <button type="submit" className="hero-submit-btn" disabled={isSearching}>
                     {isSearching ? <Loader2 size={20} className="animate-spin" /> : 'ค้นหา'}
                   </button>

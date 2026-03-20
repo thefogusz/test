@@ -341,9 +341,9 @@ export const researchAndPreventHallucination = async (input) => {
 
 export const generateStructuredContent = async (factSheet, length, tone, format, onStreamChunk) => {
   let lengthInstruction = length;
-  if (length === 'short') lengthInstruction = 'แบบสั้นกระชับ (Short) - ให้จบภายใน 1 ย่อหน้าสั้นๆ หรือ 3-4 บรรทัด (ไม่เกิน 150 คำ)';
-  if (length === 'medium') lengthInstruction = 'แบบปานกลาง (Medium) - ความยาวขั้นต่ำ 400 คำ (MINIMUM 400 WORDS). ห้ามเขียนสั้นแค่ 1-2 ย่อหน้าเด็ดขาด ต้องมีรายละเอียดเชิงลึกและบทวิเคราะห์แยกตามย่อหน้าชัดเจน';
-  if (length === 'long') lengthInstruction = 'แบบเจาะลึก (Long) - ความยาวขั้นต่ำ 800 คำ (MINIMUM 800 WORDS) ลงรายละเอียดแบบจัดเต็มแบบ Long-form บทความวิเคราะห์';
+  if (length === 'short') lengthInstruction = 'แบบสั้นกระชับ (Short) - ให้จบภายใน 1 ย่อหน้าสั้นๆ หรือ 3-4 บรรทัด (ไม่เกิน 150 คำ). เน้นเนื้อหาสำคัญและบทสรุปทันที';
+  if (length === 'medium') lengthInstruction = 'แบบปานกลาง (Medium) - ความยาวขั้นต่ำ 400 คำ (MINIMUM 400 WORDS). ต้องมีรายละเอียดเชิงลึกและบทสรุปที่ชัดเจน';
+  if (length === 'long') lengthInstruction = 'แบบเจาะลึก (Long) - ความยาวขั้นต่ำ 800 คำ (MINIMUM 800 WORDS) ลงรายละเอียดแบบจัดเต็มแบบ Long-form พร้อมบทวิเคราะห์และสรุปส่งท้าย';
 
   const draftSystemPrompt = `[MODE: GROK 4.20 MULTI-AGENT ORCHESTRATION]
   You are an elite Thai copywriter and professional journalist.
@@ -354,12 +354,18 @@ export const generateStructuredContent = async (factSheet, length, tone, format,
   
   CRITICAL RULES:
   1. STRICT ZERO HALLUCINATION: All substantive claims MUST strictly originate from the provided Fact Sheet. DO NOT invent facts or dates.
-  2. TONE ENFORCEMENT & SLANG BAN: You MUST write like a professional, smart, and modern Thai columnist. ABSOLUTELY DO NOT use cringey internet slang like "เฮ้ยเพื่อนๆ", "ไงวัยรุ่น", "สวัสดีครับทุกคน". Start the article immediately with a strong, captivating journalistic hook. No conversational filler or weird intros.
-  3. NO CITATION BLOCK: DO NOT output any links, URLs, or a "แหล่งที่มาอ้างอิง" (Sources) section at the bottom. The UI will render native Source Cards automatically. Just write the article body and end cleanly.
-  4. NATIVE THAI LANGUAGE: Write in highly natural, engaging, and fluid Thai. No robotic translations.
-  5. ENGLISH LOANWORDS ALLOWED (รับอนุญาตให้ทับศัพท์): You are HIGHLY ENCOURAGED to use original English words for brands (Instagram, YouTube, Google), names, and technical terms. Do not spell them out phonetically in Thai.
-  6. Format the output as Markdown.
-  7. STRICT LENGTH ENFORCEMENT: Your output MUST visibly match the Target Length instruction above. If Target Length is Medium, DO NOT RETURN A SINGLE SHORT PARAGRAPH. You MUST output at least 400 words, breaking it down into Introduction, Detailed Breakdown, and Conclusion. Failure to meet length limit is unacceptable.`;
+  2. TONE ENFORCEMENT & SLANG BAN: You MUST write like a professional, smart, and modern Thai columnist. ABSOLUTELY DO NOT use cringey internet slang like "เฮ้ยเพื่อนๆ", "ไงวัยรุ่น", "สวัสดีครับทุกคน". 
+  3. STRUCTURE RULES (ABSOLUTE): 
+     - START directly with # [CATCHY TITLE/HEADING].
+     - DO NOT INCLUDE A "บทนำ" (INTRODUCTION) SECTION. Starting with the word "บทนำ" is a violation.
+     - Jump immediately into the first core # [DETAILS/CONTENT] paragraph after the title.
+     - END with a dedicated ## [บทสรุป] section.
+     - ABSOLUTELY NO generic intro phrases.
+  4. NO CITATION BLOCK: DO NOT output any links, URLs, or a "แหล่งที่มาอ้างอิง" (Sources) section at the bottom. The UI will render native Source Cards automatically.
+  5. NATIVE THAI LANGUAGE: Write in highly natural, engaging, and fluid Thai. No robotic translations.
+  6. ENGLISH LOANWORDS ALLOWED (รับอนุญาตให้ทับศัพท์): You are HIGHLY ENCOURAGED to use original English words for brands, names, and technical terms.
+  7. FORMAT: Markdown for all headings and structure.
+  8. STRICT LENGTH ENFORCEMENT: Your output MUST match the Target Length instruction above. Break down into multiple sub-headers for Medium and Long formats. Failure to meet length limit is unacceptable.`;
 
   const draftUserMsg = `[FACT SHEET เริ่มต้น]\n${factSheet}\n[FACT SHEET สิ้นสุด]\n\nโปรดสร้างคอนเทนต์ตามรูปแบบและข้อมูลที่ให้มา`;
 
@@ -373,12 +379,29 @@ export const generateStructuredContent = async (factSheet, length, tone, format,
         temperature: 0.7,
       });
 
+      const postProcess = (text) => {
+        const lines = text.split('\n');
+        const filtered = lines.filter(line => {
+          const lower = line.toLowerCase();
+          const isHeader = line.trim().startsWith('#');
+          const containsIntro = lower.includes('บทนำ') || lower.includes('คำนำ') || lower.includes('introduction') || lower.includes('intro') || lower.includes('overview');
+          return !(isHeader && containsIntro);
+        });
+        
+        return filtered.map(line => {
+          const lower = line.toLowerCase();
+          const isHeader = line.trim().startsWith('#');
+          const isConclusion = lower.includes('conclusion') || lower.includes('summary') || lower.includes('บทส่งท้าย');
+          return (isHeader && isConclusion) ? '## บทสรุป' : line;
+        }).join('\n');
+      };
+
       let fullContent = '';
       for await (const textPart of textStream) {
         fullContent += textPart;
-        onStreamChunk(fullContent); // Stream to UI
+        onStreamChunk(postProcess(fullContent)); // Stream processed content to UI
       }
-      return fullContent;
+      return postProcess(fullContent);
     } catch (streamErr) {
       console.error('[GrokService] Stream error caught:', streamErr);
       throw streamErr; // Re-throw so component's catch block handles it gracefully
@@ -421,7 +444,24 @@ export const generateStructuredContent = async (factSheet, length, tone, format,
     // If validator fails, we gracefully degrade and return the draft.
   }
 
-  return contentDraft;
+  const finalPostProcess = (text) => {
+    const lines = text.split('\n');
+    const filtered = lines.filter(line => {
+      const lower = line.toLowerCase();
+      const isHeader = line.trim().startsWith('#');
+      const containsIntro = lower.includes('บทนำ') || lower.includes('คำนำ') || lower.includes('introduction') || lower.includes('intro') || lower.includes('overview');
+      return !(isHeader && containsIntro);
+    });
+    
+    return filtered.map(line => {
+      const lower = line.toLowerCase();
+      const isHeader = line.trim().startsWith('#');
+      const isConclusion = lower.includes('conclusion') || lower.includes('summary') || lower.includes('บทส่งท้าย');
+      return (isHeader && isConclusion) ? '## บทสรุป' : line;
+    }).join('\n');
+  };
+
+  return finalPostProcess(contentDraft);
 };
 
 export const generateContentArticle = generateFinalContent;
