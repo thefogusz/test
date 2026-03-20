@@ -899,7 +899,8 @@ const App = () => {
                       onArticleGen={(it) => {
                         setCreateContentSource(it);
                         setActiveView('content');
-                        setContentTab('create');
+                        // Stagger the tab switch so React doesn't batch it with the view change
+                        setTimeout(() => setContentTab('create'), 0);
                       }} 
                     />
                   ))
@@ -1026,7 +1027,8 @@ const App = () => {
                         onArticleGen={(it) => {
                           setCreateContentSource(it);
                           setActiveView('content');
-                          setContentTab('create');
+                          // Stagger the tab switch so React doesn't batch it with the view change
+                          setTimeout(() => setContentTab('create'), 0);
                         }}
                       />
                     ))}
