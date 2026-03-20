@@ -891,7 +891,10 @@ const App = () => {
                     
                     <div style={{ width: '1px', height: '20px', background: 'var(--glass-border)', margin: '0 4px' }} />
                     
-                    <button onClick={() => setFilterModal({ show: true, prompt: '' })} className="btn-pill">
+                    <button 
+                      onClick={() => setFilterModal({ show: true, prompt: '' })} 
+                      className={`btn-pill ${aiReport ? 'active' : ''}`}
+                    >
                       <Sparkles size={16} /> AI Filter
                     </button>
                     <button onClick={handleSync} disabled={loading || watchlist.length === 0} className="btn-pill primary">

@@ -179,10 +179,10 @@ body {
 .btn-pill.primary { background: var(--accent-gradient); color: #fff; border: none; box-shadow: 0 4px 16px var(--accent-glow-blue); }
 .btn-pill.primary:hover { background: var(--accent-gradient-hover); box-shadow: 0 6px 24px var(--accent-glow-blue); transform: translateY(-1px); }
 .btn-pill.active { 
-  background: var(--accent-tint); 
+  background: rgba(41, 151, 255, 0.1); 
   border-color: var(--accent-secondary); 
   color: #fff; 
-  box-shadow: 0 0 12px var(--accent-glow-blue), inset 0 0 0 1px var(--accent-secondary); 
+  box-shadow: 0 0 16px rgba(41, 151, 255, 0.25);
 }
 
 .icon-btn-large {
