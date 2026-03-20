@@ -171,7 +171,10 @@ const App = () => {
     return saved ? JSON.parse(saved) : [];
   });
 
-  const [createContentSource, setCreateContentSource] = useState(null);
+  const [createContentSource, setCreateContentSource] = useState(() => {
+    const saved = localStorage.getItem('foro_attached_source_v1');
+    return saved ? JSON.parse(saved) : null;
+  });
 
   const [postLists, setPostLists] = useState(() => {
     const saved = localStorage.getItem('foro_postlists_v2');
@@ -212,6 +215,14 @@ const App = () => {
   useEffect(() => {
     localStorage.setItem('foro_home_feed_v1', JSON.stringify(originalFeed));
   }, [originalFeed]);
+
+  useEffect(() => {
+    if (createContentSource) {
+      localStorage.setItem('foro_attached_source_v1', JSON.stringify(createContentSource));
+    } else {
+      localStorage.removeItem('foro_attached_source_v1');
+    }
+  }, [createContentSource]);
 
   // Handle automatic filtering by List or View
   useEffect(() => {

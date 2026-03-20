@@ -119,21 +119,24 @@ const CustomDropdown = ({ icon: Icon, value, onChange, options, isObject }) => {
 };
 
 const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(() => localStorage.getItem('foro_gen_input_v1') || '');
   
   // Settings
-  const [length, setLength] = useState('ขนาดกลาง (มาตรฐาน)');
-  const [tone, setTone] = useState('ให้ข้อมูล/ปกติ');
-  const [format, setFormat] = useState('โพสต์โซเชียล');
+  const [length, setLength] = useState(() => localStorage.getItem('foro_gen_length_v1') || 'ขนาดกลาง (มาตรฐาน)');
+  const [tone, setTone] = useState(() => localStorage.getItem('foro_gen_tone_v1') || 'ให้ข้อมูล/ปกติ');
+  const [format, setFormat] = useState(() => localStorage.getItem('foro_gen_format_v1') || 'โพสต์โซเชียล');
   const [customInstructions, setCustomInstructions] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
   const [phase, setPhase] = useState('idle'); // 'idle', 'researching', 'generating', 'done'
-  const [factSheet, setFactSheet] = useState(null);
-  const [articleSources, setArticleSources] = useState([]);
-  const [generatedMarkdown, setGeneratedMarkdown] = useState('');
+  const [factSheet, setFactSheet] = useState(() => localStorage.getItem('foro_gen_factsheet_v1') || null);
+  const [articleSources, setArticleSources] = useState(() => {
+    const saved = localStorage.getItem('foro_gen_sources_v1');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [generatedMarkdown, setGeneratedMarkdown] = useState(() => localStorage.getItem('foro_gen_markdown_v1') || '');
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -163,6 +166,15 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
     }, 2200);
     return () => clearInterval(interval);
   }, [isGenerating, phase]);
+
+  // Persistence effects
+  useEffect(() => { localStorage.setItem('foro_gen_input_v1', input); }, [input]);
+  useEffect(() => { localStorage.setItem('foro_gen_length_v1', length); }, [length]);
+  useEffect(() => { localStorage.setItem('foro_gen_tone_v1', tone); }, [tone]);
+  useEffect(() => { localStorage.setItem('foro_gen_format_v1', format); }, [format]);
+  useEffect(() => { if (factSheet) localStorage.setItem('foro_gen_factsheet_v1', factSheet); else localStorage.removeItem('foro_gen_factsheet_v1'); }, [factSheet]);
+  useEffect(() => { localStorage.setItem('foro_gen_sources_v1', JSON.stringify(articleSources)); }, [articleSources]);
+  useEffect(() => { localStorage.setItem('foro_gen_markdown_v1', generatedMarkdown); }, [generatedMarkdown]);
 
   const handleGenerate = async () => {
     const isManualInputValid = input.trim().length > 0;
@@ -240,6 +252,12 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
     setError(null);
     setIsEditing(false);
     setIsSaved(false);
+
+    // Clear Persistence
+    localStorage.removeItem('foro_gen_input_v1');
+    localStorage.removeItem('foro_gen_markdown_v1');
+    localStorage.removeItem('foro_gen_factsheet_v1');
+    localStorage.removeItem('foro_gen_sources_v1');
   };
 
   return (
