@@ -1163,7 +1163,8 @@ const App = () => {
 
                           onArticleGen={(it) => {
                             setCreateContentSource(it);
-                            setActiveView('create');
+                            setActiveView('content');
+                            setTimeout(() => setContentTab('create'), 0);
                           }}
                         />
                       ))
@@ -1494,7 +1495,8 @@ const App = () => {
 
                         onArticleGen={(it) => {
                           setCreateContentSource(it);
-                          setActiveView('create');
+                          setActiveView('content');
+                          setTimeout(() => setContentTab('create'), 0);
                         }}
                       />
                     ) : (
