@@ -180,22 +180,23 @@ export const generateFinalContent = async (enrichedData, targetFormat, customPro
 
 export const expandSearchQuery = async (originalQuery, isLatest = false) => {
   if (!originalQuery) return originalQuery;
+  
+  const today = new Date().toISOString().split('T')[0];
 
   const systemPrompt = `[MODE: GROK 4.20 SEARCH OPTIMIZER]
 You are a Twitter/X Advanced Search Query Expert for FORO Intelligence.
 Your job is to translate user natural language intent into raw Twitter API Advanced Search syntax.
 
 RULES:
-1. Extract core topics/keywords. If the user query is a broad category, expand it into 5-7 HIGHLY MODERN, CURRENTLY RELEVANT specific examples (e.g., "Esport" -> include current hits like Valorant/CS2, NOT dead games from 10 years ago). Combine using OR logic.
-2. DO NOT restrict to 'lang:th' unless the user explicitly asks for local Thai context. Default to GLOBAL search (no lang attribute, or combine English/Thai keywords) to catch massive global tech/business/esports trends.
+1. Extract core topics/keywords. Expand them into 5-7 HIGHLY MODERN, CURRENTLY RELEVANT examples. Combine using OR logic.
+2. Default to GLOBAL search (don't use lang:th unless requested).
 3. ALWAYS append '-filter:replies'.
-4. THE USER SELECTED MODE: ${isLatest ? 'LATEST (ข่าวสดใหม่ล่าสุด)' : 'QUALITY (คอนเทนต์คุณภาพ/ไวรัล)'}.
-   - IF LATEST: Focus on the most recent information. DO NOT enforce likes/faves. Keep it broad to catch all breaking updates.
-   - IF QUALITY: You MUST dynamically assign 'min_faves:' based on the NICHE SIZE to avoid blocking quality niche experts!
-     * For massive mainstream topics (K-Pop, Thai Politics, Entertainment): inject 'min_faves:1000' to '5000'.
-     * For medium topics (Games, Gadgets): inject 'min_faves:300' to '500'.
-     * For niche/professional topics (e.g. AI Dev, B2B Business, specific stocks) where experts have smaller but hyper-engaged audiences: inject 'min_faves:50' to '100'.
-5. OUTPUT ONLY A VALID JSON OBJECT matching the schema. DO NOT output conversational text.`;
+4. THE USER SELECTED MODE: ${isLatest ? 'LATEST (NEWEST FIRST)' : 'QUALITY (BEST/TOP)'}.
+   - IF LATEST: You MUST strictly focus on THE LAST 24-48 HOURS. 
+     * You MUST append 'since:${today}' to the query. 
+     * DO NOT use 'min_faves' or 'min_retweets'.
+   - IF QUALITY: You MUST dynamically assign 'min_faves:' based on niche size (1000+ for mainstream, 100+ for niche).
+5. OUTPUT ONLY A VALID JSON OBJECT with key 'finalXQuery'.`;
 
   try {
     const { object } = await generateObject({

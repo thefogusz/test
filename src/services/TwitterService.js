@@ -117,8 +117,9 @@ export const searchEverything = async (query, cursor = '', onlyNews = true, quer
     });
     if (!response.ok) throw new Error('Search failed');
     const data = await response.json();
+    const sorted = normalizeTweets(data.tweets).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     return {
-      data: normalizeTweets(data.tweets),
+      data: sorted,
       meta: { next_cursor: data.next_cursor || null }
     };
   } catch (error) {
