@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Wand2, Plus, ArrowRight, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, Bookmark } from 'lucide-react';
+import { Sparkles, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Wand2, Plus, ArrowRight, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, Bookmark, ExternalLink } from 'lucide-react';
 import { researchAndPreventHallucination, generateStructuredContent } from '../services/GrokService';
 import { marked } from 'marked';
 
@@ -431,22 +431,64 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
         )}
       </div>
 
-      {/* Simple Status Message while generating */}
+      {/* ===== PREMIUM AGENT PIPELINE UI ===== */}
       {isGenerating && (
-        <div style={{ textAlign: 'center', marginTop: '20px', padding: '28px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', animation: 'fadeIn 0.3s' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', color: 'var(--accent-secondary)', fontSize: '14px', fontWeight: '600' }}>
-            <Loader2 size={16} className="animate-spin" />
-            <span style={{ transition: 'opacity 0.4s', opacity: 1 }}>
-              {(THINKING_PHASES[phase] || THINKING_PHASES.researching)[thinkingStep]}
-            </span>
+        <div style={{ marginTop: '24px', animation: 'fadeIn 0.4s ease-out' }}>
+          {/* Agent Nodes */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0', justifyContent: 'center', marginBottom: '24px' }}>
+            {[
+              { id: 'research', emoji: '🔍', label: 'Harper Research', sub: 'Fact-checking & Web Search', active: ['researching'].includes(phase), done: ['generating', 'done'].includes(phase) },
+              { id: 'factcheck', emoji: '🧠', label: 'Inspector Agent', sub: 'Cross-referencing sources', active: phase === 'researching' && thinkingStep >= 2, done: ['generating', 'done'].includes(phase) },
+              { id: 'writer', emoji: '✍️', label: 'AI Writer', sub: 'Drafting & streaming', active: phase === 'generating', done: phase === 'done' },
+            ].map((agent, i) => (
+              <React.Fragment key={agent.id}>
+                {/* Connector line between nodes */}
+                {i > 0 && (
+                  <div style={{ flex: 1, height: '2px', maxWidth: '60px', background: agent.done ? 'var(--accent-secondary)' : 'rgba(255,255,255,0.08)', transition: 'background 0.8s ease', position: 'relative', overflow: 'hidden' }}>
+                    {agent.active && (
+                      <div style={{ position: 'absolute', top: 0, left: '-40px', width: '40px', height: '100%', background: 'linear-gradient(90deg, transparent, var(--accent-secondary), transparent)', animation: 'shimmer 1.2s infinite linear' }} />
+                    )}
+                  </div>
+                )}
+                {/* Agent Node */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', transition: 'all 0.4s' }}>
+                  <div style={{
+                    width: '64px', height: '64px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px',
+                    background: agent.done ? 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))' 
+                      : agent.active ? 'linear-gradient(135deg, rgba(41,151,255,0.2), rgba(41,151,255,0.05))' 
+                      : 'rgba(255,255,255,0.04)',
+                    border: agent.done ? '1.5px solid rgba(16,185,129,0.4)' 
+                      : agent.active ? '1.5px solid rgba(41,151,255,0.5)' 
+                      : '1.5px solid rgba(255,255,255,0.07)',
+                    boxShadow: agent.active ? '0 0 20px rgba(41,151,255,0.25)' : agent.done ? '0 0 12px rgba(16,185,129,0.15)' : 'none',
+                    transition: 'all 0.4s ease',
+                  }}>
+                    {agent.done ? '✅' : agent.emoji}
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: agent.active ? 'var(--accent-secondary)' : agent.done ? '#10b981' : 'rgba(255,255,255,0.4)', transition: 'color 0.4s' }}>{agent.label}</div>
+                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)', marginTop: '2px', maxWidth: '90px', lineHeight: '1.3' }}>{agent.sub}</div>
+                  </div>
+                </div>
+              </React.Fragment>
+            ))}
           </div>
-          {/* Mini progress bar */}
-          <div style={{ marginTop: '16px', height: '3px', background: 'rgba(255,255,255,0.07)', borderRadius: '999px', overflow: 'hidden' }}>
-            <div style={{ height: '100%', background: 'var(--accent-secondary)', borderRadius: '999px', width: phase === 'researching' ? '45%' : '85%', transition: 'width 1.5s ease-in-out' }} />
+          {/* Live status line */}
+          <div style={{ textAlign: 'center', fontSize: '13px', color: 'var(--accent-secondary)', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
+            <Loader2 size={14} className="animate-spin" />
+            {(THINKING_PHASES[phase] || THINKING_PHASES.researching)[thinkingStep]}
           </div>
-          <div style={{ marginTop: '10px', fontSize: '11px', color: 'var(--text-dim)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-            {phase === 'researching' ? 'Phase 1 / 2 — Research & Fact-check' : 'Phase 2 / 2 — Writing & Streaming'}
+          {/* Global progress track */}
+          <div style={{ height: '2px', background: 'rgba(255,255,255,0.06)', borderRadius: '999px', overflow: 'hidden', maxWidth: '320px', margin: '0 auto' }}>
+            <div style={{ height: '100%', background: 'linear-gradient(90deg, var(--accent-secondary), #a855f7)', borderRadius: '999px', width: phase === 'researching' ? '40%' : '85%', transition: 'width 2s ease-in-out' }} />
           </div>
+        </div>
+      )}
+      {/* Live streaming preview — shows raw text while streaming, avoids marked crash */}
+      {isGenerating && phase === 'generating' && generatedMarkdown && (
+        <div style={{ marginTop: '20px', padding: '20px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', maxHeight: '220px', overflowY: 'auto' }}>
+          <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginBottom: '10px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>⚡ AI กำลังเขียน...</div>
+          <pre style={{ margin: 0, fontSize: '13px', color: 'rgba(255,255,255,0.65)', lineHeight: '1.7', whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>{generatedMarkdown}</pre>
         </div>
       )}
 
@@ -460,8 +502,8 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
         </div>
       )}
 
-      {/* Result Display */}
-      {generatedMarkdown && (
+      {/* Result Display - only parse markdown AFTER generation is fully done to prevent streaming crash */}
+      {generatedMarkdown && !isGenerating && (
         <div id="content-result" className="animate-fade-in" style={{ marginTop: '32px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px', margin: 0, fontWeight: '800' }}>

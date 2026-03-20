@@ -365,19 +365,24 @@ export const generateStructuredContent = async (factSheet, length, tone, format,
 
   // ⚡ Streaming Mode (Real-Time UX)
   if (onStreamChunk) {
-    const { textStream } = await streamText({
-      model: grok(MODEL_REASONING),
-      system: draftSystemPrompt,
-      prompt: draftUserMsg,
-      temperature: 0.7,
-    });
+    try {
+      const { textStream } = await streamText({
+        model: grok(MODEL_REASONING),
+        system: draftSystemPrompt,
+        prompt: draftUserMsg,
+        temperature: 0.7,
+      });
 
-    let fullContent = '';
-    for await (const textPart of textStream) {
-      fullContent += textPart;
-      onStreamChunk(fullContent);
+      let fullContent = '';
+      for await (const textPart of textStream) {
+        fullContent += textPart;
+        onStreamChunk(fullContent); // Stream to UI
+      }
+      return fullContent;
+    } catch (streamErr) {
+      console.error('[GrokService] Stream error caught:', streamErr);
+      throw streamErr; // Re-throw so component's catch block handles it gracefully
     }
-    return fullContent;
   }
   
   // Phase 1: Standard Draft Generation (Non-Streaming)
