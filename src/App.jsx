@@ -137,7 +137,10 @@ const App = () => {
   });
   
   const [feed, setFeed] = useState([]);
-  const [originalFeed, setOriginalFeed] = useState([]);
+  const [originalFeed, setOriginalFeed] = useState(() => {
+    const saved = localStorage.getItem('foro_home_feed_v1');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [deletedFeed, setDeletedFeed] = useState([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
@@ -205,6 +208,10 @@ const App = () => {
   useEffect(() => {
     localStorage.setItem('foro_read_archive_v1', JSON.stringify(readArchive));
   }, [readArchive]);
+
+  useEffect(() => {
+    localStorage.setItem('foro_home_feed_v1', JSON.stringify(originalFeed));
+  }, [originalFeed]);
 
   // Handle automatic filtering by List or View
   useEffect(() => {
@@ -572,10 +579,24 @@ const App = () => {
   };
 
   const handleDeleteAll = () => {
-    if (feed.length === 0) return;
-    setDeletedFeed(prev => [...feed]);
+    if (originalFeed.length === 0) return;
+    setDeletedFeed([...originalFeed]);
+    setOriginalFeed([]);
     setFeed([]);
-    setStatus('ล้างฟีดทั้งหมดแล้ว');
+    setStatus('ล้างฟีดหน้าหลักแล้ว (คุณสามารถกดย้อนกลับเพื่อเรียกคืนได้ก่อนจะซิงค์ใหม่)');
+  };
+
+  const handleUndo = () => {
+    if (deletedFeed.length > 0) {
+      setOriginalFeed([...deletedFeed]);
+      setFeed([...deletedFeed]);
+      setDeletedFeed([]);
+      setStatus('เรียกคืนฟีดข่าวเรียบร้อย');
+    } else if (originalFeed.length > 0) {
+      setFeed([...originalFeed]);
+      setAiReport('');
+      setStatus('ล้างความจำ: กลับสู่ค่าฟีดเริ่มต้น');
+    }
   };
 
   const handleRemoveList = (listId) => {
@@ -651,17 +672,6 @@ const App = () => {
     }
   };
 
-  const handleUndo = () => {
-    if (deletedFeed.length > 0) {
-      setFeed([...deletedFeed]);
-      setDeletedFeed([]);
-      setStatus('เรียกคืนข่าวที่ลบเรียบร้อย');
-    } else if (originalFeed.length > 0) {
-      setFeed(originalFeed);
-      setAiReport('');
-      setStatus('ล้างความจำ: กลับสู่ค่าฟีดเริ่มต้น');
-    }
-  };
 
   const handleSort = (type) => {
     setActiveFilters(prev => {
