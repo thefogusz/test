@@ -3,6 +3,19 @@ import { Sparkles, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, Message
 import { researchAndPreventHallucination, generateStructuredContent } from '../services/GrokService';
 import { marked } from 'marked';
 
+// Safe markdown parser -- prevents streaming partial-chunk crashes from killing the render tree
+let _lastGoodHtml = '';
+const safeMarkdown = (text) => {
+  if (!text || typeof text !== 'string') return _lastGoodHtml;
+  try {
+    const html = marked.parse(text);
+    _lastGoodHtml = html;
+    return html;
+  } catch (e) {
+    return _lastGoodHtml; // Return last known good render
+  }
+};
+
 const FORMAT_OPTIONS = [
   { id: 'โพสต์โซเชียล', title: 'โพสต์โซเชียล', icon: MessageSquare },
   { id: 'สคริปต์วิดีโอสั้น', title: 'วิดีโอสั้น / Reels', icon: ListVideo },
@@ -125,6 +138,31 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [thinkingStep, setThinkingStep] = useState(0);
+
+  const THINKING_PHASES = {
+    researching: [
+      '⚙️ Harper Agent กำลังแสกนหาข้อมูลอ้างอิงแบบเรียลไทม์...',
+      '🔍 กำลัง Fact-check ไขวแขวกับแหล่งยืนยันภายนอก...',
+      '🧠 สังเคราะห์เนื้อหาและรูปแบบคอนเทนต์...',
+      '📊 กำลังจัดทำ Fact Sheet เพื่อ Zero-Hallucination...'
+    ],
+    generating: [
+      '✍️ AI Writer ร่างโครงสร้างและเถ้าคีย์การ์ดสโตรีโฮอก...',
+      '💎 เติมความลึกและสีสันให้ชิ้นงาน...',
+      '💬 ปรับโทนและน้ำเสียงให้เป็นธรรมชาติ...',
+      '✨ กำลังเขียนคอนเทนต์ระดับ Elite...'
+    ]
+  };
+
+  useEffect(() => {
+    if (!isGenerating) { setThinkingStep(0); return; }
+    const steps = THINKING_PHASES[phase] || THINKING_PHASES.researching;
+    const interval = setInterval(() => {
+      setThinkingStep(s => (s + 1) % steps.length);
+    }, 2200);
+    return () => clearInterval(interval);
+  }, [isGenerating, phase]);
 
   const handleGenerate = async () => {
     const isManualInputValid = input.trim().length > 0;
@@ -395,9 +433,20 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
 
       {/* Simple Status Message while generating */}
       {isGenerating && (
-        <div style={{ textAlign: 'center', marginTop: '20px', color: 'var(--text-muted)', fontSize: '14px', animation: 'pulse 2s infinite', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-          <Loader2 size={16} className="spinner text-accent" /> 
-          {phase === 'researching' ? 'AI กำลังค้นหาข้อมูลอ้างอิงและ Fact-check แบบเรียลไทม์...' : 'กำลังวิเคราะห์รูปแบบและเรียบเรียงเนื้อหาเป็น ' + format + '...'}
+        <div style={{ textAlign: 'center', marginTop: '20px', padding: '28px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: '16px', animation: 'fadeIn 0.3s' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', color: 'var(--accent-secondary)', fontSize: '14px', fontWeight: '600' }}>
+            <Loader2 size={16} className="animate-spin" />
+            <span style={{ transition: 'opacity 0.4s', opacity: 1 }}>
+              {(THINKING_PHASES[phase] || THINKING_PHASES.researching)[thinkingStep]}
+            </span>
+          </div>
+          {/* Mini progress bar */}
+          <div style={{ marginTop: '16px', height: '3px', background: 'rgba(255,255,255,0.07)', borderRadius: '999px', overflow: 'hidden' }}>
+            <div style={{ height: '100%', background: 'var(--accent-secondary)', borderRadius: '999px', width: phase === 'researching' ? '45%' : '85%', transition: 'width 1.5s ease-in-out' }} />
+          </div>
+          <div style={{ marginTop: '10px', fontSize: '11px', color: 'var(--text-dim)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            {phase === 'researching' ? 'Phase 1 / 2 — Research & Fact-check' : 'Phase 2 / 2 — Writing & Streaming'}
+          </div>
         </div>
       )}
 
@@ -471,7 +520,7 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
                  style={{ width: '100%', minHeight: '400px', background: 'transparent', border: 'none', color: '#fff', fontSize: '15px', lineHeight: '1.7', padding: '32px', outline: 'none', resize: 'vertical' }}
                />
             ) : (
-               <div dangerouslySetInnerHTML={{ __html: (generatedMarkdown && typeof generatedMarkdown === 'string') ? marked.parse(generatedMarkdown) : '' }} />
+               <div dangerouslySetInnerHTML={{ __html: safeMarkdown(generatedMarkdown) }} />
             )}
           </div>
           
