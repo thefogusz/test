@@ -142,16 +142,16 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
 
   const THINKING_PHASES = {
     researching: [
-      '⚙️ Harper Agent กำลังแสกนหาข้อมูลอ้างอิงแบบเรียลไทม์...',
-      '🔍 กำลัง Fact-check ไขวแขวกับแหล่งยืนยันภายนอก...',
-      '🧠 สังเคราะห์เนื้อหาและรูปแบบคอนเทนต์...',
-      '📊 กำลังจัดทำ Fact Sheet เพื่อ Zero-Hallucination...'
+      '🔍 กำลังค้นหาข้อมูลจากแหล่งภายนอก...',
+      '📰 ตรวจสอบข้อเท็จจริงกับแหล่งข่าว...',
+      '🧠 รวบรวมและสรุปประเด็นสำคัญ...',
+      '📋 เตรียมข้อมูลพื้นฐานสำหรับการเขียน...',
     ],
     generating: [
-      '✍️ AI Writer ร่างโครงสร้างและเถ้าคีย์การ์ดสโตรีโฮอก...',
-      '💎 เติมความลึกและสีสันให้ชิ้นงาน...',
-      '💬 ปรับโทนและน้ำเสียงให้เป็นธรรมชาติ...',
-      '✨ กำลังเขียนคอนเทนต์ระดับ Elite...'
+      '✍️ AI กำลังเขียนเนื้อหา...',
+      '💬 ปรับภาษาให้อ่านง่ายและเป็นธรรมชาติ...',
+      '🎯 เพิ่มความน่าสนใจและจังหวะการเล่าเรื่อง...',
+      '✨ ตรวจทานและขัดเกลาคอนเทนต์...',
     ]
   };
 
@@ -425,9 +425,11 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
           </button>
         </div>
         
-        {/* Progress Bar */}
+        {/* Progress Bar - indeterminate flowing animation */}
         {isGenerating && (
-           <div style={{ position: 'absolute', bottom: 0, left: 0, height: '3px', background: 'var(--accent-secondary)', width: phase === 'researching' ? '50%' : '90%', transition: 'width 2s ease-in-out', borderBottomLeftRadius: '20px', borderBottomRightRadius: '20px' }} />
+           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px', background: 'rgba(255,255,255,0.06)', borderBottomLeftRadius: '20px', borderBottomRightRadius: '20px', overflow: 'hidden' }}>
+             <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: '40%', background: 'linear-gradient(90deg, transparent, var(--accent-secondary), transparent)', animation: 'progress-flow 1.8s ease-in-out infinite' }} />
+           </div>
         )}
       </div>
 

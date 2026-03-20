@@ -308,6 +308,7 @@ body {
 .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
 
 @keyframes shimmer { from { left: -40px; } to { left: 100%; } }
+@keyframes progress-flow { 0% { left: -40%; } 100% { left: 100%; } }
 
 /* Forge Action Button */
 .forge-action-btn {
