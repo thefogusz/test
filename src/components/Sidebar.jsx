@@ -6,7 +6,7 @@ const Sidebar = ({ activeView, onNavClick }) => {
     <aside className="sidebar">
       {/* Brand Logo */}
       <div className="sidebar-logo" style={{ padding: '24px 16px 20px', display: 'flex', alignItems: 'center' }}>
-        <img src="/logo.png" alt="RO Logo" style={{ height: '36px', width: 'auto' }} />
+        <img src="logo.png" alt="RO Logo" style={{ height: '36px', width: 'auto' }} />
       </div>
 
       {/* Top Section - Navigation Links */}
