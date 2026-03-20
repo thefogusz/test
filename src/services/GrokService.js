@@ -191,12 +191,15 @@ RULES:
 1. Extract core topics/keywords. Expand them into 5-7 HIGHLY MODERN, CURRENTLY RELEVANT examples. Combine using OR logic.
 2. Default to GLOBAL search (don't use lang:th unless requested).
 3. ALWAYS append '-filter:replies'.
-4. THE USER SELECTED MODE: ${isLatest ? 'LATEST (NEWEST FIRST)' : 'QUALITY (BEST/TOP)'}.
-   - IF LATEST: You MUST strictly focus on THE LAST 24-48 HOURS. 
-     * You MUST append 'since:${today}' to the query. 
-     * DO NOT use 'min_faves' or 'min_retweets'.
-   - IF QUALITY: You MUST dynamically assign 'min_faves:' based on niche size (1000+ for mainstream, 100+ for niche).
-5. OUTPUT ONLY A VALID JSON OBJECT with key 'finalXQuery'.`;
+4. THE USER SELECTED MODE: ${isLatest ? 'LATEST (FRESH & ELITE QUALITY)' : 'TOP (MAXIMUM ELITE QUALITY)'}.
+   - IF LATEST: Focus on the LAST 48 HOURS but ONLY high-traction news.
+     * Use 'since:${today}'.
+     * Use 'min_faves:50' OR 'min_retweets:10' (Hard filter for elite content).
+   - IF TOP (ELITE): Focus on THE ABSOLUTE BEST OF ALL TIME.
+     * Mainstream topics: 'min_faves:1500' to '5000'.
+     * Professional/Niche: 'min_faves:200' to '500'.
+     * DO NOT use 'since:' date filters.
+5. OUTPUT ONLY A VALID JSON OBJECT with key 'finalXQuery'. THE USER DEMANDS ELITE QUALITY.`;
 
   try {
     const { object } = await generateObject({
