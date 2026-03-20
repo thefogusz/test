@@ -984,7 +984,7 @@ const App = () => {
                 <h1 className="hero-search-title">ค้นหาคอนเทนต์</h1>
                 <p className="hero-search-subtitle">เจาะลึกทุกเรื่องราวจากคลังข้อมูลและโซเชียลมีเดีย</p>
                 
-                <form onSubmit={(e) => handleSearch(e)} className="hero-search-form">
+                <form onSubmit={(e) => handleSearch(e)} className="hero-search-form" style={{ marginBottom: '24px' }}>
                   <Search size={24} className="hero-search-icon" />
                   <input
                     type="text"
@@ -994,8 +994,40 @@ const App = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     autoFocus
                   />
+                  
+                  {/* Integrated Latest Toggle - Zap Icon Only */}
+                  <div style={{ marginRight: '16px', display: 'flex', alignItems: 'center' }}>
+                    <button 
+                      type="button" 
+                      title="ใหม่ล่าสุด" 
+                      onClick={() => { 
+                        const next = !isLatestMode;
+                        setIsLatestMode(next); 
+                        if(searchQuery) {
+                           // Small timeout to ensure state update is processed or just pass the next value
+                           handleSearch(null, false, searchQuery, next);
+                        }
+                      }} 
+                      style={{ 
+                        background: isLatestMode ? 'rgba(41,151,255,0.15)' : 'transparent', 
+                        border: 'none', 
+                        color: isLatestMode ? 'var(--accent-secondary)' : 'var(--text-dim)', 
+                        cursor: 'pointer', 
+                        padding: '10px', 
+                        borderRadius: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s',
+                        boxShadow: isLatestMode ? '0 0 12px rgba(41,151,255,0.2)' : 'none'
+                      }}
+                    >
+                      <Zap size={20} fill={isLatestMode ? "currentColor" : "none"} />
+                    </button>
+                  </div>
+
                   {searchQuery && (
-                     <button type="button" className="hero-clear-btn" onClick={() => setSearchQuery('')}>
+                     <button type="button" className="hero-clear-btn" style={{ marginRight: '8px' }} onClick={() => setSearchQuery('')}>
                        <X size={20} />
                      </button>
                   )}
@@ -1003,15 +1035,6 @@ const App = () => {
                     {isSearching ? <Loader2 size={20} className="animate-spin" /> : 'ค้นหา'}
                   </button>
                 </form>
-
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '16px' }}>
-                  <button 
-                    className={`btn-pill ${isLatestMode ? 'active' : ''}`} 
-                    onClick={() => setIsLatestMode(!isLatestMode)}
-                  >
-                    <Zap size={14} fill={isLatestMode ? "currentColor" : "none"} /> ล่าสุด
-                  </button>
-                </div>
 
                 {!searchQuery && searchResults.length === 0 && (
                   <div className="search-idea-tags">
@@ -1044,7 +1067,11 @@ const App = () => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#2997ff', fontWeight: 'bold' }}>
                         <Sparkles size={18} /> <span>Grok Executive Summary</span>
                       </div>
-                      <div style={{ lineHeight: '1.6', fontSize: '15px', color: 'rgba(255,255,255,0.9)' }} dangerouslySetInnerHTML={{ __html: searchSummary ? marked.parse(searchSummary) : '' }} />
+                      <div 
+                        className="markdown-body" 
+                        style={{ lineHeight: '1.9', fontSize: '15px', color: 'rgba(255,255,255,0.92)', letterSpacing: '0.01em' }} 
+                        dangerouslySetInnerHTML={{ __html: searchSummary ? marked.parse(searchSummary) : '' }} 
+                      />
                     </div>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', paddingLeft: '8px' }}>
