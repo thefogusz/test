@@ -3,7 +3,7 @@ const path = require('path');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8000;
 
 // 1. Proxy Middleware for Twitter API
 // This replicates the Vite dev proxy in production
