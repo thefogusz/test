@@ -310,7 +310,21 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
                 </div>
               </div>
             </div>
-            <button onClick={onRemoveSource} className="icon-btn" style={{ padding: '8px', color: 'var(--text-muted)' }}>
+            <button 
+              onClick={onRemoveSource} 
+              className="icon-hover" 
+              style={{ 
+                padding: '8px', 
+                color: 'rgba(255,255,255,0.4)', 
+                background: 'rgba(255,255,255,0.05)',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
+              onMouseOut={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+            >
               <X size={18} />
             </button>
           </div>
