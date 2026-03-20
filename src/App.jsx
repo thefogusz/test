@@ -1001,7 +1001,11 @@ const App = () => {
                       type="button" 
                       title="ใหม่ล่าสุด" 
                       onClick={() => { 
-                        setIsLatestMode(!isLatestMode); 
+                        const next = !isLatestMode;
+                        setIsLatestMode(next); 
+                        if(searchQuery) {
+                           handleSearch(null, false, searchQuery, next);
+                        }
                       }} 
                       style={{ 
                         background: isLatestMode ? 'rgba(41,151,255,0.15)' : 'transparent', 

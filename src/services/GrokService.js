@@ -190,7 +190,7 @@ RULES:
 2. DO NOT restrict to 'lang:th' unless the user explicitly asks for local Thai context. Default to GLOBAL search (no lang attribute, or combine English/Thai keywords) to catch massive global tech/business/esports trends.
 3. ALWAYS append '-filter:replies'.
 4. THE USER SELECTED MODE: ${isLatest ? 'LATEST (ข่าวสดใหม่ล่าสุด)' : 'QUALITY (คอนเทนต์คุณภาพ/ไวรัล)'}.
-   - IF LATEST: Focus on breaking info. Append 'filter:news' or specify recent dates. DO NOT enforce likes.
+   - IF LATEST: Focus on the most recent information. DO NOT enforce likes/faves. Keep it broad to catch all breaking updates.
    - IF QUALITY: You MUST dynamically assign 'min_faves:' based on the NICHE SIZE to avoid blocking quality niche experts!
      * For massive mainstream topics (K-Pop, Thai Politics, Entertainment): inject 'min_faves:1000' to '5000'.
      * For medium topics (Games, Gadgets): inject 'min_faves:300' to '500'.
