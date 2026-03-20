@@ -181,7 +181,7 @@ body {
 .btn-pill.active { 
   background: var(--accent-tint); 
   border-color: var(--accent-secondary); 
-  color: var(--accent-secondary); 
+  color: #fff; 
   box-shadow: 0 0 12px var(--accent-glow-blue), inset 0 0 0 1px var(--accent-secondary); 
 }
 
