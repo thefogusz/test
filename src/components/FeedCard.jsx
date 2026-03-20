@@ -136,10 +136,9 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
           {onArticleGen && (
             <button 
               onClick={(e) => { e.stopPropagation(); onArticleGen(tweet); }} 
-              className="btn-pill accent" 
-              style={{ height: '28px', padding: '0 12px', fontSize: '11px', gap: '4px', background: 'rgba(41, 151, 255, 0.1)', border: '1px solid rgba(41, 151, 255, 0.3)', color: '#2997ff' }}
+              className="btn-forge" 
             >
-              <PenTool size={12} strokeWidth={2.5} /> <span style={{ fontWeight: '700' }}>สร้างคอนเทนต์</span>
+              <PenTool size={11} strokeWidth={2.5} /> <span>สร้างคอนเทนต์</span>
             </button>
           )}
         </div>
