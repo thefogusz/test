@@ -471,7 +471,7 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
                  style={{ width: '100%', minHeight: '400px', background: 'transparent', border: 'none', color: '#fff', fontSize: '15px', lineHeight: '1.7', padding: '32px', outline: 'none', resize: 'vertical' }}
                />
             ) : (
-               <div dangerouslySetInnerHTML={{ __html: generatedMarkdown ? marked.parse(generatedMarkdown) : '' }} />
+               <div dangerouslySetInnerHTML={{ __html: (generatedMarkdown && typeof generatedMarkdown === 'string') ? marked.parse(generatedMarkdown) : '' }} />
             )}
           </div>
           
@@ -482,7 +482,10 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
                 <ExternalLink size={16} /> แหล่งข้อมูลอ้างอิงจริง (Zero-Hallucination Sources)
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
-                {articleSources.filter((s, idx, self) => idx === self.findIndex(t => t.url === s.url)).map((source, idx) => {
+                {articleSources
+                  .filter(s => s && s.url) // Hardening filter
+                  .filter((s, idx, self) => idx === self.findIndex(t => t.url === s.url))
+                  .map((source, idx) => {
                   let hostname = source.url;
                   try { hostname = new URL(source.url).hostname.replace('www.', ''); } catch (e) {}
                   return (
