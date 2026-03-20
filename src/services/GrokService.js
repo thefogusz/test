@@ -4,9 +4,9 @@ import { z } from 'zod';
 import { searchEverything } from './TwitterService';
 
 const XAI_API_KEY = import.meta.env.VITE_XAI_API_KEY;
-const MODEL_SYNC = 'grok-2-1212'; // Grok Fast for Sync
-const MODEL_NON_REASONING = 'grok-2-1212'; // Normal Fast
-const MODEL_REASONING = 'grok-2-1212'; // Expert Reasoning
+const MODEL_SYNC = 'grok-4.1-fast-non-reasoning'; // Grok 4.1 Fast
+const MODEL_NON_REASONING = 'grok-4.1-fast-non-reasoning'; // Grok 4.1 Fast
+const MODEL_REASONING = 'grok-4.1-fast-reasoning'; // Grok 4.1 Reasoning
 
 // Create Vercel AI SDK Provider for X.AI
 const grok = createOpenAI({
