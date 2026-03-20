@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { searchEverything } from './TwitterService';
 
 const XAI_API_KEY = import.meta.env.VITE_XAI_API_KEY;
+const MODEL_SYNC = 'grok-4.1-fast-non-reasoning'; // Grok 4.1 for Lightning Sync
 const MODEL_NON_REASONING = 'grok-4.20-0309-non-reasoning'; // Grok 4.20 Fast
 const MODEL_REASONING = 'grok-4.20-0309-reasoning'; // Grok 4.20 Expert
 
@@ -85,7 +86,7 @@ export const generateGrokBatch = async (stories) => {
   try {
     // 🛡️ Bulletproof JSON with Zod & generateObject
     const { object } = await generateObject({
-      model: grok(MODEL_NON_REASONING),
+      model: grok(MODEL_SYNC),
       system: systemPrompt,
       prompt: userPrompt,
       schema: z.object({
