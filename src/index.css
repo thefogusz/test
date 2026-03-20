@@ -240,9 +240,11 @@ body {
 }
 
 .feed-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05);
+  transform: translateY(-8px);
+  border-color: rgba(41, 151, 255, 0.3); 
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.6), 
+    0 0 25px rgba(41, 151, 255, 0.12);
 }
 
 /* Minimalist Mini-Ghost Buttons */
@@ -320,22 +322,76 @@ body {
 @keyframes progress-flow { 0% { left: -40%; } 100% { left: 100%; } }
 @keyframes progress-crawl { 0% { width: 0%; } 100% { width: 95%; } }
 
-/* Markdown Body Styling for Results */
-.markdown-body h1, .markdown-body h2, .markdown-body h3 {
-  margin-top: 24px;
-  margin-bottom: 16px;
+/* Markdown Body Styling for Results - Premium News Aesthetic */
+.markdown-body {
+  line-height: 1.8;
+  color: var(--text-main);
+  font-size: 18px; /* Larger base font for better readability */
+  letter-spacing: -0.011em;
+  word-wrap: break-word;
+}
+
+.markdown-body h1 {
+  font-size: 32px;
+  margin: 48px 0 24px;
+  letter-spacing: -0.04em;
+  line-height: 1.2;
   font-weight: 800;
-  line-height: 1.25;
+  color: #fff;
 }
-.markdown-body p, .markdown-body blockquote, .markdown-body ul, .markdown-body ol, .markdown-body dl, .markdown-body table, .markdown-body pre {
-  margin-top: 0;
-  margin-bottom: 16px;
+
+.markdown-body h2 {
+  font-size: 24px;
+  margin: 40px 0 20px;
+  letter-spacing: -0.03em;
+  color: #fff;
+  font-weight: 700;
+  border-bottom: 2px solid var(--accent-secondary);
+  padding-bottom: 8px;
+  display: inline-block;
+  width: auto;
 }
+
+.markdown-body h3 {
+  font-size: 20px;
+  margin: 32px 0 16px;
+  letter-spacing: -0.02em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.markdown-body p {
+  margin-bottom: 28px;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.markdown-body strong {
+  color: #fff;
+  font-weight: 700;
+}
+
+.markdown-body blockquote {
+  margin: 40px 0;
+  padding: 24px 32px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-lg);
+  border-left: 4px solid var(--accent-secondary);
+  font-style: italic;
+  color: var(--text-muted);
+}
+
 .markdown-body ul, .markdown-body ol {
-  padding-left: 2em;
+  margin-bottom: 28px;
+  padding-left: 1.5em;
 }
-.markdown-body li + li {
-  margin-top: 0.25em;
+
+.markdown-body li {
+  margin-bottom: 14px;
+}
+
+.markdown-body li::marker {
+  color: var(--accent-secondary);
+  font-weight: bold;
 }
 
 /* Forge Action Button */

@@ -557,9 +557,6 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
             borderRadius: '20px', 
             padding: isEditing ? '0' : '32px', 
             border: '1px solid var(--card-border)',
-            lineHeight: '1.8',
-            fontSize: '15px',
-            color: 'var(--text-main)',
             boxShadow: isEditing ? '0 0 0 2px var(--accent-secondary)' : '0 12px 32px rgba(0,0,0,0.15)',
             transition: 'all 0.3s'
           }} className={isEditing ? '' : "markdown-body"}>
