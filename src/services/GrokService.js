@@ -129,7 +129,7 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
 
   try {
     const { object } = await generateObject({
-      model: grok(MODEL_NEWS_FAST),
+      model: grok(MODEL_AGENT_WRITER),
       system: systemPrompt,
       prompt: `Target topic: "${originalQuery}"`,
       schema: z.object({
@@ -149,7 +149,7 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
   
   try {
     const { object } = await generateObject({
-      model: grok(MODEL_NEWS_FAST),
+      model: grok(MODEL_AGENT_WRITER),
       system: systemPrompt,
       prompt: `Category: ${categoryQuery}`,
       schema: z.object({
