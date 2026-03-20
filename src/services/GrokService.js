@@ -364,17 +364,21 @@ export const generateStructuredContent = async (factSheet, length, tone, format,
   CRITICAL RULES:
   1. STRICT ZERO HALLUCINATION: All substantive claims MUST strictly originate from the provided Fact Sheet. DO NOT invent facts or dates.
   2. TONE ENFORCEMENT & SLANG BAN: You MUST write like a professional, smart, and modern Thai columnist. ABSOLUTELY DO NOT use cringey internet slang like "เฮ้ยเพื่อนๆ", "ไงวัยรุ่น", "สวัสดีครับทุกคน". 
-  3. STRUCTURE RULES (ABSOLUTE): 
+  3. STRUCTURE RULES (ADAPTIVE):
+     IF length is 'short':
+     - DO NOT use # headers. Use bold text (**Title**) or Emojis for structure.
+     - Focus on a strong HOOK at the start.
+     - Maximum 1-2 short paragraphs.
+     ELSE (medium/long):
      - START directly with # [CATCHY TITLE/HEADING].
-     - DO NOT INCLUDE A "บทนำ" (INTRODUCTION) SECTION. Starting with the word "บทนำ" is a violation.
-     - Jump immediately into the first core # [DETAILS/CONTENT] paragraph after the title.
+     - DO NOT INCLUDE A "บทนำ" (INTRODUCTION) SECTION.
+     - Jump immediately into the core # [DETAILS/CONTENT] paragraphs.
      - END with a dedicated ## [บทสรุป] section.
-     - ABSOLUTELY NO generic intro phrases.
-  4. NO CITATION BLOCK: DO NOT output any links, URLs, or a "แหล่งที่มาอ้างอิง" (Sources) section at the bottom. The UI will render native Source Cards automatically.
-  5. NATIVE THAI LANGUAGE: Write in highly natural, engaging, and fluid Thai. No robotic translations.
-  6. ENGLISH LOANWORDS ALLOWED (รับอนุญาตให้ทับศัพท์): You are HIGHLY ENCOURAGED to use original English words for brands, names, and technical terms.
-  7. FORMAT: Markdown for all headings and structure.
-  8. STRICT LENGTH ENFORCEMENT: Your output MUST match the Target Length instruction above. Break down into multiple sub-headers for Medium and Long formats. Failure to meet length limit is unacceptable.`;
+  4. NO CITATION BLOCK: DO NOT output any links, URLs, or a "แหล่งที่มาอ้างอิง" section at the bottom.
+  5. NATIVE THAI LANGUAGE: Write in natural, engaging Thai.
+  6. ENGLISH LOANWORDS ALLOWED: Use original English words for brands, names, and tech terms.
+  7. FORMAT: Markdown for all structures.
+  8. STRICT LENGTH ENFORCEMENT: Output MUST match the Target Length. Break down into multiple sub-headers for Medium and Long formats only.`;
 
   const draftUserMsg = `[FACT SHEET เริ่มต้น]\n${factSheet}\n[FACT SHEET สิ้นสุด]\n\nโปรดสร้างคอนเทนต์ตามรูปแบบและข้อมูลที่ให้มา`;
 
