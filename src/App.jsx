@@ -721,7 +721,8 @@ const App = () => {
     setStatus('AI กำลังคัดกรองข่าวตามความต้องการ...');
     try {
       if (originalFeed.length === 0) setOriginalFeed([...feed]);
-      const filtered = await agentFilterFeed(feed, filterModal.prompt);
+      const validIds = await agentFilterFeed(feed, filterModal.prompt);
+      const filtered = feed.filter(t => validIds.includes(t.id));
       setFeed(filtered);
       setAiReport(`สรุปผล AI: พบ ${filtered.length} รายการที่สอดคล้องกับ "${filterModal.prompt}"`);
       setFilterModal({ show: false, prompt: '' });
@@ -888,14 +889,6 @@ const App = () => {
               {status && (
                 <div style={{ marginBottom: '16px' }}>
                   <span style={{ fontSize: '11px', color: 'var(--accent-secondary)', fontWeight: '700', letterSpacing: '0.05em' }}>{status}</span>
-                </div>
-              )}
-
-              {aiReport && (
-                <div className="ai-report-banner animate-fade-in" style={{ marginBottom: '24px' }}>
-                  <div className="zap-glow"><Sparkles size={16} /></div>
-                  <span>{aiReport}</span>
-                  <button onClick={() => setAiReport('')} className="close-btn"><X size={14} /></button>
                 </div>
               )}
 

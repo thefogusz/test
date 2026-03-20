@@ -5,7 +5,10 @@ import {
 } from 'lucide-react';
 
 const getRelativeTime = (dateString) => {
-  const diff = Math.floor((new Date() - new Date(dateString)) / 1000);
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
+  const diff = Math.floor((new Date() - date) / 1000);
   if (diff < 60) return `${Math.max(1, diff)}s`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
