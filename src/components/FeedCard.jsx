@@ -114,7 +114,7 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
           WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden',
           letterSpacing: '-0.01em'
         }}>
-          {tweet.summary || tweet.text}
+          {(tweet.summary && !tweet.summary.startsWith('(Grok')) ? tweet.summary : tweet.text}
         </p>
       </div>
 
