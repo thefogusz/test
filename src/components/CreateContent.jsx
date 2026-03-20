@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Wand2, Plus, ArrowRight, Loader2, Info, ChevronDown, Smile, Maximize2, X } from 'lucide-react';
+import { Sparkles, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Wand2, Plus, ArrowRight, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, Bookmark } from 'lucide-react';
 import { researchAndPreventHallucination, generateStructuredContent } from '../services/GrokService';
 import { marked } from 'marked';
 
@@ -105,7 +105,7 @@ const CustomDropdown = ({ icon: Icon, value, onChange, options, isObject }) => {
   );
 };
 
-const CreateContent = ({ sourceNode, onRemoveSource }) => {
+const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
   const [input, setInput] = useState('');
   
   // Settings
@@ -119,9 +119,12 @@ const CreateContent = ({ sourceNode, onRemoveSource }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [phase, setPhase] = useState('idle'); // 'idle', 'researching', 'generating', 'done'
   const [factSheet, setFactSheet] = useState(null);
+  const [articleSources, setArticleSources] = useState([]);
   const [generatedMarkdown, setGeneratedMarkdown] = useState('');
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
   const handleGenerate = async () => {
     const isManualInputValid = input.trim().length > 0;
@@ -131,6 +134,7 @@ const CreateContent = ({ sourceNode, onRemoveSource }) => {
 
     setIsGenerating(true);
     setFactSheet(null);
+    setArticleSources([]);
     setGeneratedMarkdown('');
     setError(null);
     setPhase('researching');
@@ -145,21 +149,24 @@ const CreateContent = ({ sourceNode, onRemoveSource }) => {
       const combinedInputForResearch = `${factIntel}คำสั่ง/ประเด็นหลักที่ต้องการ: ${input}`;
 
       // 1. Research Phase
-      const facts = await researchAndPreventHallucination(combinedInputForResearch);
+      const { factSheet: facts, sources: rawSources } = await researchAndPreventHallucination(combinedInputForResearch);
       setFactSheet(facts);
+      setArticleSources(rawSources || []);
       setPhase('generating');
 
-      // 2. Generation Phase
+      // 2. Generation Phase (Streaming)
       const appliedTone = customInstructions ? `${tone} (คำสั่งพิเศษ: ${customInstructions})` : tone;
       
-      const content = await generateStructuredContent(
+      await generateStructuredContent(
         facts,
         length,
         appliedTone,
-        format
+        format,
+        (currentText) => {
+          setGeneratedMarkdown(currentText); // Stream to UI instantly
+        }
       );
       
-      setGeneratedMarkdown(content);
       setPhase('done'); // Done
       
       // Auto-scroll to result gracefully only after it's done
@@ -191,7 +198,10 @@ const CreateContent = ({ sourceNode, onRemoveSource }) => {
     setPhase('idle');
     setGeneratedMarkdown('');
     setFactSheet(null);
+    setArticleSources([]);
     setError(null);
+    setIsEditing(false);
+    setIsSaved(false);
   };
 
   return (
@@ -411,6 +421,26 @@ const CreateContent = ({ sourceNode, onRemoveSource }) => {
             </h2>
             <div style={{ display: 'flex', gap: '8px' }}>
               <button
+                onClick={() => setIsEditing(!isEditing)}
+                className="btn-pill"
+                style={{ background: isEditing ? 'var(--accent-secondary)' : 'var(--bg-800)', height: '36px', padding: '0 16px', fontSize: '13px', color: isEditing ? '#fff' : 'inherit', transition: 'all 0.2s' }}
+              >
+                <PenTool size={14} />
+                {isEditing ? 'เสร็จสิ้นการแก้ไข' : 'แก้ไขเนื้อหา (Edit)'}
+              </button>
+              <button
+                onClick={() => {
+                  if (onSaveArticle) onSaveArticle(input.substring(0, 40) + '...', generatedMarkdown);
+                  setIsSaved(true);
+                  setTimeout(() => setIsSaved(false), 2000);
+                }}
+                className="btn-pill"
+                style={{ background: 'var(--bg-800)', height: '36px', padding: '0 16px', fontSize: '13px', color: isSaved ? '#10b981' : 'inherit', transition: 'all 0.2s' }}
+              >
+                {isSaved ? <CheckCircle2 size={14} color="#10b981" /> : <Bookmark size={14} />}
+                {isSaved ? 'บันทึกแล้ว' : 'บันทึกลง Bookmarks'}
+              </button>
+              <button
                 onClick={copyToClipboard}
                 className="btn-pill"
                 style={{ background: 'var(--bg-800)', height: '36px', padding: '0 16px', fontSize: '13px' }}
@@ -426,16 +456,53 @@ const CreateContent = ({ sourceNode, onRemoveSource }) => {
           <div style={{ 
             background: 'var(--bg-800)', 
             borderRadius: '20px', 
-            padding: '32px', 
+            padding: isEditing ? '0' : '32px', 
             border: '1px solid var(--card-border)',
             lineHeight: '1.8',
             fontSize: '15px',
             color: 'var(--text-main)',
-            boxShadow: '0 12px 32px rgba(0,0,0,0.15)'
-          }} className="markdown-body">
-            <div dangerouslySetInnerHTML={{ __html: marked.parse(generatedMarkdown) }} />
+            boxShadow: isEditing ? '0 0 0 2px var(--accent-secondary)' : '0 12px 32px rgba(0,0,0,0.15)',
+            transition: 'all 0.3s'
+          }} className={isEditing ? '' : "markdown-body"}>
+            {isEditing ? (
+               <textarea 
+                 value={generatedMarkdown}
+                 onChange={(e) => setGeneratedMarkdown(e.target.value)}
+                 style={{ width: '100%', minHeight: '400px', background: 'transparent', border: 'none', color: '#fff', fontSize: '15px', lineHeight: '1.7', padding: '32px', outline: 'none', resize: 'vertical' }}
+               />
+            ) : (
+               <div dangerouslySetInnerHTML={{ __html: generatedMarkdown ? marked.parse(generatedMarkdown) : '' }} />
+            )}
           </div>
           
+          {/* Native Source Cards Component */}
+          {articleSources.length > 0 && (
+            <div className="animate-fade-in" style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--glass-border)' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-dim)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ExternalLink size={16} /> แหล่งข้อมูลอ้างอิงจริง (Zero-Hallucination Sources)
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
+                {articleSources.filter((s, idx, self) => idx === self.findIndex(t => t.url === s.url)).map((source, idx) => {
+                  let hostname = source.url;
+                  try { hostname = new URL(source.url).hostname.replace('www.', ''); } catch (e) {}
+                  return (
+                  <a key={idx} href={source.url} target="_blank" rel="noopener noreferrer" 
+                     style={{ display: 'flex', flexDirection: 'column', padding: '16px', background: 'var(--bg-900)', border: '1px solid var(--card-border)', borderRadius: '12px', textDecoration: 'none', transition: 'all 0.2s', color: '#fff' }}
+                     onMouseOver={e => { e.currentTarget.style.borderColor = 'var(--accent-secondary)'; e.currentTarget.style.background = 'rgba(41, 151, 255, 0.05)'; }}
+                     onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.background = 'var(--bg-900)'; }}
+                  >
+                    <div style={{ fontSize: '13px', fontWeight: '700', marginBottom: '8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.4' }}>
+                      {source.title}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: 'auto', fontWeight: '600' }}>
+                      <ExternalLink size={12} /> {hostname}
+                    </div>
+                  </a>
+                )})}
+              </div>
+            </div>
+          )}
+
           {/* Transparency: Fact Sheet Toggle */}
           {factSheet && (
             <div style={{ marginTop: '16px', background: 'transparent', padding: '0', border: 'transparent' }}>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { marked } from 'marked';
 import { 
   Search, 
   Sparkles, 
@@ -28,7 +29,7 @@ import TopNav from './components/TopNav';
 import FeedCard from './components/FeedCard';
 import CreateContent from './components/CreateContent';
 import { getUserInfo, fetchWatchlistFeed, searchEverything } from './services/TwitterService';
-import { generateArticle, agentFilterFeed, generateGrokBatch, expandSearchQuery, discoverTopExperts, researchContext } from './services/GrokService';
+import { generateArticle, agentFilterFeed, generateGrokBatch, expandSearchQuery, discoverTopExperts, generateExecutiveSummary } from './services/GrokService';
 import './index.css';
 
 // ---- UserCard: proper component with per-card menu state ----
@@ -115,6 +116,9 @@ const App = () => {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [originalSearchResults, setOriginalSearchResults] = useState([]);
+  const [searchSummary, setSearchSummary] = useState('');
+  const [searchFilters, setSearchFilters] = useState({ view: false, engagement: false });
   const [isSearching, setIsSearching] = useState(false);
   const [searchCursor, setSearchCursor] = useState(null);
   const [onlyNews, setOnlyNews] = useState(true);
@@ -124,6 +128,8 @@ const App = () => {
     const saved = localStorage.getItem('foro_bookmarks_v1');
     return saved ? JSON.parse(saved) : [];
   });
+  const [bookmarkTab, setBookmarkTab] = useState('news');
+  const [editingArticleId, setEditingArticleId] = useState(null);
   const [readArchive, setReadArchive] = useState(() => {
     const saved = localStorage.getItem('foro_read_archive_v1');
     return saved ? JSON.parse(saved) : [];
@@ -137,6 +143,7 @@ const App = () => {
   });
   const [activeListId, setActiveListId] = useState(null);
   const [activeView, setActiveView] = useState('home');
+  const [contentTab, setContentTab] = useState('search');
   const [listModal, setListModal] = useState({ show: false, mode: 'create', value: '' });
   const [filterModal, setFilterModal] = useState({ show: false, prompt: '' });
   const [readFilters, setReadFilters] = useState({ view: false, engagement: false });
@@ -310,23 +317,39 @@ const App = () => {
     if (e) e.preventDefault();
     if (!searchQuery && !isMore) return;
     setIsSearching(true);
+    if (!isMore) setSearchSummary('');
     setStatus('AI กำลังประเมินเทรนด์... ค้นหาข้อมูลเชิงลึก');
     try {
       let finalQuery = searchQuery;
       if (!isMore) {
-        setStatus(`กำลังค้นหาข้อมูลเชิงลึกสำหรับ "${searchQuery}"...`);
-        finalQuery = await expandSearchQuery(searchQuery);
-        console.log("Expanded Query:", finalQuery);
+        setStatus(`[Agent 1/3] กำลังแปลคีย์เวิร์ดขั้นสูงสำหรับ "${searchQuery}"...`);
+        finalQuery = await expandSearchQuery(searchQuery, isLatestMode);
+        console.log("Expanded Query in " + (isLatestMode ? 'Latest' : 'Quality') + " mode:", finalQuery);
       }
       
-      // Always prioritize 'Top' for search results initially
-      const { data, meta } = await searchEverything(finalQuery, isMore ? searchCursor : null, onlyNews, 'Top'); 
-      const newResults = isMore ? [...searchResults, ...data] : data;
+      // Route to 'Latest' or 'Top' endpoint depending on User Toggle
+      setStatus(`[API] กำลังแสกนหาข้อมูลและกวาดล้างเนื้อหาดิบจาก X ทั่วโลก...`);
+      const { data, meta } = await searchEverything(finalQuery, isMore ? searchCursor : null, onlyNews, isLatestMode ? 'Latest' : 'Top'); 
+      
+      let finalData = data;
+      if (!isMore && data.length > 0) {
+        setStatus(`[Agent 2/3] กำลังกรองสแปมและคัดเลือก 20 โพสต์ระดับคุณภาพ...`);
+        const validIds = await agentFilterFeed(data, searchQuery);
+        const cleanData = data.filter(t => validIds.includes(t.id));
+        finalData = cleanData.length > 0 ? cleanData : data; // Fallback so we don't display empty
+        
+        setStatus(`[Agent 3/3] กำลังสังเคราะห์ข้อมูลและเขียน Executive Summary...`);
+        const summaryText = await generateExecutiveSummary(finalData.slice(0, 10), searchQuery);
+        setSearchSummary(summaryText);
+      }
+
+      const newResults = isMore ? [...searchResults, ...finalData] : finalData;
       setSearchResults(newResults);
+      if (!isMore) setOriginalSearchResults(newResults);
       setFeed(newResults); 
       setOriginalFeed(newResults); // CRITICAL: Fix sort reset bug
       setSearchCursor(meta.next_cursor);
-      setStatus(`พบ ${newResults.length} รายการที่เกี่ยวข้อง`);
+      setStatus(`ตรวจสอบพบ ${newResults.length} รายการระดับคุณภาพ`);
       
       if (data.length > 0) {
         setStatus('Grok 4.1 กำลังทยอยแปลผลการค้นหาเป็นภาษาไทย...');
@@ -639,6 +662,26 @@ const App = () => {
     });
   };
 
+  const handleSearchSort = (type) => {
+    setSearchFilters(prev => {
+      const next = { ...prev, [type]: !prev[type] };
+      let sorted = [...searchResults];
+      if (next.view || next.engagement) {
+        sorted.sort((a, b) => {
+          const engagementA = (parseInt(a.retweet_count) || 0) + (parseInt(a.reply_count) || 0) + (parseInt(a.like_count) || 0);
+          const engagementB = (parseInt(b.retweet_count) || 0) + (parseInt(b.reply_count) || 0) + (parseInt(b.like_count) || 0);
+          const scoreA = (next.view ? (parseInt(a.view_count) || 0) : 0) + (next.engagement ? engagementA : 0);
+          const scoreB = (next.view ? (parseInt(b.view_count) || 0) : 0) + (next.engagement ? engagementB : 0);
+          return scoreB - scoreA;
+        });
+      } else {
+        sorted = [...originalSearchResults];
+      }
+      setSearchResults(sorted);
+      return next;
+    });
+  };
+
   const handleAiFilter = async () => {
     if (!filterModal.prompt) return;
     setLoading(true);
@@ -741,7 +784,7 @@ const App = () => {
         activeView={activeView}
         onNavClick={(view) => {
           setActiveView(view);
-          if (view === 'home' || view === 'read' || view === 'search' || view === 'create') {
+          if (view === 'home' || view === 'read' || view === 'content') {
              setActiveListId(null);
              if (view === 'home') {
                setSearchQuery('');
@@ -763,15 +806,7 @@ const App = () => {
         
         <div className="foro-main-scroll">
 
-          {/* ===== CREATE CONTENT VIEW ===== */}
-          {activeView === 'create' && (
-            <div className="animate-fade-in">
-              <CreateContent 
-                sourceNode={createContentSource} 
-                onRemoveSource={() => setCreateContentSource(null)} 
-              />
-            </div>
-          )}
+
 
           {/* ===== HOME VIEW ===== */}
           {activeView === 'home' && (
@@ -860,15 +895,11 @@ const App = () => {
                     <FeedCard key={item.id || idx} tweet={item} 
                       isBookmarked={bookmarks.some(b => b.id === item.id)}
                       onBookmark={handleBookmark}
-                      onElevate={async (it) => {
-                        setStatus('กำลังวิเคราะห์ข้อมูลเชิงลึก...');
-                        const research = await researchContext(it.text);
-                        setFeed(prev => prev.map(p => p.id === it.id ? {...p, summary: `${p.summary}\n\n[DEEP INTEL]: ${research}`} : p));
-                        setStatus('วิเคราะห์เชิงลึกเสร็จสิ้น');
-                      }}
+
                       onArticleGen={(it) => {
                         setCreateContentSource(it);
-                        setActiveView('create');
+                        setActiveView('content');
+                        setContentTab('create');
                       }} 
                     />
                   ))
@@ -885,9 +916,34 @@ const App = () => {
             </div>
           )}
 
-          {/* ===== SEARCH VIEW: HERO DISCOVERY ===== */}
-          {activeView === 'search' && (
-            <div className="search-discovery-view animate-fade-in">
+          {/* ===== UNIFIED CONTENT VIEW ===== */}
+          {activeView === 'content' && (
+            <div className="unified-content-view animate-fade-in">
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '16px' }}>
+                <button className={`btn-pill ${contentTab === 'search' ? 'primary' : ''}`} onClick={() => setContentTab('search')}>
+                  <Search size={16} /> ค้นหาคอนเทนต์
+                </button>
+                <button className={`btn-pill ${contentTab === 'create' ? 'primary' : ''}`} onClick={() => setContentTab('create')}>
+                  <Sparkles size={16} /> สร้างคอนเทนต์
+                </button>
+              </div>
+
+              {contentTab === 'create' && (
+                <div className="animate-fade-in">
+                  <CreateContent 
+                    sourceNode={createContentSource} 
+                    onRemoveSource={() => setCreateContentSource(null)}
+                    onSaveArticle={(title, content) => {
+                      const newArticle = { id: Date.now().toString(), type: 'article', title: title || 'บทความที่ส่งต่อโดย AI', summary: content, created_at: new Date().toISOString() };
+                      setBookmarks(prev => [newArticle, ...prev]);
+                      setStatus("บันทึกบทความลง Bookmarks แล้ว พร้อมเปิดให้แก้ไขได้อิสระ");
+                    }}
+                  />
+                </div>
+              )}
+
+              {contentTab === 'search' && (
+                <div className="search-discovery-view animate-fade-in">
               <div className="hero-search-container">
                 <h1 className="hero-search-title">ค้นหาคอนเทนต์</h1>
                 <p className="hero-search-subtitle">เจาะลึกทุกเรื่องราวจากคลังข้อมูลและโซเชียลมีเดีย</p>
@@ -947,21 +1003,30 @@ const App = () => {
               ) : searchResults.length > 0 ? (
                 <div className="search-results-container">
                   <h2 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '24px', paddingLeft: '8px' }}>ผลการค้นหา "{searchQuery}"</h2>
+                  {searchSummary && (
+                    <div style={{ background: 'linear-gradient(135deg, rgba(8, 145, 178, 0.1), rgba(41, 151, 255, 0.05))', border: '1px solid rgba(8, 145, 178, 0.2)', borderRadius: '16px', padding: '24px', marginBottom: '24px', boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)' }} className="animate-fade-in">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', color: '#2997ff', fontWeight: 'bold' }}>
+                        <Sparkles size={18} /> <span>Grok Executive Summary</span>
+                      </div>
+                      <div style={{ lineHeight: '1.6', fontSize: '15px', color: 'rgba(255,255,255,0.9)' }} dangerouslySetInnerHTML={{ __html: searchSummary ? marked.parse(searchSummary) : '' }} />
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', paddingLeft: '8px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-dim)' }}>เรียงตาม:</span>
+                    <button onClick={() => handleSearchSort('view')} className={`btn-pill ${searchFilters.view ? 'active' : ''}`} style={{ height: '32px', padding: '0 16px', fontSize: '12px' }}>ยอดวิว</button>
+                    <button onClick={() => handleSearchSort('engagement')} className={`btn-pill ${searchFilters.engagement ? 'active' : ''}`} style={{ height: '32px', padding: '0 16px', fontSize: '12px' }}>เอนเกจเมนต์</button>
+                  </div>
                   <div className="feed-grid">
                     {searchResults.map((item, idx) => (
                       <FeedCard key={item.id || idx} 
                         tweet={item} 
                         isBookmarked={bookmarks.some(b => b.id === item.id)}
                         onBookmark={handleBookmark}
-                        onElevate={async (it) => {
-                          setStatus('กำลังวิเคราะห์ข้อมูลเชิงลึก...');
-                          const research = await researchContext(it.text);
-                          setSearchResults(prev => prev.map(p => p.id === it.id ? {...p, summary: `${p.summary}\n\n[DEEP INTEL]: ${research}`} : p));
-                          setStatus('วิเคราะห์เชิงลึกเสร็จสิ้น');
-                        }}
+
                         onArticleGen={(it) => {
                           setCreateContentSource(it);
-                          setActiveView('create');
+                          setActiveView('content');
+                          setContentTab('create');
                         }}
                       />
                     ))}
@@ -975,6 +1040,8 @@ const App = () => {
                   )}
                 </div>
               ) : null}
+                </div>
+              )}
             </div>
           )}
 
@@ -1024,12 +1091,7 @@ const App = () => {
                           tweet={item} 
                           isBookmarked={bookmarks.some(b => b.id === item.id)}
                           onBookmark={handleBookmark}
-                          onElevate={async (it) => {
-                           setStatus('กำลังวิเคราะห์ข้อมูลเชิงลึก...');
-                           const research = await researchContext(it.text);
-                           setReadArchive(prev => prev.map(p => p.id === it.id ? {...p, summary: `${p.summary}\n\n[DEEP INTEL]: ${research}`} : p));
-                           setStatus('วิเคราะห์เชิงลึกเสร็จสิ้น');
-                          }}
+
                           onArticleGen={(it) => {
                             setCreateContentSource(it);
                             setActiveView('create');
@@ -1319,33 +1381,81 @@ const App = () => {
           {/* ===== BOOKMARKS VIEW ===== */}
           {activeView === 'bookmarks' && (
             <div className="animate-fade-in">
-              <header className="dashboard-header" style={{ marginBottom: '32px' }}>
+              <header className="dashboard-header" style={{ marginBottom: '24px' }}>
                 <h1 style={{ fontSize: '32px', fontWeight: '700', marginBottom: '8px' }}>Bookmarks</h1>
-                <p style={{ color: 'var(--text-muted)' }}>ข่าวและบทความที่บันทึกไว้สำหรับอ่านภายหลัง</p>
+                <p style={{ color: 'var(--text-muted)' }}>คลังข้อมูลส่วนตัว แยกประเภทการจัดเก็บข่าวสดและบทความ</p>
               </header>
+
+              {/* BOOKMARK ZONES TAB */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', padding: '4px', background: 'var(--bg-800)', borderRadius: '10px', width: 'fit-content' }}>
+                <button
+                  onClick={() => setBookmarkTab('news')}
+                  style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s',
+                    background: bookmarkTab === 'news' ? 'var(--accent-gradient)' : 'transparent',
+                    color: bookmarkTab === 'news' ? '#fff' : 'var(--text-muted)',
+                    boxShadow: bookmarkTab === 'news' ? '0 4px 12px var(--accent-glow-blue)' : 'none',
+                  }}
+                >
+                  📰 ข่าว (Feeds)
+                </button>
+                <button
+                  onClick={() => setBookmarkTab('article')}
+                  style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s',
+                    background: bookmarkTab === 'article' ? 'var(--accent-gradient)' : 'transparent',
+                    color: bookmarkTab === 'article' ? '#fff' : 'var(--text-muted)',
+                    boxShadow: bookmarkTab === 'article' ? '0 4px 12px var(--accent-glow-blue)' : 'none',
+                  }}
+                >
+                  📝 บทความ (Articles)
+                </button>
+              </div>
               
-              {bookmarks.length === 0 ? (
-                <div style={{ padding: '80px 0', textAlign: 'center', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.02)', borderRadius: '20px', color: 'var(--text-muted)' }}>
-                  ยังไม่มีบทความที่บันทึกไว้ในขณะนี้
+              {bookmarks.filter(b => bookmarkTab === 'news' ? b.type !== 'article' : b.type === 'article').length === 0 ? (
+                <div style={{ padding: '80px 0', textAlign: 'center', border: '1px dashed var(--glass-border)', background: 'rgba(255,255,255,0.01)', borderRadius: '20px', color: 'var(--text-muted)' }}>
+                  {bookmarkTab === 'news' ? 'คุณยังไม่ได้กดบุ๊กมาร์กข่าวใดๆ จากฟีด' : 'สร้างบทความจากระบบ AI แล้วบันทึกไว้ในสเปซนี้เพื่อกลับมาแก้ไขสิ!'}
                 </div>
               ) : (
-                <div className="feed-grid">
-                  {bookmarks.map((item, idx) => (
-                    <FeedCard key={item.id || idx} 
-                      tweet={item} 
-                      isBookmarked={true}
-                      onBookmark={handleBookmark}
-                      onElevate={async (it) => {
-                        setStatus('กำลังวิเคราะห์ข้อมูลเชิงลึก...');
-                        const research = await researchContext(it.text);
-                        setBookmarks(prev => prev.map(p => p.id === it.id ? {...p, summary: `${p.summary}\n\n[DEEP INTEL]: ${research}`} : p));
-                        setStatus('วิเคราะห์เชิงลึกเสร็จสิ้น');
-                      }}
-                      onArticleGen={(it) => {
-                        setCreateContentSource(it);
-                        setActiveView('create');
-                      }}
-                    />
+                <div className={bookmarkTab === 'news' ? "feed-grid" : "article-grid"} style={bookmarkTab === 'article' ? { display: 'flex', flexDirection: 'column', gap: '20px'} : {}}>
+                  {bookmarks.filter(b => bookmarkTab === 'news' ? b.type !== 'article' : b.type === 'article').map((item, idx) => (
+                    bookmarkTab === 'news' ? (
+                      <FeedCard key={item.id || idx} 
+                        tweet={item} 
+                        isBookmarked={true}
+                        onBookmark={handleBookmark}
+
+                        onArticleGen={(it) => {
+                          setCreateContentSource(it);
+                          setActiveView('create');
+                        }}
+                      />
+                    ) : (
+                      <div key={item.id} className="animate-fade-in" style={{ background: 'var(--bg-800)', border: '1px solid var(--card-border)', borderRadius: '16px', padding: '24px', boxShadow: editingArticleId === item.id ? '0 8px 32px rgba(41, 151, 255, 0.1)' : 'none', transition: 'box-shadow 0.3s' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: editingArticleId === item.id ? '20px' : '16px' }}>
+                          <h3 style={{ fontSize: '18px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <PenTool size={18} className="text-accent" /> {item.title || 'บทความ'}
+                          </h3>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button onClick={() => setEditingArticleId(editingArticleId === item.id ? null : item.id)} className="btn-mini-ghost" style={{ background: editingArticleId === item.id ? 'var(--accent-secondary)' : 'transparent', color: editingArticleId === item.id ? '#fff' : 'inherit' }}>
+                              {editingArticleId === item.id ? '✓ บันทึกฉบับร่าง' : '📝 แก้ไขเนื้อหา'}
+                            </button>
+                            <button onClick={() => { if(window.confirm('ยืนยันลบบทความนี้?')) setBookmarks(prev => prev.filter(p => p.id !== item.id)) }} className="btn-mini-ghost" style={{ color: '#ef4444' }}>
+                              <Trash2 size={14} /> ลบ
+                            </button>
+                          </div>
+                        </div>
+                        {editingArticleId === item.id ? (
+                          <textarea 
+                            value={item.summary}
+                            onChange={(e) => setBookmarks(prev => prev.map(p => p.id === item.id ? { ...p, summary: e.target.value } : p))}
+                            style={{ width: '100%', minHeight: '340px', background: 'var(--bg-900)', border: '1px solid var(--accent-secondary)', color: '#fff', padding: '20px', borderRadius: '12px', fontSize: '15px', lineHeight: '1.7', outline: 'none', resize: 'vertical' }}
+                          />
+                        ) : (
+                          <div className="markdown-body" style={{ color: 'var(--text-main)', fontSize: '15px', lineHeight: '1.8' }}>
+                            <div dangerouslySetInnerHTML={{ __html: marked.parse(item.summary) }} />
+                          </div>
+                        )}
+                      </div>
+                    )
                   ))}
                 </div>
               )}

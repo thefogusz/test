@@ -19,11 +19,11 @@ const Sidebar = ({ activeView, onNavClick }) => {
           <span className="nav-text">ข่าววันนี้</span>
         </button>
         <button 
-          className={`nav-item ${activeView === 'search' ? 'active' : ''}`}
-          onClick={() => onNavClick('search')}
+          className={`nav-item ${activeView === 'content' ? 'active' : ''}`}
+          onClick={() => onNavClick('content')}
         >
-          <Search size={24} />
-          <span className="nav-text">ค้นหาคอนเทนต์</span>
+          <PenTool size={24} />
+          <span className="nav-text">คอนเทนต์</span>
         </button>
         <button 
           className={`nav-item ${activeView === 'read' ? 'active' : ''}`}
@@ -32,13 +32,7 @@ const Sidebar = ({ activeView, onNavClick }) => {
           <BookOpen size={24} />
           <span className="nav-text">อ่านข่าว</span>
         </button>
-        <button 
-          className={`nav-item ${activeView === 'create' ? 'active' : ''}`}
-          onClick={() => onNavClick('create')}
-        >
-          <PenTool size={24} />
-          <span className="nav-text">สร้างคอนเทนต์</span>
-        </button>
+
         <button 
           className={`nav-item ${activeView === 'audience' ? 'active' : ''}`}
           onClick={() => onNavClick('audience')}

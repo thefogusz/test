@@ -20,7 +20,7 @@ const fmt = (num) => {
   return n.toString();
 };
 
-const FeedCard = ({ tweet, onElevate, onArticleGen, onBookmark, isBookmarked: initialBookmarked = false }) => {
+const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookmarked = false }) => {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
 
   const handleBookmark = () => {
@@ -129,11 +129,7 @@ const FeedCard = ({ tweet, onElevate, onArticleGen, onBookmark, isBookmarked: in
 
         {/* Mini-Ghost Actions */}
         <div style={{ display: 'flex', gap: '4px' }}>
-          {onElevate && (
-            <button onClick={() => onElevate(tweet)} className="btn-mini-ghost accent-gold">
-              <Sparkles size={13} strokeWidth={2.5} /> วิเคราะห์
-            </button>
-          )}
+
           {onArticleGen && (
             <button onClick={() => onArticleGen(tweet)} className="btn-mini-ghost accent-blue">
               <PenTool size={13} strokeWidth={2.5} /> สร้างคอนเทนต์

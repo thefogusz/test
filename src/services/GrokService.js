@@ -1,7 +1,17 @@
+import { createOpenAI } from '@ai-sdk/openai';
+import { generateObject, generateText, streamText } from 'ai';
+import { z } from 'zod';
+import { searchEverything } from './TwitterService';
+
 const XAI_API_KEY = import.meta.env.VITE_XAI_API_KEY;
 const MODEL_NON_REASONING = 'grok-4.20-0309-non-reasoning'; // Grok 4.20 Fast
 const MODEL_REASONING = 'grok-4.20-0309-reasoning'; // Grok 4.20 Expert
-const BASE_URL = 'https://api.x.ai/v1/chat/completions';
+
+// Create Vercel AI SDK Provider for X.AI
+const grok = createOpenAI({
+  apiKey: XAI_API_KEY,
+  baseURL: 'https://api.x.ai/v1',
+});
 
 const SUMMARIZATION_RULES = `
 You are an AI that converts social media posts into short, clear Thai news-style summaries. 
@@ -29,7 +39,7 @@ PROPER NOUN RULES:
 SOCIAL MEDIA RULES:
 - Do NOT mention Twitter or X.
 - Do NOT include any URL or link.
-- Do NOT write phrases such as “โพสต์บน X”, “via X”, or similar. 
+- Do NOT write phrases such as "โพสต์บน X", "via X", or similar. 
 - Do not describe the tweet itself.
 
 SPECIAL CASE RULES:
@@ -39,54 +49,16 @@ SPECIAL CASE RULES:
 OUTPUT:
 - Return only the final Thai summary text. No explanations.
 `;
-const safeJsonParse = (str, fallback = []) => {
-  try {
-    if (typeof str === 'object' && str !== null) return str;
-    return JSON.parse(str);
-  } catch (e) {
-    console.warn('Initial JSON parse failed, attempting healing...', e);
-    try {
-      let healed = str.trim();
-      if (!healed.endsWith(']}')) {
-        if (healed.includes('"experts"')) {
-           if (!healed.endsWith(']')) healed += ']';
-           if (!healed.endsWith('}')) healed += '}';
-           return JSON.parse(healed);
-        }
-      }
-    } catch (e2) {
-      console.error('JSON Healing failed:', e2);
-    }
-    return fallback;
-  }
-};
 
-const callGrok = async (systemPrompt, userPrompt, modelName, isJson = false) => {
+const callGrok = async (systemPrompt, userPrompt, modelName) => {
   try {
-    const response = await fetch(BASE_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${XAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: modelName,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.7,
-        ...(isJson ? { response_format: { type: 'json_object' } } : {})
-      })
+    const { text } = await generateText({
+      model: grok(modelName),
+      system: systemPrompt,
+      prompt: userPrompt,
+      temperature: 0.7,
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Grok API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.choices[0].message.content;
+    return text;
   } catch (error) {
     console.error('Grok Error:', error);
     throw error;
@@ -102,38 +74,71 @@ export const generateGrokBatch = async (stories) => {
   if (!stories || stories.length === 0) return [];
   
   const systemPrompt = `You are a Batch Processing AI. Summarize each post following these strict rules:
-  ${SUMMARIZATION_RULES}
-  
-  Format: You must return a JSON object with a "summaries" key containing an array of strings.
-  Example: {"summaries": ["สรุป 1", "สรุป 2", ...]}`;
+  ${SUMMARIZATION_RULES}`;
 
-  const userPrompt = `Posts to process (${stories.length}):
-  ${stories.map((s, i) => `[ID:${i}] ${s}`).join('\n---\n')}`;
+  const userPrompt = `Posts to process (${stories.length}):\n${stories.map((s, i) => `[ID:${i}] ${s}`).join('\n---\n')}`;
 
-  const result = await callGrok(systemPrompt, userPrompt, MODEL_NON_REASONING, true);
   try {
-    const data = JSON.parse(result);
-    return data.summaries || stories.map(() => "(Grok Error)");
+    // 🛡️ Bulletproof JSON with Zod & generateObject
+    const { object } = await generateObject({
+      model: grok(MODEL_NON_REASONING),
+      system: systemPrompt,
+      prompt: userPrompt,
+      schema: z.object({
+        summaries: z.array(z.string()).describe("An array of summarized Thai strings corresponding to the input posts.")
+      }),
+      temperature: 0.3,
+    });
+    
+    return object.summaries || stories.map(() => "(Grok Error)");
   } catch (e) {
-    console.error('Grok Batch Parse Error:', e);
+    console.error('Grok Batch Parse Error (Zod Validation Failed):', e);
     return stories.map(() => "(Grok Parse Error)");
   }
 };
 
-export const agentFilterFeed = async (summaries, userPrompt) => {
-  const systemPrompt = `คุณคือ AI Agent ของ FORO หน้าที่ของคุณคือกรองข่าวสารตามความต้องการของผู้ใช้
-  คืนค่าเป็น JSON array รูปแบบเดิมเท่านั้น ห้ามตอบเป็นอย่างอื่น
-  รูปแบบ: [{...}, {...}]`;
+export const agentFilterFeed = async (tweetsData, userPrompt) => {
+  const systemPrompt = `[MODE: GROK 4.20 INSPECTOR]
+You are Agent 2 in a 3-Tier Multi-Agent system. Your job is to filter noise.
+Given an array of raw tweets and the user's search intent: "${userPrompt}", you must scrutinize each tweet.
+RULES:
+1. Exclude spam, explicit content, highly irrelevant clickbait, or crypto scams.
+2. If the tweet is highly relevant and high quality, INCLUDE its 'id'.
+3. OUTPUT ONLY the 'id's of the passing tweets as a JSON array of strings.`;
+
+  const compressedInput = tweetsData.map(t => ({ id: t.id, text: t.text }));
+  const userMsg = `Tweets to inspect:\n${JSON.stringify(compressedInput)}`;
   
-  const userMsg = `ผู้ใช้สั่งว่า: "${userPrompt}"\nรายการสรุปข่าวปัจจุบัน (JSON): ${JSON.stringify(summaries)}`;
-  
-  const result = await callGrok(systemPrompt, userMsg, MODEL_NON_REASONING, true);
   try {
-    return JSON.parse(result);
+    const { object } = await generateObject({
+      model: grok(MODEL_NON_REASONING),
+      system: systemPrompt,
+      prompt: userMsg,
+      schema: z.object({
+        validIds: z.array(z.string()).describe("Array of valid tweet IDs that pass the quality filter.")
+      }),
+    });
+    return object.validIds;
   } catch (e) {
-    console.error('Agent Filter Parse Error:', e);
-    return summaries;
+    console.error('Agent Filter Parse Error (Zod Validation Failed):', e);
+    return tweetsData.map(t => t.id); // fallback to showing everything
   }
+};
+
+export const generateExecutiveSummary = async (validTweets, userQuery) => {
+  if (!validTweets || validTweets.length === 0) return null;
+  const contentToAnalyze = validTweets.map(t => t.text).join('\n---\n');
+  const systemPrompt = `[MODE: GROK BETA SYNTHESIZER]
+You are Agent 3 in a Multi-Agent system. Your job is to read the top filtered tweets and write a brilliant Executive Summary.
+User Intent: "${userQuery}"
+
+RULES:
+1. Read the provided tweets and identify the main consensus, breaking news, or core trending discussion.
+2. Write a single, highly professional 2-3 sentence markdown summary.
+3. Use Thai language. You can use markdown bolding.
+4. DO NOT use intro phrases like "From the tweets..." or "Summary:". Just deliver the insights directly and confidently like a pro news anchor.`;
+
+  return await callGrok(systemPrompt, contentToAnalyze, MODEL_REASONING);
 };
 
 export const generateFinalContent = async (enrichedData, targetFormat, customPrompt = '') => {
@@ -173,27 +178,40 @@ export const generateFinalContent = async (enrichedData, targetFormat, customPro
   return await callGrok(systemPrompt, userMsg, MODEL_REASONING);
 };
 
-export const expandSearchQuery = async (originalQuery) => {
+export const expandSearchQuery = async (originalQuery, isLatest = false) => {
   if (!originalQuery) return originalQuery;
-  
-  // Checking if it's already mostly English, if so, just return it
-  if (/^[A-Za-z0-9\s.,!?-]+$/.test(originalQuery)) return originalQuery;
 
-  const systemPrompt = `You are a Search Specialist for FORO Intelligence. 
-  Your task is to transform a Thai search query into a high-performance bilingual search query for X (Twitter) Advanced Search.
-  
-  RULES:
-  1. Extract core keywords.
-  2. Translate core keywords to professional English.
-  3. Combine Thai and English using 'OR' logic where appropriate, or just a powerful English phrase.
-  4. Aim for maximum global reach.
-  5. Return ONLY the final search string (no explanations).
-  
-  Example Input: "5 เทรนด์ AI 2026"
-  Example Output: "AI Trends 2026 OR 5 เทรนด์ AI 2026"`;
+  const systemPrompt = `[MODE: GROK 4.20 SEARCH OPTIMIZER]
+You are a Twitter/X Advanced Search Query Expert for FORO Intelligence.
+Your job is to translate user natural language intent into raw Twitter API Advanced Search syntax.
 
-  const result = await callGrok(systemPrompt, originalQuery, MODEL_NON_REASONING);
-  return result.replace(/"/g, '').trim(); // Clean up potential quotes
+RULES:
+1. Extract core topics/keywords. If the user query is a broad category, expand it into 5-7 HIGHLY MODERN, CURRENTLY RELEVANT specific examples (e.g., "Esport" -> include current hits like Valorant/CS2, NOT dead games from 10 years ago). Combine using OR logic.
+2. DO NOT restrict to 'lang:th' unless the user explicitly asks for local Thai context. Default to GLOBAL search (no lang attribute, or combine English/Thai keywords) to catch massive global tech/business/esports trends.
+3. ALWAYS append '-filter:replies'.
+4. THE USER SELECTED MODE: ${isLatest ? 'LATEST (ข่าวสดใหม่ล่าสุด)' : 'QUALITY (คอนเทนต์คุณภาพ/ไวรัล)'}.
+   - IF LATEST: Focus on breaking info. Append 'filter:news' or specify recent dates. DO NOT enforce likes.
+   - IF QUALITY: You MUST dynamically assign 'min_faves:' based on the NICHE SIZE to avoid blocking quality niche experts!
+     * For massive mainstream topics (K-Pop, Thai Politics, Entertainment): inject 'min_faves:1000' to '5000'.
+     * For medium topics (Games, Gadgets): inject 'min_faves:300' to '500'.
+     * For niche/professional topics (e.g. AI Dev, B2B Business, specific stocks) where experts have smaller but hyper-engaged audiences: inject 'min_faves:50' to '100'.
+5. OUTPUT ONLY A VALID JSON OBJECT matching the schema. DO NOT output conversational text.`;
+
+  try {
+    const { object } = await generateObject({
+      model: grok(MODEL_REASONING),
+      system: systemPrompt,
+      prompt: `User Query: "${originalQuery}"\nGenerate the optimal X Advanced Search query string.`,
+      schema: z.object({
+        finalXQuery: z.string().describe("The raw Twitter Advanced Search string.")
+      })
+    });
+    return object.finalXQuery;
+  } catch (error) {
+    console.error("Query Optimizer Error:", error);
+    const defaultAppendix = isLatest ? 'filter:news -filter:replies' : 'min_faves:500 -filter:replies';
+    return `(${originalQuery}) lang:th ${defaultAppendix}`;
+  }
 };
 
 export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) => {
@@ -201,43 +219,40 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
   Your task is to identify the TOP 6 most influential, credible, and famous expert accounts on X (Twitter) for a specific category.
   
   CORE OBJECTIVE:
-  - If the category is general or high-level (e.g., 'Business', 'Tech', 'AI', 'Economy'), prioritize WORLD-CLASS GLOBAL LEADERS and famous international experts.
+  - Prioritize WORLD-CLASS GLOBAL LEADERS and famous international experts.
   - USE YOUR REAL-TIME SEARCH (Websearch/X-Search) to check the LATEST POST DATE for each account.
-  - CRITICAL: Only recommend accounts that have posted QUALITY content within the LAST 7-14 DAYS.
-  - If an expert has recently changed their username, you MUST provide the NEW correct handle.
-  - OBSOLETE, DORMANT, or INACTIVE accounts (e.g., @sheevergaming who is inactive) MUST be excluded regardless of fame.
-  - For specific Thai queries, you can include top-tier Thai experts.
+  - CRITICAL: Only recommend accounts with QUALITY content within the LAST 7-14 DAYS.
+  - If an expert changed usernames, provide the NEW correct handle.
+  - OBSOLETE, DORMANT, or INACTIVE accounts MUST be excluded regardless of fame.
+  - For specific Thai queries, include top-tier Thai experts.
   
   RULES:
   1. Identify exactly 6 accounts.
-  2. For each account, provide:
-     - name: Full name or Display name.
-     - username: The exact X handle (without @).
-     - reasoning: A friendly, natural, and conversational description in Thai explaining why this expert is a "must-follow" global or industry leader. 
-       CRITICAL: DO NOT use technical jargon, metrics, or labels like 'Trend Signal', 'Credibility Score', 'Content Profile', or emojis like 🟢/🔴. 
-       Talk like a friend recommending a world-famous specialist.
-  3. CRITICAL: Execute a freshness check via real-time search. Only return accounts with RECENT activity (last 1-2 weeks). Discard dormant accounts immediately.
-  4. EXCLUDE these usernames if provided: [${excludeUsernames.join(', ')}]. Provide DIFFERENT experts if you see this list.
-  5. Format the output as a strict JSON object with an "experts" key containing the array.
-  
-  Example Response:
-  {
-    "experts": [
-      {
-        "name": "Elon Musk",
-        "username": "elonmusk",
-        "reasoning": "ถ้าอยากตามเรื่องนวัตกรรมและอนาคต ต้องคนนี้เลยครับ เขาคือผู้นำระดับโลกที่เปลี่ยนวงการหลายอย่าง..."
-      }
-    ]
-  }`;
+  2. EXCLUDE these usernames if provided: [${excludeUsernames.join(', ')}]. Provide DIFFERENT experts if you see this list.`;
 
   const userMsg = `Category: ${categoryQuery}`;
   
-  const result = await callGrok(systemPrompt, userMsg, MODEL_REASONING, true);
-  const data = safeJsonParse(result, { experts: [] });
-  const experts = data.experts || [];
-  // Ultimate Stability: Sanitize results before returning to UI
-  return experts.filter(e => e && typeof e === 'object' && e.username && e.name);
+  try {
+    // 🛡️ Bulletproof JSON for Experts Discovery
+    const { object } = await generateObject({
+      model: grok(MODEL_REASONING),
+      system: systemPrompt,
+      prompt: userMsg,
+      schema: z.object({
+        experts: z.array(z.object({
+          name: z.string().describe("Full name or Display name."),
+          username: z.string().describe("The exact X handle (without @)."),
+          reasoning: z.string().describe("A friendly, conversational description in Thai explaining why this expert is a must-follow global leader. DO NOT use technical jargon or emojis.")
+        })).min(1)
+      }),
+      temperature: 0.5,
+    });
+    
+    return object.experts;
+  } catch (error) {
+    console.error('Expert Discovery Zod Validation Error:', error);
+    return [];
+  }
 };
 
 export const researchContext = async (query, interactionData = '') => {
@@ -245,14 +260,9 @@ export const researchContext = async (query, interactionData = '') => {
   YOUR GOAL:
   1. Research historical context and related facts about the given topic.
   2. Analyze the 'vibe' and 'sentiments' from social engagement data.
-  3. Provide a structured 'Research Dossier' including:
-     - Core Facts & History
-     - Why it matters now
-     - What people are saying (Sentiment Analysis)
-     - Related entities
-  Focus on DEPTH and ACCURACY in Thai language. Return only the findings without conversational filler.`;
+  3. Provide a structured 'Research Dossier' Focus on DEPTH and ACCURACY in Thai language. Return only the findings without conversational filler.`;
 
-  const userPrompt = `INPUT TOPIC: ${query}\nSOCIAL ENGAGEMENT DATA: ${interactionData}`;
+  const userPrompt = `INPUT TOPIC: ${query}\SOCIAL ENGAGEMENT DATA: ${interactionData}`;
   
   try {
     return await callGrok(systemPrompt, userPrompt, MODEL_NON_REASONING);
@@ -262,63 +272,152 @@ export const researchContext = async (query, interactionData = '') => {
   }
 };
 
+const factCache = new Map();
+
 export const researchAndPreventHallucination = async (input) => {
+  if (factCache.has(input)) {
+    console.log("⚡ [CACHE HIT] Loaded Fact Sheet from memory. 0 Tokens Used.");
+    return factCache.get(input);
+  }
+
+  // 🚀 FAST & DETERMINISTIC SEARCH BINDING (Tavily)
+  let generalContext = "";
+  let xContext = "";
+  let extractedSources = [];
+  try {
+    const [webRes, xRes] = await Promise.all([
+      fetch('https://api.tavily.com/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          api_key: import.meta.env.VITE_TAVILY_API_KEY,
+          query: input,
+          search_depth: "basic",
+          include_answer: true,
+          max_results: 3
+        })
+      }),
+      searchEverything(input, '', false, 'Top').catch(e => { console.error('TwitterAPI error:', e); return { data: [] }; })
+    ]);
+
+    if (webRes.ok) {
+        const data = await webRes.json();
+        generalContext = `[GENERAL WEB SEARCH RESULTS]\nAnswer: ${data.answer || ''}\nSources: ${data.results.map(r => `- ${r.title} (${r.url}): ${r.content}`).join('\n')}`;
+        extractedSources.push(...data.results.map(r => ({ title: r.title, url: r.url })));
+    }
+    if (xRes && xRes.data && xRes.data.length > 0) {
+        const topTweets = xRes.data.slice(0, 3);
+        xContext = `[X/TWITTER SPECIFIC CONTEXT]\nSources: ${topTweets.map(t => `- @${t.author?.username || 'user'} on X: ${t.text}`).join('\n')}`;
+        extractedSources.push(...topTweets.map(t => ({ 
+            title: `${t.author?.name || 'X User'} on X`, 
+            url: `https://x.com/${t.author?.username || 'user'}/status/${t.id}` 
+        })));
+    }
+  } catch(e) { console.error("Tavily Parallel Search Error:", e); }
+
+  let tavilyContext = `${generalContext}\n\n${xContext}`;
+
   const systemPrompt = `[MODE: GROK 4.20 MULTI-AGENT ORCHESTRATION]
   You are Harper Research, the elite fact-checking agent for FORO.
-  Your task is to analyze the user's input (which could be a short phrase, long text, or a URL).
-  
-  CRITICAL NATIVE TOOLS MISSION:
-  1. YOU MUST USE YOUR NATIVE 'web_search' to find the most up-to-date, real-time facts globally.
-  2. YOU MUST USE YOUR NATIVE 'x_search' to scan Twitter/X for the current public sentiment, trending opinions, and related posts.
+  Your task is to analyze the user's input and the provided Real-Time Search Results.
   
   RULES:
-  RULES:
-  1. Act as the bridge between user intent and truth. Synthesize the most up-to-date information utilizing your massive internal knowledge base (up to 2026).
-  2. **CRITICAL FOR [ATTACHED INTEL]**: If the user provides [ATTACHED INTEL], you MUST NOT accept it blindly. You must heavily cross-reference its claims against global X (Twitter) sentiment, popularity, and credibility. Verify if it is a verified fact, a rumor, or heavily disputed. Search for alternative viewpoints and related discussions.
+  1. Act as the bridge between user intent and truth.
+  2. **CRITICAL FOR [ATTACHED INTEL]**: Verify if it is a verified fact, a rumor, or heavily disputed using the Search Results.
   3. Synthesize a comprehensive "Fact & Sentiment Sheet" covering:
-     - The verified reality of the topic.
-     - X/Twitter Sentiment & Popularity (Are people supporting it? What are the counter-arguments?).
-  4. ALWAYS list actionable sources WITH THEIR ACTUAL URL LINKS. YOU MUST PROVIDE EXACT DEEP-LINKS (e.g., https://.../article-name-here) OR SPECIFIC SEARCH LINKS (e.g., https://www.google.com/search?q=XYZ or https://twitter.com/search?q=XYZ). 
-  NEVER provide generic homepage links (like https://twitter.com or https://coinmarketcap.com). If you don't know the exact article URL, you MUST generate a specific Google Search URL that links directly to the topic to prove zero-hallucination.
+     - The verified reality of the topic based strictly on the search context.
+     - X/Twitter Sentiment & Popularity.
+  4. ALWAYS list actionable sources WITH THEIR ACTUAL URL LINKS (https://...) extracted from the Search Results. NEVER provide generic homepage links.
   5. The output MUST be in Thai and highly structured with bullet points.
   6. DO NOT write the final article. ONLY provide the Fact & Sentiment Sheet.`;
 
-  const userMsg = `Input data to research:\n${input}\n\nGenerate a Deep Cross-Referenced Fact & Sentiment Sheet.`;
+  const userMsg = `Input data to research: ${input}\n\n${tavilyContext}\n\nGenerate a Deep Cross-Referenced Fact & Sentiment Sheet based ON THE SEARCH CONTEXT.`;
 
-  return await callGrok(systemPrompt, userMsg, MODEL_NON_REASONING, false);
+  const factSheet = await callGrok(systemPrompt, userMsg, MODEL_NON_REASONING);
+  const resultPayload = { factSheet, sources: extractedSources };
+  factCache.set(input, resultPayload); // Save to cache
+  return resultPayload;
 };
 
-export const generateStructuredContent = async (factSheet, length, tone, format) => {
-  const systemPrompt = `[MODE: GROK 4.20 MULTI-AGENT ORCHESTRATION]
-  You are Captain Grok, coordinating a native 4-Agent expert panel to generate the ultimate content.
-  You must synthesize the work of your 3 sub-agents to produce a final, flawless Thai response.
+export const generateStructuredContent = async (factSheet, length, tone, format, onStreamChunk) => {
+  let lengthInstruction = length;
+  if (length === 'short') lengthInstruction = 'แบบสั้นกระชับ (Short) - ให้จบภายใน 1 ย่อหน้าสั้นๆ หรือ 3-4 บรรทัด (ไม่เกิน 150 คำ)';
+  if (length === 'medium') lengthInstruction = 'แบบปานกลาง (Medium) - ความยาวขั้นต่ำ 400 คำ (MINIMUM 400 WORDS). ห้ามเขียนสั้นแค่ 1-2 ย่อหน้าเด็ดขาด ต้องมีรายละเอียดเชิงลึกและบทวิเคราะห์แยกตามย่อหน้าชัดเจน';
+  if (length === 'long') lengthInstruction = 'แบบเจาะลึก (Long) - ความยาวขั้นต่ำ 800 คำ (MINIMUM 800 WORDS) ลงรายละเอียดแบบจัดเต็มแบบ Long-form บทความวิเคราะห์';
+
+  const draftSystemPrompt = `[MODE: GROK 4.20 MULTI-AGENT ORCHESTRATION]
+  You are an elite Thai copywriter and professional journalist.
   
-  --- THE EXPERT PANEL ---
-  1. Harper Research: Verify all facts against the provided Fact Sheet. Ensure zero hallucinations.
-  2. Lucas Creative: Craft an engaging, platform-perfect Hook and narrative flow matching the Tone.
-  3. Benjamin Logic: Ensure the structure is perfectly sound and the reasoning flows naturally.
-  
-  --- ORCHESTRATION INSTRUCTIONS ---
-  Goal: Generate the ultimate content strictly utilizing the provided Fact Sheet.
-  Target Length: ${length}
+  Target Length: ${lengthInstruction}
   Target Tone: ${tone}
   Target Format: ${format}
   
-  Format-Specific Directives (For Lucas & Benjamin):
-  - If Video/Reels: Provide a 3-second visual hook, B-Roll suggestions in brackets, and natural spoken dialogue.
-  - If SEO/Blog: Use bold keywords, clear H1/H2 hierarchy, and build up reading momentum.
-  - All other formats: Maximize professional formatting for that specific medium.
-  
-  CRITICAL MISSION RULES (For Harper & Captain Grok):
-  1. ZERO HALLUCINATION: All substantive claims MUST strictly originate from the provided Fact Sheet.
-  2. MANDATORY CITATION: You absolutely must include a "แหล่งที่มาอ้างอิง" (Sources) section at the very end, extracting sources from the Fact Sheet. YOU MUST INCLUDE ACTUAL CLICKABLE DEEP-LINKS (https://...) for every source. NEVER USE GENERIC HOMEPAGES. If you do not have the exact article link, generate a precise Google Search link (https://www.google.com/search?q=...) or Twitter Search link. Format them as Markdown links if possible.
-  3. OUTPUT: Output only the final synthesized Thai Markdown content. Do not output the internal debate.`;
+  CRITICAL RULES:
+  1. STRICT ZERO HALLUCINATION: All substantive claims MUST strictly originate from the provided Fact Sheet. DO NOT invent facts or dates.
+  2. TONE ENFORCEMENT & SLANG BAN: You MUST write like a professional, smart, and modern Thai columnist. ABSOLUTELY DO NOT use cringey internet slang like "เฮ้ยเพื่อนๆ", "ไงวัยรุ่น", "สวัสดีครับทุกคน". Start the article immediately with a strong, captivating journalistic hook. No conversational filler or weird intros.
+  3. NO CITATION BLOCK: DO NOT output any links, URLs, or a "แหล่งที่มาอ้างอิง" (Sources) section at the bottom. The UI will render native Source Cards automatically. Just write the article body and end cleanly.
+  4. NATIVE THAI LANGUAGE: Write in highly natural, engaging, and fluid Thai. No robotic translations.
+  5. ENGLISH LOANWORDS ALLOWED (รับอนุญาตให้ทับศัพท์): You are HIGHLY ENCOURAGED to use original English words for brands (Instagram, YouTube, Google), names, and technical terms. Do not spell them out phonetically in Thai.
+  6. Format the output as Markdown.
+  7. STRICT LENGTH ENFORCEMENT: Your output MUST visibly match the Target Length instruction above. If Target Length is Medium, DO NOT RETURN A SINGLE SHORT PARAGRAPH. You MUST output at least 400 words, breaking it down into Introduction, Detailed Breakdown, and Conclusion. Failure to meet length limit is unacceptable.`;
 
-  const userMsg = `[FACT SHEET เริ่มต้น]\n${factSheet}\n[FACT SHEET สิ้นสุด]\n\nโปรดสร้างคอนเทนต์ตามข้อกำหนดด้านบนด้วยภาษาไทยที่สละสลวย เป็นมืออาชีพ พร้อมใช้งานทันที.`;
+  const draftUserMsg = `[FACT SHEET เริ่มต้น]\n${factSheet}\n[FACT SHEET สิ้นสุด]\n\nโปรดสร้างคอนเทนต์ตามรูปแบบและข้อมูลที่ให้มา`;
+
+  // ⚡ Streaming Mode (Real-Time UX)
+  if (onStreamChunk) {
+    const { textStream } = await streamText({
+      model: grok(MODEL_REASONING),
+      system: draftSystemPrompt,
+      prompt: draftUserMsg,
+      temperature: 0.7,
+    });
+
+    let fullContent = '';
+    for await (const textPart of textStream) {
+      fullContent += textPart;
+      onStreamChunk(fullContent);
+    }
+    return fullContent;
+  }
   
-  return await callGrok(systemPrompt, userMsg, MODEL_REASONING);
+  // Phase 1: Standard Draft Generation (Non-Streaming)
+  let contentDraft = await callGrok(draftSystemPrompt, draftUserMsg, MODEL_REASONING);
+
+  // Phase 2: High-Speed Editor Validation Loop (Limited to 1 retry for Performance)
+  // SPEED OPTIMIZATION: We use the faster MODEL_NON_REASONING for the editor check.
+  const editorPrompt = `You are the FORO Editor-in-Chief. Check the [DRAFT CONTENT] against the [FACT SHEET] for hallucinations, factual errors, or missing Deep-Links in Citations.
+  If perfectly accurate, 'passed' is true. If hallucinated or links are missing/fake, 'passed' is false and explain why in 'reason'.`;
+
+  const editorMsg = `[FACT SHEET]: \n${factSheet}\n\n[DRAFT CONTENT]: \n${contentDraft}`;
+
+  try {
+    const { object: evaluation } = await generateObject({
+      model: grok(MODEL_NON_REASONING), // Use fast model to keep latency low
+      system: editorPrompt,
+      prompt: editorMsg,
+      schema: z.object({
+        passed: z.boolean(),
+        reason: z.string().optional()
+      })
+    });
+
+    if (evaluation.passed) {
+      console.log("✅ Editor Loop: Content Passed Validation (Zero Hallucination Confirmed)");
+    } else {
+      console.warn(`⚠️ Editor Loop: Content Failed Validation. Reason: ${evaluation.reason}`);
+      
+      // Fast Correction
+      const correctionFeedback = `The Editor rejected the previous draft: "${evaluation.reason}". Correct the draft adhering STRICTLY to the Fact Sheet.`;
+      
+      contentDraft = await callGrok(draftSystemPrompt, `[FACT SHEET]\n${factSheet}\n\n[EDITOR FEEDBACK]\n${correctionFeedback}\n\nRewrite the content fixing the errors.`, MODEL_REASONING);
+    }
+  } catch (e) {
+    console.error("Editor Loop Validation Error:", e);
+    // If validator fails, we gracefully degrade and return the draft.
+  }
+
+  return contentDraft;
 };
 
 export const generateContentArticle = generateFinalContent;
 export const generateArticle = generateFinalContent;
-
