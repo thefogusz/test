@@ -143,7 +143,7 @@ RULES:
 3. Use Thai language. Use **bold text** for key emphasis.
 4. DO NOT use # headers or any intro phrases. Just deliver the insights directly.`;
 
-  return await callGrok(systemPrompt, contentToAnalyze, MODEL_REASONING);
+  return await callGrok(systemPrompt, contentToAnalyze, MODEL_NON_REASONING);
 };
 
 export const generateFinalContent = async (enrichedData, targetFormat, customPrompt = '') => {
