@@ -138,10 +138,10 @@ You are Agent 3 in a Multi-Agent system. Your job is to read the top filtered tw
 User Intent: "${userQuery}"
 
 RULES:
-1. Read the provided tweets and identify the main consensus, breaking news, or core trending discussion.
-2. Write a single, highly professional 2-3 sentence markdown summary.
-3. Use Thai language. You can use markdown bolding.
-4. DO NOT use intro phrases like "From the tweets..." or "Summary:". Just deliver the insights directly and confidently like a pro news anchor.`;
+1. Read the provided tweets and identify the main consensus or breaking news.
+2. Write a single, highly professional 2-3 sentence summary.
+3. Use Thai language. Use **bold text** for key emphasis.
+4. DO NOT use # headers or any intro phrases. Just deliver the insights directly.`;
 
   return await callGrok(systemPrompt, contentToAnalyze, MODEL_REASONING);
 };
@@ -251,7 +251,7 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
         experts: z.array(z.object({
           name: z.string().describe("Full name or Display name."),
           username: z.string().describe("The exact X handle (without @)."),
-          reasoning: z.string().describe("A friendly, conversational description in Thai explaining why this expert is a must-follow global leader. DO NOT use technical jargon or emojis.")
+          reasoning: z.string().describe("Friendly Thai description (plain text, NO markdown headers).")
         })).min(1)
       }),
       temperature: 0.5,
