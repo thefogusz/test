@@ -480,9 +480,15 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
             <Loader2 size={14} className="animate-spin" />
             {(THINKING_PHASES[phase] || THINKING_PHASES.researching)[thinkingStep]}
           </div>
-          {/* Global progress track */}
-          <div style={{ height: '2px', background: 'rgba(255,255,255,0.06)', borderRadius: '999px', overflow: 'hidden', maxWidth: '320px', margin: '0 auto' }}>
-            <div style={{ height: '100%', background: 'linear-gradient(90deg, var(--accent-secondary), #a855f7)', borderRadius: '999px', width: phase === 'researching' ? '40%' : '85%', transition: 'width 2s ease-in-out' }} />
+          {/* Global progress track - now uses a continuous crawling animation for better "live" feel */}
+          <div style={{ height: '3px', background: 'rgba(255,255,255,0.06)', borderRadius: '999px', overflow: 'hidden', maxWidth: '320px', margin: '16px auto 0' }}>
+            <div style={{ 
+              height: '100%', 
+              background: 'linear-gradient(90deg, var(--accent-secondary), #a855f7)', 
+              borderRadius: '999px', 
+              width: '0%', 
+              animation: isGenerating ? 'progress-crawl 60s cubic-bezier(0.1, 0, 0.4, 1) forwards' : 'none'
+            }} />
           </div>
         </div>
       )}
