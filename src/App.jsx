@@ -29,8 +29,17 @@ import TopNav from './components/TopNav';
 import FeedCard from './components/FeedCard';
 import CreateContent from './components/CreateContent';
 import { getUserInfo, fetchWatchlistFeed, searchEverything } from './services/TwitterService';
-import { generateArticle, agentFilterFeed, generateGrokBatch, expandSearchQuery, discoverTopExperts, generateExecutiveSummary } from './services/GrokService';
+import { agentFilterFeed, generateGrokBatch, expandSearchQuery, discoverTopExperts, generateExecutiveSummary } from './services/GrokService';
 import './index.css';
+
+const safeParse = (value, fallback) => {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+};
 
 // ---- UserCard: proper component with per-card menu state ----
 const UserCard = ({ user, onRemove }) => {
@@ -132,21 +141,18 @@ class ContentErrorBoundary extends React.Component {
 const App = () => {
   const [watchlist, setWatchlist] = useState(() => {
     const saved = localStorage.getItem('foro_watchlist_v2');
-    const parsed = saved ? JSON.parse(saved) : [];
+    const parsed = safeParse(saved, []);
     return Array.isArray(parsed) ? parsed.filter(u => u && u.username) : [];
   });
   
   const [feed, setFeed] = useState([]);
   const [originalFeed, setOriginalFeed] = useState(() => {
     const saved = localStorage.getItem('foro_home_feed_v1');
-    return saved ? JSON.parse(saved) : [];
+    return safeParse(saved, []);
   });
   const [deletedFeed, setDeletedFeed] = useState([]);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
-  const [syncDuration, setSyncDuration] = useState(null);
-  const [liveTimer, setLiveTimer] = useState(0);
-  const [lastStats, setLastStats] = useState('');
   const [aiReport, setAiReport] = useState('');
   const [activeFilters, setActiveFilters] = useState({ view: false, like: false });
   
@@ -157,28 +163,28 @@ const App = () => {
   const [searchFilters, setSearchFilters] = useState({ view: false, engagement: false });
   const [isSearching, setIsSearching] = useState(false);
   const [searchCursor, setSearchCursor] = useState(null);
-  const [onlyNews, setOnlyNews] = useState(true);
+  const [onlyNews] = useState(true);
   const [nextCursor, setNextCursor] = useState(null);
   const [isLatestMode, setIsLatestMode] = useState(false);
   const [bookmarks, setBookmarks] = useState(() => {
     const saved = localStorage.getItem('foro_bookmarks_v1');
-    return saved ? JSON.parse(saved) : [];
+    return safeParse(saved, []);
   });
   const [bookmarkTab, setBookmarkTab] = useState('news');
   const [editingArticleId, setEditingArticleId] = useState(null);
   const [readArchive, setReadArchive] = useState(() => {
     const saved = localStorage.getItem('foro_read_archive_v1');
-    return saved ? JSON.parse(saved) : [];
+    return safeParse(saved, []);
   });
 
   const [createContentSource, setCreateContentSource] = useState(() => {
     const saved = localStorage.getItem('foro_attached_source_v1');
-    return saved ? JSON.parse(saved) : null;
+    return safeParse(saved, null);
   });
 
   const [postLists, setPostLists] = useState(() => {
     const saved = localStorage.getItem('foro_postlists_v2');
-    return saved ? JSON.parse(saved) : [];
+    return safeParse(saved, []);
   });
   const [activeListId, setActiveListId] = useState(null);
   const [activeView, setActiveView] = useState('home');
@@ -246,16 +252,6 @@ const App = () => {
     }
   }, [activeListId, originalFeed, activeView, postLists, watchlist]);
 
-  useEffect(() => {
-    let interval;
-    if (loading) {
-      interval = setInterval(() => setLiveTimer(prev => prev + 1), 1000);
-    } else {
-      setLiveTimer(0);
-    }
-    return () => clearInterval(interval);
-  }, [loading]);
-
   const handleSync = async () => {
     if (watchlist.length === 0) return;
     setLoading(true);
@@ -274,8 +270,7 @@ const App = () => {
       setNextCursor(meta.next_cursor);
       
       const duration = ((Date.now() - startTime) / 1000).toFixed(1);
-      setSyncDuration(duration);
-      setLastStats(`${data.length} New Signals`);
+      console.info(`[Sync] completed in ${duration}s with ${data.length} items`);
       
       if (data.length > 0) {
         setStatus(`พบ ${data.length} ข่าวใหม่! กำลังทยอยแปลและสรุปเป็นภาษาไทย...`);
@@ -355,7 +350,8 @@ const App = () => {
       const activeList = activeListId ? postLists.find(l => l.id === activeListId) : null;
       const targetAccounts = activeList ? activeList.members : watchlist;
       const { data, meta } = await fetchWatchlistFeed(targetAccounts, nextCursor, 'Latest');
-      setFeed([...feed, ...data]);
+      setOriginalFeed(prev => [...prev, ...data]);
+      setFeed(prev => [...prev, ...data]);
       setNextCursor(meta.next_cursor);
     } catch (err) {
       console.error(err);
@@ -364,17 +360,18 @@ const App = () => {
     }
   };
 
-  const handleSearch = async (e, isMore = false) => {
+  const handleSearch = async (e, isMore = false, overrideQuery = '') => {
     if (e) e.preventDefault();
-    if (!searchQuery && !isMore) return;
+    const requestedQuery = overrideQuery || searchQuery;
+    if (!requestedQuery && !isMore) return;
     setIsSearching(true);
     if (!isMore) setSearchSummary('');
     setStatus('AI กำลังประเมินเทรนด์... ค้นหาข้อมูลเชิงลึก');
     try {
-      let finalQuery = searchQuery;
+      let finalQuery = requestedQuery;
       if (!isMore) {
-        setStatus(`[Agent 1/3] กำลังแปลคีย์เวิร์ดขั้นสูงสำหรับ "${searchQuery}"...`);
-        finalQuery = await expandSearchQuery(searchQuery, isLatestMode);
+        setStatus(`[Agent 1/3] กำลังแปลคีย์เวิร์ดขั้นสูงสำหรับ "${requestedQuery}"...`);
+        finalQuery = await expandSearchQuery(requestedQuery, isLatestMode);
         console.log("Expanded Query in " + (isLatestMode ? 'Latest' : 'Quality') + " mode:", finalQuery);
       }
       
@@ -385,20 +382,19 @@ const App = () => {
       let finalData = data;
       if (!isMore && data.length > 0) {
         setStatus(`[Agent 2/3] กำลังกรองสแปมและคัดเลือก 20 โพสต์ระดับคุณภาพ...`);
-        const validIds = await agentFilterFeed(data, searchQuery);
+        const validIds = await agentFilterFeed(data, requestedQuery);
         const cleanData = data.filter(t => validIds.includes(t.id));
         finalData = cleanData.length > 0 ? cleanData : data; // Fallback so we don't display empty
         
         setStatus(`[Agent 3/3] กำลังสังเคราะห์ข้อมูลและเขียน Executive Summary...`);
-        const summaryText = await generateExecutiveSummary(finalData.slice(0, 10), searchQuery);
+        const summaryText = await generateExecutiveSummary(finalData.slice(0, 10), requestedQuery);
         setSearchSummary(summaryText);
       }
 
       const newResults = isMore ? [...searchResults, ...finalData] : finalData;
       setSearchResults(newResults);
-      if (!isMore) setOriginalSearchResults(newResults);
+      setOriginalSearchResults(newResults);
       setFeed(newResults); 
-      setOriginalFeed(newResults); // CRITICAL: Fix sort reset bug
       setSearchCursor(meta.next_cursor);
       setStatus(`ตรวจสอบพบ ${newResults.length} รายการระดับคุณภาพ`);
       
@@ -436,9 +432,9 @@ const App = () => {
            };
 
            setSearchResults(updateFeed);
+           setOriginalSearchResults(updateFeed);
            setFeed(updateFeed);
-           setOriginalFeed(updateFeed);
-        }
+         }
         setStatus('แปลการค้นหาเสร็จสิ้น');
       }
     } catch (err) {
@@ -1049,7 +1045,7 @@ const App = () => {
                     <p>ไอเดียการค้นหาวันนี้:</p>
                     <div className="tags-row">
                       {['แนวโน้มเศรษฐกิจ 2026', 'สรุปข่าว AI', 'รีวิว Gadget ใหม่', 'วิเคราะห์การเมืองไทย'].map(tag => (
-                        <button key={tag} className="idea-tag" onClick={(e) => { 
+                        <button key={tag} className="idea-tag" onClick={() => { 
                           setSearchQuery(tag);
                           handleSearch({ preventDefault: () => {} }, false, tag); 
                         }}>

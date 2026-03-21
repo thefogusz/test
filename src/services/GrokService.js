@@ -3,8 +3,6 @@ import { generateObject, generateText, streamText } from 'ai';
 import { z } from 'zod';
 import { searchEverything } from './TwitterService';
 
-const XAI_API_KEY = import.meta.env.VITE_XAI_API_KEY;
-
 // 🟢 [NEWS FLOW TEAM] - Powered by Grok 4.1 (Fast & Specialized for News)
 const MODEL_NEWS_FAST = 'grok-4.1-fast-non-reasoning';
 
@@ -16,8 +14,8 @@ const MODEL_AGENT_ORCHESTRATOR = 'grok-4.20-multi-agent-0309'; // Orchestrator
 
 // Create Vercel AI SDK Provider for X.AI
 const grok = createOpenAI({
-  apiKey: XAI_API_KEY,
-  baseURL: 'https://api.x.ai/v1',
+  apiKey: 'local-proxy',
+  baseURL: '/api/xai/v1',
 });
 
 const SUMMARIZATION_RULES = `
@@ -184,18 +182,17 @@ export const researchAndPreventHallucination = async (input) => {
   let extractedSources = [];
   try {
     const [webRes, xRes] = await Promise.all([
-      fetch('https://api.tavily.com/search', {
+      fetch('/api/tavily/search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          api_key: import.meta.env.VITE_TAVILY_API_KEY,
           query: input,
           search_depth: "basic",
           include_answer: true,
           max_results: 3
         })
       }),
-      searchEverything(input, '', false, 'Top').catch(e => ({ data: [] }))
+      searchEverything(input, '', false, 'Top').catch(() => ({ data: [] }))
     ]);
 
     if (webRes.ok) {

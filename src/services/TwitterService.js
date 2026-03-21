@@ -1,5 +1,4 @@
-const TWITTER_API_KEY = import.meta.env.VITE_TWITTER_API_KEY;
-const BASE_URL = '/twitter-api/twitter';
+const BASE_URL = '/api/twitter/twitter';
 
 const normalizeAuthor = (author) => {
   if (!author) return null;
@@ -29,8 +28,7 @@ export const getUserInfo = async (username) => {
   try {
     const handle = username.startsWith('@') ? username.substring(1) : username;
     const response = await fetch(`${BASE_URL}/user/info?userName=${handle}`, {
-      method: 'GET',
-      headers: { 'X-API-Key': TWITTER_API_KEY }
+      method: 'GET'
     });
     if (!response.ok) throw new Error('User not found');
     const result = await response.json();
@@ -83,8 +81,7 @@ export const fetchForoFeed = async (watchlistHandles, cursor = '', queryType = '
     const url = `${BASE_URL}/tweet/advanced_search?query=${encodeURIComponent(query)}&queryType=${queryType}${cursor ? `&cursor=${cursor}` : ''}`;
     
     const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'X-API-Key': TWITTER_API_KEY }
+      method: 'GET'
     });
     const data = await response.json();
     allTweets = [...allTweets, ...normalizeTweets(data.tweets)];
@@ -112,8 +109,7 @@ export const searchEverything = async (query, cursor = '', onlyNews = true, quer
     const url = `${BASE_URL}/tweet/advanced_search?query=${encodeURIComponent(fullQuery)}&queryType=${queryType}${cursor ? `&cursor=${cursor}` : ''}`;
     
     const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'X-API-Key': TWITTER_API_KEY }
+      method: 'GET'
     });
     if (!response.ok) throw new Error('Search failed');
     const data = await response.json();
@@ -134,8 +130,7 @@ export const searchEverything = async (query, cursor = '', onlyNews = true, quer
 export const getThreadContext = async (conversationId, authorId) => {
   try {
     const response = await fetch(`${BASE_URL}/tweet/thread/context?conversationId=${conversationId}`, {
-      method: 'GET',
-      headers: { 'X-API-Key': TWITTER_API_KEY }
+      method: 'GET'
     });
     const data = await response.json();
     const thread = data.tweets || [];

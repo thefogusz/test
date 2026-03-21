@@ -1,35 +1,96 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const { createProxyMiddleware } = require('http-proxy-middleware');
+
+const loadEnvFile = () => {
+  const envPath = path.join(__dirname, '.env');
+  if (!fs.existsSync(envPath)) return;
+
+  const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/);
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+
+    const separatorIndex = trimmed.indexOf('=');
+    if (separatorIndex === -1) continue;
+
+    const key = trimmed.slice(0, separatorIndex).trim();
+    const value = trimmed.slice(separatorIndex + 1).trim();
+    if (key && process.env[key] === undefined) {
+      process.env[key] = value;
+    }
+  }
+};
+
+loadEnvFile();
 
 const app = express();
 const PORT = process.env.PORT || 8000;
+const TWITTER_API_KEY = process.env.TWITTER_API_KEY || process.env.VITE_TWITTER_API_KEY;
+const XAI_API_KEY = process.env.XAI_API_KEY || process.env.VITE_XAI_API_KEY;
+const TAVILY_API_KEY = process.env.TAVILY_API_KEY || process.env.VITE_TAVILY_API_KEY;
 
-// 1. Proxy Middleware for Twitter API
-// This replicates the Vite dev proxy in production
-app.use('/twitter-api', createProxyMiddleware({
+app.use(express.json({ limit: '1mb' }));
+
+app.use('/api/twitter', createProxyMiddleware({
   target: 'https://api.twitterapi.io',
   changeOrigin: true,
   pathRewrite: {
-    '^/twitter-api': '', // remove /twitter-api from the request path
+    '^/api/twitter': '',
   },
-  onProxyReq: (proxyReq, req, res) => {
-    // Optional: Log proxy requests if needed for debugging
-    // console.log('Proxying:', req.method, req.url);
+  onProxyReq: (proxyReq) => {
+    if (TWITTER_API_KEY) {
+      proxyReq.setHeader('X-API-Key', TWITTER_API_KEY);
+    }
   }
 }));
 
-// 2. Serve Static Files from /test
-// We use '/test' as the mount point to match the user's requirement
+app.use('/api/xai', createProxyMiddleware({
+  target: 'https://api.x.ai',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/api/xai': '',
+  },
+  onProxyReq: (proxyReq) => {
+    if (XAI_API_KEY) {
+      proxyReq.setHeader('Authorization', `Bearer ${XAI_API_KEY}`);
+    }
+  }
+}));
+
+app.post('/api/tavily/search', async (req, res) => {
+  if (!TAVILY_API_KEY) {
+    res.status(500).json({ error: 'Missing Tavily API key' });
+    return;
+  }
+
+  try {
+    const upstreamResponse = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...req.body,
+        api_key: TAVILY_API_KEY,
+      }),
+    });
+
+    const responseText = await upstreamResponse.text();
+    res.status(upstreamResponse.status);
+    res.type(upstreamResponse.headers.get('content-type') || 'application/json');
+    res.send(responseText);
+  } catch (error) {
+    console.error('[server] Tavily proxy error:', error);
+    res.status(502).json({ error: 'Failed to reach Tavily' });
+  }
+});
+
 app.use('/test', express.static(path.join(__dirname, 'dist')));
 
-// 3. SPA Routing
-// Redirect all requests under /test that don't match a file to index.html
 app.get('/test/*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-// 4. Redirect root to /test (Optional but helpful)
 app.get('/', (req, res) => {
   res.redirect('/test');
 });
@@ -37,5 +98,6 @@ app.get('/', (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Serving app at http://localhost:${PORT}/test`);
-  console.log(`Proxying /twitter-api to https://api.twitterapi.io`);
+  console.log(`Proxying /api/twitter to https://api.twitterapi.io`);
+  console.log(`Proxying /api/xai to https://api.x.ai`);
 });

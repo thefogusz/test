@@ -1,7 +1,31 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Wand2, Plus, ArrowRight, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, Bookmark, ExternalLink } from 'lucide-react';
+import { Sparkles, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, Bookmark, ExternalLink } from 'lucide-react';
 import { researchAndPreventHallucination, generateStructuredContent } from '../services/GrokService';
 import { marked } from 'marked';
+
+const THINKING_PHASES = {
+  researching: [
+    'Researching source material...',
+    'Cross-checking external references...',
+    'Summarizing the key facts...',
+    'Preparing the writing brief...',
+  ],
+  generating: [
+    'Drafting the content...',
+    'Polishing language and flow...',
+    'Improving the hook and pacing...',
+    'Reviewing the final draft...',
+  ],
+};
+
+const safeParse = (value, fallback) => {
+  if (!value) return fallback;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+};
 
 // Safe markdown parser -- prevents streaming partial-chunk crashes from killing the render tree
 let _lastGoodHtml = '';
@@ -11,7 +35,7 @@ const safeMarkdown = (text) => {
     const html = marked.parse(text);
     _lastGoodHtml = html;
     return html;
-  } catch (e) {
+  } catch {
     return _lastGoodHtml; // Return last known good render
   }
 };
@@ -26,9 +50,10 @@ const FORMAT_OPTIONS = [
 const TONE_OPTIONS = ['ให้ข้อมูล/ปกติ', 'กระตือรือร้น/ไวรัล', 'ทางการ/วิชาการ', 'เป็นกันเอง/เพื่อนเล่าให้ฟัง', 'ตลก/มีอารมณ์ขัน', 'ดุดัน/วิจารณ์เชิงลึก', 'ฮาร์ดเซลล์/ขายของ'];
 const LENGTH_OPTIONS = ['สั้น กระชับ', 'ขนาดกลาง (มาตรฐาน)', 'ยาว แบบเจาะลึก'];
 
-const CustomDropdown = ({ icon: Icon, value, onChange, options, isObject }) => {
+const CustomDropdown = ({ icon, value, onChange, options, isObject }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const IconComponent = icon;
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -69,7 +94,7 @@ const CustomDropdown = ({ icon: Icon, value, onChange, options, isObject }) => {
           } 
         }}
       >
-        <Icon size={14} style={{ color: isOpen ? 'var(--accent-secondary)' : 'var(--text-dim)' }} />
+        {IconComponent ? <IconComponent size={14} style={{ color: isOpen ? 'var(--accent-secondary)' : 'var(--text-dim)' }} /> : null}
         {selectedTitle}
         <ChevronDown size={14} style={{ color: 'var(--text-dim)', marginLeft: '4px', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
       </button>
@@ -134,7 +159,7 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
   const [factSheet, setFactSheet] = useState(() => localStorage.getItem('foro_gen_factsheet_v1') || null);
   const [articleSources, setArticleSources] = useState(() => {
     const saved = localStorage.getItem('foro_gen_sources_v1');
-    return saved ? JSON.parse(saved) : [];
+    return safeParse(saved, []);
   });
   const [generatedMarkdown, setGeneratedMarkdown] = useState(() => localStorage.getItem('foro_gen_markdown_v1') || '');
   const [error, setError] = useState(null);
@@ -142,21 +167,6 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [thinkingStep, setThinkingStep] = useState(0);
-
-  const THINKING_PHASES = {
-    researching: [
-      '🔍 กำลังค้นหาข้อมูลจากแหล่งภายนอก...',
-      '📰 ตรวจสอบข้อเท็จจริงกับแหล่งข่าว...',
-      '🧠 รวบรวมและสรุปประเด็นสำคัญ...',
-      '📋 เตรียมข้อมูลพื้นฐานสำหรับการเขียน...',
-    ],
-    generating: [
-      '✍️ AI กำลังเขียนเนื้อหา...',
-      '💬 ปรับภาษาให้อ่านง่ายและเป็นธรรมชาติ...',
-      '🎯 เพิ่มความน่าสนใจและจังหวะการเล่าเรื่อง...',
-      '✨ ตรวจทานและขัดเกลาคอนเทนต์...',
-    ]
-  };
 
   useEffect(() => {
     if (!isGenerating) { setThinkingStep(0); return; }
@@ -615,7 +625,7 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
                   .filter((s, idx, self) => idx === self.findIndex(t => t.url === s.url))
                   .map((source, idx) => {
                   let hostname = source.url;
-                  try { hostname = new URL(source.url).hostname.replace('www.', ''); } catch (e) {}
+                  try { hostname = new URL(source.url).hostname.replace('www.', ''); } catch { hostname = source.url; }
                   return (
                   <a key={idx} href={source.url} target="_blank" rel="noopener noreferrer" 
                      style={{ display: 'flex', flexDirection: 'column', padding: '16px', background: 'var(--bg-900)', border: '1px solid var(--card-border)', borderRadius: '12px', textDecoration: 'none', transition: 'all 0.2s', color: '#fff' }}
