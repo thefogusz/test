@@ -338,7 +338,7 @@ const App = () => {
         setStatus(`พบ ${data.length} ข่าวใหม่! กำลังทยอยแปลและสรุปเป็นภาษาไทย...`);
         
         // Progressive Translation (Streaming effect)
-        const CHUNK_SIZE = 5;
+                        const CHUNK_SIZE = 20;
         for (let i = 0; i < data.length; i += CHUNK_SIZE) {
           const chunk = data.slice(i, i + CHUNK_SIZE);
           
@@ -463,7 +463,7 @@ const App = () => {
       if (data.length > 0) {
         setStatus('Grok 4.1 กำลังทยอยแปลผลการค้นหาเป็นภาษาไทย...');
         
-        const CHUNK_SIZE = 5;
+                        const CHUNK_SIZE = 20;
         // Search Streaming effect
         for (let i = 0; i < data.length; i += CHUNK_SIZE) {
            const chunk = data.slice(i, i + CHUNK_SIZE);
