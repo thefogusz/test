@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { marked } from 'marked';
 import { 
   Search, 
   Sparkles, 
@@ -25,11 +24,11 @@ import {
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import RightSidebar from './components/RightSidebar';
-import TopNav from './components/TopNav';
 import FeedCard from './components/FeedCard';
 import CreateContent from './components/CreateContent';
 import { getUserInfo, fetchWatchlistFeed, searchEverything } from './services/TwitterService';
 import { agentFilterFeed, generateGrokBatch, expandSearchQuery, discoverTopExperts, generateExecutiveSummary } from './services/GrokService';
+import { renderMarkdownToHtml } from './utils/markdown';
 import './index.css';
 
 const safeParse = (value, fallback) => {
@@ -942,14 +941,6 @@ const App = () => {
 
 
       <main className="foro-main">
-        <TopNav 
-          activeView={activeView}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          handleSearch={handleSearch}
-          isSearching={isSearching}
-        />
-        
         <div className="foro-main-scroll">
 
 
@@ -1176,7 +1167,7 @@ const App = () => {
                       <div 
                         className="markdown-body" 
                         style={{ lineHeight: '1.9', fontSize: '15px', color: 'rgba(255,255,255,0.92)', letterSpacing: '0.01em' }} 
-                        dangerouslySetInnerHTML={{ __html: searchSummary ? marked.parse(searchSummary) : '' }} 
+                        dangerouslySetInnerHTML={{ __html: searchSummary ? renderMarkdownToHtml(searchSummary) : '' }} 
                       />
                     </div>
                   )}
@@ -1655,7 +1646,7 @@ const App = () => {
                           />
                         ) : (
                           <div className="markdown-body" style={{ color: 'var(--text-main)', fontSize: '15px', lineHeight: '1.8' }}>
-                            <div dangerouslySetInnerHTML={{ __html: marked.parse(item.summary) }} />
+                            <div dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(item.summary) }} />
                           </div>
                         )}
                       </div>

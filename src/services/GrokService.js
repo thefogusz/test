@@ -1,7 +1,7 @@
 import { createXai } from '@ai-sdk/xai';
 import { generateObject, generateText, streamText } from 'ai';
 import { z } from 'zod';
-import { getUserInfo, searchEverything } from './TwitterService';
+import { searchEverything } from './TwitterService';
 
 const MODEL_NEWS_FAST = 'grok-4-1-fast-non-reasoning';
 const MODEL_REASONING_FAST = 'grok-4-1-fast-reasoning';
@@ -120,7 +120,6 @@ const callGrok = async ({
   system,
   prompt,
   modelName = MODEL_NEWS_FAST,
-  useResponses = false,
   providerOptions,
   temperature,
   allowEmoji = false,

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, Bookmark, ExternalLink } from 'lucide-react';
 import { researchAndPreventHallucination, generateStructuredContent } from '../services/GrokService';
-import { marked } from 'marked';
+import { renderMarkdownToHtml } from '../utils/markdown';
 
 const THINKING_PHASES = {
   researching: [
@@ -34,7 +34,7 @@ let _lastGoodHtml = '';
 const safeMarkdown = (text) => {
   if (!text || typeof text !== 'string') return _lastGoodHtml;
   try {
-    const html = marked.parse(text);
+    const html = renderMarkdownToHtml(text);
     _lastGoodHtml = html;
     return html;
   } catch {
