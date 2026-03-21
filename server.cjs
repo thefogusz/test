@@ -55,12 +55,26 @@ app.use('/api/xai', createProxyMiddleware({
     '^/api/xai': '',
   },
   on: {
-    proxyReq: (proxyReq, req, res) => {
-      fixRequestBody(proxyReq, req, res);
+    proxyReq: (proxyReq, req) => {
+      // Set headers first!
       if (XAI_API_KEY) {
         proxyReq.setHeader('Authorization', `Bearer ${XAI_API_KEY}`);
       }
+
+      // Re-stream the body if it was parsed by express.json()
+      if (req.body && Object.keys(req.body).length > 0) {
+        const bodyData = JSON.stringify(req.body);
+        proxyReq.setHeader('Content-Type', 'application/json');
+        proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
+        proxyReq.write(bodyData);
+      }
     },
+    error: (err, req, res) => {
+      console.error('[server] xAI proxy error:', err);
+      if (!res.headersSent) {
+        res.status(502).json({ error: 'Proxy timeout or connection lost' });
+      }
+    }
   },
 }));
 
