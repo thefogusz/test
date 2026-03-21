@@ -931,35 +931,51 @@ const App = () => {
           {/* ===== HOME VIEW ===== */}
           {activeView === 'home' && (
             <div className="animate-fade-in">
-              <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', gap: '24px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-dim)', fontSize: '12px', fontWeight: '500' }}>
-                    <img src="logo.png" alt="FO" className="mobile-only-flex" style={{ height: '14px', width: 'auto' }} />
-                    {activeView === 'search' ? 'ค้นหาจากฐานข้อมูล' : activeView === 'read' ? 'บทความที่คัดสรร' : 'รายการที่ติดตาม'}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <header className="dashboard-header" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '32px' }}>
+                {/* Centered Logo for Mobile */}
+                <div className="mobile-only-flex" style={{ justifyContent: 'center', width: '100%', marginBottom: '-8px' }}>
+                  <img src="logo.png" alt="FO" style={{ height: '24px', width: 'auto' }} />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
+                    <div style={{ color: 'var(--text-dim)', fontSize: '13px', fontWeight: '500', letterSpacing: '0.02em' }}>
+                      {activeView === 'search' ? 'SEARCH RESULTS' : activeView === 'read' ? 'SELECTED ARTICLES' : 'WATCHLIST FEED'}
+                    </div>
                     <h1 style={{ 
                       margin: 0, 
                       fontSize: '32px', 
                       fontWeight: '800', 
                       letterSpacing: '-0.02em', 
-                      lineHeight: '1',
+                      lineHeight: '1.1',
                       color: activeListId ? (postLists.find(l => l.id === activeListId)?.color || 'inherit') : 'inherit'
                     }}>
                       {activeView === 'search' ? 'ค้นหาคอนเทนต์' : activeView === 'read' ? 'อ่านข่าว' : activeListId ? postLists.find(l => l.id === activeListId)?.name : 'หน้าหลัก'}
                     </h1>
-                    <button 
-                      className="mobile-only-flex action-hover-btn" 
-                      onClick={() => setIsMobilePostListOpen(true)}
-                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', padding: '6px', borderRadius: '50%', color: '#fff', cursor: 'pointer' }}
-                    >
-                      <List size={18} />
-                    </button>
                   </div>
+
+                  <button 
+                    className="mobile-only-flex" 
+                    onClick={() => setIsMobilePostListOpen(true)}
+                    style={{ 
+                      background: 'rgba(255,255,255,0.08)', 
+                      border: '1px solid var(--glass-border)', 
+                      padding: '10px', 
+                      borderRadius: '12px', 
+                      color: '#fff', 
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <List size={20} />
+                  </button>
                 </div>
                 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
                     {/* Move Trash/Undo here for symmetry */}
                     <button onClick={handleDeleteAll} className="icon-btn-large" title="ล้างฟีดทั้งหมด"><Trash2 size={18} /></button>
                     <button onClick={handleUndo} className="icon-btn-large" title="เรียกคืนฟีดที่ลบ"><Undo2 size={18} /></button>
