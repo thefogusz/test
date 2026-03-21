@@ -150,6 +150,9 @@ const deriveResearchQuery = async (input) => {
 
     return (object.searchQuery || fallback).trim();
   } catch (error) {
+    if (error.status === 400) {
+      console.warn('[GrokService] 400 Bad Request in deriveResearchQuery. Check parameters/model.');
+    }
     console.warn('[GrokService] Falling back to raw research query:', error.message);
     return fallback;
   }
@@ -213,6 +216,9 @@ Return IDs only. Remove spam, scams, engagement bait, duplicates, and off-topic 
     const validIdSet = new Set(compressedInput.map((tweet) => tweet.id));
     return object.validIds.filter((id) => validIdSet.has(id));
   } catch (error) {
+    if (error.status === 400) {
+      console.warn('[GrokService] 400 Bad Request in agentFilterFeed. Check parameters/model.');
+    }
     console.error('[GrokService] Filter error:', error);
     return tweetsData.map((tweet) => tweet.id);
   }
@@ -272,6 +278,9 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
       ? finalQuery
       : `${finalQuery} -filter:replies`;
   } catch (error) {
+    if (error.status === 400) {
+      console.warn('[GrokService] 400 Bad Request in expandSearchQuery. Check parameters/model.');
+    }
     console.error('[GrokService] Query optimizer error:', error);
     return `${originalQuery} -filter:replies`;
   }
@@ -425,7 +434,7 @@ export const researchAndPreventHallucination = async (input) => {
         .join('\n\n'),
       providerOptions: {
         xai: {
-          reasoningEffort: 'high',
+          reasoningEffort: 'medium',
         },
       },
     });

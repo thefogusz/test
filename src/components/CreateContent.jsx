@@ -240,8 +240,13 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
 
     } catch (err) {
       console.error('Generation Error [Detailed]:', err);
-      const msg = err.message || 'Error';
-      setError(`เกิดข้อผิดพลาดในการสร้างคอนเทนต์ (${msg}) ขออภัยในความไม่สะดวก`);
+      const stage = phase === 'researching' ? 'Research' : 'Generation';
+      let msg = err.message || 'Unknown Error';
+      
+      // Handle the "Response is not defined" case or similar Vercel AI SDK errors
+      if (err.name === 'Error' && !err.message) msg = 'API Communication Error';
+      
+      setError(`${stage} Failed: ${msg}. กรุณาลองใหม่อีกครั้ง หรือสรุปข้อมูลสั้นลง`);
       setPhase('done');
     } finally {
       setIsGenerating(false);
