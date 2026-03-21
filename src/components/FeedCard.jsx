@@ -95,7 +95,7 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
             <Bookmark size={15} fill={bookmarked ? 'currentColor' : 'none'} strokeWidth={2.5} />
           </button>
           
-          <a href={`https://twitter.com/any/status/${tweet.id}`} target="_blank" rel="noopener noreferrer" style={{ 
+          <a href={`https://x.com/${tweet.author?.username || 'i'}/status/${tweet.id}`} target="_blank" rel="noopener noreferrer" style={{ 
             width: '26px', height: '26px', borderRadius: '6px',
             color: 'rgba(255,255,255,0.25)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',

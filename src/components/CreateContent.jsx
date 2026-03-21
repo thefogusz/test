@@ -217,9 +217,12 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
       // 2. Generation Phase (Streaming)
       const appliedTone = customInstructions ? `${tone} (คำสั่งพิเศษ: ${customInstructions})` : tone;
       
+      const lengthIndex = LENGTH_OPTIONS.indexOf(length);
+      const normalizedLength = lengthIndex === 0 ? 'short' : lengthIndex === 2 ? 'long' : 'medium';
+
       await generateStructuredContent(
         facts,
-        length,
+        normalizedLength,
         appliedTone,
         format,
         (currentText) => {
