@@ -5,7 +5,7 @@ import { getUserInfo, searchEverything } from './TwitterService';
 
 const MODEL_NEWS_FAST = 'grok-4-1-fast-non-reasoning';
 const MODEL_REASONING_FAST = 'grok-4-1-fast-reasoning';
-const MODEL_WRITER = 'grok-4.20-0309-non-reasoning';
+const MODEL_WRITER = 'grok-4-1-fast-reasoning';
 const MODEL_MULTI_AGENT = 'grok-4.20-multi-agent-0309';
 
 const grok = createXai({
