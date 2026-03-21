@@ -94,7 +94,8 @@ export const fetchForoFeed = async (watchlistHandles, cursor = '', queryType = '
   for (const batch of batches) {
     let currentCursor = cursor;
     let pagesFetched = 0;
-    const MAX_PAGES_PER_BATCH = 3;
+    // Keep sync and load-more predictable: one request returns one page only.
+    const MAX_PAGES_PER_BATCH = 1;
 
     while (pagesFetched < MAX_PAGES_PER_BATCH) {
       const query = `(${batch.map((username) => `from:${username}`).join(' OR ')}) since:${sinceDate}`;
