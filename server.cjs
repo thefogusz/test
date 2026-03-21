@@ -39,11 +39,13 @@ app.use('/api/twitter', createProxyMiddleware({
   pathRewrite: {
     '^/api/twitter': '',
   },
-  onProxyReq: (proxyReq) => {
-    if (TWITTER_API_KEY) {
-      proxyReq.setHeader('X-API-Key', TWITTER_API_KEY);
-    }
-  }
+  on: {
+    proxyReq: (proxyReq) => {
+      if (TWITTER_API_KEY) {
+        proxyReq.setHeader('X-API-Key', TWITTER_API_KEY);
+      }
+    },
+  },
 }));
 
 app.use('/api/xai', createProxyMiddleware({
@@ -52,11 +54,13 @@ app.use('/api/xai', createProxyMiddleware({
   pathRewrite: {
     '^/api/xai': '',
   },
-  onProxyReq: (proxyReq) => {
-    if (XAI_API_KEY) {
-      proxyReq.setHeader('Authorization', `Bearer ${XAI_API_KEY}`);
-    }
-  }
+  on: {
+    proxyReq: (proxyReq) => {
+      if (XAI_API_KEY) {
+        proxyReq.setHeader('Authorization', `Bearer ${XAI_API_KEY}`);
+      }
+    },
+  },
 }));
 
 app.post('/api/tavily/search', async (req, res) => {

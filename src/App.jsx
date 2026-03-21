@@ -253,7 +253,10 @@ const App = () => {
   }, [activeListId, originalFeed, activeView, postLists, watchlist]);
 
   const handleSync = async () => {
-    if (watchlist.length === 0) return;
+    if (watchlist.length === 0) {
+      setStatus('กรุณาเพิ่มบัญชีที่ต้องการติดตามก่อนซิงค์ข้อมูล');
+      return;
+    }
     setLoading(true);
     setStatus('กำลังเชื่อมต่อฐานข้อมูล... ดึงฟีดข่าวล่าสุด');
     const startTime = Date.now();
@@ -264,6 +267,11 @@ const App = () => {
       const targetAccounts = Array.isArray(rawAccounts) 
         ? rawAccounts.map(u => typeof u === 'string' ? u : u.username).filter(Boolean)
         : [];
+
+      if (targetAccounts.length === 0) {
+        setStatus(activeList ? 'Post List นี้ยังไม่มีสมาชิกให้ซิงค์' : 'กรุณาเพิ่มบัญชีที่ต้องการติดตามก่อนซิงค์ข้อมูล');
+        return;
+      }
       
       const { data, meta } = await fetchWatchlistFeed(targetAccounts, '', 'Latest');
       
@@ -893,7 +901,7 @@ const App = () => {
                     >
                       <Sparkles size={16} /> AI Filter
                     </button>
-                    <button onClick={handleSync} disabled={loading || watchlist.length === 0} className="btn-pill primary">
+                    <button onClick={handleSync} disabled={loading} className="btn-pill primary">
                       {loading ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} ซิงค์ข้อมูล
                     </button>
                   </div>
@@ -1587,7 +1595,7 @@ const App = () => {
         </div>
       )}
 
-      {status && (loading || status.startsWith('FORO') || status.startsWith('Matrix')) && (
+      {status && (
         <div style={{ position: 'fixed', bottom: '32px', right: '350px', background: 'white', color: 'black', padding: '10px 20px', borderRadius: '100px', fontSize: '11px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', zIndex: 2000 }}>
           {status}
         </div>

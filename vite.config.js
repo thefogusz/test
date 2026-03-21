@@ -67,8 +67,8 @@ export default defineConfig(({ mode }) => {
           target: 'https://api.twitterapi.io',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/twitter/, ''),
-          configure: (proxy) => {
-            proxy.on('proxyReq', (proxyReq) => {
+          configure: (proxyServer) => {
+            proxyServer.on('proxyReq', (proxyReq) => {
               if (twitterApiKey) {
                 proxyReq.setHeader('X-API-Key', twitterApiKey)
               }
@@ -79,8 +79,8 @@ export default defineConfig(({ mode }) => {
           target: 'https://api.x.ai',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api\/xai/, ''),
-          configure: (proxy) => {
-            proxy.on('proxyReq', (proxyReq) => {
+          configure: (proxyServer) => {
+            proxyServer.on('proxyReq', (proxyReq) => {
               if (xaiApiKey) {
                 proxyReq.setHeader('Authorization', `Bearer ${xaiApiKey}`)
               }
