@@ -7,11 +7,6 @@ const MODEL_NEWS_FAST = 'grok-4-1-fast-non-reasoning';
 const MODEL_REASONING_FAST = 'grok-4-1-fast-reasoning';
 const MODEL_WRITER = 'grok-4-1-fast-reasoning';
 const MODEL_MULTI_AGENT = 'grok-4.20-multi-agent-0309';
-const XAI_REASONING_PROVIDER_OPTIONS = {
-  xai: {
-    reasoningEffort: 'high',
-  },
-};
 
 const grok = createXai({
   apiKey: 'local-proxy',
@@ -243,7 +238,6 @@ export const generateExecutiveSummary = async (validTweets, userQuery) => {
 เขียน 2-3 ประโยคในภาษาไทย เน้นเฉพาะประเด็นสำคัญที่น่าเชื่อถือที่สุด
 ใช้ตัวหนา (markdown bold) สำหรับวลีที่สำคัญที่สุดถ้าจำเป็น ห้ามมีหัวข้อหลักด้านบน`,
     prompt: contentToAnalyze,
-    providerOptions: XAI_REASONING_PROVIDER_OPTIONS,
   });
 };
 
@@ -267,7 +261,6 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
       schema: z.object({
         finalXQuery: z.string().min(3),
       }),
-      providerOptions: XAI_REASONING_PROVIDER_OPTIONS,
     });
 
     const finalQuery = object.finalXQuery.replace(/\s+/g, ' ').trim();
@@ -309,7 +302,6 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
           })
         ).max(6),
       }),
-      providerOptions: XAI_REASONING_PROVIDER_OPTIONS,
     });
 
     return (object.experts || []).map(expert => ({
@@ -425,7 +417,6 @@ export const researchAndPreventHallucination = async (input) => {
       ]
         .filter(Boolean)
         .join('\n\n'),
-      providerOptions: XAI_REASONING_PROVIDER_OPTIONS,
     });
 
     const resultPayload = {
@@ -507,7 +498,6 @@ export const generateStructuredContent = async (
         passed: z.boolean(),
         reason: z.string().optional(),
       }),
-      providerOptions: XAI_REASONING_PROVIDER_OPTIONS,
     });
 
     if (!evalResult.passed) {
@@ -536,7 +526,6 @@ export const generateFinalContent = async (enrichedData, targetFormat, customPro
       system: `สร้างผลงานเนื้อหาภาษาไทยที่ขัดเกลาแล้วในรูปแบบของ "${targetFormat}"
 อ้างอิงจากข้อมูลวิจัยที่ให้มาเท่านั้น`,
       prompt: `[RESEARCH]\n${enrichedData}\n\n[EXTRA INSTRUCTIONS]\n${customPrompt || 'None'}`,
-      providerOptions: XAI_REASONING_PROVIDER_OPTIONS,
     });
   } catch (error) {
     console.warn('[GrokService] Multi-agent fallback triggered:', error);
