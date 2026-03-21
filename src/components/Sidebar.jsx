@@ -41,13 +41,6 @@ const Sidebar = ({ activeView, onNavClick }) => {
           <span className="nav-text">กลุ่มเป้าหมาย</span>
         </button>
         <button 
-          className={`nav-item ${activeView === 'following' ? 'active' : ''}`}
-          onClick={() => onNavClick('following')}
-        >
-          <UserCheck size={24} />
-          <span className="nav-text">คนที่คุณติดตาม</span>
-        </button>
-        <button 
           className={`nav-item ${activeView === 'bookmarks' ? 'active' : ''}`}
           onClick={() => onNavClick('bookmarks')}
         >
