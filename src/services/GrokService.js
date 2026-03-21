@@ -352,7 +352,7 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
 
 export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) => {
   const fallbackReasoning = (candidate) =>
-    `ตัวเลือกที่น่าสนใจสำหรับ ${categoryQuery}: บัญชีนี้มี ${candidate.appearances} โพสต์ที่เกี่ยวข้องและมีปฏิสัมพันธ์ (Engagement) ที่สูงจากผลการค้นหาจริงบน X`;
+    `ผู้เชี่ยวชาญที่น่าสนใจในหัวข้อ ${categoryQuery} ที่มีความเคลื่อนไหวและมีการโต้ตอบสูงในคลังข้อมูลล่าสุดของเรา`;
 
   try {
     const [topQuery, latestQuery] = await Promise.all([
@@ -381,7 +381,10 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
         system: `เลือกบัญชี X (Twitter) ที่ดีที่สุดเพื่อติดตามในหัวข้อ "${categoryQuery}"
 ใช้ชื่อบัญชี (usernames) จากรายการผู้สมัครที่ให้มาเท่านั้น
 ห้ามสร้างหรือแก้ไขชื่อบัญชีใหม่เอง
-เลือกบัญชีที่มีความเคลื่อนไหว มีความน่าเชื่อถือ และปรากฏในข้อมูลหลักฐานซ้ำๆ`,
+เลือกบัญชีที่มีความเคลื่อนไหว มีความน่าเชื่อถือ และปรากฏในข้อมูลหลักฐานซ้ำๆ
+
+สำหรับฟิลด์ reasoning: ให้เขียนอธิบายเป็นภาษาไทย 1 ประโยคสั้นๆ ว่า "บัญชีนี้คือใคร" และ "ทำไมผู้ใช้ถึงควรติดตามเขาในหัวข้อนี้" 
+ตัวอย่าง: "เป็นสื่อสายเทคที่สรุปข่าวลึกซึ้งและอัปเดตไวที่สุดในวงการ" หรือ "นักวิเคราะห์คริปโตชื่อดังที่เน้นเรื่องแนวโน้มตลาดระยะยาว"`,
         prompt: JSON.stringify({
           topic: categoryQuery,
           candidates: hydratedCandidates.map((candidate) => ({
