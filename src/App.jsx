@@ -979,21 +979,28 @@ const App = () => {
                   </button>
                 </div>
                 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
-                    {/* Move Trash/Undo here for symmetry */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '12px' }}>
+                  {/* UTILITIES (Left) */}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <button onClick={handleDeleteAll} className="icon-btn-large" title="ล้างฟีดทั้งหมด"><Trash2 size={18} /></button>
                     <button onClick={handleUndo} className="icon-btn-large" title="เรียกคืนฟีดที่ลบ"><Undo2 size={18} /></button>
-                    
-                    <div style={{ width: '1px', height: '20px', background: 'var(--glass-border)', margin: '0 4px' }} />
-                    
+                  </div>
+                  
+                  {/* ACTIONS (Right) */}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <button 
                       onClick={() => setFilterModal({ show: true, prompt: '' })} 
                       className={`btn-pill ${aiReport ? 'active' : ''}`}
+                      style={{ padding: '10px 16px', fontSize: '13px' }}
                     >
                       <Sparkles size={16} /> AI Filter
                     </button>
-                    <button onClick={handleSync} disabled={loading} className="btn-pill primary">
+                    <button 
+                      onClick={handleSync} 
+                      disabled={loading} 
+                      className="btn-pill primary"
+                      style={{ padding: '10px 20px', fontSize: '13px' }}
+                    >
                       {loading ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} ซิงค์ข้อมูล
                     </button>
                   </div>
