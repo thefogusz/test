@@ -1490,29 +1490,29 @@ const App = () => {
                               border: '1px solid var(--glass-border)',
                               transition: 'all 0.2s'
                             }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
-                                <img 
-                                  src={u.profile_image_url} 
-                                  alt="" 
-                                  style={{ width: '40px', height: '40px', borderRadius: '50%', border: '1px solid var(--glass-border)' }} 
-                                  onError={e => { 
-                                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=random&color=fff&bold=true`; 
-                                  }}
-                                />
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                  <a 
-                                    href={`https://x.com/${u.username}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
-                                    className="hover-underline"
-                                  >
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <a 
+                                  href={`https://x.com/${u.username}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '12px' }}
+                                  className="hover-underline"
+                                >
+                                  <img 
+                                    src={u.profile_image_url} 
+                                    alt="" 
+                                    style={{ width: '40px', height: '40px', borderRadius: '50%', border: '1px solid var(--glass-border)', flexShrink: 0 }} 
+                                    onError={e => { 
+                                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=random&color=fff&bold=true`; 
+                                    }}
+                                  />
+                                  <div style={{ flex: 1, minWidth: 0 }}>
                                     <div style={{ fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                       {u.name} <ExternalLink size={12} style={{ opacity: 0.4 }} />
                                     </div>
                                     <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>@{u.username}</div>
-                                  </a>
-                                </div>
+                                  </div>
+                                </a>
                               </div>
 
                               <button 
