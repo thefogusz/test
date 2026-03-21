@@ -462,28 +462,58 @@ body {
 }
 
 .hero-search-form {
-  display: flex;
+  display: flex !important;
+  flex-direction: row !important;
   align-items: center;
   background: var(--bg-800);
-  border: 1px solid var(--card-border);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-full);
-  padding: 8px 8px 8px 24px;
+  padding: 6px 6px 6px 20px;
   width: 100%;
   max-width: 680px;
   transition: all 0.3s ease;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  margin-bottom: 32px;
 }
 
 .hero-search-form:focus-within {
   border-color: var(--accent-secondary);
-  box-shadow: 0 8px 32px rgba(59, 130, 246, 0.15);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(41, 151, 255, 0.2);
 }
 
 .hero-search-icon {
   color: var(--text-muted);
-  margin-right: 12px;
+  flex-shrink: 0;
 }
+
+.hero-search-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zap-toggle-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.zap-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.zap-toggle-btn.active {
+  background: rgba(41, 151, 255, 0.15);
+  color: #2997ff;
+}
+
 
 .hero-search-input {
   flex: 1;

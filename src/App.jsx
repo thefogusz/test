@@ -1104,29 +1104,18 @@ const App = () => {
                 <h1 className="hero-search-title">ค้นหาคอนเทนต์</h1>
                 <p className="hero-search-subtitle">เจาะลึกทุกเรื่องราวจากคลังข้อมูลและโซเชียลมีเดีย</p>
                 
-                <form onSubmit={(e) => handleSearch(e)} className="hero-search-form" style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  background: 'var(--bg-800)', 
-                  border: '1px solid var(--glass-border)', 
-                  borderRadius: 'var(--radius-full)', 
-                  padding: '6px 6px 6px 20px', 
-                  transition: 'all 0.3s ease', 
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-                  marginBottom: '24px'
-                }}>
-                  <Search size={22} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                <form onSubmit={(e) => handleSearch(e)} className="hero-search-form">
+                  <Search size={20} className="hero-search-icon" />
                   <input
                     type="text"
-                    style={{ background: 'transparent', border: 'none', flex: 1, padding: '12px 16px', color: '#fff', fontSize: '16px', outline: 'none', minWidth: 0 }}
+                    className="hero-search-input"
                     placeholder="พิมพ์คีย์เวิร์ดที่สนใจ..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     autoFocus
                   />
                   
-                  {/* Integrated Latest Toggle - Zap Icon Inside Input */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div className="hero-search-actions">
                     <button 
                       type="button" 
                       title={isLatestMode ? "ปิดโหมดใหม่ล่าสุด" : "เปิดโหมดใหม่ล่าสุด"}
@@ -1134,27 +1123,12 @@ const App = () => {
                         e.stopPropagation();
                         setIsLatestMode(!isLatestMode); 
                       }} 
-                      style={{ 
-                        background: isLatestMode ? 'rgba(255,149,0,0.1)' : 'transparent', 
-                        border: 'none', 
-                        color: isLatestMode ? '#ff9500' : 'var(--text-dim)', 
-                        cursor: 'pointer', 
-                        padding: '10px', 
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transition: 'all 0.2s',
-                        position: 'relative'
-                      }}
+                      className={`zap-toggle-btn ${isLatestMode ? 'active' : ''}`}
                     >
-                      <Zap size={20} fill={isLatestMode ? "#ff9500" : "none"} />
-                      {isLatestMode && (
-                        <span style={{ position: 'absolute', top: '8px', right: '8px', width: '6.5px', height: '6.5px', background: '#ff9500', borderRadius: '50%', boxShadow: '0 0 10px #ff9500' }} />
-                      )}
+                      <Zap size={18} fill={isLatestMode ? "#2997ff" : "none"} />
                     </button>
 
-                    <button type="submit" className="hero-submit-btn" disabled={isSearching} style={{ padding: '10px 24px', whiteSpace: 'nowrap' }}>
+                    <button type="submit" className="hero-submit-btn" disabled={isSearching}>
                       {isSearching ? <Loader2 size={18} className="animate-spin" /> : 'ค้นหา'}
                     </button>
                   </div>
