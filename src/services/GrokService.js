@@ -116,6 +116,207 @@ const getLengthInstruction = (value) => {
   }
 };
 
+const CONTENT_FORMAT_PROFILES = {
+  'โพสต์โซเชียล': {
+    label: 'social post',
+    allowHeadings: false,
+    allowCta: true,
+    structure: 'Write 2-4 short paragraphs with natural flow. No markdown headings.',
+    goals: 'Lead with the core point quickly and keep the tone human, sharp, and easy to read.',
+  },
+  'สคริปต์วิดีโอสั้น': {
+    label: 'short-form video script',
+    allowHeadings: false,
+    allowCta: false,
+    structure: 'Write as a spoken script with a hook, body, and closing beat. No markdown headings.',
+    goals: 'Use spoken Thai, short sentences, and strong pacing for voice delivery.',
+  },
+  'บทความ SEO / บล็อก': {
+    label: 'blog article',
+    allowHeadings: true,
+    allowCta: false,
+    structure: 'Write as a polished article. Use headings only when they genuinely improve readability.',
+    goals: 'Prioritize clarity, information density, and credibility over hype.',
+  },
+  'โพสต์ให้ความรู้ (Thread)': {
+    label: 'thread',
+    allowHeadings: false,
+    allowCta: true,
+    structure: 'Write as a thread-style piece with a strong opener and sequential points. No markdown headings.',
+    goals: 'Each paragraph should move the story forward clearly.',
+  },
+};
+
+const TONE_GUIDES = {
+  'ให้ข้อมูล/ปกติ': 'Calm, informed, and neutral. Avoid exaggeration.',
+  'กระตือรือร้น/ไวรัล': 'Energetic but still credible. Do not become sensational.',
+  'ทางการ/วิชาการ': 'Precise, measured, and professional.',
+  'เป็นกันเอง/เพื่อนเล่าให้ฟัง': 'Warm and conversational while staying trustworthy.',
+  'ตลก/มีอารมณ์ขัน': 'Lightly playful. Keep humor subtle and grounded.',
+  'ดุดัน/วิจารณ์เชิงลึก': 'Direct and analytical. Strong opinions must remain evidence-based.',
+  'ฮาร์ดเซลล์/ขายของ': 'Persuasive, but never spammy or manipulative.',
+};
+
+const HYPE_PHRASES = [
+  'สะเทือนโลก',
+  'เปลี่ยนเกม',
+  'ครองโลก',
+  'ครองครึ่งโลกการเงิน',
+  'มหาศาล',
+  'massive',
+  'enormous',
+  'สุดยิ่งใหญ่',
+  'เดือดพล่าน',
+  'สัญญาณไฟเขียว',
+  'โลกจะไม่เหมือนเดิมอีกต่อไป',
+];
+
+const buildFormatProfile = (format) =>
+  CONTENT_FORMAT_PROFILES[format] || CONTENT_FORMAT_PROFILES['โพสต์โซเชียล'];
+
+const normalizeThaiSpacing = (text = '') =>
+  text
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .replace(/([!?])\1{1,}/g, '$1')
+    .replace(/[ ]{2,}/g, ' ')
+    .trim();
+
+const stripDisallowedHeadings = (text = '') =>
+  text.replace(/^\s{0,3}#{1,6}\s+.+$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
+
+const stripEngagementBait = (text = '') =>
+  text
+    .replace(/(^|\n)(คุณคิดยังไง.*)$/gim, '')
+    .replace(/(^|\n)(แชร์ความเห็น.*)$/gim, '')
+    .replace(/(^|\n)(รีโพสต์.*)$/gim, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+const softenHypeLanguage = (text = '') => {
+  let nextText = text;
+
+  for (const phrase of HYPE_PHRASES) {
+    const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    nextText = nextText.replace(
+      new RegExp(escaped, 'gi'),
+      phrase === 'massive' || phrase === 'enormous' ? 'มีนัยสำคัญ' : 'สำคัญ',
+    );
+  }
+
+  return nextText
+    .replace(/ว้าว!?/gi, '')
+    .replace(/!\?/g, '?')
+    .replace(/!!+/g, '!')
+    .trim();
+};
+
+const shouldAllowHighEnergyLanguage = (customInstructions = '', tone = '') =>
+  /ไวรัล|viral|energetic|high energy/i.test(`${tone} ${customInstructions}`);
+
+const polishThaiContent = (text = '', { format, customInstructions = '', allowEmoji = false, tone = '' } = {}) => {
+  const profile = buildFormatProfile(format);
+  const allowExplicitCta = /cta|call to action|ชวนคอมเมนต์|ชวนแชร์|ชวนรีโพสต์/i.test(
+    customInstructions,
+  );
+
+  const allowHighEnergyLanguage = shouldAllowHighEnergyLanguage(customInstructions, tone);
+  let nextText = cleanGeneratedContent(text, { allowEmoji });
+
+  if (!profile.allowHeadings) {
+    nextText = stripDisallowedHeadings(nextText);
+  }
+
+  if (!profile.allowCta && !allowExplicitCta) {
+    nextText = stripEngagementBait(nextText);
+  }
+
+  if (!allowHighEnergyLanguage) {
+    nextText = softenHypeLanguage(nextText);
+  } else {
+    nextText = nextText.replace(/ครองครึ่งโลกการเงิน/gi, 'มีบทบาทใหญ่มากในระบบการเงิน');
+    nextText = nextText.replace(/โลกจะไม่เหมือนเดิมอีกต่อไป/gi, 'อาจเปลี่ยนภาพการแข่งขันในตลาดได้มาก');
+    nextText = nextText.replace(/!!+/g, '!');
+  }
+  return normalizeThaiSpacing(nextText);
+};
+
+const CONTENT_BRIEF_SCHEMA = z.object({
+  mainAngle: z.string().min(10).max(240),
+  audience: z.string().min(3).max(120),
+  voiceNotes: z.array(z.string()).min(2).max(5),
+  mustIncludeFacts: z.array(z.string()).min(2).max(6),
+  caveats: z.array(z.string()).min(1).max(4),
+  structure: z.array(z.string()).min(2).max(6),
+  titleIdea: z.string().min(4).max(140),
+  ctaMode: z.enum(['none', 'soft', 'direct']),
+});
+
+const buildContentBriefPrompt = ({ factSheet, length, tone, format, customInstructions = '' }) => {
+  const profile = buildFormatProfile(format);
+  const toneGuide = TONE_GUIDES[tone] || tone;
+
+  return `
+[TASK]
+Create a concise structured brief for a Thai content writer.
+
+[FORMAT]
+${format} (${profile.label})
+
+[LENGTH]
+${normalizeLength(length)}
+
+[TONE]
+${toneGuide}
+
+[FORMAT RULES]
+${profile.structure}
+${profile.goals}
+
+[STYLE RULES]
+- Keep verified facts separate from interpretation.
+- Match the requested tone. Viral tone may sound energetic, but it must still stay grounded in facts.
+- Avoid empty hype that is not supported by the source material.
+- Avoid repetition.
+- Prefer natural Thai, not translated-sounding Thai.
+- For short and medium outputs, do not force section headings.
+- Only include CTA when the format truly benefits from it.
+- When low-impact people react, summarize them collectively instead of naming each one.
+- Mention a person or account by name only if they materially shape the story, have real influence, or their reaction drew unusually high engagement.
+
+[CUSTOM INSTRUCTIONS]
+${customInstructions || 'None'}
+
+[FACT SHEET]
+${factSheet}
+`.trim();
+};
+
+const buildContentBrief = async ({ factSheet, length, tone, format, customInstructions = '' }) => {
+  try {
+    const { object } = await generateObject({
+      model: grok(MODEL_REASONING_FAST),
+      system: 'Return a concise Thai content brief as JSON only. Stay grounded in the fact sheet.',
+      prompt: buildContentBriefPrompt({ factSheet, length, tone, format, customInstructions }),
+      schema: CONTENT_BRIEF_SCHEMA,
+    });
+
+    return object;
+  } catch (error) {
+    console.warn('[GrokService] Brief generation fallback:', error);
+    return {
+      mainAngle: 'สรุปประเด็นสำคัญจากข้อมูลที่มีอย่างชัดเจนและน่าเชื่อถือ',
+      audience: 'ผู้อ่านทั่วไปที่ต้องการความเข้าใจเร็ว',
+      voiceNotes: ['กระชับ', 'น่าเชื่อถือ', 'ไม่โอเวอร์'],
+      mustIncludeFacts: ['ยึดตาม fact sheet', 'แยกข้อเท็จจริงออกจากความเห็น'],
+      caveats: ['ระบุข้อจำกัดของข้อมูลเมื่อยังไม่ชัดเจน'],
+      structure: ['เปิดด้วยประเด็นหลัก', 'ขยายบริบทสำคัญ', 'ปิดด้วยข้อสรุปที่พอดี'],
+      titleIdea: 'สรุปประเด็นสำคัญล่าสุด',
+      ctaMode: 'none',
+    };
+  }
+};
+
 const callGrok = async ({
   system,
   prompt,
@@ -530,6 +731,113 @@ export const generateStructuredContent = async (
   }
 
   return cleanGeneratedContent(contentDraft, { allowEmoji });
+};
+
+export const generateStructuredContentV2 = async (
+  factSheet,
+  length,
+  tone,
+  format,
+  onStreamChunk,
+  options = {},
+) => {
+  const { allowEmoji = false, customInstructions = '' } = options;
+  const lengthInstruction = getLengthInstruction(length);
+  const profile = buildFormatProfile(format);
+  const brief = await buildContentBrief({ factSheet, length, tone, format, customInstructions });
+
+  const draftSystemPrompt = `You are a senior Thai content editor.
+Write only from the provided fact sheet and structured brief.
+
+Format: ${format} (${profile.label})
+Tone: ${TONE_GUIDES[tone] || tone}
+Length: ${lengthInstruction}
+
+Rules:
+1. Do not invent facts, quotes, numbers, timelines, or certainty.
+2. Keep named entities and product names in English when appropriate.
+3. Separate verified facts from interpretation or community reaction.
+4. Match the requested tone. Viral tone can be punchy, but must not overclaim beyond the evidence.
+5. Avoid headings unless the format truly benefits from them.
+6. Do not end with engagement bait unless the brief clearly calls for it.
+7. Make the Thai feel natural, not like translation output.
+8. If uncertainty exists, state it plainly and briefly.
+9. When reactions come from low-impact voices, summarize them collectively instead of naming each one.
+10. Mention a person or account by name only if their identity materially matters, they have real influence, or their reaction received unusually high engagement.`;
+
+  const draftUserPrompt = [
+    `[FORMAT RULES]\n${profile.structure}\n${profile.goals}`,
+    `[STRUCTURED BRIEF]\n${JSON.stringify(brief, null, 2)}`,
+    `[FACT SHEET]\n${factSheet}`,
+    `[EXTRA INSTRUCTIONS]\n${customInstructions || 'None'}`,
+    'Write the final Thai content now.',
+  ].join('\n\n');
+
+  if (onStreamChunk) {
+    try {
+      const { textStream } = await streamText({
+        model: grok(MODEL_WRITER),
+        system: draftSystemPrompt,
+        prompt: draftUserPrompt,
+        temperature: 0.7,
+      });
+
+      let fullContent = '';
+      for await (const textPart of textStream) {
+        fullContent += textPart;
+        onStreamChunk(polishThaiContent(fullContent, { format, customInstructions, allowEmoji, tone }));
+      }
+
+      return polishThaiContent(fullContent, { format, customInstructions, allowEmoji, tone });
+    } catch (error) {
+      console.error('[GrokService] Streaming error (v2):', error);
+      throw error;
+    }
+  }
+
+  const contentDraft = await callGrok({
+    modelName: MODEL_WRITER,
+    system: draftSystemPrompt,
+    prompt: draftUserPrompt,
+    temperature: 0.7,
+    allowEmoji,
+  });
+
+  try {
+    const { object: evalResult } = await generateObject({
+      model: grok(MODEL_REASONING_FAST),
+      system: `Evaluate whether the Thai draft is grounded, natural, and appropriate for the requested format.
+Set passed=true only if:
+- it stays faithful to the fact sheet
+- it matches the requested tone without overclaiming
+- it does not read like generic AI copy
+- it respects heading and CTA expectations for the format
+- it names people only when their identity or influence materially matters`,
+      prompt: `[FORMAT]\n${format}\n\n[TONE]\n${tone}\n\n[FACT SHEET]\n${factSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[DRAFT]\n${contentDraft}`,
+      schema: z.object({
+        passed: z.boolean(),
+        reason: z.string().optional(),
+      }),
+    });
+
+    if (!evalResult.passed) {
+      const revisedDraft = await callGrok({
+        modelName: MODEL_WRITER,
+        system: draftSystemPrompt,
+        prompt: `[FACT SHEET]\n${factSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[CURRENT DRAFT]\n${contentDraft}\n\n[EDITOR FEEDBACK]\n${
+          evalResult.reason || 'Improve accuracy, tone, and natural Thai flow.'
+        }\n\nRewrite the content now.`,
+        temperature: 0.4,
+        allowEmoji,
+      });
+
+      return polishThaiContent(revisedDraft, { format, customInstructions, allowEmoji, tone });
+    }
+  } catch (error) {
+    console.warn('[GrokService] Editor pass skipped (v2):', error);
+  }
+
+  return polishThaiContent(contentDraft, { format, customInstructions, allowEmoji, tone });
 };
 
 export const generateFinalContent = async (enrichedData, targetFormat, customPrompt = '') => {

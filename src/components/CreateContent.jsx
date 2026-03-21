@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, Bookmark, ExternalLink } from 'lucide-react';
-import { researchAndPreventHallucination, generateStructuredContent } from '../services/GrokService';
+import { researchAndPreventHallucination, generateStructuredContentV2 } from '../services/GrokService';
 import { renderMarkdownToHtml } from '../utils/markdown';
 
 const THINKING_PHASES = {
@@ -51,6 +51,13 @@ const FORMAT_OPTIONS = [
 
 const TONE_OPTIONS = ['ให้ข้อมูล/ปกติ', 'กระตือรือร้น/ไวรัล', 'ทางการ/วิชาการ', 'เป็นกันเอง/เพื่อนเล่าให้ฟัง', 'ตลก/มีอารมณ์ขัน', 'ดุดัน/วิจารณ์เชิงลึก', 'ฮาร์ดเซลล์/ขายของ'];
 const LENGTH_OPTIONS = ['สั้น กระชับ', 'ขนาดกลาง (มาตรฐาน)', 'ยาว แบบเจาะลึก'];
+
+const FORMAT_HINTS = {
+  'โพสต์โซเชียล': 'เหมาะกับข้อความที่อ่านลื่นแบบโพสต์จริง ไม่ต้องมีหัวข้อย่อย',
+  'สคริปต์วิดีโอสั้น': 'เหมาะกับสคริปต์พูดจริง ประโยคสั้น จังหวะชัด ไม่ต้องใช้หัวข้อ',
+  'บทความ SEO / บล็อก': 'เหมาะกับงานที่ต้องการบริบทและโครงสร้างชัด ค่อยใช้หัวข้อเมื่อจำเป็น',
+  'โพสต์ให้ความรู้ (Thread)': 'เหมาะกับการเล่าเป็นลำดับความคิดทีละช่วง โดยไม่ต้องทำให้ดูเป็นบทความเต็ม',
+};
 
 const CustomDropdown = ({ icon, value, onChange, options, isObject }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -169,6 +176,7 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [thinkingStep, setThinkingStep] = useState(0);
+  const activeFormatHint = FORMAT_HINTS[format] || FORMAT_HINTS['โพสต์โซเชียล'];
 
   useEffect(() => {
     if (!isGenerating) { setThinkingStep(0); return; }
@@ -223,7 +231,7 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
       const lengthIndex = LENGTH_OPTIONS.indexOf(length);
       const normalizedLength = lengthIndex === 0 ? 'short' : lengthIndex === 2 ? 'long' : 'medium';
 
-      await generateStructuredContent(
+      await generateStructuredContentV2(
         facts,
         normalizedLength,
         appliedTone,
@@ -231,7 +239,7 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
         (currentText) => {
           setGeneratedMarkdown(currentText); // Stream to UI instantly
         },
-        { allowEmoji }
+        { allowEmoji, customInstructions }
       );
       
       setPhase('done'); // Done
@@ -449,6 +457,10 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
                 <Plus size={14} /> คำสั่งพิเศษ
               </button>
             )}
+          </div>
+
+          <div style={{ width: '100%', fontSize: '12px', color: 'var(--text-dim)', lineHeight: '1.5' }}>
+            {activeFormatHint}
           </div>
           
           {/* Right: Premium Generate Button */}
