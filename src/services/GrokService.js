@@ -16,16 +16,16 @@ const grok = createXai({
 const factCache = new Map();
 
 const SUMMARY_RULES = `
-You convert social posts into short Thai news summaries.
+คุณต้องเปลี่ยนโพสต์จากโซเชียลมีเดียให้เป็นสรุปข่าวภาษาไทยแบบสั้น
 
-Rules:
-- Preserve the original meaning.
-- Write the summary in Thai.
-- Keep English proper nouns, product names, and technical terms in English.
-- Do not mention Twitter or X by name.
-- Do not include URLs.
-- Keep each summary to 1-2 sentences.
-- Avoid hype, certainty inflation, and extra assumptions.
+กฎที่ต้องปฏิบัติตาม:
+- รักษาความหมายเดิมให้ครบถ้วน
+- เขียนสรุปเป็นภาษาไทย
+- คำที่เป็นชื่อเฉพาะ, ชื่อผลิตภัณฑ์ และคำศัพท์ทางเทคนิค ให้คงไว้เป็นภาษาอังกฤษ
+- ห้ามเอ่ยชื่อ Twitter หรือ X
+- ห้ามใส่ URLs ลงในข้อความ
+- เขียนสรุป 1-2 ประโยคต่อเรื่อง
+- หลีกเลี่ยงการใช้คำอวดอ้าง, การคาดเดา หรือการเติมแต่งเกินจริง
 `.trim();
 
 const cleanMarkdown = (text = '') =>
@@ -105,12 +105,12 @@ const normalizeLength = (value) => {
 const getLengthInstruction = (value) => {
   switch (normalizeLength(value)) {
     case 'short':
-      return 'Keep it tight: one short paragraph or 3-4 short lines, usually under 150 words.';
+      return 'เขียนให้กระชับ: 1 ย่อหน้าสั้นๆ หรือ 3-4 บรรทัดสั้นๆ ปกติไม่เกิน 150 คำ';
     case 'long':
-      return 'Write a full long-form piece, usually 700-900+ words, with real depth and a strong conclusion.';
+      return 'เขียนแบบเจาะลึก: บทความยาว ปกติ 700-900+ คำ พร้อมรายละเอียดที่ลึกซึ้งและบทสรุปที่ชัดเจน';
     case 'medium':
     default:
-      return 'Write a medium-length piece, usually 350-500 words, with enough detail to feel complete.';
+      return 'เขียนแบบความยาวปานกลาง: ปกติ 350-500 คำ พร้อมรายละเอียดที่เพียงพอให้เนื้อหาดูสมบูรณ์';
   }
 };
 
@@ -147,7 +147,7 @@ const deriveResearchQuery = async (input) => {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
       system:
-        'Extract one concise search query from the request. Preserve important names, products, companies, and topics. Return only JSON.',
+        'สกัดหนึ่งหัวข้อค้นหาที่กระชับจากคำขอที่ได้รับ โดยรักษาชื่อสำคัญ, ผลิตภัณฑ์, บริษัท และหัวข้อหลักไว้ ส่งผลลัพธ์เป็น JSON เท่านั้น',
       prompt: input,
       schema: z.object({
         searchQuery: z.string().min(3).max(160),
@@ -302,9 +302,9 @@ export const generateExecutiveSummary = async (validTweets, userQuery) => {
 
   return callGrok({
     modelName: MODEL_REASONING_FAST,
-    system: `You are an analyst writing a concise Thai executive summary for "${userQuery}".
-Write 2-3 sentences in Thai. Highlight only the most defensible takeaways.
-Use markdown bold for the most important phrase if helpful. No heading.`,
+    system: `คุณคือนักวิเคราะห์ที่กำลังเขียนสรุปสำหรับผู้บริหารแบบกระชับในหัวข้อ "${userQuery}" เป็นภาษาไทย
+เขียน 2-3 ประโยคในภาษาไทย เน้นเฉพาะประเด็นสำคัญที่น่าเชื่อถือที่สุด
+ใช้ตัวหนา (markdown bold) สำหรับวลีที่สำคัญที่สุดถ้าจำเป็น ห้ามมีหัวข้อหลักด้านบน`,
     prompt: contentToAnalyze,
     providerOptions: {
       xai: {
@@ -322,13 +322,13 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
   try {
     const { object } = await generateObject({
       model: grok(MODEL_REASONING_FAST),
-      system: `Rewrite the user's topic into X advanced search syntax.
-Rules:
-- Keep the original topic intent.
-- Expand with close synonyms or related terms using OR when useful.
-- Always include -filter:replies exactly once.
-- ${isLatest ? `Add since:${today} for recency.` : 'Bias toward high-signal posts suitable for Top results.'}
-- Return JSON only.`,
+      system: `เปลี่ยนหัวข้อของผู้ใช้ให้เป็นคำค้นหาขั้นสูง (Advanced Search) บน X
+กฎ:
+- รักษาเจตนาเดิมของหัวข้อที่ต้องการค้นหา
+- ขยายคำด้วยคำพ้องความหมายที่ใกล้เคียงหรือคำที่เกี่ยวข้องโดยใช้ OR เมื่อจำเป็น
+- ต้องใส่ -filter:replies เสมอ 1 ครั้ง
+- ${isLatest ? `เพิ่ม since:${today} เพื่อเน้นความใหม่ล่าสุด` : 'เน้นโพสต์ที่มีสัญญาณสำคัญสูง เหมาะสำหรับผลลัพธ์แบบยอดนิยม (Top)'}
+- ส่งคืนผลลัพธ์เป็น JSON เท่านั้น`,
       prompt: `Topic: ${originalQuery}`,
       schema: z.object({
         finalXQuery: z.string().min(3),
@@ -352,7 +352,7 @@ Rules:
 
 export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) => {
   const fallbackReasoning = (candidate) =>
-    `Grounded pick for ${categoryQuery}: ${candidate.appearances} relevant posts with strong engagement from real X search results.`;
+    `ตัวเลือกที่น่าสนใจสำหรับ ${categoryQuery}: บัญชีนี้มี ${candidate.appearances} โพสต์ที่เกี่ยวข้องและมีปฏิสัมพันธ์ (Engagement) ที่สูงจากผลการค้นหาจริงบน X`;
 
   try {
     const [topQuery, latestQuery] = await Promise.all([
@@ -378,10 +378,10 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
     try {
       const { object } = await generateObject({
         model: grok(MODEL_REASONING_FAST),
-        system: `Choose the best X accounts to follow for the topic "${categoryQuery}".
-Use ONLY usernames from the candidate list.
-Never invent or modify usernames.
-Prefer accounts that are active, authoritative, and repeatedly visible in the evidence.`,
+        system: `เลือกบัญชี X (Twitter) ที่ดีที่สุดเพื่อติดตามในหัวข้อ "${categoryQuery}"
+ใช้ชื่อบัญชี (usernames) จากรายการผู้สมัครที่ให้มาเท่านั้น
+ห้ามสร้างหรือแก้ไขชื่อบัญชีใหม่เอง
+เลือกบัญชีที่มีความเคลื่อนไหว มีความน่าเชื่อถือ และปรากฏในข้อมูลหลักฐานซ้ำๆ`,
         prompt: JSON.stringify({
           topic: categoryQuery,
           candidates: hydratedCandidates.map((candidate) => ({
@@ -516,19 +516,19 @@ export const researchAndPreventHallucination = async (input) => {
 
   const factSheet = await callGrok({
     modelName: MODEL_REASONING_FAST,
-    system: `You are a Thai research desk preparing a grounded fact sheet.
-Use only the supplied evidence.
-If something is not supported clearly, mark it as uncertain.
-Write in Thai, but keep proper nouns and product names in English.
+    system: `คุณคือทีมนักวิจัยไทยที่กำลังเตรียมข้อมูลข้อเท็จจริง (Fact Sheet) ที่มีความน่าเชื่อถือ
+ใช้เฉพาะข้อมูลหลักฐานที่ให้มาเท่านั้น
+หากข้อมูลใดไม่ได้รับการสนับสนุนอย่างชัดเจน ให้ระบุว่ายังไม่แน่นอน
+เขียนเป็นภาษาไทย แต่คงชื่อเฉพาะและชื่อผลิตภัณฑ์เป็นภาษาอังกฤษ
 
-Format:
-## Verified Facts
+รูปแบบการเขียน:
+## ข้อเท็จจริงที่ตรวจสอบแล้ว
 - ...
-## Market / Community Signals
+## สัญญาณจากตลาด / ชุมชน
 - ...
-## Caveats / Unknowns
+## ข้อควรระวัง / ข้อมูลที่ยังไม่ทราบ
 - ...
-## Suggested Angles
+## มุมมองที่แนะนำ
 - ...
 `,
     prompt: [
@@ -564,20 +564,20 @@ export const generateStructuredContent = async (
 ) => {
   const lengthInstruction = getLengthInstruction(length);
 
-  const draftSystemPrompt = `You are a professional Thai writer.
-Write only from the provided fact sheet.
+  const draftSystemPrompt = `คุณคือนักเขียนภาษาไทยมืออาชีพ
+เขียนโดยอ้างอิงจากข้อมูลข้อเท็จจริง (Fact Sheet) ที่ให้มาเท่านั้น
 
-Target format: ${format}
-Tone: ${tone}
-Length: ${lengthInstruction}
+รูปแบบที่ต้องการ: ${format}
+โทนสีของเนื้อหา: ${tone}
+ความยาว: ${lengthInstruction}
 
-Rules:
-1. Do not invent facts, numbers, names, timelines, or quotes.
-2. Keep English proper nouns in English.
-3. Do not include source URLs in the body text.
-4. If evidence is mixed, use careful wording.
-5. For short output, avoid headings.
-6. For medium and long output, use markdown headings and end with "## Summary".`;
+กฎ:
+1. ห้ามสร้างข้อเท็จจริง, ตัวเลข, ชื่อ, ช่วงเวลา หรือคำพูดขึ้นมาเอง
+2. คงชื่อเฉพาะภาษาอังกฤษไว้เป็นภาษาอังกฤษ
+3. ห้ามใส่ URL ของแหล่งข้อมูลลงในเนื้อหาหลัก
+4. หากข้อมูลหลักฐานขัดแจ้งกัน ให้ใช้การเลือกใช้คำที่ระมัดระวัง
+5. สำหรับเนื้อหาสั้น ไม่ต้องใส่หัวข้อหลัก
+6. สำหรับเนื้อหาปานกลางและยาว ให้ใช้ Markdown หัวข้อ (Headings) และจบด้วย "## บทสรุป"`;
 
   const draftUserPrompt = `[FACT SHEET]\n${factSheet}\n\nWrite the final Thai content now.`;
 
@@ -613,9 +613,9 @@ Rules:
   try {
     const { object: evalResult } = await generateObject({
       model: grok(MODEL_REASONING_FAST),
-      system: `Check whether the draft stays faithful to the fact sheet.
-Return passed=true only if the draft is grounded and on-tone.
-If it fails, give one short reason.`,
+      system: `ตรวจสอบว่าร่างเนื้อหานี้ยังคงรักษาความถูกต้องตามข้อมูลข้อเท็จจริง (Fact Sheet) หรือไม่
+ส่งค่า passed=true เฉพาะเมื่อร่างเนื้อหานี้อ้างอิงจากข้อเท็จจริงและมีโทนที่ถูกต้องเท่านั้น
+ถ้าไม่ผ่าน ให้ระบุเหตุผลสั้นๆ`,
       prompt: `[FACT SHEET]\n${factSheet}\n\n[DRAFT]\n${contentDraft}`,
       schema: z.object({
         passed: z.boolean(),
@@ -633,9 +633,9 @@ If it fails, give one short reason.`,
         await callGrok({
           modelName: MODEL_WRITER,
           system: draftSystemPrompt,
-          prompt: `[FACT SHEET]\n${factSheet}\n\n[CURRENT DRAFT]\n${contentDraft}\n\n[EDITOR FEEDBACK]\n${
-            evalResult.reason || 'Tighten accuracy and tone.'
-          }\n\nRewrite the content so it stays fully grounded.`,
+          prompt: `[ข้อมูลข้อเท็จจริง]\n${factSheet}\n\n[ร่างเนื้อหาปัจจุบัน]\n${contentDraft}\n\n[ข้อเสนอแนะจากบรรณาธิการ]\n${
+            evalResult.reason || 'กรุณาปรับปรุงความถูกต้องและโทนของเนื้อหา'
+          }\n\nกรุณาเขียนเนื้อหาใหม่เพื่อให้สอดคล้องกับข้อเท็จจริงทั้งหมด`,
           temperature: 0.4,
         }),
       );
@@ -652,8 +652,8 @@ export const generateFinalContent = async (enrichedData, targetFormat, customPro
     return await callGrok({
       modelName: MODEL_MULTI_AGENT,
       useResponses: true,
-      system: `Create a polished Thai piece in the format "${targetFormat}".
-Stay grounded in the provided material only.`,
+      system: `สร้างผลงานเนื้อหาภาษาไทยที่ขัดเกลาแล้วในรูปแบบของ "${targetFormat}"
+อ้างอิงจากข้อมูลวิจัยที่ให้มาเท่านั้น`,
       prompt: `[RESEARCH]\n${enrichedData}\n\n[EXTRA INSTRUCTIONS]\n${customPrompt || 'None'}`,
       providerOptions: {
         xai: {
