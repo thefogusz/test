@@ -56,6 +56,9 @@ const RightSidebar = ({
 
   return (
     <aside className={`right-sidebar ${isMobileOpen ? 'mobile-visible' : ''}`}>
+      {/* SHEET HANDLE (Only for mobile sheet) */}
+      <div className="sheet-handle mobile-only-flex" />
+
       {/* Header */}
       <div className="right-sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '0 4px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', transition: 'color 0.2s', cursor: 'pointer' }} onMouseOver={e=>e.currentTarget.style.color='#fff'} onMouseOut={e=>e.currentTarget.style.color='var(--text-muted)'}>

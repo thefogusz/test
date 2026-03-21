@@ -909,11 +909,16 @@ const App = () => {
              if (view === 'home') {
                setSearchQuery('');
                setSearchResults([]);
-               // Assuming user wants the home feed back
              }
           }
         }}
       />
+
+      {/* MOBILE BACKDROP */}
+      {isMobilePostListOpen && (
+        <div className="mobile-backdrop" onClick={() => setIsMobilePostListOpen(false)} />
+      )}
+
 
       <main className="foro-main">
         <TopNav 
