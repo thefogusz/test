@@ -56,14 +56,7 @@ const buildTweetUrl = (tweet) => {
   return `https://x.com/${username}/status/${tweet.id}`;
 };
 
-const getTweetEngagementScore = (tweet) => {
-  const likes = Number(tweet?.like_count || 0);
-  const reposts = Number(tweet?.retweet_count || 0);
-  const replies = Number(tweet?.reply_count || 0);
-  const views = Number(tweet?.view_count || 0);
 
-  return likes + reposts * 2 + replies * 1.5 + views / 1000;
-};
 
 const extractSourcesFromTweets = (tweets, limit = 4) =>
   dedupeSources(
@@ -161,102 +154,7 @@ const deriveResearchQuery = async (input) => {
   }
 };
 
-const rankExpertCandidates = (tweets, excludeUsernames = []) => {
-  const excluded = new Set(
-    (excludeUsernames || []).map((username) => String(username || '').toLowerCase()),
-  );
-  const candidates = new Map();
 
-  for (const tweet of tweets || []) {
-    const username = String(tweet.author?.username || '').trim();
-    if (!username) continue;
-
-    const key = username.toLowerCase();
-    if (excluded.has(key)) continue;
-
-    // --- STRICT QUALITY FILTER ---
-    const displayName = String(tweet.author?.name || '').trim();
-    // 1. Filter out bot-like or nonsense names (e.g. "° III..IIIIIIII I ." or just emojis)
-    const emojiCount = (displayName.match(/\p{Emoji_Presentation}/gu) || []).length;
-    const isMostlyEmoji = emojiCount > 0 && emojiCount > displayName.length * 0.3; // Stricter: 30%
-    const isGibberish = /^[.\s°|!@#$%^&*()_+=\[\]{};':"\\|,.<>\/?-]+$/.test(displayName) || displayName.length < 2;
-    const isGenericUser = /^[0-9]+$/.test(username) || username.length < 3;
-    const isLikelyPersonal = /(จ้ะ|นะ|ครับ|ค่ะ|จ้า|อิอิ|555)$/i.test(displayName); // Skip very casual personal accounts
-    
-    if (isMostlyEmoji || isGibberish || isGenericUser || isLikelyPersonal) continue;
-    // ----------------------------
-
-    const entry = candidates.get(key) || {
-      name: tweet.author?.name || username,
-      username,
-      appearances: 0,
-      engagementScore: 0,
-      latestTimestamp: 0,
-      samplePosts: [],
-    };
-
-    entry.appearances += 1;
-    entry.engagementScore += getTweetEngagementScore(tweet);
-
-    const timestamp = new Date(tweet.created_at || 0).getTime();
-    if (Number.isFinite(timestamp)) {
-      entry.latestTimestamp = Math.max(entry.latestTimestamp, timestamp);
-    }
-
-    if (entry.samplePosts.length < 2 && tweet.text) {
-      entry.samplePosts.push(tweet.text.replace(/\s+/g, ' ').trim());
-    }
-
-    candidates.set(key, entry);
-  }
-
-  return Array.from(candidates.values())
-    .sort((a, b) => {
-      // PROMOTING GLOBAL EXPERTS:
-      // Give a slight penalty to accounts with Thai characters in their name 
-      // when we want "Global Experts". This encourages international accounts to rise up.
-      const aIsThai = /[\u0E00-\u0E7F]/.test(a.name);
-      const bIsThai = /[\u0E00-\u0E7F]/.test(b.name);
-      
-      let aBonus = 0;
-      let bBonus = 0;
-      
-      // If we find an account that is clearly NOT Thai, give it a ranking boost 
-      // since the user wants the "best in the field" (usually global/verified accounts)
-      if (!aIsThai) aBonus += 50; 
-      if (!bIsThai) bBonus += 50;
-
-      const scoreA = a.engagementScore + a.appearances * 25 + aBonus;
-      const scoreB = b.engagementScore + b.appearances * 25 + bBonus;
-
-      const scoreDelta = scoreB - scoreA;
-      if (scoreDelta !== 0) return scoreDelta;
-      return b.latestTimestamp - a.latestTimestamp;
-    })
-    .slice(0, 15);
-};
-
-const hydrateExperts = async (candidates) => {
-  const hydrated = await Promise.all(
-    (candidates || []).map(async (candidate) => {
-      try {
-        const user = await getUserInfo(candidate.username);
-        return {
-          ...candidate,
-          name: user?.name || candidate.name,
-          username: user?.username || candidate.username,
-          description: user?.description || '',
-          followers_count: user?.followers_count || 0, // Assume backend might return this in the future
-        };
-      } catch {
-        // If we can't get their info, they might be suspended or private, drop them
-        return null; 
-      }
-    }),
-  );
-
-  return hydrated.filter(h => h && h.description && h.description.length > 10);
-};
 
 // --- [NEWS FLOW FUNCTIONS] ---
 
@@ -275,7 +173,7 @@ export const generateGrokBatch = async (stories) => {
       prompt: JSON.stringify({
         count: stories.length,
         stories,
-        outputRule: 'Return one Thai summary for each input in the same order.',
+        outputRule: 'แปลงเนื้อหาบทความ (stories) ทั้งหมดเป็นบทสรุปภาษาไทย (Translate and summarize to Thai) ให้คืนค่ากลับมา 1 บทสรุปภาษาไทย ต่อ 1 ต้นฉบับ ในลำดับเดิมอย่างเคร่งครัด',
       }),
       schema: z.object({
         summaries: z.array(z.string()).length(stories.length),
@@ -379,105 +277,39 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
 };
 
 export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) => {
-  const fallbackReasoning = (candidate) =>
-    `บัญชีคุณภาพในหัวข้อ ${categoryQuery} ที่มีการอัปเดตข้อมูลที่น่าสนใจอย่างสม่ำเสมอ`;
-
   try {
-    const [topQuery, latestQuery] = await Promise.all([
-      expandSearchQuery(categoryQuery, false).catch(() => `${categoryQuery} -filter:replies`),
-      expandSearchQuery(categoryQuery, true).catch(() => `${categoryQuery} -filter:replies`),
-    ]);
+    const { object } = await generateObject({
+      model: grok(MODEL_REASONING_FAST),
+      system: `คุณคือ "นักล่าดาวรุ่งและปรมาจารย์ระดับโลก" (Global Headhunter AI)
+ภารกิจ: จงค้นหาและแนะนำสุดยอดบัญชี Twitter (X) จำนวน 6 บัญชี ที่เป็นผู้เชี่ยวชาญหรือเป็นแหล่งข้อมูลที่สำคัญที่สุดในหัวข้อ "${categoryQuery}" แบบ Real-time
 
-    const [topResults, latestResults] = await Promise.all([
-      searchEverything(topQuery, '', true, 'Top').catch(() => ({ data: [] })),
-      searchEverything(latestQuery, '', true, 'Latest').catch(() => ({ data: [] })),
-    ]);
+คุณต้องใช้ "ความสามารถในการค้นหาข้อมูลที่สดใหม่บน X" ของคุณ เพื่อดึงตัวตนที่มีอิทธิพลในระดับโลกจริงๆ (วิเคราะห์ข้ามไปมาเพื่อเลือกคนที่เป็นตัวจริงที่สุด)
 
-    const mergedTweets = [...(topResults.data || []), ...(latestResults.data || [])];
-    const rankedCandidates = rankExpertCandidates(mergedTweets, excludeUsernames);
+[กฎการคัดเลือก - สำคัญมาก]:
+1. **Diversity Enforcement (ความหลากหลาย):** ใน 6 บัญชีนี้ ห้ามมีบทบาทซ้ำกันเกิน 2 คน (เช่น ต้องมีทั้งนักเตือนภัย, ผู้สื่อข่าว, ผู้รวบรวมข้อมูล, และผู้ก่อตั้งโปรเจกต์)
+2. **The Red Flag Filter (ไร้ขยะ):** ตัดบัญชีที่เป็น Bot, บัญชีที่เอาแต่สอนกด Airdrop, บัญชีปั่น/สแปม, หรือบัญชีที่มีแต่ยอด Follow ทิพย์ หรือบัญชีเน้นขายหน้าตา (OnlyFans/Model)
+3. **Cross-Validation (ตัวจริงเท่านั้น):** จงเลือกเฉพาะบัญชีที่คุณรู้จักและแน่ใจ 100% ว่ามันยังมีชีวิตและ Active อยู่บนแพลตฟอร์ม X ในช่วงเดือนที่ผ่านมา ห้ามแต่งชื่อบัญชีขึ้นมาเด็ดขาด (ห้าม Hallucinate) ห้ามเอาบัญชีที่โดนแบน
+4. จัดลำดับความสำคัญให้ "บัญชีของคน/องค์กรระดับโลกที่มีผู้ติดตามจริงมหาศาล" เป็นกลุ่มแรก ๆ
+5. ตัดบัญชีที่มีชื่อผู้ใช้เหล่านี้ทิ้ง: [${excludeUsernames.join(', ')}]
+6. สำหรับ "reasoning": เขียนรีวิวภาษาไทยความยาว 1 ประโยคสั้นๆ เน้นความว้าวว่าทำไมต้องตามคนนี้ เขาเจ๋งแค่ไหนในสายนี้`,
+      prompt: `ค้นหายอดฝีมือ 6 คนที่เป็น The Best of the Best ในสาย "${categoryQuery}" อย่างเคร่งครัดตามกฎ อย่าลืมคัดให้หลากหลาย (username ต้องไม่มี @ นำหน้า และ reasoning ต้องยาวแค่ 1 ประโยคในภาษาไทยเท่านั้น)`,
+      schema: z.object({
+        experts: z.array(
+          z.object({
+            username: z.string(),
+            name: z.string(),
+            reasoning: z.string()
+          })
+        ).max(6),
+      }),
+    });
 
-    if (!rankedCandidates.length) return [];
-
-    // Filter out low-effort candidates early to save LLM context and boost quality
-    // Only process candidates who appeared more than once or have decent engagement
-    const strongCandidates = rankedCandidates.filter(c => c.appearances > 1 || c.engagementScore > 10);
-    
-    // If filtering leaves us with nothing, fall back to the absolute top candidates
-    const candidatesToHydrate = strongCandidates.length > 0 ? strongCandidates : rankedCandidates.slice(0, 5);
-
-    const hydratedCandidates = await hydrateExperts(candidatesToHydrate);
-    const candidateLookup = new Map(
-      hydratedCandidates.map((candidate) => [candidate.username.toLowerCase(), candidate]),
-    );
-
-    try {
-      const { object } = await generateObject({
-        model: grok(MODEL_REASONING_FAST),
-        system: `คุณคือตัวแทนในการคัดเลือก "สุดยอดผู้เชี่ยวชาญระดับโลก" (Global Authority Selection)
-ภารกิจ: จากรายชื่อที่ให้มา จงเลือกเฉพาะบัญชีที่เป็น "Global Best-in-class" ในหัวข้อ "${categoryQuery}" เท่านั้น
-เป้าหมาย: เราต้องการบัญชีที่ "เก่งที่สุดในโลก" ไม่ใช่บัญชีส่วนตัวหรือบัญชีท้องถิ่นทั่วไป
-
-กฎเหล็ก:
-1. ห้ามเลือกบัญชีที่มีลักษณะเป็น "Personal Account" หรือบัญชีแนวบ่นเพ้อทั่วไป
-2. ให้ความสำคัญสูงสุดกับบัญชีที่เป็น ภาษาอังกฤษ หรือบัญชีสากลที่เป็นที่ยอมรับ
-3. หากในรายการไม่มีบัญชีที่ "เก่งจริง" หรือ "ตรงประเด็น" ให้ส่งค่าว่างกลับมา (ห้ามเลือกแบบขอไปที)
-4. สำหรับฟิลด์ reasoning: เขียนเป็นภาษาไทย 1 ประโยคสั้นๆ เน้นความว้าวว่าทำไมเขาถึงเป็น "ที่สุดในสายนี้"`,
-        prompt: JSON.stringify({
-          topic: categoryQuery,
-          candidates: hydratedCandidates.map((candidate) => ({
-            name: candidate.name,
-            username: candidate.username,
-            description: candidate.description,
-            appearances: candidate.appearances,
-            engagementScore: Math.round(candidate.engagementScore),
-            samplePosts: candidate.samplePosts,
-          })),
-        }),
-        schema: z.object({
-          experts: z.array(
-            z.object({
-              username: z.string(),
-              reasoning: z.string().min(10).max(220),
-            }),
-          ).max(6),
-        }),
-        providerOptions: {
-          xai: {
-            reasoningEffort: 'medium',
-          },
-        },
-      });
-
-      const finalExperts = [];
-
-      for (const expert of object.experts) {
-        const candidate = candidateLookup.get(expert.username.toLowerCase());
-        if (!candidate) continue;
-        if (finalExperts.some((item) => item.username.toLowerCase() === candidate.username.toLowerCase())) {
-          continue;
-        }
-
-        finalExperts.push({
-          name: candidate.name,
-          username: candidate.username,
-          reasoning: expert.reasoning.trim(),
-        });
-      }
-
-      if (finalExperts.length > 0) {
-        return finalExperts.slice(0, 6);
-      }
-    } catch (error) {
-      console.warn('[GrokService] Expert ranking fell back to heuristics:', error);
-    }
-
-    return hydratedCandidates.slice(0, 6).map((candidate) => ({
-      name: candidate.name,
-      username: candidate.username,
-      reasoning: fallbackReasoning(candidate),
+    return object.experts.map(expert => ({
+      ...expert,
+      // No profile_image_url yet, UI will handle lazy hydration and rendering
     }));
   } catch (error) {
-    console.error('[GrokService] Expert discovery error:', error);
+    console.error('[GrokService] Expert discovery LLM error:', error);
     return [];
   }
 };
