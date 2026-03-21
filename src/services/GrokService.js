@@ -178,11 +178,12 @@ const rankExpertCandidates = (tweets, excludeUsernames = []) => {
     const displayName = String(tweet.author?.name || '').trim();
     // 1. Filter out bot-like or nonsense names (e.g. "° III..IIIIIIII I ." or just emojis)
     const emojiCount = (displayName.match(/\p{Emoji_Presentation}/gu) || []).length;
-    const isMostlyEmoji = emojiCount > 0 && emojiCount > displayName.length * 0.4;
-    const isGibberish = /^[.\s°|]+$/.test(displayName) || displayName.length < 2;
+    const isMostlyEmoji = emojiCount > 0 && emojiCount > displayName.length * 0.3; // Stricter: 30%
+    const isGibberish = /^[.\s°|!@#$%^&*()_+=\[\]{};':"\\|,.<>\/?-]+$/.test(displayName) || displayName.length < 2;
     const isGenericUser = /^[0-9]+$/.test(username) || username.length < 3;
+    const isLikelyPersonal = /(จ้ะ|นะ|ครับ|ค่ะ|จ้า|อิอิ|555)$/i.test(displayName); // Skip very casual personal accounts
     
-    if (isMostlyEmoji || isGibberish || isGenericUser) continue;
+    if (isMostlyEmoji || isGibberish || isGenericUser || isLikelyPersonal) continue;
     // ----------------------------
 
     const entry = candidates.get(key) || {
@@ -211,12 +212,28 @@ const rankExpertCandidates = (tweets, excludeUsernames = []) => {
 
   return Array.from(candidates.values())
     .sort((a, b) => {
-      const scoreDelta =
-        b.engagementScore + b.appearances * 25 - (a.engagementScore + a.appearances * 25);
+      // PROMOTING GLOBAL EXPERTS:
+      // Give a slight penalty to accounts with Thai characters in their name 
+      // when we want "Global Experts". This encourages international accounts to rise up.
+      const aIsThai = /[\u0E00-\u0E7F]/.test(a.name);
+      const bIsThai = /[\u0E00-\u0E7F]/.test(b.name);
+      
+      let aBonus = 0;
+      let bBonus = 0;
+      
+      // If we find an account that is clearly NOT Thai, give it a ranking boost 
+      // since the user wants the "best in the field" (usually global/verified accounts)
+      if (!aIsThai) aBonus += 50; 
+      if (!bIsThai) bBonus += 50;
+
+      const scoreA = a.engagementScore + a.appearances * 25 + aBonus;
+      const scoreB = b.engagementScore + b.appearances * 25 + bBonus;
+
+      const scoreDelta = scoreB - scoreA;
       if (scoreDelta !== 0) return scoreDelta;
       return b.latestTimestamp - a.latestTimestamp;
     })
-    .slice(0, 12);
+    .slice(0, 15);
 };
 
 const hydrateExperts = async (candidates) => {
@@ -390,15 +407,15 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
     try {
       const { object } = await generateObject({
         model: grok(MODEL_REASONING_FAST),
-        system: `คุณคือผู้เชี่ยวชาญในการคัดเลือกบัญชี X (Twitter) ระดับโลก (Global Experts)
-ภารกิจ: เลือกบัญชีที่ดีที่สุด 6 อันดับแรกในหัวข้อ "${categoryQuery}" จากรายการผู้สมัครที่ให้มา
-เน้น: บัญชีที่เป็น "ที่สุดในสายด้านนั้น" (Best-in-class) มีความน่าเชื่อถือระดับสากล และให้ข้อมูลที่ลึกซึ้ง
+        system: `คุณคือตัวแทนในการคัดเลือก "สุดยอดผู้เชี่ยวชาญระดับโลก" (Global Authority Selection)
+ภารกิจ: จากรายชื่อที่ให้มา จงเลือกเฉพาะบัญชีที่เป็น "Global Best-in-class" ในหัวข้อ "${categoryQuery}" เท่านั้น
+เป้าหมาย: เราต้องการบัญชีที่ "เก่งที่สุดในโลก" ไม่ใช่บัญชีส่วนตัวหรือบัญชีท้องถิ่นทั่วไป
 
-กฎ:
-1. ใช้ชื่อบัญชี (usernames) จากรายการที่ส่งไปให้เท่านั้น ห้ามมโนชื่อใหม่
-2. ให้ความสำคัญกับบัญชีระดับสากล (Global/International) ที่มีอิทธิพลสูงในหัวข้อนี้
-3. สำหรับฟิลด์ reasoning: เขียนอธิบายภาษาไทย 1 ประโยคสั้นๆ ว่า "เขาคือใคร" และ "ทำไมเขาถึงเป็นที่สุดในสายนี้"
-ตัวอย่าง: "เป็นนักวิเคราะห์ Macro ระดับโลกที่มีมุมมองตลาดแม่นยำและได้รับการยอมรับในวงกว้าง"`,
+กฎเหล็ก:
+1. ห้ามเลือกบัญชีที่มีลักษณะเป็น "Personal Account" หรือบัญชีแนวบ่นเพ้อทั่วไป
+2. ให้ความสำคัญสูงสุดกับบัญชีที่เป็น ภาษาอังกฤษ หรือบัญชีสากลที่เป็นที่ยอมรับ
+3. หากในรายการไม่มีบัญชีที่ "เก่งจริง" หรือ "ตรงประเด็น" ให้ส่งค่าว่างกลับมา (ห้ามเลือกแบบขอไปที)
+4. สำหรับฟิลด์ reasoning: เขียนเป็นภาษาไทย 1 ประโยคสั้นๆ เน้นความว้าวว่าทำไมเขาถึงเป็น "ที่สุดในสายนี้"`,
         prompt: JSON.stringify({
           topic: categoryQuery,
           candidates: hydratedCandidates.map((candidate) => ({
