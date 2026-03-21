@@ -34,6 +34,15 @@ const cleanMarkdown = (text = '') =>
     .replace(/^#\s*(Conclusion|Summary).*$/gim, '## Summary')
     .trim();
 
+const stripEmojiLikeSymbols = (text = '') =>
+  text.replace(/[\p{Extended_Pictographic}\p{Regional_Indicator}\uFE0F\u200D]/gu, '');
+
+const cleanGeneratedContent = (text = '', { allowEmoji = false } = {}) =>
+  cleanMarkdown(allowEmoji ? text : stripEmojiLikeSymbols(text))
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
 const dedupeSources = (sources = []) => {
   const byUrl = new Map();
 
@@ -114,6 +123,7 @@ const callGrok = async ({
   useResponses = false,
   providerOptions,
   temperature,
+  allowEmoji = false,
 }) => {
   try {
     const { text } = await generateText({
@@ -124,7 +134,7 @@ const callGrok = async ({
       ...(typeof temperature === 'number' ? { temperature } : {}),
     });
 
-    return text.trim();
+    return cleanGeneratedContent(text, { allowEmoji });
   } catch (error) {
     console.error(`[GrokService] Error calling ${modelName}:`, error);
     if (error.status === 400) {
@@ -185,7 +195,7 @@ export const generateGrokBatch = async (stories) => {
       temperature: 0.2,
     });
 
-    return object.summaries.map((summary) => summary.trim());
+      return object.summaries.map((summary) => cleanGeneratedContent(summary));
   } catch (error) {
     console.error('[GrokService] Batch summarization error:', error);
     return stories.map(() => '(Grok API Error)');
@@ -438,7 +448,9 @@ export const generateStructuredContent = async (
   tone,
   format,
   onStreamChunk,
+  options = {},
 ) => {
+  const { allowEmoji = false } = options;
   const lengthInstruction = getLengthInstruction(length);
 
   const draftSystemPrompt = `คุณคือนักเขียนภาษาไทยมืออาชีพ
@@ -470,10 +482,10 @@ export const generateStructuredContent = async (
       let fullContent = '';
       for await (const textPart of textStream) {
         fullContent += textPart;
-        onStreamChunk(cleanMarkdown(fullContent));
+        onStreamChunk(cleanGeneratedContent(fullContent, { allowEmoji }));
       }
 
-      return cleanMarkdown(fullContent);
+      return cleanGeneratedContent(fullContent, { allowEmoji });
     } catch (error) {
       console.error('[GrokService] Streaming error:', error);
       throw error;
@@ -485,6 +497,7 @@ export const generateStructuredContent = async (
     system: draftSystemPrompt,
     prompt: draftUserPrompt,
     temperature: 0.7,
+    allowEmoji,
   });
 
   try {
@@ -509,6 +522,7 @@ export const generateStructuredContent = async (
             evalResult.reason || 'กรุณาปรับปรุงความถูกต้องและโทนของเนื้อหา'
           }\n\nกรุณาเขียนเนื้อหาใหม่เพื่อให้สอดคล้องกับข้อเท็จจริงทั้งหมด`,
           temperature: 0.4,
+          allowEmoji,
         }),
       );
     }
@@ -516,7 +530,7 @@ export const generateStructuredContent = async (
     console.warn('[GrokService] Editor pass skipped:', error);
   }
 
-  return cleanMarkdown(contentDraft);
+  return cleanGeneratedContent(contentDraft, { allowEmoji });
 };
 
 export const generateFinalContent = async (enrichedData, targetFormat, customPrompt = '') => {

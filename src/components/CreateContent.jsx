@@ -27,6 +27,8 @@ const safeParse = (value, fallback) => {
   }
 };
 
+const EMOJI_REQUEST_PATTERN = /(emoji|emojis|อีโมจิ|อิโมจิ|ใส่อีโมจิ|ใส่ emoji|ใช้ emoji|ใช้ emojis)/i;
+
 // Safe markdown parser -- prevents streaming partial-chunk crashes from killing the render tree
 let _lastGoodHtml = '';
 const safeMarkdown = (text) => {
@@ -217,6 +219,7 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
       // 2. Generation Phase (Streaming)
       const appliedTone = customInstructions ? `${tone} (คำสั่งพิเศษ: ${customInstructions})` : tone;
       
+      const allowEmoji = EMOJI_REQUEST_PATTERN.test(customInstructions);
       const lengthIndex = LENGTH_OPTIONS.indexOf(length);
       const normalizedLength = lengthIndex === 0 ? 'short' : lengthIndex === 2 ? 'long' : 'medium';
 
@@ -227,7 +230,8 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
         format,
         (currentText) => {
           setGeneratedMarkdown(currentText); // Stream to UI instantly
-        }
+        },
+        { allowEmoji }
       );
       
       setPhase('done'); // Done
@@ -385,7 +389,7 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
            <div style={{ padding: '0 24px 16px', animation: 'fadeIn 0.2s ease-out', position: 'relative' }}>
              <input
                type="text"
-               placeholder="📝 คำสั่งเพิ่มเติม (เช่น เน้นคำพาดหัวแรงๆ, ใส่ Emoji เยอะๆ, แปะช่องทางติดต่อ...)"
+               placeholder="คำสั่งเพิ่มเติม (เช่น เน้นคำพาดหัวแรงๆ, ไม่ใช้อีโมจิ, เพิ่มช่องทางติดต่อ...)"
                value={customInstructions}
                onChange={(e) => setCustomInstructions(e.target.value)}
                disabled={isGenerating}
@@ -490,9 +494,9 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
           {/* Agent Nodes */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0', justifyContent: 'center', marginBottom: '24px' }}>
             {[
-              { id: 'research', emoji: '🔍', label: 'Harper Research', sub: 'Fact-checking & Web Search', active: ['researching'].includes(phase), done: ['generating', 'done'].includes(phase) },
-              { id: 'factcheck', emoji: '🧠', label: 'Inspector Agent', sub: 'Cross-referencing sources', active: phase === 'researching' && thinkingStep >= 2, done: ['generating', 'done'].includes(phase) },
-              { id: 'writer', emoji: '✍️', label: 'AI Writer', sub: 'Drafting & streaming', active: phase === 'generating', done: phase === 'done' },
+              { id: 'research', emoji: 'R', label: 'Harper Research', sub: 'Fact-checking & Web Search', active: ['researching'].includes(phase), done: ['generating', 'done'].includes(phase) },
+              { id: 'factcheck', emoji: 'F', label: 'Inspector Agent', sub: 'Cross-referencing sources', active: phase === 'researching' && thinkingStep >= 2, done: ['generating', 'done'].includes(phase) },
+              { id: 'writer', emoji: 'W', label: 'AI Writer', sub: 'Drafting & streaming', active: phase === 'generating', done: phase === 'done' },
             ].map((agent, i) => (
               <React.Fragment key={agent.id}>
                 {/* Connector line between nodes */}
@@ -516,7 +520,7 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
                     boxShadow: agent.active ? '0 0 20px rgba(41,151,255,0.25)' : agent.done ? '0 0 12px rgba(16,185,129,0.15)' : 'none',
                     transition: 'all 0.4s ease',
                   }}>
-                    {agent.done ? '✅' : agent.emoji}
+                    {agent.done ? 'OK' : agent.emoji}
                   </div>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: '12px', fontWeight: '700', color: agent.active ? 'var(--accent-secondary)' : agent.done ? '#10b981' : 'rgba(255,255,255,0.4)', transition: 'color 0.4s' }}>{agent.label}</div>
