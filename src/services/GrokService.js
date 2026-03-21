@@ -303,14 +303,23 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
           })
         ).max(6),
       }),
+      providerOptions: {
+        xai: {
+          reasoningEffort: 'medium',
+        },
+      },
     });
 
-    return object.experts.map(expert => ({
+    return (object.experts || []).map(expert => ({
       ...expert,
+      username: (expert.username || '').replace(/^@/, '').trim(),
       // No profile_image_url yet, UI will handle lazy hydration and rendering
     }));
   } catch (error) {
     console.error('[GrokService] Expert discovery LLM error:', error);
+    if (error.status === 400) {
+      console.warn('[GrokService] 400 Bad Request in discovery. Check parameters/reasoningEffort for model.');
+    }
     return [];
   }
 };

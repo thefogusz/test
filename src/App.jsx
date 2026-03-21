@@ -358,13 +358,15 @@ const App = () => {
         setStatus(`พบ ${data.length} ข่าวใหม่! กำลังทยอยแปลและสรุปเป็นภาษาไทย...`);
         
         // Progressive Translation (Streaming effect)
-                        const CHUNK_SIZE = 20;
+        const CHUNK_SIZE = 10;
+        let runningFeed = [...originalFeed]; // Local copy to avoid stale state in loop
+        
         for (let i = 0; i < data.length; i += CHUNK_SIZE) {
           const chunk = data.slice(i, i + CHUNK_SIZE);
           
           // Find posts in chunk that need summarization
           const toSummarize = chunk.filter(t => {
-            const existing = originalFeed.find(p => p.id === t.id);
+            const existing = runningFeed.find(p => p.id === t.id);
             return !hasUsefulThaiSummary(existing?.summary || t.summary, existing?.text || t.text);
           });
 
@@ -392,7 +394,9 @@ const App = () => {
                 postMap.set(newPost.id, normalizedNewPost);
               }
             });
-            return Array.from(postMap.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            const nextList = Array.from(postMap.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            runningFeed = nextList; // Update local copy for next iteration
+            return nextList;
           });
 
           // Inject into Archive
@@ -483,7 +487,7 @@ const App = () => {
       if (data.length > 0) {
         setStatus('Grok 4.1 กำลังทยอยแปลผลการค้นหาเป็นภาษาไทย...');
         
-                        const CHUNK_SIZE = 20;
+        const CHUNK_SIZE = 10;
         // Search Streaming effect
         for (let i = 0; i < data.length; i += CHUNK_SIZE) {
            const chunk = data.slice(i, i + CHUNK_SIZE);

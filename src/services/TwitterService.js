@@ -92,21 +92,30 @@ export const fetchForoFeed = async (watchlistHandles, cursor = '', queryType = '
   let nextCursor = null;
 
   for (const batch of batches) {
-    const query = `(${batch.map((username) => `from:${username}`).join(' OR ')}) since:${sinceDate}`;
-    const url = `${BASE_URL}/tweet/advanced_search?query=${encodeURIComponent(query)}&queryType=${queryType}${
-      cursor ? `&cursor=${cursor}` : ''
-    }`;
+    let currentCursor = cursor;
+    let pagesFetched = 0;
+    const MAX_PAGES_PER_BATCH = 3;
 
-    const response = await fetch(url, { method: 'GET' });
-    if (!response.ok) {
-      throw new Error(`Feed fetch failed with status ${response.status}`);
-    }
+    while (pagesFetched < MAX_PAGES_PER_BATCH) {
+      const query = `(${batch.map((username) => `from:${username}`).join(' OR ')}) since:${sinceDate}`;
+      const url = `${BASE_URL}/tweet/advanced_search?query=${encodeURIComponent(query)}&queryType=${queryType}${
+        currentCursor ? `&cursor=${currentCursor}` : ''
+      }`;
 
-    const data = await safeJson(response, { tweets: [], next_cursor: null });
-    allTweets = [...allTweets, ...normalizeTweets(data.tweets)];
+      const response = await fetch(url, { method: 'GET' });
+      if (!response.ok) {
+        if (pagesFetched > 0) break; // If we already got some results, just stop here
+        throw new Error(`Feed fetch failed with status ${response.status}`);
+      }
 
-    if (data.next_cursor) {
+      const data = await safeJson(response, { tweets: [], next_cursor: null });
+      const newTweets = normalizeTweets(data.tweets);
+      allTweets = [...allTweets, ...newTweets];
       nextCursor = data.next_cursor;
+      currentCursor = data.next_cursor;
+      pagesFetched++;
+
+      if (!currentCursor || newTweets.length < 5) break; 
     }
   }
 
