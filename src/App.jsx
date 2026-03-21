@@ -1490,7 +1490,7 @@ const App = () => {
                               border: '1px solid var(--glass-border)',
                               transition: 'all 0.2s'
                             }}>
-                              <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ width: 'fit-content', minWidth: 0 }}>
                                 <a 
                                   href={`https://x.com/${u.username}`}
                                   target="_blank"
@@ -1506,8 +1506,8 @@ const App = () => {
                                       e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=random&color=fff&bold=true`; 
                                     }}
                                   />
-                                  <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <div style={{ minWidth: 0 }}>
+                                    <div style={{ fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
                                       {u.name} <ExternalLink size={12} style={{ opacity: 0.4 }} />
                                     </div>
                                     <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>@{u.username}</div>
