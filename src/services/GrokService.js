@@ -443,7 +443,7 @@ export const generateExecutiveSummary = async (validTweets, userQuery) => {
     .join('\n---\n');
 
   return callGrok({
-    modelName: MODEL_REASONING_FAST,
+    modelName: MODEL_NEWS_FAST,
     system: `คุณคือนักวิเคราะห์ที่กำลังเขียนสรุปสำหรับผู้บริหารแบบกระชับในหัวข้อ "${userQuery}" เป็นภาษาไทย
 เขียน 2-3 ประโยคในภาษาไทย เน้นเฉพาะประเด็นสำคัญที่น่าเชื่อถือที่สุด
 ใช้ตัวหนา (markdown bold) สำหรับวลีที่สำคัญที่สุดถ้าจำเป็น ห้ามมีหัวข้อหลักด้านบน`,
