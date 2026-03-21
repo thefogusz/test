@@ -246,17 +246,16 @@ const hydrateExperts = async (candidates) => {
           name: user?.name || candidate.name,
           username: user?.username || candidate.username,
           description: user?.description || '',
+          followers_count: user?.followers_count || 0, // Assume backend might return this in the future
         };
       } catch {
-        return {
-          ...candidate,
-          description: '',
-        };
+        // If we can't get their info, they might be suspended or private, drop them
+        return null; 
       }
     }),
   );
 
-  return hydrated;
+  return hydrated.filter(h => h && h.description && h.description.length > 10);
 };
 
 // --- [NEWS FLOW FUNCTIONS] ---
@@ -399,7 +398,14 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
 
     if (!rankedCandidates.length) return [];
 
-    const hydratedCandidates = await hydrateExperts(rankedCandidates);
+    // Filter out low-effort candidates early to save LLM context and boost quality
+    // Only process candidates who appeared more than once or have decent engagement
+    const strongCandidates = rankedCandidates.filter(c => c.appearances > 1 || c.engagementScore > 10);
+    
+    // If filtering leaves us with nothing, fall back to the absolute top candidates
+    const candidatesToHydrate = strongCandidates.length > 0 ? strongCandidates : rankedCandidates.slice(0, 5);
+
+    const hydratedCandidates = await hydrateExperts(candidatesToHydrate);
     const candidateLookup = new Map(
       hydratedCandidates.map((candidate) => [candidate.username.toLowerCase(), candidate]),
     );
