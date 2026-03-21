@@ -1,7 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const { createProxyMiddleware, fixRequestBody } = require('http-proxy-middleware');
 
 const loadEnvFile = () => {
   const envPath = path.join(__dirname, '.env');
@@ -55,7 +55,8 @@ app.use('/api/xai', createProxyMiddleware({
     '^/api/xai': '',
   },
   on: {
-    proxyReq: (proxyReq) => {
+    proxyReq: (proxyReq, req, res) => {
+      fixRequestBody(proxyReq, req, res);
       if (XAI_API_KEY) {
         proxyReq.setHeader('Authorization', `Bearer ${XAI_API_KEY}`);
       }
