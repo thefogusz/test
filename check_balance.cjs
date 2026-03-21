@@ -1,6 +1,7 @@
 
 const fs = require('fs');
-const content = fs.readFileSync('src/App.jsx', 'utf8');
+const filename = process.argv[2] || 'src/App.jsx';
+const content = fs.readFileSync(filename, 'utf8');
 
 function checkBalance(text) {
     let stack = [];

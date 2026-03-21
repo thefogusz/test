@@ -239,8 +239,9 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
       }, 100);
 
     } catch (err) {
-      console.error('Generation Error:', err);
-      setError('เกิดข้อผิดพลาดในการสร้างคอนเทนต์ ขออภัยในความไม่สะดวก');
+      console.error('Generation Error [Detailed]:', err);
+      const msg = err.message || 'Error';
+      setError(`เกิดข้อผิดพลาดในการสร้างคอนเทนต์ (${msg}) ขออภัยในความไม่สะดวก`);
       setPhase('done');
     } finally {
       setIsGenerating(false);

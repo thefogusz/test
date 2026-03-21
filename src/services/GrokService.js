@@ -117,7 +117,7 @@ const callGrok = async ({
 }) => {
   try {
     const { text } = await generateText({
-      model: useResponses ? grok.responses(modelName) : grok(modelName),
+      model: grok(modelName),
       system,
       prompt,
       providerOptions,
@@ -127,14 +127,15 @@ const callGrok = async ({
     return text.trim();
   } catch (error) {
     console.error(`[GrokService] Error calling ${modelName}:`, error);
+    if (error.status === 400) {
+      console.warn('[GrokService] Bad Request. Check parameters/reasoningEffort for model:', modelName);
+    }
     throw error;
   }
 };
 
 const deriveResearchQuery = async (input) => {
-  const fallback = (input || '').replace(/\s+/g, ' ').trim().slice(0, 160);
-
-  if (!fallback) return '';
+  const fallback = (input || '').replace(/\s+/g, ' ').trim().slice(0, 160) || 'latest news';
 
   try {
     const { object } = await generateObject({
@@ -143,13 +144,13 @@ const deriveResearchQuery = async (input) => {
         'สกัดหนึ่งหัวข้อค้นหาที่กระชับจากคำขอที่ได้รับ โดยรักษาชื่อสำคัญ, ผลิตภัณฑ์, บริษัท และหัวข้อหลักไว้ ส่งผลลัพธ์เป็น JSON เท่านั้น',
       prompt: input,
       schema: z.object({
-        searchQuery: z.string().min(3).max(160),
+        searchQuery: z.string().min(1).max(160),
       }),
     });
 
-    return object.searchQuery.trim();
+    return (object.searchQuery || fallback).trim();
   } catch (error) {
-    console.warn('[GrokService] Falling back to raw research query:', error);
+    console.warn('[GrokService] Falling back to raw research query:', error.message);
     return fallback;
   }
 };
@@ -332,6 +333,7 @@ export const researchAndPreventHallucination = async (input) => {
   let extractedSources = [];
 
   try {
+    console.log('[GrokService] Starting research with query:', researchQuery);
     const [webResponse, xTopResponse, xLatestResponse] = await Promise.all([
       fetch('/api/tavily/search', {
         method: 'POST',
@@ -342,12 +344,12 @@ export const researchAndPreventHallucination = async (input) => {
           include_answer: true,
           max_results: 5,
         }),
-      }),
+      }).catch(err => { console.warn('[GrokService] Tavily fetch failed:', err); return { ok: false }; }),
       searchEverything(researchQuery, '', false, 'Top').catch(() => ({ data: [] })),
       searchEverything(researchQuery, '', false, 'Latest').catch(() => ({ data: [] })),
     ]);
 
-    if (webResponse.ok) {
+    if (webResponse && webResponse.ok) {
       const data = await webResponse.json();
       const webResults = Array.isArray(data.results) ? data.results : [];
 
@@ -376,7 +378,7 @@ export const researchAndPreventHallucination = async (input) => {
         .join('\n\n');
     }
 
-    const xTweets = [...(xTopResponse.data || []).slice(0, 4), ...(xLatestResponse.data || []).slice(0, 4)];
+    const xTweets = [...(xTopResponse?.data || []).slice(0, 4), ...(xLatestResponse?.data || []).slice(0, 4)];
     extractedSources.push(...extractSourcesFromTweets(xTweets, 6));
 
     if (xTweets.length) {
@@ -386,9 +388,10 @@ export const researchAndPreventHallucination = async (input) => {
     console.error('[GrokService] Search aggregation error:', error);
   }
 
-  const factSheet = await callGrok({
-    modelName: MODEL_REASONING_FAST,
-    system: `คุณคือทีมนักวิจัยไทยที่กำลังเตรียมข้อมูลข้อเท็จจริง (Fact Sheet) ที่มีความน่าเชื่อถือ
+  try {
+    const factSheet = await callGrok({
+      modelName: MODEL_REASONING_FAST,
+      system: `คุณคือทีมนักวิจัยไทยที่กำลังเตรียมข้อมูลข้อเท็จจริง (Fact Sheet) ที่มีความน่าเชื่อถือ
 ใช้เฉพาะข้อมูลหลักฐานที่ให้มาเท่านั้น
 หากข้อมูลใดไม่ได้รับการสนับสนุนอย่างชัดเจน ให้ระบุว่ายังไม่แน่นอน
 เขียนเป็นภาษาไทย แต่คงชื่อเฉพาะและชื่อผลิตภัณฑ์เป็นภาษาอังกฤษ
@@ -403,28 +406,32 @@ export const researchAndPreventHallucination = async (input) => {
 ## มุมมองที่แนะนำ
 - ...
 `,
-    prompt: [
-      `[ORIGINAL REQUEST]\n${input}`,
-      `[SEARCH QUERY]\n${researchQuery}`,
-      webContext,
-      xContext,
-    ]
-      .filter(Boolean)
-      .join('\n\n'),
-    providerOptions: {
-      xai: {
-        reasoningEffort: 'high',
+      prompt: [
+        `[ORIGINAL REQUEST]\n${input}`,
+        `[SEARCH QUERY]\n${researchQuery}`,
+        webContext || '[No web context available]',
+        xContext || '[No X evidence available]',
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+      providerOptions: {
+        xai: {
+          reasoningEffort: 'high',
+        },
       },
-    },
-  });
+    });
 
-  const resultPayload = {
-    factSheet,
-    sources: dedupeSources(extractedSources).slice(0, 8),
-  };
+    const resultPayload = {
+      factSheet,
+      sources: dedupeSources(extractedSources).slice(0, 8),
+    };
 
-  factCache.set(input, resultPayload);
-  return resultPayload;
+    factCache.set(input, resultPayload);
+    return resultPayload;
+  } catch (error) {
+    console.error('[GrokService] FactSheet generation error:', error);
+    throw error;
+  }
 };
 
 export const generateStructuredContent = async (
@@ -523,7 +530,6 @@ export const generateFinalContent = async (enrichedData, targetFormat, customPro
   try {
     return await callGrok({
       modelName: MODEL_MULTI_AGENT,
-      useResponses: true,
       system: `สร้างผลงานเนื้อหาภาษาไทยที่ขัดเกลาแล้วในรูปแบบของ "${targetFormat}"
 อ้างอิงจากข้อมูลวิจัยที่ให้มาเท่านั้น`,
       prompt: `[RESEARCH]\n${enrichedData}\n\n[EXTRA INSTRUCTIONS]\n${customPrompt || 'None'}`,
