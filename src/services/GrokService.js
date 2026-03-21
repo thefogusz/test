@@ -352,7 +352,7 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
 
 export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) => {
   const fallbackReasoning = (candidate) =>
-    `ผู้เชี่ยวชาญที่น่าสนใจในหัวข้อ ${categoryQuery} ที่มีความเคลื่อนไหวและมีการโต้ตอบสูงในคลังข้อมูลล่าสุดของเรา`;
+    `บัญชีที่น่าสนใจในหัวข้อ ${categoryQuery} ที่มีการอัปเดตข้อมูลและพูดถึงเรื่องนี้อย่างต่อเนื่อง`;
 
   try {
     const [topQuery, latestQuery] = await Promise.all([
