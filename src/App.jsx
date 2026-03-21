@@ -1477,21 +1477,53 @@ const App = () => {
                     {watchlist.length > 0 && (
                       <div>
                         <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '12px' }}>บัญชีที่ติดตามอยู่ ({watchlist.length})</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           {watchlist.map(u => (
-                            <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', borderRadius: '10px', background: 'var(--bg-800)' }}>
-                              <img 
-                                src={u.profile_image_url} 
-                                alt="" 
-                                style={{ width: '40px', height: '40px', borderRadius: '50%' }} 
-                                onError={e => { 
-                                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=random&color=fff&bold=true`; 
-                                }}
-                              />
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontWeight: '600', fontSize: '14px' }}>{u.name}</div>
-                                <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>@{u.username}</div>
+                            <div key={u.id} className="watchlist-item" style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'space-between',
+                              gap: '12px', 
+                              padding: '12px 16px', 
+                              borderRadius: '12px', 
+                              background: 'var(--bg-800)',
+                              border: '1px solid var(--glass-border)',
+                              transition: 'all 0.2s'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                                <img 
+                                  src={u.profile_image_url} 
+                                  alt="" 
+                                  style={{ width: '40px', height: '40px', borderRadius: '50%', border: '1px solid var(--glass-border)' }} 
+                                  onError={e => { 
+                                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=random&color=fff&bold=true`; 
+                                  }}
+                                />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <a 
+                                    href={`https://x.com/${u.username}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
+                                    className="hover-underline"
+                                  >
+                                    <div style={{ fontWeight: '600', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                      {u.name} <ExternalLink size={12} style={{ opacity: 0.4 }} />
+                                    </div>
+                                    <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>@{u.username}</div>
+                                  </a>
+                                </div>
                               </div>
+
+                              <button 
+                                onClick={() => handleRemoveAccountGlobal(u.id)}
+                                style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', padding: '8px', cursor: 'pointer', transition: 'color 0.2s' }}
+                                onMouseOver={e => e.currentTarget.style.color = '#ef4444'}
+                                onMouseOut={e => e.currentTarget.style.color = 'var(--text-dim)'}
+                                title="ลบบัญชีนี้"
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             </div>
                           ))}
                         </div>
