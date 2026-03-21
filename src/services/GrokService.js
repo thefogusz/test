@@ -127,7 +127,7 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
 
   try {
     const { object } = await generateObject({
-      model: grok(MODEL_AGENT_WRITER),
+      model: grok(MODEL_NEWS_FAST),
       system: systemPrompt,
       prompt: `Target topic: "${originalQuery}"`,
       schema: z.object({
@@ -164,11 +164,6 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
     console.error('[GrokService] Expert Discovery Error:', error);
     return [];
   }
-};
-
-export const researchContext = async (query, interactionData = '') => {
-  const systemPrompt = `Research historical context and sentiments for: ${query}. Use search data: ${interactionData}. Write a deep Thai Dossier.`;
-  return await callGrok(systemPrompt, `Topic: ${query}`, MODEL_NEWS_FAST);
 };
 
 // --- [CONTENT FLOW FUNCTIONS - MULTI-AGENT] ---
@@ -263,7 +258,7 @@ export const generateStructuredContent = async (factSheet, length, tone, format,
   const editorPrompt = `Check [DRAFT] against [FACT SHEET] for accuracy and tone. If perfect, reply {"passed": true}. If not, reply {"passed": false, "reason": "why"}.`;
   try {
     const { object: evalResult } = await generateObject({
-      model: grok(MODEL_AGENT_RESEARCH), // Use 4.20 Fast for editing
+      model: grok(MODEL_AGENT_RESEARCH), // Use 4.1-fast non-reasoning for editing
       system: editorPrompt,
       prompt: `[FACT SHEET]: ${factSheet}\n[DRAFT]: ${contentDraft}`,
       schema: z.object({ passed: z.boolean(), reason: z.string().optional() })
@@ -277,11 +272,3 @@ export const generateStructuredContent = async (factSheet, length, tone, format,
   return contentDraft.replace(/^#\s(บทนำ|คำนำ|Introduction|Intro|Overview).*\n?/gim, '').replace(/^#\s+(Conclusion|Summary|บทส่งท้าย).*/gim, '## บทสรุป');
 };
 
-export const generateFinalContent = async (enrichedData, targetFormat, customPrompt = '') => {
-  const systemPrompt = `[MODE: GROK 4.20 ORCHESTRATOR] 
-  Create an elite Thai piece (Format: ${targetFormat}) using this research data: ${enrichedData}. Custom Request: ${customPrompt}`;
-  return await callGrok(systemPrompt, `Create the masterpiece.`, MODEL_AGENT_ORCHESTRATOR);
-};
-
-export const generateContentArticle = generateFinalContent;
-export const generateArticle = generateFinalContent;
