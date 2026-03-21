@@ -4,6 +4,8 @@ import {
   ExternalLink, Sparkles, PenTool, Bookmark
 } from 'lucide-react';
 
+const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
+
 const getRelativeTime = (dateString) => {
   if (!dateString) return '';
   const date = new Date(dateString);
@@ -23,8 +25,16 @@ const fmt = (num) => {
   return n.toString();
 };
 
+const isUsableThaiSummary = (summary, originalText = '') => {
+  const trimmedSummary = (summary || '').trim();
+  if (!trimmedSummary || trimmedSummary.startsWith('(Grok')) return false;
+  if (trimmedSummary === (originalText || '').trim()) return false;
+  return THAI_CHAR_REGEX.test(trimmedSummary);
+};
+
 const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookmarked = false }) => {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
+  const displayText = isUsableThaiSummary(tweet.summary, tweet.text) ? tweet.summary : tweet.text;
 
   const handleBookmark = () => {
     const next = !bookmarked;
@@ -114,7 +124,7 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
           WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden',
           letterSpacing: '-0.01em'
         }}>
-          {(tweet.summary && !tweet.summary.startsWith('(Grok')) ? tweet.summary : tweet.text}
+          {displayText}
         </p>
       </div>
 

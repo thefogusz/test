@@ -41,6 +41,53 @@ const safeParse = (value, fallback) => {
   }
 };
 
+const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
+
+const hasThaiCharacters = (value) => THAI_CHAR_REGEX.test((value || '').trim());
+
+const hasUsefulThaiSummary = (summary, originalText = '') => {
+  const trimmedSummary = (summary || '').trim();
+  const trimmedOriginal = (originalText || '').trim();
+
+  if (!trimmedSummary) return false;
+  if (trimmedSummary.startsWith('(Grok')) return false;
+  if (trimmedOriginal && trimmedSummary === trimmedOriginal) return false;
+
+  return hasThaiCharacters(trimmedSummary);
+};
+
+const sanitizeStoredPost = (post) => {
+  if (!post || typeof post !== 'object' || post.type === 'article') return post;
+  if (!Object.prototype.hasOwnProperty.call(post, 'summary')) return post;
+  if (hasUsefulThaiSummary(post.summary, post.text)) return post;
+
+  const { summary: _summary, ...rest } = post;
+  return rest;
+};
+
+const sanitizeStoredCollection = (items) => {
+  if (!Array.isArray(items)) return [];
+  return items.map(sanitizeStoredPost);
+};
+
+const sanitizeStoredSingle = (item) => {
+  if (!item || typeof item !== 'object') return item;
+  return sanitizeStoredPost(item);
+};
+
+const sanitizeCollectionState = (items) => {
+  if (!Array.isArray(items)) return items;
+
+  let changed = false;
+  const nextItems = items.map((item) => {
+    const sanitized = sanitizeStoredPost(item);
+    if (sanitized !== item) changed = true;
+    return sanitized;
+  });
+
+  return changed ? nextItems : items;
+};
+
 // ---- UserCard: proper component with per-card menu state ----
 const UserCard = ({ user, onRemove }) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -148,7 +195,7 @@ const App = () => {
   const [feed, setFeed] = useState([]);
   const [originalFeed, setOriginalFeed] = useState(() => {
     const saved = localStorage.getItem('foro_home_feed_v1');
-    return safeParse(saved, []);
+    return sanitizeStoredCollection(safeParse(saved, []));
   });
   const [deletedFeed, setDeletedFeed] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -168,18 +215,18 @@ const App = () => {
   const [isLatestMode, setIsLatestMode] = useState(false);
   const [bookmarks, setBookmarks] = useState(() => {
     const saved = localStorage.getItem('foro_bookmarks_v1');
-    return safeParse(saved, []);
+    return sanitizeStoredCollection(safeParse(saved, []));
   });
   const [bookmarkTab, setBookmarkTab] = useState('news');
   const [editingArticleId, setEditingArticleId] = useState(null);
   const [readArchive, setReadArchive] = useState(() => {
     const saved = localStorage.getItem('foro_read_archive_v1');
-    return safeParse(saved, []);
+    return sanitizeStoredCollection(safeParse(saved, []));
   });
 
   const [createContentSource, setCreateContentSource] = useState(() => {
     const saved = localStorage.getItem('foro_attached_source_v1');
-    return safeParse(saved, null);
+    return sanitizeStoredSingle(safeParse(saved, null));
   });
 
   const [postLists, setPostLists] = useState(() => {
@@ -229,6 +276,13 @@ const App = () => {
       localStorage.removeItem('foro_attached_source_v1');
     }
   }, [createContentSource]);
+
+  useEffect(() => {
+    setOriginalFeed(prev => sanitizeCollectionState(prev));
+    setReadArchive(prev => sanitizeCollectionState(prev));
+    setBookmarks(prev => sanitizeCollectionState(prev));
+    setCreateContentSource(prev => sanitizeStoredSingle(prev));
+  }, []);
 
   // Handle automatic filtering by List or View
   useEffect(() => {
@@ -291,7 +345,7 @@ const App = () => {
           // Find posts in chunk that need summarization
           const toSummarize = chunk.filter(t => {
             const existing = originalFeed.find(p => p.id === t.id);
-            return !existing || !existing.summary;
+            return !hasUsefulThaiSummary(existing?.summary || t.summary, existing?.text || t.text);
           });
 
           if (toSummarize.length > 0) {
@@ -307,15 +361,15 @@ const App = () => {
           setOriginalFeed(prev => {
             const postMap = new Map(prev.map(p => [p.id, p]));
             chunk.forEach(newPost => {
+              const normalizedNewPost = sanitizeStoredPost(newPost);
               if (postMap.has(newPost.id)) {
-                const existing = postMap.get(newPost.id);
+                const existing = sanitizeStoredPost(postMap.get(newPost.id));
                 postMap.set(newPost.id, {
                   ...existing,
-                  ...newPost,
-                  summary: newPost.summary || existing.summary
+                  ...normalizedNewPost,
                 });
               } else {
-                postMap.set(newPost.id, newPost);
+                postMap.set(newPost.id, normalizedNewPost);
               }
             });
             return Array.from(postMap.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -415,7 +469,7 @@ const App = () => {
            const chunk = data.slice(i, i + CHUNK_SIZE);
            const toSummarize = chunk.filter(t => {
              const existing = newResults.find(p => p.id === t.id);
-             return !existing || !existing.summary;
+             return !hasUsefulThaiSummary(existing?.summary || t.summary, existing?.text || t.text);
            });
 
            if (toSummarize.length > 0) {
@@ -431,8 +485,12 @@ const App = () => {
            const updateFeed = (prev) => {
              const postMap = new Map((prev || []).map(p => [p.id, p]));
              chunk.forEach(newPost => {
+               const normalizedNewPost = sanitizeStoredPost(newPost);
                if (postMap.has(newPost.id)) {
-                 postMap.set(newPost.id, { ...postMap.get(newPost.id), summary: newPost.summary || postMap.get(newPost.id).summary });
+                 postMap.set(newPost.id, {
+                   ...sanitizeStoredPost(postMap.get(newPost.id)),
+                   ...normalizedNewPost,
+                 });
                }
              });
              // Maintain original array order but update matched items
