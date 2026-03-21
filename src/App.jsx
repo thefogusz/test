@@ -1007,27 +1007,14 @@ const App = () => {
                 </div>
               </header>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                <span style={{ fontSize: '13px', color: 'var(--text-dim)' }}>เรียงตาม:</span>
-                <button onClick={() => handleSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`} style={{ height: '32px', padding: '0 16px', fontSize: '12px' }}>ยอดวิว</button>
-                <button onClick={() => handleSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`} style={{ height: '32px', padding: '0 16px', fontSize: '12px' }}>เอนเกจเมนต์</button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '12px' }}>
+                <div className="section-title" style={{ margin: 0 }}>โพสต์ล่าสุด</div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button onClick={() => handleSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`} style={{ height: '30px', padding: '0 14px', fontSize: '11px', whiteSpace: 'nowrap' }}>ยอดวิว</button>
+                  <button onClick={() => handleSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`} style={{ height: '30px', padding: '0 14px', fontSize: '11px', whiteSpace: 'nowrap' }}>เอนเกจเมนต์</button>
+                </div>
               </div>
-
-              {status && (
-                <div style={{ marginBottom: '16px' }}>
-                  <span style={{ fontSize: '11px', color: 'var(--accent-secondary)', fontWeight: '700', letterSpacing: '0.05em' }}>{status}</span>
-                </div>
-              )}
-
-              {aiReport && (
-                <div className="ai-report-banner animate-fade-in" style={{ marginBottom: '24px' }}>
-                  <div className="zap-glow"><Sparkles size={16} /></div>
-                  <span>{aiReport}</span>
-                  <button onClick={() => setAiReport('')} className="close-btn"><X size={14} /></button>
-                </div>
-              )}
-
-              <div className="section-title" style={{ margin: '0 0 16px 0' }}>โพสต์ล่าสุด</div>
               <div className="feed-grid">
                 {feed.length === 0 ? (
                   <div style={{ gridColumn: '1 / -1', padding: '80px 0', textAlign: 'center', border: '1px solid var(--glass-border)', background: 'rgba(255,255,255,0.01)', borderRadius: '20px', color: 'var(--text-muted)', fontSize: '14px' }}>
