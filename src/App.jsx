@@ -219,6 +219,9 @@ const App = () => {
   });
   const [bookmarkTab, setBookmarkTab] = useState('news');
   const [editingArticleId, setEditingArticleId] = useState(null);
+  
+  // Mobile UI States
+  const [isMobilePostListOpen, setIsMobilePostListOpen] = useState(false);
   const [readArchive, setReadArchive] = useState(() => {
     const saved = localStorage.getItem('foro_read_archive_v1');
     return sanitizeStoredCollection(safeParse(saved, []));
@@ -913,6 +916,17 @@ const App = () => {
       />
 
       <main className="foro-main">
+        {/* MOBILE HEADER */}
+        <div className="mobile-header">
+          <img src="logo.png" alt="FO Logo" style={{ height: '32px', width: 'auto' }} />
+          <button 
+            onClick={() => setIsMobilePostListOpen(prev => !prev)}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--accent-gradient)', border: 'none', color: '#fff', padding: '8px 16px', borderRadius: '100px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px var(--accent-glow-blue)' }}
+          >
+            <List size={16} /> Post List
+          </button>
+        </div>
+
         <TopNav 
           activeView={activeView}
           searchQuery={searchQuery}
@@ -1654,7 +1668,7 @@ const App = () => {
       )}
 
       {status && (
-        <div style={{ position: 'fixed', bottom: '32px', right: '350px', background: 'white', color: 'black', padding: '10px 20px', borderRadius: '100px', fontSize: '11px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', zIndex: 2000 }}>
+        <div className="status-toast" style={{ position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', background: 'white', color: 'black', padding: '10px 20px', borderRadius: '100px', fontSize: '11px', fontWeight: '900', letterSpacing: '1px', textTransform: 'uppercase', boxShadow: '0 20px 50px rgba(0,0,0,0.5)', zIndex: 2000 }}>
           {status}
         </div>
       )}
@@ -1672,6 +1686,8 @@ const App = () => {
         onUpdateList={handleUpdateList}
         onShareList={handleShareList}
         onRemoveAccount={handleRemoveAccountGlobal}
+        isMobileOpen={isMobilePostListOpen}
+        onCloseMobile={() => setIsMobilePostListOpen(false)}
       />
     </div>
   );

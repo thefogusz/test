@@ -114,6 +114,10 @@ body {
   overflow: hidden;
 }
 
+.mobile-header {
+  display: none;
+}
+
 .nav-item:hover {
   background: rgba(41, 151, 255, 0.08); /* Luminous blue tint */
   color: #fff;
@@ -933,4 +937,168 @@ body {
   max-height: 400px;
   overflow-y: auto;
   margin-bottom: 24px;
+}
+
+/* ========================================================================= */
+/* RESPONSIVE MOBILE REDESIGN 📱 */
+/* ========================================================================= */
+
+@media (max-width: 1024px) {
+  .foro-layout {
+    padding-right: 8px !important;
+  }
+  .right-sidebar {
+    display: none !important;
+  }
+  .right-sidebar.mobile-visible {
+    display: flex !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    z-index: 10000 !important;
+    background: var(--bg-950) !important;
+    border-radius: 0 !important;
+    padding: 20px 16px 90px 16px !important; /* Space for bottom nav if needed, or cover it */
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    overflow: auto !important;
+  }
+
+  .foro-layout {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    padding-bottom: 80px !important;
+    display: block !important;
+  }
+
+  .sidebar-logo {
+    display: none !important;
+  }
+
+  .mobile-header {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    margin: -16px -16px 16px -16px;
+    padding: 16px;
+    background: var(--bg-900);
+    border-bottom: 1px solid var(--glass-border);
+    position: sticky;
+    top: 0;
+    z-index: 900;
+  }
+
+  /* Transform Left Sidebar into Bottom Navigation */
+  .sidebar {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 70px !important;
+    border-radius: 20px 20px 0 0 !important;
+    flex-direction: row !important;
+    padding: 0 !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    border-top: 1px solid var(--glass-border) !important;
+    box-shadow: 0 -10px 40px rgba(0,0,0,0.8) !important;
+    z-index: 9999 !important;
+    overflow-y: visible !important;
+  }
+
+  .sidebar-nav {
+    flex-direction: row !important;
+    justify-content: space-evenly !important;
+    align-items: center !important;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .nav-item {
+    flex-direction: column !important;
+    gap: 4px !important;
+    padding: 8px !important;
+    margin: 0 !important;
+    font-size: 10px !important;
+    background: transparent !important;
+    justify-content: center !important;
+    width: auto !important;
+    flex: 1 !important;
+    text-align: center !important;
+    box-shadow: none !important;
+  }
+
+  .nav-item.active::before {
+    display: none !important;
+  }
+  
+  .nav-item.active {
+    color: var(--accent-secondary) !important;
+  }
+
+  .nav-item svg {
+    margin: 0 auto !important;
+  }
+
+  /* Main Feed Full Width */
+  .foro-main {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    height: auto !important;
+    min-height: calc(100vh - 80px) !important;
+    border-radius: 0 !important;
+    overflow-y: visible !important;
+  }
+
+  .feed-grid {
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+  }
+
+  .feed-card {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 24px;
+  }
+
+  .hero-search-title {
+    font-size: 32px;
+  }
+  
+  .hero-search-form {
+    flex-direction: column;
+    padding: 16px;
+    border-radius: 24px;
+    gap: 12px;
+  }
+
+  .hero-search-icon {
+    display: none;
+  }
+  
+  .hero-submit-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .status-toast {
+    max-width: calc(100% - 40px);
+    text-align: center;
+    bottom: 90px !important;
+  }
+
+  .modal-content {
+    padding: 20px;
+  }
 }

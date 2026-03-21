@@ -13,6 +13,8 @@ const RightSidebar = ({
   onRemoveMember,
   onUpdateList,
   onShareList,
+  isMobileOpen,
+  onCloseMobile,
 }) => {
   const [expandedId, setExpandedId] = useState(null);
   const [addHandle, setAddHandle] = useState('');
@@ -53,7 +55,7 @@ const RightSidebar = ({
   };
 
   return (
-    <aside className="right-sidebar">
+    <aside className={`right-sidebar ${isMobileOpen ? 'mobile-visible' : ''}`}>
       {/* Header */}
       <div className="right-sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '0 4px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', transition: 'color 0.2s', cursor: 'pointer' }} onMouseOver={e=>e.currentTarget.style.color='#fff'} onMouseOut={e=>e.currentTarget.style.color='var(--text-muted)'}>
@@ -61,6 +63,14 @@ const RightSidebar = ({
           <h2 style={{ fontSize: '16px', fontWeight: '800', margin: 0, letterSpacing: '-0.01em', color: '#fff' }}>Post list</h2>
         </div>
         <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
+          {isMobileOpen && (
+            <button 
+              onClick={onCloseMobile}
+              style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', padding: '6px', borderRadius: '50%', cursor: 'pointer', display: 'flex', marginRight: '8px' }}
+            >
+              <X size={18} />
+            </button>
+          )}
           <button 
             onClick={() => setShowAddMenu(!showAddMenu)} 
             title="จัดการ Post List" 
