@@ -8,7 +8,10 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start": "node server.cjs"
+    "start": "node server.cjs",
+    "promptfoo:foro:validate": "promptfoo validate -c promptfoo/foro-content.yaml",
+    "promptfoo:foro:eval": "promptfoo eval -c promptfoo/foro-content.yaml",
+    "promptfoo:foro:view": "promptfoo view"
   },
   "dependencies": {
     "@ai-sdk/xai": "^3.0.72",
@@ -33,6 +36,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "promptfoo": "^0.121.2",
     "vite": "^8.0.0"
   }
 }
