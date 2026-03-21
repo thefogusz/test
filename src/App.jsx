@@ -260,9 +260,26 @@ const App = () => {
     localStorage.setItem('foro_postlists_v2', JSON.stringify(postLists));
   }, [postLists]);
 
+   useEffect(() => {
+     localStorage.setItem('foro_bookmarks_v1', JSON.stringify(bookmarks));
+   }, [bookmarks]);
+ 
+
+  // Auto-hide status notifications after 3 seconds
   useEffect(() => {
-    localStorage.setItem('foro_bookmarks_v1', JSON.stringify(bookmarks));
-  }, [bookmarks]);
+    if (status) {
+      const timer = setTimeout(() => setStatus(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [status]);
+
+  // Auto-hide AI reports after 6 seconds
+  useEffect(() => {
+    if (aiReport) {
+      const timer = setTimeout(() => setAiReport(''), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [aiReport]);
 
   useEffect(() => {
     localStorage.setItem('foro_read_archive_v1', JSON.stringify(readArchive));
