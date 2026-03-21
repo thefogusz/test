@@ -916,17 +916,6 @@ const App = () => {
       />
 
       <main className="foro-main">
-        {/* MOBILE HEADER */}
-        <div className="mobile-header">
-          <img src="logo.png" alt="FO Logo" style={{ height: '32px', width: 'auto' }} />
-          <button 
-            onClick={() => setIsMobilePostListOpen(prev => !prev)}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--accent-gradient)', border: 'none', color: '#fff', padding: '8px 16px', borderRadius: '100px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px var(--accent-glow-blue)' }}
-          >
-            <List size={16} /> Post List
-          </button>
-        </div>
-
         <TopNav 
           activeView={activeView}
           searchQuery={searchQuery}
@@ -944,19 +933,29 @@ const App = () => {
             <div className="animate-fade-in">
               <header className="dashboard-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', gap: '24px', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
-                  <div style={{ color: 'var(--text-dim)', fontSize: '12px', fontWeight: '500' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-dim)', fontSize: '12px', fontWeight: '500' }}>
+                    <img src="logo.png" alt="FO" className="mobile-only-flex" style={{ height: '14px', width: 'auto' }} />
                     {activeView === 'search' ? 'ค้นหาจากฐานข้อมูล' : activeView === 'read' ? 'บทความที่คัดสรร' : 'รายการที่ติดตาม'}
                   </div>
-                  <h1 style={{ 
-                    margin: 0, 
-                    fontSize: '32px', 
-                    fontWeight: '800', 
-                    letterSpacing: '-0.02em', 
-                    lineHeight: '1',
-                    color: activeListId ? (postLists.find(l => l.id === activeListId)?.color || 'inherit') : 'inherit'
-                  }}>
-                    {activeView === 'search' ? 'ค้นหาคอนเทนต์' : activeView === 'read' ? 'อ่านข่าว' : activeListId ? postLists.find(l => l.id === activeListId)?.name : 'หน้าหลัก'}
-                  </h1>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <h1 style={{ 
+                      margin: 0, 
+                      fontSize: '32px', 
+                      fontWeight: '800', 
+                      letterSpacing: '-0.02em', 
+                      lineHeight: '1',
+                      color: activeListId ? (postLists.find(l => l.id === activeListId)?.color || 'inherit') : 'inherit'
+                    }}>
+                      {activeView === 'search' ? 'ค้นหาคอนเทนต์' : activeView === 'read' ? 'อ่านข่าว' : activeListId ? postLists.find(l => l.id === activeListId)?.name : 'หน้าหลัก'}
+                    </h1>
+                    <button 
+                      className="mobile-only-flex action-hover-btn" 
+                      onClick={() => setIsMobilePostListOpen(true)}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', padding: '6px', borderRadius: '50%', color: '#fff', cursor: 'pointer' }}
+                    >
+                      <List size={18} />
+                    </button>
+                  </div>
                 </div>
                 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>

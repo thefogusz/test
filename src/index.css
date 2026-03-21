@@ -114,8 +114,8 @@ body {
   overflow: hidden;
 }
 
-.mobile-header {
-  display: none;
+.mobile-only-flex {
+  display: none !important;
 }
 
 .nav-item:hover {
@@ -981,17 +981,8 @@ body {
     display: none !important;
   }
 
-  .mobile-header {
+  .mobile-only-flex {
     display: flex !important;
-    align-items: center;
-    justify-content: space-between;
-    margin: -16px -16px 16px -16px;
-    padding: 16px;
-    background: var(--bg-900);
-    border-bottom: 1px solid var(--glass-border);
-    position: sticky;
-    top: 0;
-    z-index: 900;
   }
 
   /* Transform Left Sidebar into Bottom Navigation */
