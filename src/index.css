@@ -43,6 +43,13 @@ body {
   overflow: hidden; /* Prevent body scroll, allow inner panels to scroll */
 }
 
+/* Desktop default scale: mimic browser zoom ~110% without changing the user's browser setting */
+@media (min-width: 1280px) {
+  body {
+    zoom: 1.1;
+  }
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
