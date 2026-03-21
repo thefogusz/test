@@ -174,6 +174,17 @@ const rankExpertCandidates = (tweets, excludeUsernames = []) => {
     const key = username.toLowerCase();
     if (excluded.has(key)) continue;
 
+    // --- STRICT QUALITY FILTER ---
+    const displayName = String(tweet.author?.name || '').trim();
+    // 1. Filter out bot-like or nonsense names (e.g. "° III..IIIIIIII I ." or just emojis)
+    const emojiCount = (displayName.match(/\p{Emoji_Presentation}/gu) || []).length;
+    const isMostlyEmoji = emojiCount > 0 && emojiCount > displayName.length * 0.4;
+    const isGibberish = /^[.\s°|]+$/.test(displayName) || displayName.length < 2;
+    const isGenericUser = /^[0-9]+$/.test(username) || username.length < 3;
+    
+    if (isMostlyEmoji || isGibberish || isGenericUser) continue;
+    // ----------------------------
+
     const entry = candidates.get(key) || {
       name: tweet.author?.name || username,
       username,
@@ -322,10 +333,11 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
   try {
     const { object } = await generateObject({
       model: grok(MODEL_REASONING_FAST),
-      system: `เปลี่ยนหัวข้อของผู้ใช้ให้เป็นคำค้นหาขั้นสูง (Advanced Search) บน X
+      system: `เปลี่ยนหัวข้อของผู้ใช้ให้เป็นคำค้นหาขั้นสูง (Advanced Search) บน X เพื่อหาข้อมูลระดับสากล
 กฎ:
 - รักษาเจตนาเดิมของหัวข้อที่ต้องการค้นหา
-- ขยายคำด้วยคำพ้องความหมายที่ใกล้เคียงหรือคำที่เกี่ยวข้องโดยใช้ OR เมื่อจำเป็น
+- ขยายคำค้นหาโดยใช้ทั้งภาษาไทยและ "ภาษาอังกฤษ" (English keywords) เพื่อให้ครอบคลุมข้อมูลระดับโลก
+- ใช้ OR เชื่อมระหว่างคำค้นหาไทยและอังกฤษ เช่น (คริปโต OR crypto)
 - ต้องใส่ -filter:replies เสมอ 1 ครั้ง
 - ${isLatest ? `เพิ่ม since:${today} เพื่อเน้นความใหม่ล่าสุด` : 'เน้นโพสต์ที่มีสัญญาณสำคัญสูง เหมาะสำหรับผลลัพธ์แบบยอดนิยม (Top)'}
 - ส่งคืนผลลัพธ์เป็น JSON เท่านั้น`,
@@ -352,7 +364,7 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
 
 export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) => {
   const fallbackReasoning = (candidate) =>
-    `บัญชีที่น่าสนใจในหัวข้อ ${categoryQuery} ที่มีการอัปเดตข้อมูลและพูดถึงเรื่องนี้อย่างต่อเนื่อง`;
+    `บัญชีคุณภาพในหัวข้อ ${categoryQuery} ที่มีการอัปเดตข้อมูลที่น่าสนใจอย่างสม่ำเสมอ`;
 
   try {
     const [topQuery, latestQuery] = await Promise.all([
@@ -378,13 +390,15 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
     try {
       const { object } = await generateObject({
         model: grok(MODEL_REASONING_FAST),
-        system: `เลือกบัญชี X (Twitter) ที่ดีที่สุดเพื่อติดตามในหัวข้อ "${categoryQuery}"
-ใช้ชื่อบัญชี (usernames) จากรายการผู้สมัครที่ให้มาเท่านั้น
-ห้ามสร้างหรือแก้ไขชื่อบัญชีใหม่เอง
-เลือกบัญชีที่มีความเคลื่อนไหว มีความน่าเชื่อถือ และปรากฏในข้อมูลหลักฐานซ้ำๆ
+        system: `คุณคือผู้เชี่ยวชาญในการคัดเลือกบัญชี X (Twitter) ระดับโลก (Global Experts)
+ภารกิจ: เลือกบัญชีที่ดีที่สุด 6 อันดับแรกในหัวข้อ "${categoryQuery}" จากรายการผู้สมัครที่ให้มา
+เน้น: บัญชีที่เป็น "ที่สุดในสายด้านนั้น" (Best-in-class) มีความน่าเชื่อถือระดับสากล และให้ข้อมูลที่ลึกซึ้ง
 
-สำหรับฟิลด์ reasoning: ให้เขียนอธิบายเป็นภาษาไทย 1 ประโยคสั้นๆ ว่า "บัญชีนี้คือใคร" และ "ทำไมผู้ใช้ถึงควรติดตามเขาในหัวข้อนี้" 
-ตัวอย่าง: "เป็นสื่อสายเทคที่สรุปข่าวลึกซึ้งและอัปเดตไวที่สุดในวงการ" หรือ "นักวิเคราะห์คริปโตชื่อดังที่เน้นเรื่องแนวโน้มตลาดระยะยาว"`,
+กฎ:
+1. ใช้ชื่อบัญชี (usernames) จากรายการที่ส่งไปให้เท่านั้น ห้ามมโนชื่อใหม่
+2. ให้ความสำคัญกับบัญชีระดับสากล (Global/International) ที่มีอิทธิพลสูงในหัวข้อนี้
+3. สำหรับฟิลด์ reasoning: เขียนอธิบายภาษาไทย 1 ประโยคสั้นๆ ว่า "เขาคือใคร" และ "ทำไมเขาถึงเป็นที่สุดในสายนี้"
+ตัวอย่าง: "เป็นนักวิเคราะห์ Macro ระดับโลกที่มีมุมมองตลาดแม่นยำและได้รับการยอมรับในวงกว้าง"`,
         prompt: JSON.stringify({
           topic: categoryQuery,
           candidates: hydratedCandidates.map((candidate) => ({
