@@ -34,7 +34,7 @@ import {
   RECENT_WINDOW_HOURS,
   searchEverything,
 } from './services/TwitterService';
-import { agentFilterFeed, generateGrokBatch, expandSearchQuery, discoverTopExperts, generateExecutiveSummary } from './services/GrokService';
+import { agentFilterFeed, buildSearchPlan, discoverTopExperts, generateExecutiveSummary, generateGrokBatch } from './services/GrokService';
 import { renderMarkdownToHtml } from './utils/markdown';
 import './index.css';
 
@@ -112,6 +112,21 @@ const sanitizeCollectionState = (items) => {
 
   return changed ? nextItems : items;
 };
+
+const getEngagementTotal = (post) =>
+  (parseInt(post?.retweet_count) || 0) +
+  (parseInt(post?.reply_count) || 0) +
+  (parseInt(post?.like_count) || 0) +
+  (parseInt(post?.quote_count) || 0);
+
+const getSearchFallbackResults = (tweets, requestedQuery, isLatestMode) =>
+  curateSearchResults(tweets, requestedQuery, {
+    latestMode: isLatestMode,
+    preferCredibleSources: true,
+  });
+
+const mergePlanLabelsIntoQuery = (requestedQuery, topicLabels = []) =>
+  [requestedQuery, ...topicLabels].filter(Boolean).join(' ');
 
 // ---- UserCard: proper component with per-card menu state ----
 const UserCard = ({ user, onRemove }) => {
@@ -235,6 +250,7 @@ const App = () => {
   const [searchFilters, setSearchFilters] = useState({ view: false, engagement: false });
   const [isSearching, setIsSearching] = useState(false);
   const [searchCursor, setSearchCursor] = useState(null);
+  const [activeSearchPlan, setActiveSearchPlan] = useState(null);
   const [onlyNews] = useState(true);
   const [nextCursor, setNextCursor] = useState(null);
   const [isLatestMode, setIsLatestMode] = useState(false);
@@ -477,139 +493,173 @@ const App = () => {
     if (!requestedQuery && !isMore) return;
     setIsSearching(true);
     if (!isMore) setSearchSummary('');
-    setStatus('AI กำลังประเมินเทรนด์... ค้นหาข้อมูลเชิงลึก');
+    setStatus('AI ??????????????????????????????????????...');
+
     try {
-      let finalQuery = requestedQuery;
+      let searchPlan = activeSearchPlan;
       if (!isMore) {
-        setStatus(`[Agent 1/3] กำลังแปลคีย์เวิร์ดขั้นสูงสำหรับ "${requestedQuery}"...`);
-        finalQuery = await expandSearchQuery(requestedQuery, isLatestMode);
-        console.log("Expanded Query in " + (isLatestMode ? '24h' : 'Quality') + " mode:", finalQuery);
+        setStatus(`[Agent 1/3] ??????????? intent ?????? search plan ?????? "${requestedQuery}"...`);
+        searchPlan = await buildSearchPlan(requestedQuery, isLatestMode);
+        setActiveSearchPlan(searchPlan);
+      } else if (!searchPlan?.primaryQuery) {
+        searchPlan = {
+          queries: [`${requestedQuery} -filter:replies`],
+          primaryQuery: `${requestedQuery} -filter:replies`,
+          topicLabels: [requestedQuery],
+        };
       }
-      
+
+      const planQueries =
+        !isMore && Array.isArray(searchPlan?.queries) && searchPlan.queries.length > 0
+          ? searchPlan.queries
+          : [searchPlan?.primaryQuery || `${requestedQuery} -filter:replies`];
+      const rankingQuery = mergePlanLabelsIntoQuery(requestedQuery, searchPlan?.topicLabels || []);
+
       let data = [];
       let meta = { next_cursor: null };
 
       if (isLatestMode) {
         setStatus(
           isMore
-            ? `[API] กำลังดึงโพสต์เพิ่มในช่วง ${RECENT_WINDOW_HOURS} ชั่วโมงล่าสุด...`
-            : `[API] กำลังดึงสัญญาณสำคัญในช่วง ${RECENT_WINDOW_HOURS} ชั่วโมงล่าสุด แล้วคัดคุณภาพ...`,
+            ? `[API] ???????????????????????????? ${RECENT_WINDOW_HOURS} ?????????????...`
+            : `[API] ??????????????????????????????????????? ${RECENT_WINDOW_HOURS} ?????????????...`,
         );
 
         if (isMore) {
-          const latestResponse = await searchEverything(finalQuery, searchCursor, onlyNews, 'Latest');
+          const latestResponse = await searchEverything(planQueries[0], searchCursor, onlyNews, 'Latest');
           const recentLatest = filterTweetsWithinHours(latestResponse.data, RECENT_WINDOW_HOURS);
           data = recentLatest;
           meta = {
             next_cursor: recentLatest.length > 0 ? latestResponse.meta.next_cursor : null,
           };
         } else {
-          const [latestResponse, topResponse] = await Promise.all([
-            searchEverything(finalQuery, null, onlyNews, 'Latest'),
-            searchEverything(finalQuery, null, onlyNews, 'Top'),
-          ]);
+          const plannedResponses = await Promise.all(
+            planQueries.flatMap((query) => [
+              searchEverything(query, null, onlyNews, 'Latest'),
+              searchEverything(query, null, onlyNews, 'Top'),
+            ]),
+          );
 
-          const recentLatest = filterTweetsWithinHours(latestResponse.data, RECENT_WINDOW_HOURS);
-          const recentTop = filterTweetsWithinHours(topResponse.data, RECENT_WINDOW_HOURS);
-          data = mergeUniquePostsById(recentTop, recentLatest);
+          const mergedBuckets = plannedResponses.map((response) =>
+            filterTweetsWithinHours(response.data, RECENT_WINDOW_HOURS),
+          );
+          data = mergeUniquePostsById(...mergedBuckets);
+          const latestResponse = plannedResponses[0];
+          const recentLatest = mergedBuckets[0] || [];
           meta = {
             next_cursor: recentLatest.length > 0 ? latestResponse.meta.next_cursor : null,
           };
         }
       } else {
-        // Default mode keeps provider Top ranking, then curates locally.
-        setStatus(`[API] กำลังแสกนหาข้อมูลและกวาดล้างเนื้อหาดิบจาก X ทั่วโลก...`);
-        const response = await searchEverything(finalQuery, isMore ? searchCursor : null, onlyNews, 'Top');
-        data = response.data;
-        meta = response.meta;
+        setStatus(
+          isMore
+            ? '[API] ??????????????????????????? query ????...'
+            : '[API] ??????????????????????? query ??????????????????????...',
+        );
+
+        if (isMore) {
+          const response = await searchEverything(planQueries[0], searchCursor, onlyNews, 'Top');
+          data = response.data;
+          meta = response.meta;
+        } else {
+          const responses = await Promise.all(
+            planQueries.map((query) => searchEverything(query, null, onlyNews, 'Top')),
+          );
+          data = mergeUniquePostsById(...responses.map((response) => response.data));
+          meta = responses[0]?.meta || { next_cursor: null };
+        }
       }
-      
+
       let finalData = data;
       if (data.length > 0) {
         setStatus(
           isMore
-            ? 'กำลังคัดกรองและจัดอันดับผลลัพธ์เพิ่มเติม...'
-            : `[Agent 2/3] กำลังกรองสแปม คัดความตรงบรีฟ และจัดอันดับตามความน่าเชื่อถือ...`,
+            ? '????????????????????????????????????????...'
+            : '[Agent 2/3] ????????????????????? intent ??????????????????????????...',
         );
-        const validIds = await agentFilterFeed(data, requestedQuery, {
+
+        const validIds = await agentFilterFeed(data, rankingQuery, {
           preferCredibleSources: true,
         });
         const cleanData = data.filter((tweet) => validIds.includes(tweet.id));
-        const candidateData = cleanData.length > 0 ? cleanData : data;
-        finalData = curateSearchResults(candidateData, requestedQuery, {
-          latestMode: isLatestMode,
-          preferCredibleSources: true,
-        });
-        
+        const fallbackCurated = getSearchFallbackResults(data, rankingQuery, isLatestMode);
+        const minimumAgentResults = Math.min(fallbackCurated.length, isLatestMode ? 5 : 6);
+
+        if (cleanData.length >= minimumAgentResults) {
+          finalData = getSearchFallbackResults(cleanData, rankingQuery, isLatestMode);
+        } else {
+          const supplemented = mergeUniquePostsById(
+            cleanData,
+            fallbackCurated.slice(0, Math.max(minimumAgentResults, 8)),
+          );
+          finalData = getSearchFallbackResults(supplemented, rankingQuery, isLatestMode);
+        }
+
         if (!isMore) {
-          setStatus(`[Agent 3/3] กำลังสังเคราะห์ข้อมูลและเขียน Executive Summary...`);
+          setStatus('[Agent 3/3] ????????????????????????????? Executive Summary...');
           const summaryText = await generateExecutiveSummary(finalData.slice(0, 10), requestedQuery);
           setSearchSummary(summaryText);
         }
       }
 
       const mergedResults = isMore ? mergeUniquePostsById(searchResults, finalData) : finalData;
-      const newResults = curateSearchResults(mergedResults, requestedQuery, {
+      const newResults = curateSearchResults(mergedResults, rankingQuery, {
         latestMode: isLatestMode,
         preferCredibleSources: true,
       });
       setSearchResults(newResults);
       setOriginalSearchResults(newResults);
-      setFeed(newResults); 
+      setFeed(newResults);
       setSearchCursor(meta.next_cursor);
-      setStatus(`ตรวจสอบพบ ${newResults.length} รายการระดับคุณภาพ`);
-      
+      setStatus(`????????? ${newResults.length} ?????????????????`);
+
       if (finalData.length > 0) {
-        setStatus('Grok 4.1 กำลังทยอยแปลผลการค้นหาเป็นภาษาไทย...');
-        
+        setStatus('Grok 4.1 ?????????????????????????????????...');
+
         const CHUNK_SIZE = 10;
-        // Search Streaming effect
         for (let i = 0; i < finalData.length; i += CHUNK_SIZE) {
-           const chunk = finalData.slice(i, i + CHUNK_SIZE);
-           const toSummarize = chunk.filter(t => {
-             const existing = newResults.find(p => p.id === t.id);
-             return !hasUsefulThaiSummary(existing?.summary || t.summary, existing?.text || t.text);
-           });
+          const chunk = finalData.slice(i, i + CHUNK_SIZE);
+          const toSummarize = chunk.filter((t) => {
+            const existing = newResults.find((p) => p.id === t.id);
+            return !hasUsefulThaiSummary(existing?.summary || t.summary, existing?.text || t.text);
+          });
 
-           if (toSummarize.length > 0) {
-             const batchTexts = toSummarize.map(t => t.text);
-             const summaries = await generateGrokBatch(batchTexts);
-             
-             toSummarize.forEach((post, idx) => {
-               post.summary = summaries[idx] || post.text;
-             });
-           }
+          if (toSummarize.length > 0) {
+            const batchTexts = toSummarize.map((t) => t.text);
+            const summaries = await generateGrokBatch(batchTexts);
 
-           // Inject translated chunk
-           const updateFeed = (prev) => {
-             const postMap = new Map((prev || []).map(p => [p.id, p]));
-             chunk.forEach(newPost => {
-               const normalizedNewPost = sanitizeStoredPost(newPost);
-               if (postMap.has(newPost.id)) {
-                 postMap.set(newPost.id, {
-                   ...sanitizeStoredPost(postMap.get(newPost.id)),
-                   ...normalizedNewPost,
-                 });
-               }
-             });
-             // Maintain original array order but update matched items
-             return (prev || []).map(p => postMap.get(p.id) || p);
-           };
+            toSummarize.forEach((post, idx) => {
+              post.summary = summaries[idx] || post.text;
+            });
+          }
 
-           setSearchResults(updateFeed);
-           setOriginalSearchResults(updateFeed);
-           setFeed(updateFeed);
-         }
-        setStatus('แปลการค้นหาเสร็จสิ้น');
+          const updateFeed = (prev) => {
+            const postMap = new Map((prev || []).map((p) => [p.id, p]));
+            chunk.forEach((newPost) => {
+              const normalizedNewPost = sanitizeStoredPost(newPost);
+              if (postMap.has(newPost.id)) {
+                postMap.set(newPost.id, {
+                  ...sanitizeStoredPost(postMap.get(newPost.id)),
+                  ...normalizedNewPost,
+                });
+              }
+            });
+            return (prev || []).map((p) => postMap.get(p.id) || p);
+          };
+
+          setSearchResults(updateFeed);
+          setOriginalSearchResults(updateFeed);
+          setFeed(updateFeed);
+        }
+        setStatus('????????????????????');
       }
     } catch (err) {
       console.error(err);
-      setStatus('เกิดข้อผิดพลาดในการค้นหา');
+      setStatus('????????????????????????');
     } finally {
       setIsSearching(false);
     }
   };
-
   const resolvePlaceholders = async (nodes) => {
     if (!Array.isArray(nodes)) return;
     const placeholders = nodes.filter(u => u.isPlaceholder);
@@ -853,8 +903,8 @@ const App = () => {
       let sorted = [...feed];
       if (next.view || next.engagement) {
         sorted.sort((a, b) => {
-          const engagementA = (parseInt(a.retweet_count) || 0) + (parseInt(a.reply_count) || 0) + (parseInt(a.like_count) || 0);
-          const engagementB = (parseInt(b.retweet_count) || 0) + (parseInt(b.reply_count) || 0) + (parseInt(b.like_count) || 0);
+          const engagementA = getEngagementTotal(a);
+          const engagementB = getEngagementTotal(b);
 
           const scoreA = (next.view ? (parseInt(a.view_count) || 0) : 0) + (next.engagement ? engagementA : 0);
           const scoreB = (next.view ? (parseInt(b.view_count) || 0) : 0) + (next.engagement ? engagementB : 0);
@@ -884,8 +934,8 @@ const App = () => {
       let sorted = [...searchResults];
       if (next.view || next.engagement) {
         sorted.sort((a, b) => {
-          const engagementA = (parseInt(a.retweet_count) || 0) + (parseInt(a.reply_count) || 0) + (parseInt(a.like_count) || 0);
-          const engagementB = (parseInt(b.retweet_count) || 0) + (parseInt(b.reply_count) || 0) + (parseInt(b.like_count) || 0);
+          const engagementA = getEngagementTotal(a);
+          const engagementB = getEngagementTotal(b);
           const scoreA = (next.view ? (parseInt(a.view_count) || 0) : 0) + (next.engagement ? engagementA : 0);
           const scoreB = (next.view ? (parseInt(b.view_count) || 0) : 0) + (next.engagement ? engagementB : 0);
           return scoreB - scoreA;
@@ -1318,8 +1368,8 @@ const App = () => {
                     {[...readArchive]
                       .sort((a, b) => {
                         if (!readFilters.view && !readFilters.engagement) return 0;
-                        const engagementA = (parseInt(a.retweet_count) || 0) + (parseInt(a.reply_count) || 0) + (parseInt(a.like_count) || 0);
-                        const engagementB = (parseInt(b.retweet_count) || 0) + (parseInt(b.reply_count) || 0) + (parseInt(b.like_count) || 0);
+                        const engagementA = getEngagementTotal(a);
+                        const engagementB = getEngagementTotal(b);
                         const scoreA = (readFilters.view ? (parseInt(a.view_count) || 0) : 0) + (readFilters.engagement ? engagementA : 0);
                         const scoreB = (readFilters.view ? (parseInt(b.view_count) || 0) : 0) + (readFilters.engagement ? engagementB : 0);
                         return scoreB - scoreA;

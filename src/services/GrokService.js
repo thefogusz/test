@@ -459,14 +459,29 @@ export const generateExecutiveSummary = async (validTweets, userQuery) => {
 
   const contentToAnalyze = validTweets
     .slice(0, 10)
-    .map((tweet, index) => `[${index + 1}] ${tweet.text}`)
+    .map((tweet, index) => {
+      const authorLabel = tweet.author?.username ? `@${tweet.author.username}` : tweet.author?.name || 'unknown';
+      return `[${index + 1}] (${authorLabel}) ${tweet.text}`;
+    })
     .join('\n---\n');
+
+  const summarySystem = `คุณคือนักวิเคราะห์ที่กำลังเขียนสรุปสั้นสำหรับผู้บริหารในหัวข้อ "${userQuery}" เป็นภาษาไทย
+กฎ:
+- เขียน 2-3 ประโยคภาษาไทยแบบกระชับ
+- สรุปเฉพาะสิ่งที่มีอยู่ในโพสต์ที่ให้มาเท่านั้น ห้ามเดา ห้ามเติมบริบทเอง
+- ถ้าข้อมูลส่วนใหญ่พูดถึงเพียงบางมุมของคำถาม ให้บอกตามตรงว่ายังเห็นสัญญาณเด่นแค่ส่วนนั้น
+- ถ้ามีหลายเกมหรือหลายหัวข้อ ให้พูดแยกอย่างระมัดระวัง และห้ามเหมารวมว่าครบทุกหัวข้อหากหลักฐานยังไม่พอ
+- ใช้ markdown bold ได้เฉพาะวลีสำคัญที่มีหลักฐานรองรับชัด
+- ห้ามมีหัวข้อหรือ bullet`;
 
   return callGrok({
     modelName: MODEL_NEWS_FAST,
+    /*
     system: `คุณคือนักวิเคราะห์ที่กำลังเขียนสรุปสำหรับผู้บริหารแบบกระชับในหัวข้อ "${userQuery}" เป็นภาษาไทย
 เขียน 2-3 ประโยคในภาษาไทย เน้นเฉพาะประเด็นสำคัญที่น่าเชื่อถือที่สุด
 ใช้ตัวหนา (markdown bold) สำหรับวลีที่สำคัญที่สุดถ้าจำเป็น ห้ามมีหัวข้อหลักด้านบน`,
+    */
+    system: summarySystem,
     prompt: contentToAnalyze,
   });
 };
@@ -501,6 +516,71 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
     }
     console.error('[GrokService] Query optimizer error:', error);
     return `${originalQuery} -filter:replies`;
+  }
+};
+
+export const buildSearchPlan = async (originalQuery, isLatest = false) => {
+  const fallbackQuery = `${originalQuery} -filter:replies`.trim();
+
+  if (!originalQuery) {
+    return {
+      queries: [],
+      primaryQuery: '',
+      topicLabels: [],
+    };
+  }
+
+  try {
+    const { object } = await generateObject({
+      model: grok(MODEL_REASONING_FAST),
+      system: `คุณกำลังออกแบบ search plan สำหรับค้นหาคอนเทนต์บน X
+เป้าหมาย:
+- อย่าค้นแบบยิงคำตรงอย่างเดียว
+- ต้องตีความ intent ของหัวข้อ แล้วแตกเป็นคำค้นที่ช่วยกวาดโพสต์คุณภาพสูงที่เกี่ยวข้องจริง
+- สำหรับหัวข้อกว้าง ให้แตกเป็นหลายมุมที่คนติดตามเรื่องนั้นใช้จริง
+
+กฎ:
+- ส่ง query หลัก 1 อัน และ query ย่อยที่เกี่ยวข้องอีก 2-3 อัน
+- แต่ละ query ต้องค้นหาคนละมุมของ topic เช่น scene, league, tournament, roster move, patch, ecosystem, company, product, regulation
+- ใช้ทั้งไทยและอังกฤษได้เมื่อช่วยให้ครอบคลุมขึ้น
+- ห้ามยิงแค่คำหลักเดี่ยว ๆ ถ้ายังแตกมุมได้
+- ห้ามบังคับแคบเกินไปจนผลลัพธ์หาย
+- ทุก query ต้องมี -filter:replies
+- ${isLatest ? 'โหมดสายฟ้าถูกจำกัดเวลาในแอปอยู่แล้ว ให้เน้น recent developments ที่ยังกวาดได้หลายมุม' : 'เน้น query ที่ดึงโพสต์คุณภาพสูงจากหลายมุมของหัวข้อ'}
+- topicLabels เป็นคำสั้น ๆ 3-6 คำที่สรุป intent หรือ subtopics
+- ตอบเป็น JSON เท่านั้น`,
+      prompt: `Topic: ${originalQuery}`,
+      schema: z.object({
+        primaryQuery: z.string().min(3),
+        relatedQueries: z.array(z.string().min(3)).max(3),
+        topicLabels: z.array(z.string().min(2)).max(6),
+      }),
+    });
+
+    const normalizeQuery = (query) => {
+      const finalQuery = String(query || '').replace(/\s+/g, ' ').trim();
+      if (!finalQuery) return '';
+      return finalQuery.includes('-filter:replies') ? finalQuery : `${finalQuery} -filter:replies`;
+    };
+
+    const queries = Array.from(
+      new Set([object.primaryQuery, ...(object.relatedQueries || [])].map(normalizeQuery).filter(Boolean)),
+    ).slice(0, 4);
+
+    return {
+      queries: queries.length ? queries : [fallbackQuery],
+      primaryQuery: queries[0] || fallbackQuery,
+      topicLabels: Array.from(
+        new Set((object.topicLabels || []).map((label) => String(label || '').trim()).filter(Boolean)),
+      ),
+    };
+  } catch (error) {
+    console.error('[GrokService] Search plan optimizer error:', error);
+    return {
+      queries: [fallbackQuery],
+      primaryQuery: fallbackQuery,
+      topicLabels: [originalQuery],
+    };
   }
 };
 

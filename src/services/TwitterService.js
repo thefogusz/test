@@ -84,8 +84,8 @@ const normalizeSearchTerms = (query = '') => {
   );
 };
 
-const getRelevanceScore = (tweet, queryTerms, rawQuery = '') => {
-  if (!queryTerms.length) return 0;
+const getTermMatches = (tweet, queryTerms) => {
+  if (!queryTerms.length) return [];
 
   const text = String(tweet?.text || '').toLowerCase();
   const authorContext = [
@@ -97,14 +97,26 @@ const getRelevanceScore = (tweet, queryTerms, rawQuery = '') => {
     .join(' ')
     .toLowerCase();
 
+  return queryTerms.filter((term) => text.includes(term) || authorContext.includes(term));
+};
+
+const getRelevanceScore = (tweet, queryTerms, rawQuery = '') => {
+  if (!queryTerms.length) return 0;
+  const text = String(tweet?.text || '').toLowerCase();
+  const termMatches = getTermMatches(tweet, queryTerms);
+
   let score = 0;
 
   for (const term of queryTerms) {
-    if (text.includes(term)) {
+    if (termMatches.includes(term) && text.includes(term)) {
       score += 1.2;
-    } else if (authorContext.includes(term)) {
+    } else if (termMatches.includes(term)) {
       score += 0.45;
     }
+  }
+
+  if (termMatches.length > 1) {
+    score += Math.min(1.4, termMatches.length * 0.4);
   }
 
   const cleanedQuery = String(rawQuery || '').trim().toLowerCase();
@@ -272,6 +284,32 @@ const diversifyByAuthor = (tweets, protectedWindow = 12) => {
   }
 
   return [...prioritized, ...overflow];
+};
+
+const ensureQueryCoverage = (curatedTweets, scoredTweets, queryTerms, latestMode) => {
+  const coverageTerms = queryTerms.filter((term) => /[a-z0-9]/i.test(term) && term.length >= 3);
+  if (coverageTerms.length < 2) return curatedTweets;
+
+  const result = [...curatedTweets];
+  const existingIds = new Set(result.map((tweet) => tweet.id));
+  const maxResults = latestMode ? 12 : 14;
+
+  for (const term of coverageTerms) {
+    const alreadyCovered = result.some((tweet) => getTermMatches(tweet, [term]).length > 0);
+    if (alreadyCovered) continue;
+
+    const candidate = scoredTweets.find(
+      (tweet) => !existingIds.has(tweet.id) && getTermMatches(tweet, [term]).length > 0,
+    );
+
+    if (!candidate) continue;
+    result.push(candidate);
+    existingIds.add(candidate.id);
+
+    if (result.length >= maxResults) break;
+  }
+
+  return result;
 };
 
 const normalizeAuthor = (author) => {
@@ -457,8 +495,9 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
   const minimumKeep = Math.min(scored.length, latestMode ? 6 : 8);
   const filtered = scored.filter((tweet, index) => index < minimumKeep || tweet.search_score >= softThreshold);
   const curated = filtered.length >= Math.min(6, scored.length) ? filtered : scored;
+  const covered = ensureQueryCoverage(curated, scored, queryTerms, latestMode);
 
-  return diversifyByAuthor(curated, latestMode ? 8 : 12);
+  return diversifyByAuthor(covered, latestMode ? 8 : 12);
 };
 
 /**
