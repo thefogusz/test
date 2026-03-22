@@ -318,7 +318,7 @@ const App = () => {
   const [filterModal, setFilterModal] = useState({ show: false, prompt: '' });
   const [readFilters, setReadFilters] = useState({ view: false, engagement: false });
 
-  const [audienceTab, setAudienceTab] = useState('following'); 
+  const [audienceTab, setAudienceTab] = useState('manual'); 
   const [aiQuery, setAiQuery] = useState('');
   const [aiSearchLoading, setAiSearchLoading] = useState(false);
   const [aiSearchResults, setAiSearchResults] = useState([]);
@@ -971,32 +971,10 @@ const App = () => {
                   <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginLeft: '32px' }}>ค้นหาและเพิ่มแหล่งข้อมูลที่ตรงกับความสนใจของคุณ</p>
                 </header>
 
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '28px', padding: '4px', background: 'var(--bg-800)', border: '1px solid var(--glass-border)', borderRadius: '14px', width: 'fit-content' }}>
-                  <button onClick={() => setAudienceTab('following')} style={{ padding: '10px 24px', borderRadius: '11px', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.25s', background: audienceTab === 'following' ? 'var(--accent-gradient)' : 'transparent', color: audienceTab === 'following' ? '#fff' : 'var(--text-dim)', boxShadow: audienceTab === 'following' ? '0 4px 12px var(--accent-glow-blue)' : 'none' }}>Following ({watchlist.length})</button>
-                  <button onClick={() => setAudienceTab('ai')} style={{ padding: '10px 24px', borderRadius: '11px', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.25s', background: audienceTab === 'ai' ? 'var(--accent-gradient)' : 'transparent', color: audienceTab === 'ai' ? '#fff' : 'var(--text-dim)', boxShadow: audienceTab === 'ai' ? '0 4px 12px var(--accent-glow-blue)' : 'none' }}>✨ แนะนำโดย AI</button>
-                  <button onClick={() => setAudienceTab('manual')} style={{ padding: '10px 24px', borderRadius: '11px', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.25s', background: audienceTab === 'manual' ? 'var(--accent-gradient)' : 'transparent', color: audienceTab === 'manual' ? '#fff' : 'var(--text-dim)', boxShadow: audienceTab === 'manual' ? '0 4px 12px var(--accent-glow-blue)' : 'none' }}>🔍 ค้นหาชื่อ</button>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '28px', padding: '4px', background: 'var(--bg-800)', borderRadius: '10px', width: 'fit-content' }}>
+                  <button onClick={() => setAudienceTab('ai')} style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s', background: audienceTab === 'ai' ? 'var(--accent-gradient)' : 'transparent', color: audienceTab === 'ai' ? '#fff' : 'var(--text-dim)' }}>✨ แนะนำโดย AI</button>
+                  <button onClick={() => setAudienceTab('manual')} style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s', background: audienceTab === 'manual' ? 'var(--bg-700)' : 'transparent', color: audienceTab === 'manual' ? '#fff' : 'var(--text-dim)' }}>🔍 ค้นหาชื่อ</button>
                 </div>
-
-                {audienceTab === 'following' && (
-                  <div className="animate-fade-in">
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
-                      {watchlist.map(user => (
-                        <UserCard 
-                          key={user.id} 
-                          user={user} 
-                          postLists={postLists}
-                          onToggleList={handleToggleMemberInList}
-                          onRemove={handleRemoveAccountGlobal} 
-                        />
-                      ))}
-                    </div>
-                    {watchlist.length === 0 && (
-                      <div className="empty-state-card" style={{ padding: '80px', textAlign: 'center' }}>
-                        ยังไม่ได้ติดตามใครเลย เริ่มค้นหาบัญชีที่น่าสนใจได้ในแท็บข้างๆ
-                      </div>
-                    )}
-                  </div>
-                )}
 
                 {audienceTab === 'ai' && (
                   <div className="animate-fade-in">
@@ -1055,8 +1033,15 @@ const App = () => {
                                 </div>
                               </div>
                               <img src={`https://unavatar.io/twitter/${expert.username}`} style={{ width: '56px', height: '56px', borderRadius: '50%', marginBottom: '12px', border: '2px solid var(--bg-700)' }} onError={e => e.target.src = `https://ui-avatars.com/api/?name=${expert.name}`} />
-                              <div className="expert-name" style={{ fontSize: '16px' }}>{expert.name}</div>
-                              <div className="expert-username" style={{ marginBottom: '12px' }}>@{expert.username}</div>
+                              <a 
+                                href={`https://x.com/${expert.username}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer" 
+                                style={{ textDecoration: 'none', display: 'block', marginBottom: '12px' }}
+                              >
+                                <div className="expert-name" style={{ fontSize: '16px', color: '#fff', fontWeight: '900' }}>{expert.name}</div>
+                                <div className="expert-username" style={{ fontSize: '13px', color: 'var(--accent-secondary)', fontWeight: '700' }}>@{expert.username}</div>
+                              </a>
                               <div className="expert-reasoning" style={{ fontSize: '12px', marginBottom: '20px', flex: 1 }}>“{expert.reasoning}”</div>
                               <button onClick={() => handleAddExpert(expert)} disabled={isAdded} className={`expert-follow-btn ${isAdded ? 'added' : ''}`} style={{ padding: '8px', fontSize: '12px' }}>{isAdded ? '✓ เพิ่มแล้ว' : '+ เพิ่มเข้า Watchlist'}</button>
                             </div>
@@ -1080,26 +1065,48 @@ const App = () => {
                 )}
 
                 {audienceTab === 'manual' && (
-                  <div className="animate-fade-in" style={{ maxWidth: '560px' }}>
-                    <form onSubmit={handleManualSearch} style={{ display: 'flex', gap: '12px', marginBottom: '24px' }}>
-                      <div className="custom-input-wrapper">
-                        <Search size={16} />
-                        <input placeholder="กรอก X Username..." value={manualQuery} onChange={e => setManualQuery(e.target.value)} />
-                      </div>
-                      <button type="submit" className="btn-sync-premium">ค้นหา</button>
-                    </form>
-                    {manualPreview && (
-                      <div className="preview-card" style={{ padding: '16px', borderRadius: '16px' }}>
-                        <img src={manualPreview.profile_image_url} style={{ width: '50px', height: '50px' }} />
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: '700', fontSize: '14px' }}>{manualPreview.name}</div>
-                          <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>@{manualPreview.username}</div>
+                  <div className="animate-fade-in">
+                    <div style={{ maxWidth: '640px', marginBottom: '40px' }}>
+                      <div style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: '700', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ค้นหาด้วย X Username โดยตรง</div>
+                      <form onSubmit={handleManualSearch} style={{ display: 'flex', gap: '12px' }}>
+                        <div className="custom-input-wrapper">
+                          <Search size={16} />
+                          <input placeholder="กรอก X Username (เช่น elonmusk)..." value={manualQuery} onChange={e => setManualQuery(e.target.value)} />
                         </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={() => handleAddUser(manualPreview)} className="btn-pill primary" style={{ height: '32px', padding: '0 16px', fontSize: '12px' }}>+ เพิ่ม</button>
+                        <button type="submit" className="btn-sync-premium" style={{ height: '44px', padding: '0 28px' }}>ค้นหา</button>
+                      </form>
+                      {manualPreview && (
+                        <div className="preview-card" style={{ padding: '20px', borderRadius: '16px', marginTop: '24px' }}>
+                          <img src={manualPreview.profile_image_url} style={{ width: '60px', height: '60px', borderRadius: '50%' }} />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: '800', fontSize: '16px' }}>{manualPreview.name}</div>
+                            <div style={{ color: 'var(--accent-secondary)', fontWeight: '700' }}>@{manualPreview.username}</div>
+                          </div>
+                          <button onClick={() => handleAddUser(manualPreview)} className="btn-pill primary" style={{ height: '40px', padding: '0 24px' }}>+ เพิ่มเข้า Watchlist</button>
                         </div>
+                      )}
+                    </div>
+
+                    <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '32px' }}>
+                      <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '20px' }}>▌ บัญชีที่ติดตามอยู่ ({watchlist.length})</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px' }}>
+                        {watchlist.map(user => (
+                          <UserCard 
+                            key={user.id} 
+                            user={user} 
+                            postLists={postLists}
+                            onToggleList={handleToggleMemberInList}
+                            onRemove={handleRemoveAccountGlobal} 
+                          />
+                        ))}
                       </div>
-                    )}
+                      {watchlist.length === 0 && (
+                        <div style={{ padding: '100px 40px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '24px', border: '1px dashed var(--glass-border)' }}>
+                          <Users size={48} style={{ color: 'var(--bg-700)', marginBottom: '16px' }} />
+                          <div style={{ color: 'var(--text-dim)', fontSize: '15px' }}>ยังไม่มีบัญชีที่ติดตามอยู่</div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
