@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { 
   BarChart2, Heart, MessageCircle, Repeat,
-  ExternalLink, Sparkles, PenTool, Bookmark
+  ExternalLink, Sparkles, PenTool, Bookmark,
+  MessageSquare
 } from 'lucide-react';
 
 const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
@@ -51,6 +52,22 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
 
   return (
     <div className="feed-card animate-fade-in">
+      {/* ── REPLY BADGE (Free context) ── */}
+      {tweet.isReply && (
+        <div style={{ 
+          marginBottom: '12px',
+          padding: '6px 12px',
+          background: 'rgba(255,255,255,0.03)',
+          borderRadius: '8px',
+          borderLeft: '3px solid rgba(255,255,255,0.1)'
+        }}>
+          <div style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <MessageSquare size={12} />
+            <span>ตอบกลับ @{tweet.inReplyToUsername || 'ใครบางคน'}</span>
+          </div>
+        </div>
+      )}
+
       {/* ── HEADER: Avatar, Author & Time ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
