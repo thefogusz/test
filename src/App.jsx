@@ -191,11 +191,11 @@ const UserCard = ({ user, onRemove, postLists = [], onToggleList }) => {
       </div>
 
       <img
-        src={user.profile_image_url}
+        src={user.profile_image_url ? `${user.profile_image_url.replace('_normal', '_200x200')}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff&bold=true&size=128`}
         alt={user.name}
         style={{ width: '80px', height: '80px', borderRadius: '50%', marginBottom: '12px', objectFit: 'cover', border: '2px solid var(--bg-700)' }}
         onError={e => { 
-          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff&bold=true`; 
+          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff&bold=true&size=128`; 
         }}
       />
       <div style={{ fontWeight: '700', fontSize: '15px', marginBottom: '4px', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
@@ -1032,18 +1032,18 @@ const App = () => {
                                   </div>
                                 </div>
                               </div>
-                              <img src={`https://unavatar.io/twitter/${expert.username}`} style={{ width: '56px', height: '56px', borderRadius: '50%', marginBottom: '12px', border: '2px solid var(--bg-700)' }} onError={e => e.target.src = `https://ui-avatars.com/api/?name=${expert.name}`} />
+                              <img src={`https://unavatar.io/twitter/${expert.username}`} style={{ width: '42px', height: '42px', borderRadius: '50%', marginBottom: '10px', border: '2px solid var(--bg-700)' }} onError={e => e.target.src = `https://ui-avatars.com/api/?name=${expert.name}`} />
                               <a 
                                 href={`https://x.com/${expert.username}`} 
                                 target="_blank" 
                                 rel="noopener noreferrer" 
-                                style={{ textDecoration: 'none', display: 'block', marginBottom: '12px' }}
+                                style={{ textDecoration: 'none', display: 'block', marginBottom: '8px' }}
                               >
-                                <div className="expert-name" style={{ fontSize: '16px', color: '#fff', fontWeight: '900' }}>{expert.name}</div>
-                                <div className="expert-username" style={{ fontSize: '13px', color: 'var(--accent-secondary)', fontWeight: '700' }}>@{expert.username}</div>
+                                <div className="expert-name" style={{ fontSize: '14px', color: '#fff', fontWeight: '800' }}>{expert.name}</div>
+                                <div className="expert-username" style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>@{expert.username}</div>
                               </a>
-                              <div className="expert-reasoning" style={{ fontSize: '12px', marginBottom: '20px', flex: 1 }}>“{expert.reasoning}”</div>
-                              <button onClick={() => handleAddExpert(expert)} disabled={isAdded} className={`expert-follow-btn ${isAdded ? 'added' : ''}`} style={{ padding: '8px', fontSize: '12px' }}>{isAdded ? '✓ เพิ่มแล้ว' : '+ เพิ่มเข้า Watchlist'}</button>
+                              <div className="expert-reasoning" style={{ fontSize: '11px', marginBottom: '16px', flex: 1, color: 'var(--text-muted)', lineHeight: '1.4' }}>“{expert.reasoning}”</div>
+                              <button onClick={() => handleAddExpert(expert)} disabled={isAdded} className={`expert-follow-btn ${isAdded ? 'added' : ''}`} style={{ padding: '6px', fontSize: '11px' }}>{isAdded ? '✓ เพิ่มแล้ว' : '+ เพิ่มเข้า Watchlist'}</button>
                             </div>
                           );
                         })}
@@ -1088,8 +1088,8 @@ const App = () => {
                     </div>
 
                     <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '32px' }}>
-                      <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '20px' }}>▌ บัญชีที่ติดตามอยู่ ({watchlist.length})</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '20px' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '16px' }}>▌ บัญชีที่ติดตามอยู่ ({watchlist.length})</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
                         {watchlist.map(user => (
                           <UserCard 
                             key={user.id} 
@@ -1150,20 +1150,49 @@ const App = () => {
       </main>
 
       {listModal.show && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <input value={listModal.value} onChange={e => setListModal({ ...listModal, value: e.target.value })} />
-            <button onClick={finalizeListAction}>ยืนยัน</button>
-            <button onClick={() => setListModal({ ...listModal, show: false })}>ยกเลิก</button>
+        <div className="modal-overlay" onClick={() => setListModal({ ...listModal, show: false })}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">
+              {listModal.mode === 'create' ? 'สร้าง Post List ใหม่' : 
+               listModal.mode === 'edit' ? 'แก้ไข Post List' : 'นำเข้า Post List'}
+            </div>
+            <div className="modal-subtitle">
+              {listModal.mode === 'create' ? 'ตั้งชื่อให้ลิสต์ของคุณเพื่อเริ่มจัดกลุ่มแหล่งข้อมูล' : 
+               listModal.mode === 'edit' ? 'ระบุชื่อใหม่สำหรับลิสต์นี้' : 'วาง URL ของ Post List ที่ต้องการนำเข้า'}
+            </div>
+            <input 
+              className="modal-input"
+              autoFocus
+              placeholder={listModal.mode === 'import' ? "https://..." : "เช่น DeFi Experts, Crypto News..."}
+              value={listModal.value} 
+              onChange={e => setListModal({ ...listModal, value: e.target.value })}
+              onKeyDown={e => e.key === 'Enter' && finalizeListAction()}
+            />
+            <div className="modal-actions">
+              <button className="modal-btn modal-btn-secondary" onClick={() => setListModal({ ...listModal, show: false })}>ยกเลิก</button>
+              <button className="modal-btn modal-btn-primary" onClick={finalizeListAction}>ยืนยัน</button>
+            </div>
           </div>
         </div>
       )}
 
       {filterModal.show && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <textarea value={filterModal.prompt} onChange={e => setFilterModal({ ...filterModal, prompt: e.target.value })} />
-            <button onClick={handleAiFilter}>กรองข้อมูล</button>
+        <div className="modal-overlay" onClick={() => setFilterModal({ ...filterModal, show: false })}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-title">✨ AI Smart Filter</div>
+            <div className="modal-subtitle">ระบุหัวข้อที่คุณต้องการกรอง (เช่น "ข่าวเกี่ยวกัย Apple" หรือ "บทวิเคราะห์จากต่างประเทศ")</div>
+            <textarea 
+              className="modal-input"
+              style={{ minHeight: '120px', resize: 'none', padding: '16px' }}
+              autoFocus
+              placeholder="ระบุสิ่งที่ต้องการกรองที่นี่..."
+              value={filterModal.prompt}
+              onChange={e => setFilterModal({ ...filterModal, prompt: e.target.value })}
+            />
+            <div className="modal-actions">
+              <button className="modal-btn modal-btn-secondary" onClick={() => setFilterModal({ ...filterModal, show: false })}>ยกเลิก</button>
+              <button className="modal-btn modal-btn-primary" onClick={handleAiFilter}>กรองข้อมูล</button>
+            </div>
           </div>
         </div>
       )}
