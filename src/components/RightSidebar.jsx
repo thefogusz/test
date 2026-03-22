@@ -160,20 +160,17 @@ const RightSidebar = ({
 
   return (
     <aside className={`right-sidebar ${isMobileOpen ? 'mobile-visible' : ''}`}>
-      {/* SHEET HANDLE (Only for mobile sheet) */}
-      <div className="sheet-handle mobile-only-flex" />
-
       {/* Header */}
-      <div className="right-sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', padding: '0 4px' }}>
+      <header className="right-sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '24px', paddingBottom: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', transition: 'color 0.2s', cursor: 'pointer' }} onMouseOver={e=>e.currentTarget.style.color='#fff'} onMouseOut={e=>e.currentTarget.style.color='var(--text-muted)'}>
           <Library size={24} />
-          <h2 style={{ fontSize: '16px', fontWeight: '800', margin: 0, letterSpacing: '-0.01em', color: '#fff' }}>Post list</h2>
+          <h2 className="right-sidebar-title">Post list</h2>
         </div>
         <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
           {isMobileOpen && (
             <button 
               onClick={onCloseMobile}
-              style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', padding: '6px', borderRadius: '50%', cursor: 'pointer', display: 'flex', marginRight: '8px' }}
+              style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', padding: '6px', borderRadius: '50%', cursor: 'pointer', display: 'flex' }}
             >
               <X size={18} />
             </button>
@@ -215,7 +212,7 @@ const RightSidebar = ({
             </>
           )}
         </div>
-      </div>
+      </header>
 
       <div className="right-sidebar-content" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         
@@ -520,7 +517,6 @@ const RightSidebar = ({
                           const isHighlighted = index === highlightedSuggestion;
                           return (
                             <button
-                              key={u.id}
                               type="button"
                               onMouseDown={(event) => event.preventDefault()}
                               onMouseEnter={() => setHighlightedSuggestion(index)}
@@ -634,7 +630,7 @@ const RightSidebar = ({
                                style={{ border: '1px solid var(--text-dim)', background: 'transparent', borderRadius: '999px', color: '#fff', padding: '6px 16px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }}
                                onMouseEnter={e => { e.currentTarget.style.borderColor = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
                                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--text-dim)'; e.currentTarget.style.background = 'transparent'; }}
-                              >Add</button>
+                               >Add</button>
                             </div>
                           ))}
                           {matchingAccounts.length > 6 && (

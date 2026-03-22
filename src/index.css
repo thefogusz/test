@@ -43,19 +43,23 @@ body {
   overflow: hidden; /* Prevent body scroll, allow inner panels to scroll */
 }
 
-/* Desktop default scale: mimic browser zoom ~110% without changing the user's browser setting */
-@media (min-width: 1280px) {
-  body {
-    zoom: 1.1;
-  }
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  padding: 0;
 }
 
-/* Scrollbar */
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+/* Desktop default scale: remove zoom to ensure pixel-perfect alignment / coordinates */
+@media (min-width: 1280px) {
+  /* body zoom removed */
+}
 
-/* Layout */
+/* Scrollbar Customization */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+
+/* Main Application Layout */
 .foro-layout {
   display: flex;
   height: 100vh;
@@ -66,13 +70,13 @@ body {
 }
 
 .foro-main {
-  flex: 1; /* Stretch to fill available space, removing the rigid max-width */
+  flex: 1;
   width: 100%;
-  padding: 40px;
+  padding: 24px 40px; /* Aligned with sidebar logo padding (24px) */
   margin: 8px 0;
   height: calc(100vh - 16px);
-  overflow-y: auto; /* Spotify internal scroll */
-  background: var(--bg-900); /* Define background for floating panel */
+  overflow-y: auto;
+  background: var(--bg-900);
   border-radius: 12px;
 }
 
@@ -160,7 +164,7 @@ body {
   top: 8px;
   right: 8px;
   bottom: 8px;
-  padding: 24px 16px;
+  padding: 0 16px;
   display: flex;
   flex-direction: column;
   z-index: 900;
@@ -168,8 +172,7 @@ body {
 }
 
 /* Header & Controls */
-.dashboard-header { margin-bottom: 32px; }
-.dashboard-header h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; }
+/* Duplicate dashboard-header removed */
 
 .btn-pill {
   border-radius: var(--radius-full);
@@ -445,7 +448,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px 40px;
+  padding: 0 20px 40px;
   text-align: center;
   margin-bottom: 40px;
 }
@@ -1179,10 +1182,25 @@ body {
     text-align: center;
     bottom: 90px !important;
   }
+}
 
-  .modal-content {
-    padding: 20px;
-  }
+.dashboard-header {
+  margin: 0 0 28px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.right-sidebar-header {
+  padding: 24px 16px 20px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.right-sidebar-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 /* Search Suggestions Dropdown */
@@ -1233,6 +1251,32 @@ body {
 .suggestion-item:hover, .suggestion-item.active {
   background: rgba(41, 151, 255, 0.1);
   color: #fff;
+}
+
+.discovery-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background: var(--bg-800);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  z-index: 9999;
+  width: 200px;
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.user-list-item {
+  width: 100%;
+  min-width: 0; /* Important for ellipsis in flexbox */
+}
+
+.user-list-item:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: var(--accent-secondary);
 }
 
 .suggestion-icon {
@@ -1371,6 +1415,34 @@ body {
   padding: 4px 12px;
   border-radius: 100px;
   width: fit-content;
+}
+
+.dashboard-header {
+  margin: 0 0 28px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.right-sidebar-header {
+  padding: 24px 16px 20px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.right-sidebar-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.mobile-only-flex, .mobile-only-block {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .mobile-only-flex { display: flex !important; }
+  .mobile-only-block { display: block !important; }
 }
 
 /* PREMIUM MODAL STYLES */

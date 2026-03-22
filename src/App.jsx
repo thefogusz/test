@@ -128,7 +128,6 @@ const getSearchFallbackResults = (tweets, requestedQuery, isLatestMode) =>
 const mergePlanLabelsIntoQuery = (requestedQuery, topicLabels = []) =>
   [requestedQuery, ...topicLabels].filter(Boolean).join(' ');
 
-// ---- UserCard: proper component with per-card menu state ----
 const UserCard = ({ user, postLists = [], onToggleList, onRemove }) => {
   const [showMenu, setShowMenu] = useState(false);
 
@@ -136,56 +135,54 @@ const UserCard = ({ user, postLists = [], onToggleList, onRemove }) => {
     <div className="user-list-item animate-fade-in" style={{ 
       display: 'flex', 
       alignItems: 'center', 
-      gap: '16px',
-      padding: '12px 18px', 
+      gap: '12px',
+      padding: '8px 12px', 
       background: 'rgba(255,255,255,0.02)', 
       border: '1px solid var(--glass-border)', 
-      borderRadius: '16px',
+      borderRadius: '12px',
       transition: 'all 0.2s',
       position: 'relative',
-      width: '100%'
+      width: '100%',
+      minWidth: 0,
+      overflow: 'visible'
     }}>
       <img 
         src={user.profile_image_url ? user.profile_image_url.replace('_normal', '_200x200') : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff&bold=true&size=128`} 
-        style={{ width: '42px', height: '42px', borderRadius: '50%', border: '2px solid var(--bg-700)', flexShrink: 0, objectFit: 'cover' }} 
+        style={{ width: '38px', height: '38px', borderRadius: '50%', border: '1px solid var(--bg-700)', flexShrink: 0, objectFit: 'cover' }} 
         alt={user.name}
         onError={e => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff&bold=true&size=128`}
       />
       
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-          <div style={{ fontWeight: '800', fontSize: '15px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
-          <div style={{ color: 'var(--text-dim)', fontSize: '12px', fontWeight: '500' }}>@{user.username}</div>
-        </div>
-        <div style={{ display: 'flex', gap: '12px', marginTop: '2px' }}>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ fontWeight: '800', fontSize: '14px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
+        <div style={{ color: 'var(--text-dim)', fontSize: '11px', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '4px' }}>@{user.username}</div>
+        <div style={{ display: 'flex', gap: '8px' }}>
           <a
             href={`https://x.com/${user.username}`}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ color: 'var(--accent-secondary)', fontSize: '11px', fontWeight: '700', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
+            style={{ color: 'var(--accent-secondary)', fontSize: '10px', fontWeight: '700', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
           >
             X Profile <ExternalLink size={10} />
           </a>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-        <button 
-          onClick={() => onRemove(user.id)}
-          title="Remove from Watchlist"
-          style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
-        >
-          <Trash2 size={14} />
-        </button>
-        
+      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+        {onRemove && (
+          <button 
+            onClick={() => onRemove(user.id)}
+            style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
         <div style={{ position: 'relative' }}>
           <button 
             onClick={() => setShowMenu(!showMenu)}
-            style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--bg-700)', border: '1px solid var(--glass-border)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'var(--bg-700)', border: '1px solid var(--glass-border)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
-            <Plus size={16} />
+            <Plus size={16} style={{ transform: showMenu ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s' }} />
           </button>
           
           {showMenu && (
@@ -194,49 +191,40 @@ const UserCard = ({ user, postLists = [], onToggleList, onRemove }) => {
                 style={{ position: 'fixed', inset: 0, zIndex: 90 }} 
                 onClick={() => setShowMenu(false)}
               />
-              <div style={{ 
+              <div className="discovery-menu" style={{ 
+                display: 'block',
                 position: 'absolute', 
                 top: '100%', 
                 right: 0, 
                 marginTop: '8px', 
-                background: 'var(--bg-800)', 
-                border: '1px solid var(--glass-border)', 
-                borderRadius: '12px', 
-                padding: '8px', 
                 zIndex: 100, 
-                minWidth: '200px',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-                backdropFilter: 'blur(20px)'
+                minWidth: '180px'
               }}>
-                <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-muted)', padding: '4px 8px 8px', borderBottom: '1px solid var(--glass-border)', marginBottom: '4px' }}>ADD TO POST LIST</div>
-                <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
+                <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', padding: '8px 12px', borderBottom: '1px solid var(--glass-border)' }}>ADD TO POST LIST</div>
+                <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
                   {postLists.map(list => {
-                    const isMember = list.members?.some(m => (m || '').toLowerCase() === (user.username || '').toLowerCase());
+                    const isMember = list.usernames?.includes(user.username);
                     return (
                       <div 
                         key={list.id} 
-                        onClick={() => { onToggleList(list.id, user); setShowMenu(false); }}
+                        onClick={() => { onToggleList(user.username, list.id); setShowMenu(false); }}
                         style={{ 
-                          padding: '8px 12px', 
-                          borderRadius: '8px', 
-                          fontSize: '13px', 
+                          padding: '10px 12px', 
+                          fontSize: '12px', 
                           cursor: 'pointer', 
                           display: 'flex', 
                           justifyContent: 'space-between', 
                           alignItems: 'center',
                           background: isMember ? 'rgba(41, 151, 255, 0.1)' : 'transparent',
-                          color: isMember ? 'var(--accent-secondary)' : 'var(--text-muted)',
-                          marginBottom: '2px'
+                          color: isMember ? 'var(--accent-secondary)' : '#fff',
                         }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                        onMouseLeave={e => e.currentTarget.style.background = isMember ? 'rgba(41, 151, 255, 0.1)' : 'transparent'}
                       >
                         <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '8px' }}>{list.name}</span>
-                        {isMember && <Activity size={12} />}
+                        {isMember && <Trash2 size={12} />}
                       </div>
                     );
                   })}
-                  {postLists.length === 0 && <div style={{ padding: '8px', fontSize: '12px', color: 'var(--text-dim)', textAlign: 'center' }}>ไม่มีรายการปลิสต์</div>}
+                  {postLists.length === 0 && <div style={{ padding: '12px', fontSize: '12px', color: 'var(--text-dim)', textAlign: 'center' }}>ไม่มีรายการปลิสต์</div>}
                 </div>
               </div>
             </>
@@ -314,11 +302,10 @@ const App = () => {
   const [isLiveSearching, setIsLiveSearching] = useState(false);
 
   const commonKeywords = [
-    'AI Trends 2026', 'สรุปข่าว AI รายวัน', 'Web3 & Crypto News', 
-    'วิเคราะห์การเมืองไทย', 'Tech Industry Updates', 'Sustainability & ESG',
-    'Global Economy Outlook', 'รีวิว Gadget ล่าสุด', 'Startup Funding News',
-    'Cybersecurity Alerts', 'Future of Work', 'Space Exploration'
-  ];
+  'AI', 'Artificial Intelligence', 'Elon Musk', 'Tesla', 'SpaceX', 'Bitcoin', 'Ethereum', 'Crypto', 'Vitalik Buterin',
+  'Technology', 'Future', 'Innovation', 'Machine Learning', 'GPT-4', 'OpenAI',
+  'Market Analysis', 'Web3', 'Blockchain', 'Social Media', 'Marketing Strategy'
+];
 
   const [bookmarks, setBookmarks] = useState(() => {
     const saved = localStorage.getItem('foro_bookmarks_v1');
@@ -599,23 +586,29 @@ const App = () => {
   };
 
   useEffect(() => {
-    if (!searchQuery || searchQuery.trim().length < 3 || activeView !== 'content' || contentTab !== 'search') {
+    const isAudienceManual = activeView === 'audience' && audienceTab === 'manual';
+    const query = isAudienceManual ? manualQuery : searchQuery;
+
+    if (!query || query.trim().length < 1) {
       setSuggestions([]);
       return;
     }
+
     const filteredSuggestions = commonKeywords.filter(kw => 
-      kw.toLowerCase().includes(searchQuery.toLowerCase()) && kw.toLowerCase() !== searchQuery.toLowerCase()
+      kw.toLowerCase().includes(query.toLowerCase()) && kw.toLowerCase() !== query.toLowerCase()
     ).slice(0, 5);
     setSuggestions(filteredSuggestions);
 
-    const timer = setTimeout(() => {
-      if (searchQuery.trim().length >= 3) {
-        setIsLiveSearching(true);
-        handleSearch(null, false, searchQuery);
-      }
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [searchQuery, activeView, contentTab]);
+    if (!isAudienceManual) {
+      const timer = setTimeout(() => {
+        if (searchQuery.trim().length >= 1) {
+          setIsLiveSearching(true);
+          handleSearch(null, false, searchQuery);
+        }
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [searchQuery, manualQuery, activeView, audienceTab, contentTab]);
 
   const resolvePlaceholders = async (nodes) => {
     for (const placeholder of nodes) {
@@ -899,8 +892,11 @@ const App = () => {
 
               {contentTab === 'search' && (
                 <div className="search-discovery-view animate-fade-in">
-                  <div className="hero-search-container">
-                    <h1 className="hero-search-title">ค้นหาคอนเทนต์</h1>
+                  <header className="dashboard-header" style={{ marginBottom: '24px' }}>
+                    <h1 style={{ fontSize: '32px', fontWeight: '800', letterSpacing: '-0.03em' }}>ค้นหาคอนเทนต์</h1>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>สำรวจเทรนด์และเจาะลึกข้อมูลจากทั่วโลก</p>
+                  </header>
+                  <div className="hero-search-container" style={{ padding: '0' }}>
                     <div className="hero-search-wrapper">
                       <form onSubmit={(e) => { e.preventDefault(); handleSearch(e); setShowSuggestions(false); }} className="hero-search-form">
                         <Search size={20} className="hero-search-icon" />
@@ -1009,12 +1005,12 @@ const App = () => {
 
             return (
               <div className="animate-fade-in">
-                <header style={{ marginBottom: '28px' }}>
+                <header className="dashboard-header" style={{ marginBottom: '28px', paddingTop: '0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
                     <span style={{ fontSize: '22px' }}>⚡</span>
-                    <h1 style={{ fontSize: '28px', fontWeight: '800', letterSpacing: '-0.03em' }}>Smart Target Discovery</h1>
+                    <h1 style={{ fontSize: '28px', fontWeight: '800', letterSpacing: '-0.03em', margin: 0 }}>Smart Target Discovery</h1>
                   </div>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginLeft: '32px' }}>ค้นหาและเพิ่มแหล่งข้อมูลที่ตรงกับความสนใจของคุณ</p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginLeft: '32px', margin: 0 }}>ค้นหาและเพิ่มแหล่งข้อมูลที่ตรงกับความสนใจของคุณ</p>
                 </header>
 
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '28px', padding: '4px', background: 'var(--bg-800)', borderRadius: '10px', width: 'fit-content' }}>
@@ -1128,12 +1124,36 @@ const App = () => {
                   <div className="animate-fade-in">
                     <div style={{ maxWidth: '640px', marginBottom: '40px' }}>
                       <div style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: '700', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ค้นหาด้วย X Username โดยตรง</div>
-                      <form onSubmit={handleManualSearch} style={{ display: 'flex', gap: '12px' }}>
+                      <form onSubmit={handleManualSearch} style={{ display: 'flex', gap: '12px', position: 'relative' }}>
                         <div className="custom-input-wrapper">
                           <Search size={16} />
-                          <input placeholder="กรอก X Username (เช่น elonmusk)..." value={manualQuery} onChange={e => setManualQuery(e.target.value)} />
+                          <input 
+                            placeholder="กรอก X Username (เช่น elonmusk)..." 
+                            value={manualQuery} 
+                            onChange={e => { setManualQuery(e.target.value); setShowSuggestions(true); setActiveSuggestionIndex(-1); }} 
+                            onFocus={() => setShowSuggestions(true)}
+                            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'ArrowDown') setActiveSuggestionIndex(prev => Math.min(prev + 1, suggestions.length - 1));
+                              else if (e.key === 'ArrowUp') setActiveSuggestionIndex(prev => Math.max(prev - 1, -1));
+                              else if (e.key === 'Enter' && activeSuggestionIndex >= 0) {
+                                const sel = suggestions[activeSuggestionIndex];
+                                setManualQuery(sel); setShowSuggestions(false);
+                              }
+                            }}
+                          />
                         </div>
                         <button type="submit" className="btn-sync-premium" style={{ height: '44px', padding: '0 28px' }}>ค้นหา</button>
+                        
+                        {showSuggestions && suggestions.length > 0 && activeView === 'audience' && (
+                          <div className="search-suggestions-dropdown" style={{ top: '100%', left: 0, right: 0, marginTop: '8px', zIndex: 1000 }}>
+                            {suggestions.map((item, idx) => (
+                              <div key={item} className={`suggestion-item ${idx === activeSuggestionIndex ? 'active' : ''}`} onClick={() => { setManualQuery(item); setShowSuggestions(false); }}>
+                                <Search size={14} className="suggestion-icon" /><span>{item}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </form>
                       {manualPreview && (
                         <div className="preview-card" style={{ padding: '20px', borderRadius: '16px', marginTop: '24px' }}>
