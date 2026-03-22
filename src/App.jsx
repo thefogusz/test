@@ -532,11 +532,14 @@ const App = () => {
             : `[Agent 2/3] กำลังกรองสแปม คัดความตรงบรีฟ และจัดอันดับตามความน่าเชื่อถือ...`,
         );
         const validIds = await agentFilterFeed(data, requestedQuery, {
-          preferCredibleSources: !isLatestMode,
+          preferCredibleSources: true,
         });
         const cleanData = data.filter((tweet) => validIds.includes(tweet.id));
         const candidateData = cleanData.length > 0 ? cleanData : data;
-        finalData = curateSearchResults(candidateData, requestedQuery, { latestMode: isLatestMode });
+        finalData = curateSearchResults(candidateData, requestedQuery, {
+          latestMode: isLatestMode,
+          preferCredibleSources: true,
+        });
         
         if (!isMore) {
           setStatus(`[Agent 3/3] กำลังสังเคราะห์ข้อมูลและเขียน Executive Summary...`);
@@ -546,7 +549,10 @@ const App = () => {
       }
 
       const mergedResults = isMore ? mergeUniquePostsById(searchResults, finalData) : finalData;
-      const newResults = curateSearchResults(mergedResults, requestedQuery, { latestMode: isLatestMode });
+      const newResults = curateSearchResults(mergedResults, requestedQuery, {
+        latestMode: isLatestMode,
+        preferCredibleSources: true,
+      });
       setSearchResults(newResults);
       setOriginalSearchResults(newResults);
       setFeed(newResults); 

@@ -416,6 +416,7 @@ export const fetchWatchlistFeed = fetchForoFeed;
 
 export const curateSearchResults = (tweets, rawQuery, options = {}) => {
   const latestMode = Boolean(options.latestMode);
+  const preferCredibleSources = options.preferCredibleSources !== false;
   const newsIntent = isNewsIntent(rawQuery);
   const queryTerms = normalizeSearchTerms(rawQuery);
   const uniqueTweets = dedupeTweetsById(normalizeTweets(tweets));
@@ -428,13 +429,19 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
       const freshnessScore = getFreshnessScore(tweet, latestMode);
       const providerRankScore = getProviderRankScore(index, list.length, latestMode);
       const lowSignalPenalty = getLowSignalPenalty(tweet, queryTerms, rawQuery);
+      const weakCredibilityPenalty =
+        preferCredibleSources && newsIntent && credibilityScore < 2.35 ? 1.35 : 0;
+      const weakRelevancePenalty =
+        preferCredibleSources && queryTerms.length > 0 && relevanceScore < 1.15 ? 1.15 : 0;
       const totalScore =
-        relevanceScore +
-        credibilityScore * (newsIntent ? 1.2 : 1) +
-        signalScore * (newsIntent ? 0.85 : 1) +
-        freshnessScore +
-        providerRankScore -
-        lowSignalPenalty;
+        relevanceScore * (latestMode ? 2.4 : 2.1) +
+        credibilityScore * (preferCredibleSources ? (latestMode ? 1.7 : 1.45) : newsIntent ? 1.2 : 1) +
+        signalScore * (latestMode ? 0.7 : newsIntent ? 0.85 : 1) +
+        freshnessScore * (latestMode ? 0.7 : 1) +
+        providerRankScore * (latestMode ? 0.45 : 0.8) -
+        lowSignalPenalty -
+        weakCredibilityPenalty -
+        weakRelevancePenalty;
 
       return {
         ...tweet,
@@ -446,8 +453,8 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
       return new Date(b.created_at) - new Date(a.created_at);
     });
 
-  const softThreshold = latestMode ? 1.2 : 2.4;
-  const minimumKeep = Math.min(scored.length, latestMode ? 8 : 10);
+  const softThreshold = latestMode ? 2.6 : 2.9;
+  const minimumKeep = Math.min(scored.length, latestMode ? 6 : 8);
   const filtered = scored.filter((tweet, index) => index < minimumKeep || tweet.search_score >= softThreshold);
   const curated = filtered.length >= Math.min(6, scored.length) ? filtered : scored;
 

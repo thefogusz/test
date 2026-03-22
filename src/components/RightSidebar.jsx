@@ -36,6 +36,50 @@ const getAvailableAccounts = (watchlist, members) => {
   });
 };
 
+const buildKnownAccountPool = (watchlist, postLists) => {
+  const byHandle = new Map();
+
+  (Array.isArray(watchlist) ? watchlist : []).forEach((user) => {
+    const handle = normalizeHandle(user?.username);
+    if (!handle || byHandle.has(handle)) return;
+
+    byHandle.set(handle, {
+      id: user?.id || handle,
+      username: handle,
+      name: user?.name || handle,
+      profile_image_url: user?.profile_image_url,
+      isPlaceholder: Boolean(user?.isPlaceholder),
+    });
+  });
+
+  (Array.isArray(postLists) ? postLists : []).forEach((list) => {
+    (Array.isArray(list?.members) ? list.members : []).forEach((member) => {
+      const handle = normalizeHandle(member);
+      if (!handle || byHandle.has(handle)) return;
+
+      byHandle.set(handle, {
+        id: handle,
+        username: handle,
+        name: handle,
+        profile_image_url: '',
+        isPlaceholder: true,
+      });
+    });
+  });
+
+  return Array.from(byHandle.values()).sort((left, right) => {
+    const leftPlaceholderScore = left?.isPlaceholder ? 1 : 0;
+    const rightPlaceholderScore = right?.isPlaceholder ? 1 : 0;
+    if (leftPlaceholderScore !== rightPlaceholderScore) {
+      return leftPlaceholderScore - rightPlaceholderScore;
+    }
+
+    return (left?.name || left?.username || '').localeCompare(
+      right?.name || right?.username || '',
+    );
+  });
+};
+
 const RightSidebar = ({
   watchlist,
   postLists,
@@ -67,6 +111,8 @@ const RightSidebar = ({
     '#af52de', // Purple
     '#ff2d55', // Pink
   ];
+
+  const accountPool = buildKnownAccountPool(watchlist, postLists);
 
   const handleListClick = (id) => {
     if (activeListId === id) {
@@ -165,7 +211,7 @@ const RightSidebar = ({
                 .map(normalizeHandle)
                 .filter(Boolean),
             );
-            const availableAccounts = getAvailableAccounts(watchlist, list.members);
+            const availableAccounts = getAvailableAccounts(accountPool, list.members);
             const normalizedQuery = normalizeHandle(addHandle);
             const matchingAccounts = (normalizedQuery
               ? availableAccounts.filter((user) => {
@@ -185,14 +231,14 @@ const RightSidebar = ({
             const singleMatch = matchingAccounts.length === 1 ? matchingAccounts[0] : null;
             const canAddManually = normalizedQuery && !normalizedMembers.has(normalizedQuery) && matchingAccounts.length === 0;
             const helperText = !normalizedQuery
-              ? `Browse all ${availableAccounts.length} available accounts from your watchlist.`
+              ? `Browse all ${availableAccounts.length} available accounts from your saved people and lists.`
               : exactMatch
                 ? `Press Enter to add @${exactMatch.username}.`
                 : singleMatch
                   ? `Press Enter to add @${singleMatch.username}.`
                   : canAddManually
                     ? `No watchlist match found. Press Enter to add @${normalizedQuery} manually.`
-                    : `Found ${matchingAccounts.length} matching accounts in your watchlist.`;
+                    : `Found ${matchingAccounts.length} matching accounts in your saved people and lists.`;
             const handleSubmitAdd = () => {
               if (!normalizedQuery) return;
 
@@ -431,7 +477,7 @@ const RightSidebar = ({
                          {matchingAccounts.map(u => (
                            <div key={u.id} className="suggestion-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', borderRadius: '8px', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                              <img 
-                               src={u.profile_image_url} 
+                               src={u.profile_image_url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png'} 
                               alt={u.username}
                               style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', opacity: 0.8 }}
                               onError={e => { 
@@ -455,7 +501,7 @@ const RightSidebar = ({
                          ))}
                          {matchingAccounts.length === 0 && !canAddManually && (
                            <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--text-dim)', lineHeight: '1.5' }}>
-                             No matching watchlist accounts for "{addHandle.trim()}".
+                             No matching saved accounts for "{addHandle.trim()}".
                            </div>
                          )}
                          {canAddManually && (
