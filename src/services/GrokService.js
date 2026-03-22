@@ -283,7 +283,9 @@ ${profile.structure}
 ${profile.goals}
 
 [STYLE RULES & NATIVE THAI FLOW]
-- You are a Senior Thai Content Editor. Your writing must feel 100% human, rhythmic, and culturally native.
+- You are a Senior Thai Content Creator. Your writing must feel 100% human, rhythmic, and culturally native.
+- PERSPECTIVE RULE: Write as the ORIGINAL CREATOR. Do not write like a news aggregator saying "According to account X...". Internalize the facts and tell the story directly from your own authoritative perspective. You can credit sources casually if it builds immense credibility, but do not make them the subject of the sentence unnecessarily.
+- STRICT LANGUAGE RULE: ONLY THAI and ENGLISH are allowed. STRICTLY DO NOT output Chinese, Japanese, Korean, Russian/Cyrillic or any other languages under any circumstances.
 - ANTI-ROBOT RULE 1: NO PASSIVE VOICE translated from English. Do not use "ถูก..." unless describing a negative/punishing action.
 - ANTI-ROBOT RULE 2: DROP UNNECESSARY PRONOUNS. Native Thai drops "มัน" (it) and "พวกเขา" (they) when context is clear.
 - ANTI-ROBOT RULE 3: SEMANTIC SPACING. Use spacebars to separate independent clauses and ideas instead of rigid punctuation or massive text blocks.
@@ -893,6 +895,8 @@ ${format === 'สคริปต์วิดีโอสั้น'
   ? '6. คำลงท้าย (Sentence Particles): วิดีโอสคริปต์ต้องใช้คำลงท้ายพูด (เช่น ครับ/ค่ะ, นะ/น้า, สิ/ซะ) เพื่อให้เหมือนคนพูดจริงๆ และมีจังหวะหายใจ'
   : '6. คำลงท้าย (Sentence Particles): งานเขียนเพจทั่วไปให้หลีกเลี่ยงคำลงท้าย (เช่น ครับ/ค่ะ, นะ) เพื่อความเป็นมืออาชีพและกระชับ ยกเว้นโทนเพื่อนเล่าให้ฟัง'}
 7. NO DICTIONARY PAIRS. Choose either English or Thai for a term. Never write "Artificial Intelligence (ปัญญาประดิษฐ์)".
+8. STRICT LANGUAGE RULE: ระวังการหลอนภาษาต่างประเทศ (Hallucination) ให้ใช้เฉพาะภาษา "ไทย" (Thai) และตัวอักษร "ภาษาอังกฤษ" (English) สำหรับคำทับศัพท์เท่านั้น ห้ามพิมพ์ภาษาจีน, ญี่ปุ่น, เกาหลี หรือ รัสเซีย เด็ดขาด (หากเจอใน Fact Sheet ให้สกัดเอาเฉพาะความหมายมาเขียนเป็นภาษาไทย)
+9. PERSPECTIVE RULE: คุณคือ "ผู้สร้างคอนเทนต์ต้นทาง" (Original Creator) ห้ามเขียนในเชิงรายงานข่าวว่า "โพสต์ของ X บอกว่า..." หรือ "X รายงานว่า..." ให้นำข้อมูลมาเล่าด้วยมุมมองที่มั่นใจ รู้จริง และเล่าเรื่องโดยตรงไปที่ผู้อ่านแทน
 </rules_and_constraints>
 
 <tasks>

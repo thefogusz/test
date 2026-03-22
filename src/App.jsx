@@ -659,8 +659,13 @@ const App = () => {
         activeView={activeView}
         onNavClick={(view) => {
           setActiveView(view);
-          setActiveListId(null);
-          if (view === 'home') { setSearchQuery(''); setSearchResults([]); }
+          // Only reset list filtering if actually leaving or entering home, but maybe it's better to keep it?
+          // For now, let's just avoid resetting searches if the user is just moving around.
+          if (view === 'home') { 
+            setActiveListId(null);
+            // setSearchQuery(''); // Don't reset search, it's in a different tab now
+            // setSearchResults([]); 
+          }
         }}
       />
 
@@ -672,9 +677,8 @@ const App = () => {
         <div className="foro-main-scroll">
 
           {/* ===== HOME VIEW ===== */}
-          {activeView === 'home' && (
-            <div className="animate-fade-in">
-              <header className="dashboard-header" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '32px' }}>
+          <div className="animate-fade-in" style={{ display: activeView === 'home' ? 'block' : 'none' }}>
+            <header className="dashboard-header" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '32px' }}>
                 <div className="mobile-only-flex" style={{ justifyContent: 'center', width: '100%', marginBottom: '-8px' }}>
                   <img src="logo.png" alt="FO" style={{ height: '24px', width: 'auto' }} />
                 </div>
@@ -763,12 +767,10 @@ const App = () => {
                 </div>
               )}
             </div>
-          )}
 
           {/* ===== UNIFIED CONTENT VIEW ===== */}
-          {activeView === 'content' && (
-            <div className="unified-content-view animate-fade-in">
-              <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '16px' }}>
+          <div className="unified-content-view animate-fade-in" style={{ display: activeView === 'content' ? 'block' : 'none' }}>
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '16px' }}>
                 <button className={`btn-pill ${contentTab === 'search' ? 'primary' : ''}`} onClick={() => setContentTab('search')}>
                   <Search size={16} /> ค้นหา
                 </button>
@@ -777,7 +779,7 @@ const App = () => {
                 </button>
               </div>
 
-              {contentTab === 'create' && (
+              <div style={{ display: contentTab === 'create' ? 'block' : 'none' }}>
                 <div className="animate-fade-in">
                   <ContentErrorBoundary key={createContentSource?.id}>
                     <CreateContent 
@@ -790,9 +792,9 @@ const App = () => {
                     />
                   </ContentErrorBoundary>
                 </div>
-              )}
+              </div>
 
-              {contentTab === 'search' && (
+              <div style={{ display: contentTab === 'search' ? 'block' : 'none' }}>
                 <div className="search-discovery-view animate-fade-in">
                   <div className="hero-search-container">
                     <h1 className="hero-search-title">ค้นหาคอนเทนต์</h1>
@@ -871,14 +873,12 @@ const App = () => {
                     </div>
                   )}
                 </div>
-              )}
+              </div>
             </div>
-          )}
 
           {/* ===== READ VIEW ===== */}
-          {activeView === 'read' && (
-            <div className="reader-library-view animate-fade-in">
-              <header className="reader-header">
+          <div className="reader-library-view animate-fade-in" style={{ display: activeView === 'read' ? 'block' : 'none' }}>
+            <header className="reader-header">
                 <h1 className="reader-title">อ่านข่าว</h1>
                 <p className="reader-subtitle">บทความและข่าวสารที่คุณบันทึกไว้อ่านแบบ Deep Read</p>
                 {activeListId && <div className="active-list-pills">กำลังกรองตาม: {postLists.find(l => l.id === activeListId)?.name}</div>}
@@ -911,12 +911,12 @@ const App = () => {
                 {readArchive.length === 0 && <div className="empty-state-card">ยังไม่มีบทความในห้องสมุด</div>}
               </div>
             </div>
-          )}
 
           {/* ===== AUDIENCE VIEW: SMART TARGET DISCOVERY ===== */}
-          {activeView === 'audience' && (() => {
-            const CATEGORIES = [
-              { icon: '⚙️', label: 'เทคโนโลยี' }, { icon: '🤖', label: 'AI' },
+          <div className="animate-fade-in" style={{ display: activeView === 'audience' ? 'block' : 'none' }}>
+            {(() => {
+              const CATEGORIES = [
+                { icon: '⚙️', label: 'เทคโนโลยี' }, { icon: '🤖', label: 'AI' },
               { icon: '💼', label: 'ธุรกิจ' }, { icon: '📈', label: 'การตลาด' },
               { icon: '💹', label: 'การเงิน' }, { icon: '📊', label: 'การลงทุน' },
               { icon: '₿', label: 'คริปโต' }, { icon: '🏥', label: 'สุขภาพ' },
@@ -1121,25 +1121,16 @@ const App = () => {
                           />
                         ))}
                       </div>
-                      {watchlist.length === 0 && (
-                        <div style={{ padding: '100px 40px', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '24px', border: '1px dashed var(--glass-border)' }}>
-                          <Users size={48} style={{ color: 'var(--bg-700)', marginBottom: '16px' }} />
-                          <div style={{ color: 'var(--text-dim)', fontSize: '15px' }}>ยังไม่มีบัญชีที่ติดตามอยู่</div>
-                        </div>
-                      )}
                     </div>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
-
-
+                  )}
+                </div>
+              );
+            })()}
+          </div>
 
           {/* ===== BOOKMARKS VIEW ===== */}
-          {activeView === 'bookmarks' && (
-            <div className="animate-fade-in">
-              <header className="dashboard-header">
+          <div className="animate-fade-in" style={{ display: activeView === 'bookmarks' ? 'block' : 'none' }}>
+            <header className="dashboard-header">
                 <h1 style={{ fontSize: '32px', fontWeight: '800' }}>Bookmarks</h1>
                 <p style={{ color: 'var(--text-muted)' }}>คลังข้อมูลที่คุณบันทึกไว้แยกตามประเภท</p>
               </header>
@@ -1194,8 +1185,7 @@ const App = () => {
                 ))}
               </div>
             </div>
-          )}
-
+          
         </div>
       </main>
 
