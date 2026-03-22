@@ -725,7 +725,10 @@ const App = () => {
     const query = q || aiQuery;
     setAiSearchLoading(true);
     try {
-      const excludes = isMore ? aiSearchResults.map(u => u.username) : [];
+      const excludes = [
+        ...watchlist.map(u => u.username),
+        ...(isMore ? aiSearchResults.map(u => u.username) : [])
+      ];
       const experts = await discoverTopExperts(query, excludes);
       setAiSearchResults(prev => isMore ? [...prev, ...experts] : experts);
     } catch (err) {
