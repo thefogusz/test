@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Plus, Trash2, X, FileCode, List, Library, Share2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Plus, Trash2, X, FileCode, List, Library, Share2, Pencil } from 'lucide-react';
 
 const normalizeHandle = (value) => (value || '').trim().replace(/^@/, '').toLowerCase();
 
@@ -101,6 +101,9 @@ const RightSidebar = ({
   const [editingName, setEditingName] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [isAddInputFocused, setIsAddInputFocused] = useState(false);
+  const [highlightedSuggestion, setHighlightedSuggestion] = useState(0);
+  const addInputAreaRef = useRef(null);
 
   const COLORS = [
     '#2997ff', // Electric Blue
@@ -113,6 +116,21 @@ const RightSidebar = ({
   ];
 
   const accountPool = buildKnownAccountPool(watchlist, postLists);
+
+  useEffect(() => {
+    const handlePointerDown = (event) => {
+      if (!addInputAreaRef.current?.contains(event.target)) {
+        setIsAddInputFocused(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, []);
+
+  useEffect(() => {
+    setHighlightedSuggestion(0);
+  }, [expandedId]);
 
   const handleListClick = (id) => {
     if (activeListId === id) {
@@ -197,7 +215,7 @@ const RightSidebar = ({
       <div className="right-sidebar-content" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
         
         {/* Create Action (Replaced Import) */}
-        <div style={{ marginBottom: '16px' }}>
+        <div style={{ marginBottom: '16px', display: postLists.length > 0 ? 'none' : 'block' }}>
           <button onClick={onCreateList} className="btn-pill" style={{ width: '100%', justifyContent: 'center', fontSize: '13px' }}>
             <Plus size={14} /> สร้าง Post List
           </button>
@@ -205,6 +223,11 @@ const RightSidebar = ({
 
         {/* POST LISTS (Playlists style) */}
         <div className="list-container" style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: postLists.length === 0 ? 1 : 'none' }}>
+          {postLists.length > 0 && (
+            <div style={{ padding: '0 12px 10px', fontSize: '11px', fontWeight: '800', color: 'var(--text-dim)', letterSpacing: '0.12em' }}>
+              YOUR LISTS
+            </div>
+          )}
           {postLists.map(list => {
             const normalizedMembers = new Set(
               (Array.isArray(list.members) ? list.members : [])
@@ -225,11 +248,13 @@ const RightSidebar = ({
               if (priorityDiff !== 0) return priorityDiff;
               return (left?.name || left?.username || '').localeCompare(right?.name || right?.username || '');
             });
+            const typeaheadAccounts = matchingAccounts.slice(0, 6);
             const exactMatch = normalizedQuery
               ? matchingAccounts.find((user) => normalizeHandle(user?.username) === normalizedQuery)
               : null;
             const singleMatch = matchingAccounts.length === 1 ? matchingAccounts[0] : null;
             const canAddManually = normalizedQuery && !normalizedMembers.has(normalizedQuery) && matchingAccounts.length === 0;
+            const highlightedAccount = typeaheadAccounts[highlightedSuggestion] || null;
             const helperText = !normalizedQuery
               ? `Browse all ${availableAccounts.length} available accounts from your saved people and lists.`
               : exactMatch
@@ -257,6 +282,41 @@ const RightSidebar = ({
               if (canAddManually) {
                 onAddMember(list.id, normalizedQuery);
                 setAddHandle('');
+                setHighlightedSuggestion(0);
+              }
+            };
+
+            const showTypeahead = isAddInputFocused && (typeaheadAccounts.length > 0 || canAddManually || normalizedQuery);
+            const showAvailableAccounts = !normalizedQuery;
+
+            const handleInputKeyDown = (e) => {
+              if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (typeaheadAccounts.length > 0) {
+                  setHighlightedSuggestion((current) => (current + 1) % typeaheadAccounts.length);
+                }
+                return;
+              }
+
+              if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (typeaheadAccounts.length > 0) {
+                  setHighlightedSuggestion((current) => (current - 1 + typeaheadAccounts.length) % typeaheadAccounts.length);
+                }
+                return;
+              }
+
+              if (e.key === 'Enter') {
+                e.preventDefault();
+
+                if (highlightedAccount) {
+                  onAddMember(list.id, highlightedAccount.username);
+                  setAddHandle('');
+                  setHighlightedSuggestion(0);
+                  return;
+                }
+
+                handleSubmitAdd();
               }
             };
 
@@ -338,7 +398,6 @@ const RightSidebar = ({
                   ) : (
                     <div 
                       className="list-name" 
-                      onDoubleClick={(e) => handleStartEdit(e, list)}
                       style={{ 
                         fontWeight: '700', 
                         fontSize: '15px', 
@@ -373,6 +432,16 @@ const RightSidebar = ({
                     </div>
                   ) : (
                     <>
+                      <button 
+                        onClick={(e) => handleStartEdit(e, list)} 
+                        className="action-hover-btn" 
+                        title="Rename Post List"
+                        style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', padding: '8px', cursor: 'pointer', opacity: activeListId === list.id ? 1 : 0, transition: 'all 0.2s' }} 
+                        onMouseOver={e=>e.currentTarget.style.color='#fff'} 
+                        onMouseOut={e=>e.currentTarget.style.color='var(--text-muted)'}
+                      >
+                        <Pencil size={15} />
+                      </button>
                       <button 
                         onClick={(e) => { e.stopPropagation(); onShareList(list); }} 
                         className="action-hover-btn" 
@@ -423,25 +492,81 @@ const RightSidebar = ({
                 <div className="list-members-container" style={{ padding: '0 8px 16px 12px' }}>
                   
                   {/* Search/Add Input - Spotify Style */}
-                  <div style={{ position: 'relative', marginBottom: '16px', padding: '0 4px' }}>
+                  <div ref={addInputAreaRef} style={{ position: 'relative', marginBottom: '16px', padding: '0 4px' }}>
                     <input 
                       type="text" 
                       placeholder="Search your watchlist or type @handle" 
                       value={addHandle}
-                      onChange={(e) => setAddHandle(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          handleSubmitAdd();
-                        }
+                      onChange={(e) => {
+                        setAddHandle(e.target.value);
+                        setHighlightedSuggestion(0);
+                        setIsAddInputFocused(true);
                       }}
+                      onFocus={() => setIsAddInputFocused(true)}
+                      onKeyDown={handleInputKeyDown}
                       style={{ width: '100%', background: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: '4px', padding: '10px 14px', fontSize: '13px', color: '#fff', outline: 'none' }}
                     />
-                    <div style={{ marginTop: '8px', padding: '0 2px', fontSize: '11px', color: 'var(--text-dim)', lineHeight: '1.5' }}>
+                    {showTypeahead && (
+                      <div style={{ marginTop: '8px', background: 'rgba(15,23,42,0.96)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 18px 40px rgba(0,0,0,0.35)', backdropFilter: 'blur(18px)' }}>
+                        {typeaheadAccounts.map((u, index) => {
+                          const isHighlighted = index === highlightedSuggestion;
+                          return (
+                            <button
+                              key={u.id}
+                              type="button"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onMouseEnter={() => setHighlightedSuggestion(index)}
+                              onClick={() => {
+                                onAddMember(list.id, u.username);
+                                setAddHandle('');
+                                setHighlightedSuggestion(0);
+                                setIsAddInputFocused(false);
+                              }}
+                              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', border: 'none', borderBottom: index === typeaheadAccounts.length - 1 && !canAddManually ? 'none' : '1px solid rgba(255,255,255,0.05)', background: isHighlighted ? 'rgba(255,255,255,0.08)' : 'transparent', color: '#fff', cursor: 'pointer', textAlign: 'left' }}
+                            >
+                              <img
+                                src={u.profile_image_url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png'}
+                                alt={u.username}
+                                style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover', opacity: 0.9, flexShrink: 0 }}
+                                onError={e => {
+                                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=random&color=fff&bold=true`;
+                                }}
+                              />
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: '13px', fontWeight: '700', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{u.name}</div>
+                                <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>@{u.username}</div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                        {canAddManually && (
+                          <button
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => {
+                              handleSubmitAdd();
+                              setIsAddInputFocused(false);
+                            }}
+                            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '10px 12px', border: 'none', background: 'rgba(255,255,255,0.03)', color: '#fff', cursor: 'pointer', textAlign: 'left' }}
+                          >
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: '13px', fontWeight: '700', color: '#fff' }}>Add @{normalizedQuery} manually</div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>This account is not in your watchlist yet.</div>
+                            </div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-dim)', flexShrink: 0 }}>Enter</div>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    <div style={{ marginTop: '8px', padding: '0 2px', fontSize: '11px', color: 'var(--text-dim)', lineHeight: '1.5', opacity: showTypeahead ? 0.72 : 1 }}>
                       {helperText}
                     </div>
                   </div>
 
                   {/* Current Members List */}
+                   <div style={{ padding: '0 8px 10px', fontSize: '11px', fontWeight: '800', color: 'var(--text-dim)', letterSpacing: '0.12em' }}>
+                     MEMBERS
+                   </div>
                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '20px' }}>
                      {list.members.length > 0 && list.members.map(handle => {
                        const userAcc = watchlist.find(u => normalizeHandle(u?.username) === normalizeHandle(handle));
@@ -464,14 +589,19 @@ const RightSidebar = ({
                            </button>
                          </div>
                        );
-                    })}
-                  </div>
+                     })}
+                   </div>
+                   {list.members.length === 0 && (
+                     <div style={{ padding: '0 12px 18px', fontSize: '12px', color: 'var(--text-dim)', lineHeight: '1.5' }}>
+                       ยังไม่มีสมาชิกในลิสต์นี้ ลองพิมพ์ชื่อหรือ @handle เพื่อเพิ่มได้เลย
+                     </div>
+                   )}
 
-                   {/* Available Accounts */}
-                   {(availableAccounts.length > 0 || canAddManually || normalizedQuery) && (
+                    {/* Available Accounts */}
+                   {(showAvailableAccounts && availableAccounts.length > 0) && (
                      <div className="animate-fade-in">
                        <div style={{ padding: '0 8px 12px', fontSize: '14px', fontWeight: '800', color: '#fff', letterSpacing: '-0.01em' }}>
-                         {normalizedQuery ? `Matching accounts (${matchingAccounts.length})` : `Available accounts (${availableAccounts.length})`}
+                         {`Available accounts (${availableAccounts.length})`}
                        </div>
                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                          {matchingAccounts.map(u => (
@@ -499,27 +629,6 @@ const RightSidebar = ({
                              >Add</button>
                            </div>
                          ))}
-                         {matchingAccounts.length === 0 && !canAddManually && (
-                           <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--text-dim)', lineHeight: '1.5' }}>
-                             No matching saved accounts for "{addHandle.trim()}".
-                           </div>
-                         )}
-                         {canAddManually && (
-                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)' }}>
-                             <div style={{ minWidth: 0 }}>
-                               <div style={{ fontSize: '13px', fontWeight: '600', color: '#fff' }}>Add @{normalizedQuery} manually</div>
-                               <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>This account is not in your watchlist yet.</div>
-                             </div>
-                             <button
-                               onClick={() => handleSubmitAdd()}
-                               style={{ border: '1px solid var(--text-dim)', background: 'transparent', borderRadius: '999px', color: '#fff', padding: '6px 16px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }}
-                               onMouseEnter={e => { e.currentTarget.style.borderColor = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-                               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--text-dim)'; e.currentTarget.style.background = 'transparent'; }}
-                             >
-                               Add
-                             </button>
-                           </div>
-                         )}
                        </div>
                      </div>
                    )}
