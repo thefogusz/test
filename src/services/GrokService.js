@@ -402,20 +402,40 @@ export const generateGrokBatch = async (stories) => {
   }
 };
 
-export const agentFilterFeed = async (tweetsData, userPrompt) => {
+export const agentFilterFeed = async (tweetsData, userPrompt, options = {}) => {
   if (!tweetsData?.length) return [];
+  const { preferCredibleSources = false } = options;
 
   const compressedInput = tweetsData.map((tweet) => ({
     id: tweet.id,
     text: tweet.text,
+    createdAt: tweet.created_at || tweet.createdAt || null,
     username: tweet.author?.username || null,
+    authorName: tweet.author?.name || null,
+    authorBio: tweet.author?.description || tweet.author?.profile_bio?.description || null,
+    followers: tweet.author?.followers || tweet.author?.fastFollowersCount || 0,
+    isVerified: Boolean(tweet.author?.isVerified),
+    isBlueVerified: Boolean(tweet.author?.isBlueVerified),
+    isAutomated: Boolean(tweet.author?.isAutomated),
+    likeCount: tweet.like_count || tweet.likeCount || 0,
+    retweetCount: tweet.retweet_count || tweet.retweetCount || 0,
+    replyCount: tweet.reply_count || tweet.replyCount || 0,
+    quoteCount: tweet.quote_count || tweet.quoteCount || 0,
+    viewCount: tweet.view_count || tweet.viewCount || 0,
   }));
 
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
       system: `Select only the posts that match this user intent: "${userPrompt}".
-Return IDs only. Remove spam, scams, engagement bait, duplicates, and off-topic posts.`,
+Return IDs only.
+Rules:
+- Keep only posts that clearly help answer the brief.
+- Remove spam, scams, engagement bait, duplicates, and off-topic posts.
+- Remove copycat headline posts from weak accounts when a stronger source says the same thing.
+- Be selective. Fewer high-signal posts are better than many weak posts.
+${preferCredibleSources ? '- Prioritize topic fit first, then prefer official accounts, reporters, researchers, founders, institutions, or accounts with clear credibility/real reach.' : ''}
+${preferCredibleSources ? '- Down-rank low-value aggregator accounts that only restate the headline without adding original reporting, analysis, or meaningful context.' : ''}`,
       prompt: JSON.stringify(compressedInput),
       schema: z.object({
         validIds: z.array(z.string()),
@@ -454,8 +474,6 @@ export const generateExecutiveSummary = async (validTweets, userQuery) => {
 export const expandSearchQuery = async (originalQuery, isLatest = false) => {
   if (!originalQuery) return originalQuery;
 
-  const today = new Date().toISOString().split('T')[0];
-
   try {
     const { object } = await generateObject({
       model: grok(MODEL_REASONING_FAST),
@@ -465,7 +483,7 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
 - ขยายคำค้นหาโดยใช้ทั้งภาษาไทยและ "ภาษาอังกฤษ" (English keywords) เพื่อให้ครอบคลุมข้อมูลระดับโลก
 - ใช้ OR เชื่อมระหว่างคำค้นหาไทยและอังกฤษ เช่น (คริปโต OR crypto)
 - ต้องใส่ -filter:replies เสมอ 1 ครั้ง
-- ${isLatest ? `เพิ่ม since:${today} เพื่อเน้นความใหม่ล่าสุด` : 'เน้นโพสต์ที่มีสัญญาณสำคัญสูง เหมาะสำหรับผลลัพธ์แบบยอดนิยม (Top)'}
+- ${isLatest ? 'โหมดสายฟ้าจะถูกคัดในแอปให้เหลือเฉพาะ 24 ชั่วโมงล่าสุดอยู่แล้ว ดังนั้นห้ามบังคับ since:today หรือคำค้นที่แคบเกินไป ให้โฟกัส recent developments แบบยังได้โพสต์คุณภาพ' : 'เน้นโพสต์ที่มีสัญญาณสำคัญสูง เหมาะสำหรับผลลัพธ์แบบยอดนิยม (Top)'}
 - ส่งคืนผลลัพธ์เป็น JSON เท่านั้น`,
       prompt: `Topic: ${originalQuery}`,
       schema: z.object({

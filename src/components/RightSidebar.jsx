@@ -1,6 +1,41 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, X, FileCode, List, Library, Share2 } from 'lucide-react';
 
+const normalizeHandle = (value) => (value || '').trim().replace(/^@/, '').toLowerCase();
+
+const getMatchPriority = (user, query) => {
+  const normalizedQuery = normalizeHandle(query);
+  const username = normalizeHandle(user?.username);
+  const name = (user?.name || '').trim().toLowerCase();
+
+  if (!normalizedQuery) return 0;
+  if (username === normalizedQuery) return 0;
+  if (username.startsWith(normalizedQuery)) return 1;
+  if (name.startsWith(normalizedQuery)) return 2;
+  if (username.includes(normalizedQuery)) return 3;
+  if (name.includes(normalizedQuery)) return 4;
+  return 5;
+};
+
+const getAvailableAccounts = (watchlist, members) => {
+  const memberHandles = new Set(
+    (Array.isArray(members) ? members : [])
+      .map(normalizeHandle)
+      .filter(Boolean),
+  );
+  const seenHandles = new Set();
+
+  return (Array.isArray(watchlist) ? watchlist : []).filter((user) => {
+    const handle = normalizeHandle(user?.username);
+    if (!handle || memberHandles.has(handle) || seenHandles.has(handle)) {
+      return false;
+    }
+
+    seenHandles.add(handle);
+    return true;
+  });
+};
+
 const RightSidebar = ({
   watchlist,
   postLists,
@@ -124,7 +159,62 @@ const RightSidebar = ({
 
         {/* POST LISTS (Playlists style) */}
         <div className="list-container" style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: postLists.length === 0 ? 1 : 'none' }}>
-          {postLists.map(list => (
+          {postLists.map(list => {
+            const normalizedMembers = new Set(
+              (Array.isArray(list.members) ? list.members : [])
+                .map(normalizeHandle)
+                .filter(Boolean),
+            );
+            const availableAccounts = getAvailableAccounts(watchlist, list.members);
+            const normalizedQuery = normalizeHandle(addHandle);
+            const matchingAccounts = (normalizedQuery
+              ? availableAccounts.filter((user) => {
+                  const username = normalizeHandle(user?.username);
+                  const name = (user?.name || '').trim().toLowerCase();
+                  return username.includes(normalizedQuery) || name.includes(normalizedQuery);
+                })
+              : availableAccounts
+            ).sort((left, right) => {
+              const priorityDiff = getMatchPriority(left, normalizedQuery) - getMatchPriority(right, normalizedQuery);
+              if (priorityDiff !== 0) return priorityDiff;
+              return (left?.name || left?.username || '').localeCompare(right?.name || right?.username || '');
+            });
+            const exactMatch = normalizedQuery
+              ? matchingAccounts.find((user) => normalizeHandle(user?.username) === normalizedQuery)
+              : null;
+            const singleMatch = matchingAccounts.length === 1 ? matchingAccounts[0] : null;
+            const canAddManually = normalizedQuery && !normalizedMembers.has(normalizedQuery) && matchingAccounts.length === 0;
+            const helperText = !normalizedQuery
+              ? `Browse all ${availableAccounts.length} available accounts from your watchlist.`
+              : exactMatch
+                ? `Press Enter to add @${exactMatch.username}.`
+                : singleMatch
+                  ? `Press Enter to add @${singleMatch.username}.`
+                  : canAddManually
+                    ? `No watchlist match found. Press Enter to add @${normalizedQuery} manually.`
+                    : `Found ${matchingAccounts.length} matching accounts in your watchlist.`;
+            const handleSubmitAdd = () => {
+              if (!normalizedQuery) return;
+
+              if (exactMatch) {
+                onAddMember(list.id, exactMatch.username);
+                setAddHandle('');
+                return;
+              }
+
+              if (singleMatch) {
+                onAddMember(list.id, singleMatch.username);
+                setAddHandle('');
+                return;
+              }
+
+              if (canAddManually) {
+                onAddMember(list.id, normalizedQuery);
+                setAddHandle('');
+              }
+            };
+
+            return (
             <React.Fragment key={list.id}>
               <div 
                 className={`spotify-list-item ${activeListId === list.id ? 'active' : ''}`}
@@ -147,16 +237,18 @@ const RightSidebar = ({
                 {/* Color Picker & Cover Icon */}
                 <div 
                   className="list-cover" 
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    if (expandedId === list.id) {
-                      setExpandedId(null); 
-                      onSelectList(null);
-                    } else {
-                      setExpandedId(list.id); 
-                      onSelectList(list.id); 
-                    }
-                  }} 
+                   onClick={(e) => { 
+                     e.stopPropagation(); 
+                     if (expandedId === list.id) {
+                        setExpandedId(null); 
+                        setAddHandle('');
+                        onSelectList(null);
+                      } else {
+                        setExpandedId(list.id); 
+                        setAddHandle('');
+                        onSelectList(list.id); 
+                      }
+                    }} 
                   style={{ 
                     width: '48px', 
                     height: '48px', 
@@ -288,23 +380,25 @@ const RightSidebar = ({
                   <div style={{ position: 'relative', marginBottom: '16px', padding: '0 4px' }}>
                     <input 
                       type="text" 
-                      placeholder="Find more for this list..." 
+                      placeholder="Search your watchlist or type @handle" 
                       value={addHandle}
                       onChange={(e) => setAddHandle(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
-                          onAddMember(list.id, addHandle);
-                          setAddHandle('');
+                          handleSubmitAdd();
                         }
                       }}
                       style={{ width: '100%', background: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: '4px', padding: '10px 14px', fontSize: '13px', color: '#fff', outline: 'none' }}
                     />
+                    <div style={{ marginTop: '8px', padding: '0 2px', fontSize: '11px', color: 'var(--text-dim)', lineHeight: '1.5' }}>
+                      {helperText}
+                    </div>
                   </div>
 
                   {/* Current Members List */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '20px' }}>
-                    {list.members.length > 0 && list.members.map(handle => {
-                       const userAcc = watchlist.find(u => u.username.toLowerCase() === handle.toLowerCase());
+                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '20px' }}>
+                     {list.members.length > 0 && list.members.map(handle => {
+                       const userAcc = watchlist.find(u => normalizeHandle(u?.username) === normalizeHandle(handle));
                        return (
                          <div key={handle} className="member-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', borderRadius: '8px', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                            <img 
@@ -327,15 +421,17 @@ const RightSidebar = ({
                     })}
                   </div>
 
-                  {/* Suggested Section - The 'Spotify' Touch */}
-                  {watchlist.filter(u => !list.members.includes(u.username)).length > 0 && (
-                    <div className="animate-fade-in">
-                      <div style={{ padding: '0 8px 12px', fontSize: '14px', fontWeight: '800', color: '#fff', letterSpacing: '-0.01em' }}>Recommended</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        {watchlist.filter(u => !list.members.includes(u.username)).slice(0, 5).map(u => (
-                          <div key={u.id} className="suggestion-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', borderRadius: '8px', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <img 
-                              src={u.profile_image_url} 
+                   {/* Available Accounts */}
+                   {(availableAccounts.length > 0 || canAddManually || normalizedQuery) && (
+                     <div className="animate-fade-in">
+                       <div style={{ padding: '0 8px 12px', fontSize: '14px', fontWeight: '800', color: '#fff', letterSpacing: '-0.01em' }}>
+                         {normalizedQuery ? `Matching accounts (${matchingAccounts.length})` : `Available accounts (${availableAccounts.length})`}
+                       </div>
+                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                         {matchingAccounts.map(u => (
+                           <div key={u.id} className="suggestion-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', borderRadius: '8px', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                             <img 
+                               src={u.profile_image_url} 
                               alt={u.username}
                               style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', opacity: 0.8 }}
                               onError={e => { 
@@ -346,21 +442,45 @@ const RightSidebar = ({
                               <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff' }}>{u.name}</div>
                               <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>@{u.username}</div>
                             </div>
-                            <button 
-                              onClick={() => onAddMember(list.id, u.username)}
-                              style={{ border: '1px solid var(--text-dim)', background: 'transparent', borderRadius: '999px', color: '#fff', padding: '6px 16px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }}
-                              onMouseEnter={e => { e.currentTarget.style.borderColor = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-                              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--text-dim)'; e.currentTarget.style.background = 'transparent'; }}
-                            >Add</button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </React.Fragment>
-          ))}
+                             <button 
+                               onClick={() => {
+                                 onAddMember(list.id, u.username);
+                                 setAddHandle('');
+                               }}
+                               style={{ border: '1px solid var(--text-dim)', background: 'transparent', borderRadius: '999px', color: '#fff', padding: '6px 16px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }}
+                               onMouseEnter={e => { e.currentTarget.style.borderColor = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--text-dim)'; e.currentTarget.style.background = 'transparent'; }}
+                             >Add</button>
+                           </div>
+                         ))}
+                         {matchingAccounts.length === 0 && !canAddManually && (
+                           <div style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--text-dim)', lineHeight: '1.5' }}>
+                             No matching watchlist accounts for "{addHandle.trim()}".
+                           </div>
+                         )}
+                         {canAddManually && (
+                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,255,255,0.03)' }}>
+                             <div style={{ minWidth: 0 }}>
+                               <div style={{ fontSize: '13px', fontWeight: '600', color: '#fff' }}>Add @{normalizedQuery} manually</div>
+                               <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>This account is not in your watchlist yet.</div>
+                             </div>
+                             <button
+                               onClick={() => handleSubmitAdd()}
+                               style={{ border: '1px solid var(--text-dim)', background: 'transparent', borderRadius: '999px', color: '#fff', padding: '6px 16px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }}
+                               onMouseEnter={e => { e.currentTarget.style.borderColor = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--text-dim)'; e.currentTarget.style.background = 'transparent'; }}
+                             >
+                               Add
+                             </button>
+                           </div>
+                         )}
+                       </div>
+                     </div>
+                   )}
+                 </div>
+               )}
+             </React.Fragment>
+          )})}
           
           {/* Centered Empty State for List */}
           {postLists.length === 0 && (

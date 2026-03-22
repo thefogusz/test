@@ -26,7 +26,14 @@ import Sidebar from './components/Sidebar';
 import RightSidebar from './components/RightSidebar';
 import FeedCard from './components/FeedCard';
 import CreateContent from './components/CreateContent';
-import { getUserInfo, fetchWatchlistFeed, searchEverything } from './services/TwitterService';
+import {
+  curateSearchResults,
+  filterTweetsWithinHours,
+  getUserInfo,
+  fetchWatchlistFeed,
+  RECENT_WINDOW_HOURS,
+  searchEverything,
+} from './services/TwitterService';
 import { agentFilterFeed, generateGrokBatch, expandSearchQuery, discoverTopExperts, generateExecutiveSummary } from './services/GrokService';
 import { renderMarkdownToHtml } from './utils/markdown';
 import './index.css';
@@ -38,6 +45,25 @@ const safeParse = (value, fallback) => {
   } catch {
     return fallback;
   }
+};
+
+const mergeUniquePostsById = (...collections) => {
+  const byId = new Map();
+
+  collections
+    .flat()
+    .filter(Boolean)
+    .forEach((post) => {
+      if (!post?.id) return;
+      const existing = byId.get(post.id);
+      byId.set(post.id, {
+        ...existing,
+        ...post,
+        author: post.author || existing?.author,
+      });
+    });
+
+  return Array.from(byId.values());
 };
 
 const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
@@ -460,36 +486,80 @@ const App = () => {
         console.log("Expanded Query in " + (isLatestMode ? 'Latest' : 'Quality') + " mode:", finalQuery);
       }
       
-      // Route to 'Latest' or 'Top' endpoint depending on User Toggle
-      setStatus(`[API] กำลังแสกนหาข้อมูลและกวาดล้างเนื้อหาดิบจาก X ทั่วโลก...`);
-      const { data, meta } = await searchEverything(finalQuery, isMore ? searchCursor : null, onlyNews, isLatestMode ? 'Latest' : 'Top'); 
+      let data = [];
+      let meta = { next_cursor: null };
+
+      if (isLatestMode) {
+        setStatus(
+          isMore
+            ? `[API] กำลังดึงโพสต์เพิ่มในช่วง ${RECENT_WINDOW_HOURS} ชั่วโมงล่าสุด...`
+            : `[API] กำลังดึงสัญญาณสำคัญในช่วง ${RECENT_WINDOW_HOURS} ชั่วโมงล่าสุด แล้วคัดคุณภาพ...`,
+        );
+
+        if (isMore) {
+          const latestResponse = await searchEverything(finalQuery, searchCursor, onlyNews, 'Latest');
+          const recentLatest = filterTweetsWithinHours(latestResponse.data, RECENT_WINDOW_HOURS);
+          data = recentLatest;
+          meta = {
+            next_cursor: recentLatest.length > 0 ? latestResponse.meta.next_cursor : null,
+          };
+        } else {
+          const [latestResponse, topResponse] = await Promise.all([
+            searchEverything(finalQuery, null, onlyNews, 'Latest'),
+            searchEverything(finalQuery, null, onlyNews, 'Top'),
+          ]);
+
+          const recentLatest = filterTweetsWithinHours(latestResponse.data, RECENT_WINDOW_HOURS);
+          const recentTop = filterTweetsWithinHours(topResponse.data, RECENT_WINDOW_HOURS);
+          data = mergeUniquePostsById(recentTop, recentLatest);
+          meta = {
+            next_cursor: recentLatest.length > 0 ? latestResponse.meta.next_cursor : null,
+          };
+        }
+      } else {
+        // Default mode keeps provider Top ranking, then curates locally.
+        setStatus(`[API] กำลังแสกนหาข้อมูลและกวาดล้างเนื้อหาดิบจาก X ทั่วโลก...`);
+        const response = await searchEverything(finalQuery, isMore ? searchCursor : null, onlyNews, 'Top');
+        data = response.data;
+        meta = response.meta;
+      }
       
       let finalData = data;
-      if (!isMore && data.length > 0) {
-        setStatus(`[Agent 2/3] กำลังกรองสแปมและคัดเลือก 20 โพสต์ระดับคุณภาพ...`);
-        const validIds = await agentFilterFeed(data, requestedQuery);
-        const cleanData = data.filter(t => validIds.includes(t.id));
-        finalData = cleanData.length > 0 ? cleanData : data; // Fallback so we don't display empty
+      if (data.length > 0) {
+        setStatus(
+          isMore
+            ? 'กำลังคัดกรองและจัดอันดับผลลัพธ์เพิ่มเติม...'
+            : `[Agent 2/3] กำลังกรองสแปม คัดความตรงบรีฟ และจัดอันดับตามความน่าเชื่อถือ...`,
+        );
+        const validIds = await agentFilterFeed(data, requestedQuery, {
+          preferCredibleSources: !isLatestMode,
+        });
+        const cleanData = data.filter((tweet) => validIds.includes(tweet.id));
+        const candidateData = cleanData.length > 0 ? cleanData : data;
+        finalData = curateSearchResults(candidateData, requestedQuery, { latestMode: isLatestMode });
         
-        setStatus(`[Agent 3/3] กำลังสังเคราะห์ข้อมูลและเขียน Executive Summary...`);
-        const summaryText = await generateExecutiveSummary(finalData.slice(0, 10), requestedQuery);
-        setSearchSummary(summaryText);
+        if (!isMore) {
+          setStatus(`[Agent 3/3] กำลังสังเคราะห์ข้อมูลและเขียน Executive Summary...`);
+          const summaryText = await generateExecutiveSummary(finalData.slice(0, 10), requestedQuery);
+          setSearchSummary(summaryText);
+        }
       }
 
-      const newResults = isMore ? [...searchResults, ...finalData] : finalData;
+      const mergedResults = isMore ? mergeUniquePostsById(searchResults, finalData) : finalData;
+      const newResults = curateSearchResults(mergedResults, requestedQuery, { latestMode: isLatestMode });
       setSearchResults(newResults);
       setOriginalSearchResults(newResults);
       setFeed(newResults); 
       setSearchCursor(meta.next_cursor);
       setStatus(`ตรวจสอบพบ ${newResults.length} รายการระดับคุณภาพ`);
       
-      if (data.length > 0) {
+      if (finalData.length > 0) {
         setStatus('Grok 4.1 กำลังทยอยแปลผลการค้นหาเป็นภาษาไทย...');
         
         const CHUNK_SIZE = 10;
         // Search Streaming effect
-        for (let i = 0; i < data.length; i += CHUNK_SIZE) {
-           const chunk = data.slice(i, i + CHUNK_SIZE);
+        for (let i = 0; i < finalData.length; i += CHUNK_SIZE) {
+           const chunk = finalData.slice(i, i + CHUNK_SIZE);
            const toSummarize = chunk.filter(t => {
              const existing = newResults.find(p => p.id === t.id);
              return !hasUsefulThaiSummary(existing?.summary || t.summary, existing?.text || t.text);
@@ -709,10 +779,11 @@ const App = () => {
     if (!handle) return;
     const cleanHandle = handle.trim().replace(/^@/, '');
     if (!cleanHandle) return;
+    const normalizedHandle = cleanHandle.toLowerCase();
 
     setPostLists(prev => prev.map(list => {
       if (list.id === listId) {
-        if (list.members.includes(cleanHandle)) {
+        if (list.members.some(member => (member || '').toLowerCase() === normalizedHandle)) {
           setStatus(`@${cleanHandle} มีอยู่ในรายการแล้ว`);
           return list;
         }
@@ -1117,7 +1188,7 @@ const App = () => {
                   <div className="hero-search-actions">
                     <button 
                       type="button" 
-                      title={isLatestMode ? "ปิดโหมดใหม่ล่าสุด" : "เปิดโหมดใหม่ล่าสุด"}
+                      title={isLatestMode ? `ปิดโหมด ${RECENT_WINDOW_HOURS} ชั่วโมงล่าสุด` : `เปิดโหมด ${RECENT_WINDOW_HOURS} ชั่วโมงล่าสุด`}
                       onClick={(e) => { 
                         e.stopPropagation();
                         setIsLatestMode(!isLatestMode); 
