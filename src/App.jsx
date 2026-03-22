@@ -142,6 +142,7 @@ const UserCard = ({ user, postLists = [], onToggleList, onRemove }) => {
       borderRadius: '12px',
       transition: 'all 0.2s',
       position: 'relative',
+      zIndex: showMenu ? 50 : 1,
       width: '100%',
       minWidth: 0,
       overflow: 'visible'
@@ -892,12 +893,10 @@ const App = () => {
 
               {contentTab === 'search' && (
                 <div className="search-discovery-view animate-fade-in">
-                  <header className="dashboard-header" style={{ marginBottom: '24px' }}>
-                    <h1 style={{ fontSize: '32px', fontWeight: '800', letterSpacing: '-0.03em' }}>ค้นหาคอนเทนต์</h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>สำรวจเทรนด์และเจาะลึกข้อมูลจากทั่วโลก</p>
-                  </header>
-                  <div className="hero-search-container" style={{ padding: '0' }}>
-                    <div className="hero-search-wrapper">
+                  <div className="hero-search-container">
+                    <h1 className="hero-search-title">ค้นหาคอนเทนต์</h1>
+                    <p className="hero-search-subtitle">สำรวจเทรนด์และเจาะลึกข้อมูลจากทั่วโลก</p>
+                    <div className="hero-search-wrapper" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                       <form onSubmit={(e) => { e.preventDefault(); handleSearch(e); setShowSuggestions(false); }} className="hero-search-form">
                         <Search size={20} className="hero-search-icon" />
                         <input
@@ -933,7 +932,20 @@ const App = () => {
                           ))}
                         </div>
                       )}
-                      {isLiveSearching && !isSearching && <div className="searching-indicator"><RefreshCw size={12} className="animate-spin" /> กำลังประมวลผลการค้นหา...</div>}
+                      {isLiveSearching && !isSearching && <div className="searching-indicator" style={{ marginTop: '16px' }}><RefreshCw size={12} className="animate-spin" /> กำลังประมวลผลการค้นหา...</div>}
+                      
+                      {!searchQuery && searchResults.length === 0 && (
+                        <div className="search-idea-tags animate-fade-in">
+                          <p>ลองค้นหาคีย์เวิร์ดเหล่านี้...</p>
+                          <div className="tags-row">
+                            {['AI Trends 2026', 'สรุปข่าว AI', 'เทคโนโลยี', 'Web3 & Crypto', 'Social Media', 'Marketing', 'Startup Funding'].map(tag => (
+                              <button key={tag} className="idea-tag" type="button" onClick={() => { setSearchQuery(tag); handleSearch(null, false, tag); }}>
+                                {tag}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   {searchResults.length > 0 && (

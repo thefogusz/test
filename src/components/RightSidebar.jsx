@@ -403,6 +403,7 @@ const RightSidebar = ({
                   ) : (
                     <div 
                       className="list-name" 
+                      onDoubleClick={(e) => handleStartEdit(e, list)}
                       style={{ 
                         fontWeight: '700', 
                         fontSize: '15px', 
@@ -411,7 +412,8 @@ const RightSidebar = ({
                         overflow: 'hidden', 
                         textOverflow: 'ellipsis', 
                         marginBottom: '2px',
-                        transition: 'color 0.2s'
+                        transition: 'color 0.2s',
+                        cursor: 'text'
                       }}
                     >
                       {list.name}
@@ -437,16 +439,6 @@ const RightSidebar = ({
                     </div>
                   ) : (
                     <>
-                      <button 
-                        onClick={(e) => handleStartEdit(e, list)} 
-                        className="action-hover-btn" 
-                        title="Rename Post List"
-                        style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', padding: '8px', cursor: 'pointer', opacity: activeListId === list.id ? 1 : 0, transition: 'all 0.2s' }} 
-                        onMouseOver={e=>e.currentTarget.style.color='#fff'} 
-                        onMouseOut={e=>e.currentTarget.style.color='var(--text-muted)'}
-                      >
-                        <Pencil size={15} />
-                      </button>
                       <button 
                         onClick={(e) => { e.stopPropagation(); onShareList(list); }} 
                         className="action-hover-btn" 

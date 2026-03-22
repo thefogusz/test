@@ -612,9 +612,8 @@ h1, h2, h3, h4, h5, h6 {
   transform: translateY(-1px);
 }
 
-/* Reader View */
 .reader-header {
-  padding: 40px 0;
+  padding: 0 0 24px 0;
   border-bottom: 1px solid var(--glass-border);
   margin-bottom: 32px;
 }
