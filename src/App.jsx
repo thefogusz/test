@@ -1088,8 +1088,12 @@ const App = () => {
                                   </div>
                                 </div>
                                 <img 
-                                  src={`https://unavatar.io/x/${expert.username}?fallback=https://ui-avatars.com/api/?name=${encodeURIComponent(expert.name)}`} 
+                                  src={`https://unavatar.io/twitter/${expert.username}`} 
                                   style={{ width: '42px', height: '42px', borderRadius: '50%', marginBottom: '10px', border: '2px solid var(--bg-700)', objectFit: 'cover' }} 
+                                  onError={e => {
+                                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(expert.name)}&background=random&color=fff`;
+                                    e.target.onerror = null; // Prevent infinite loop if fallback fails
+                                  }}
                                 />
                                 <a 
                                   href={`https://x.com/${expert.username}`} 
@@ -1112,7 +1116,7 @@ const App = () => {
                             disabled={aiSearchLoading}
                             className="btn-pill"
                           >
-                            {aiSearchLoading ? <RefreshCw size={14} className="animate-spin" /> : 'ค้นหาผู้เชี่ยวชาญเพิ่มเติม'}
+                            {aiSearchLoading ? <RefreshCw size={14} className="animate-spin" /> : 'ค้นหาเพิ่มเติม'}
                           </button>
                         </div>
                       </div>
@@ -1169,7 +1173,14 @@ const App = () => {
                       </form>
                       {manualPreview && (
                         <div className="preview-card" style={{ padding: '20px', borderRadius: '16px', marginTop: '24px' }}>
-                          <img src={manualPreview.profile_image_url} style={{ width: '60px', height: '60px', borderRadius: '50%' }} />
+                          <img 
+                            src={manualPreview.profile_image_url} 
+                            style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--bg-700)' }} 
+                            onError={e => {
+                              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(manualPreview.name)}&background=random&color=fff`;
+                              e.target.onerror = null;
+                            }}
+                          />
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: '800', fontSize: '16px' }}>{manualPreview.name}</div>
                             <div style={{ color: 'var(--accent-secondary)', fontWeight: '700' }}>@{manualPreview.username}</div>
