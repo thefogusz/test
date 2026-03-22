@@ -37,87 +37,20 @@ import {
 import { agentFilterFeed, buildSearchPlan, discoverTopExperts, generateExecutiveSummary, generateGrokBatch } from './services/GrokService';
 import { renderMarkdownToHtml } from './utils/markdown';
 import './index.css';
-
-const safeParse = (value, fallback) => {
-  if (!value) return fallback;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return fallback;
-  }
-};
-
-const mergeUniquePostsById = (...collections) => {
-  const byId = new Map();
-
-  collections
-    .flat()
-    .filter(Boolean)
-    .forEach((post) => {
-      if (!post?.id) return;
-      const existing = byId.get(post.id);
-      byId.set(post.id, {
-        ...existing,
-        ...post,
-        author: post.author || existing?.author,
-      });
-    });
-
-  return Array.from(byId.values());
-};
-
-const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
-
-const hasThaiCharacters = (value) => THAI_CHAR_REGEX.test((value || '').trim());
-
-const hasUsefulThaiSummary = (summary, originalText = '') => {
-  const trimmedSummary = (summary || '').trim();
-  const trimmedOriginal = (originalText || '').trim();
-
-  if (!trimmedSummary) return false;
-  if (trimmedSummary.startsWith('(Grok')) return false;
-  if (trimmedOriginal && trimmedSummary === trimmedOriginal) return false;
-
-  return hasThaiCharacters(trimmedSummary);
-};
-
-const sanitizeStoredPost = (post) => {
-  if (!post || typeof post !== 'object' || post.type === 'article') return post;
-  if (!Object.prototype.hasOwnProperty.call(post, 'summary')) return post;
-  if (hasUsefulThaiSummary(post.summary, post.text)) return post;
-
-  const { summary: _summary, ...rest } = post;
-  return rest;
-};
-
-const sanitizeStoredCollection = (items) => {
-  if (!Array.isArray(items)) return [];
-  return items.map(sanitizeStoredPost);
-};
-
-const sanitizeStoredSingle = (item) => {
-  if (!item || typeof item !== 'object') return item;
-  return sanitizeStoredPost(item);
-};
-
-const sanitizeCollectionState = (items) => {
-  if (!Array.isArray(items)) return items;
-
-  let changed = false;
-  const nextItems = items.map((item) => {
-    const sanitized = sanitizeStoredPost(item);
-    if (sanitized !== item) changed = true;
-    return sanitized;
-  });
-
-  return changed ? nextItems : items;
-};
-
-const getEngagementTotal = (post) =>
-  (parseInt(post?.retweet_count) || 0) +
-  (parseInt(post?.reply_count) || 0) +
-  (parseInt(post?.like_count) || 0) +
-  (parseInt(post?.quote_count) || 0);
+import {
+  safeParse,
+  mergeUniquePostsById,
+  hasThaiCharacters,
+  hasUsefulThaiSummary,
+  sanitizeStoredPost,
+  sanitizeStoredCollection,
+  sanitizeStoredSingle,
+  sanitizeCollectionState,
+  getEngagementTotal,
+  mergePlanLabelsIntoQuery
+} from './utils/appUtils';
+import UserCard from './components/UserCard';
+import ContentErrorBoundary from './components/ContentErrorBoundary';
 
 const getSearchFallbackResults = (tweets, requestedQuery, isLatestMode) =>
   curateSearchResults(tweets, requestedQuery, {
@@ -125,148 +58,7 @@ const getSearchFallbackResults = (tweets, requestedQuery, isLatestMode) =>
     preferCredibleSources: true,
   });
 
-const mergePlanLabelsIntoQuery = (requestedQuery, topicLabels = []) =>
-  [requestedQuery, ...topicLabels].filter(Boolean).join(' ');
 
-const UserCard = ({ user, postLists = [], onToggleList, onRemove }) => {
-  const [showMenu, setShowMenu] = useState(false);
-
-  return (
-    <div className="user-list-item animate-fade-in" style={{ 
-      display: 'flex', 
-      alignItems: 'center', 
-      gap: '12px',
-      padding: '8px 12px', 
-      background: 'rgba(255,255,255,0.02)', 
-      border: '1px solid var(--glass-border)', 
-      borderRadius: '12px',
-      transition: 'all 0.2s',
-      position: 'relative',
-      zIndex: showMenu ? 50 : 1,
-      width: '100%',
-      minWidth: 0,
-      overflow: 'visible'
-    }}>
-      <img 
-        src={user.profile_image_url ? user.profile_image_url.replace('_normal', '_200x200') : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff&bold=true&size=128`} 
-        style={{ width: '38px', height: '38px', borderRadius: '50%', border: '1px solid var(--bg-700)', flexShrink: 0, objectFit: 'cover' }} 
-        alt={user.name}
-        onError={e => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff&bold=true&size=128`}
-      />
-      
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <div style={{ fontWeight: '800', fontSize: '14px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
-        <div style={{ color: 'var(--text-dim)', fontSize: '11px', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '4px' }}>@{user.username}</div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <a
-            href={`https://x.com/${user.username}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: 'var(--accent-secondary)', fontSize: '10px', fontWeight: '700', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
-          >
-            X Profile <ExternalLink size={10} />
-          </a>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
-        {onRemove && (
-          <button 
-            onClick={() => onRemove(user.id)}
-            style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Trash2 size={14} />
-          </button>
-        )}
-        <div style={{ position: 'relative' }}>
-          <button 
-            onClick={() => setShowMenu(!showMenu)}
-            style={{ width: '30px', height: '30px', borderRadius: '8px', background: 'var(--bg-700)', border: '1px solid var(--glass-border)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Plus size={16} style={{ transform: showMenu ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s' }} />
-          </button>
-          
-          {showMenu && (
-            <>
-              <div 
-                style={{ position: 'fixed', inset: 0, zIndex: 90 }} 
-                onClick={() => setShowMenu(false)}
-              />
-              <div className="discovery-menu" style={{ 
-                display: 'block',
-                position: 'absolute', 
-                top: '100%', 
-                right: 0, 
-                marginTop: '8px', 
-                zIndex: 100, 
-                minWidth: '180px'
-              }}>
-                <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', padding: '8px 12px', borderBottom: '1px solid var(--glass-border)' }}>ADD TO POST LIST</div>
-                <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                  {postLists.map(list => {
-                    const isMember = list.usernames?.includes(user.username);
-                    return (
-                      <div 
-                        key={list.id} 
-                        onClick={() => { onToggleList(user.username, list.id); setShowMenu(false); }}
-                        style={{ 
-                          padding: '10px 12px', 
-                          fontSize: '12px', 
-                          cursor: 'pointer', 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center',
-                          background: isMember ? 'rgba(41, 151, 255, 0.1)' : 'transparent',
-                          color: isMember ? 'var(--accent-secondary)' : '#fff',
-                        }}
-                      >
-                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '8px' }}>{list.name}</span>
-                        {isMember && <Trash2 size={12} />}
-                      </div>
-                    );
-                  })}
-                  {postLists.length === 0 && <div style={{ padding: '12px', fontSize: '12px', color: 'var(--text-dim)', textAlign: 'center' }}>ไม่มีรายการปลิสต์</div>}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ---- ErrorBoundary: contains crashes in CreateContent without nuking the full app ----
-class ContentErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-  static getDerivedStateFromError(error) {
-    return { hasError: true, error };
-  }
-  componentDidCatch(error, info) {
-    console.error('[ContentErrorBoundary] Caught crash:', error, info);
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{ padding: '40px', textAlign: 'center', color: 'rgba(255,255,255,0.7)' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚡</div>
-          <h3 style={{ margin: '0 0 8px', fontSize: '18px' }}>มีบางอย่างผิดพลาดระหว่างแสดงผล</h3>
-          <p style={{ margin: '0 0 24px', fontSize: '14px', color: 'rgba(255,255,255,0.4)' }}>เนื้อหาอาจถูกสร้างเรียบร้อยแล้ว เพียงแต่ Markdown Renderer ขัดข้อง</p>
-          <button 
-            onClick={() => this.setState({ hasError: false, error: null })} 
-            style={{ padding: '10px 24px', borderRadius: '999px', background: '#2997ff', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: '700', fontSize: '14px' }}
-          >
-            ลองอีกครั้ง
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 const App = () => {
   const [watchlist, setWatchlist] = useState(() => {
