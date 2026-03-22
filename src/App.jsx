@@ -483,7 +483,7 @@ const App = () => {
       if (!isMore) {
         setStatus(`[Agent 1/3] กำลังแปลคีย์เวิร์ดขั้นสูงสำหรับ "${requestedQuery}"...`);
         finalQuery = await expandSearchQuery(requestedQuery, isLatestMode);
-        console.log("Expanded Query in " + (isLatestMode ? 'Latest' : 'Quality') + " mode:", finalQuery);
+        console.log("Expanded Query in " + (isLatestMode ? '24h' : 'Quality') + " mode:", finalQuery);
       }
       
       let data = [];
