@@ -818,6 +818,14 @@ const App = () => {
                           }}
                         />
                         <div className="hero-search-actions">
+                          <button 
+                            type="button" 
+                            onClick={() => setIsLatestMode(!isLatestMode)} 
+                            className={`zap-toggle-btn ${isLatestMode ? 'active' : ''}`}
+                            title={isLatestMode ? "โหมดล่าสุด (Latest)" : "โหมดยอดนิยม (Top)"}
+                          >
+                            <Zap size={18} fill={isLatestMode ? "currentColor" : "none"} />
+                          </button>
                           {searchQuery && <button type="button" onClick={() => { setSearchQuery(''); setSuggestions([]); }} className="hero-clear-btn"><X size={16} /></button>}
                           <button type="submit" className="hero-submit-btn" disabled={isSearching}>
                             {isSearching ? <Loader2 size={18} className="animate-spin" /> : 'ค้นหา'}
