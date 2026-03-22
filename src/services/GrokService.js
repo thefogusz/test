@@ -122,7 +122,7 @@ const CONTENT_FORMAT_PROFILES = {
     allowHeadings: false,
     allowCta: true,
     structure: 'Write 2-4 short paragraphs with natural flow. No markdown headings.',
-    goals: 'Lead with the core point quickly and keep the tone human, sharp, and easy to read.',
+    goals: 'Lead with the core point quickly, keep the tone human and sharp. Include 2-3 relevant hashtags at the very bottom.',
   },
   'สคริปต์วิดีโอสั้น': {
     label: 'short-form video script',
@@ -143,13 +143,13 @@ const CONTENT_FORMAT_PROFILES = {
     allowHeadings: false,
     allowCta: true,
     structure: 'Write as a thread-style piece with a strong opener and sequential points. No markdown headings.',
-    goals: 'Each paragraph should move the story forward clearly.',
+    goals: 'Each paragraph should move the story forward clearly. Include 2-3 relevant hashtags at the very bottom.',
   },
 };
 
 const TONE_GUIDES = {
   'ให้ข้อมูล/ปกติ': 'Calm, informed, and neutral. Avoid exaggeration.',
-  'กระตือรือร้น/ไวรัล': 'Energetic but still credible. Do not become sensational.',
+  'กระตือรือร้น/ไวรัล': 'Energetic, sharp, and trend-focused. Strictly avoid literal Western greetings like "Hey fans" or "Hey folks". Use natural Thai social media hooks like "สาย... ห้ามพลาด", "สรุปมาให้จบในโพสต์เดียว", "ใครจะไปเชื่อว่า...", "นึกว่าฝันไป" etc.',
   'ทางการ/วิชาการ': 'Precise, measured, and professional.',
   'เป็นกันเอง/เพื่อนเล่าให้ฟัง': 'Warm and conversational while staying trustworthy.',
   'ตลก/มีอารมณ์ขัน': 'Lightly playful. Keep humor subtle and grounded.',
@@ -278,7 +278,8 @@ ${profile.goals}
 - Match the requested tone. Viral tone may sound energetic, but it must still stay grounded in facts.
 - Avoid empty hype that is not supported by the source material.
 - Avoid repetition.
-- Prefer natural Thai, not translated-sounding Thai.
+- Prefer natural, professional Thai. Avoid "English (Thai)" or "English / Thai" translation pairs.
+- Choose either a natural Thai term or a professional English term (for technical names), but do not include both in a way that feels like a dictionary entry.
 - For short and medium outputs, do not force section headings.
 - Only include CTA when the format truly benefits from it.
 - When low-impact people react, summarize them collectively instead of naming each one.
@@ -858,7 +859,7 @@ Rules:
 4. Match the requested tone. Viral tone can be punchy, but must not overclaim beyond the evidence.
 5. Avoid headings unless the format truly benefits from them.
 6. Do not end with engagement bait unless the brief clearly calls for it.
-7. Make the Thai feel natural, not like translation output.
+7. Make the Thai feel natural, not like translation output. **Strictly avoid using "English (Thai)" or "English / Thai" translation pairs.** Choose the most appropriate single term for the context.
 8. If uncertainty exists, state it plainly and briefly.
 9. When reactions come from low-impact voices, summarize them collectively instead of naming each one.
 10. Mention a person or account by name only if their identity materially matters, they have real influence, or their reaction received unusually high engagement.`;
