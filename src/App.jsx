@@ -129,7 +129,7 @@ const mergePlanLabelsIntoQuery = (requestedQuery, topicLabels = []) =>
   [requestedQuery, ...topicLabels].filter(Boolean).join(' ');
 
 // ---- UserCard: proper component with per-card menu state ----
-const UserCard = ({ user, onRemove }) => {
+const UserCard = ({ user, onRemove, postLists = [], onToggleList }) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -149,17 +149,42 @@ const UserCard = ({ user, onRemove }) => {
       <div style={{ position: 'absolute', top: '10px', right: '10px' }} onClick={e => e.stopPropagation()}>
         <button
           onClick={() => setMenuOpen(prev => !prev)}
-          style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: '4px 6px', fontSize: '18px', letterSpacing: '1px', lineHeight: 1, borderRadius: '6px' }}
-        >···</button>
+          style={{ background: 'var(--bg-800)', border: '1px solid var(--glass-border)', color: 'var(--text-dim)', cursor: 'pointer', padding: '6px 8px', fontSize: '14px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
+          onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-dim)'}
+        >
+          <Plus size={14} />
+        </button>
         {menuOpen && (
-          <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', background: 'var(--bg-900)', border: '1px solid var(--glass-border)', borderRadius: '10px', zIndex: 100, width: '160px', overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+          <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '8px', background: 'var(--bg-900)', border: '1px solid var(--glass-border)', borderRadius: '12px', zIndex: 100, width: '200px', overflow: 'hidden', boxShadow: '0 12px 32px rgba(0,0,0,0.6)' }}>
+            <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--glass-border)', fontSize: '11px', fontWeight: '800', color: 'var(--accent-secondary)' }}>ADD TO LIST</div>
+            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+              {postLists.length === 0 && (
+                <div style={{ padding: '12px 14px', fontSize: '12px', color: 'var(--text-dim)' }}>ยังไม่มี Post List</div>
+              )}
+              {postLists.map(list => {
+                const isMember = list.members.some(m => m.toLowerCase() === user.username.toLowerCase());
+                return (
+                  <button
+                    key={list.id}
+                    onClick={() => { onToggleList(list.id, user.username); setMenuOpen(false); }}
+                    style={{ width: '100%', background: 'transparent', border: 'none', color: isMember ? 'var(--accent-secondary)' : '#fff', cursor: 'pointer', padding: '10px 14px', textAlign: 'left', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'background 0.2s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span>{list.name}</span>
+                    {isMember && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-secondary)' }} />}
+                  </button>
+                );
+              })}
+            </div>
             <button
               onClick={() => { onRemove(user.id); setMenuOpen(false); }}
-              style={{ width: '100%', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '12px 16px', textAlign: 'left', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              style={{ width: '100%', background: 'rgba(239,68,68,0.05)', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '12px 14px', textAlign: 'left', fontSize: '13px', fontWeight: '700', borderTop: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '8px' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.1)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.05)'}
             >
-              ✕ ลบออกจากรายการ
+              ✕ Remove from Feed
             </button>
           </div>
         )}
@@ -681,7 +706,22 @@ const App = () => {
 
   const handleAddExpert = async (expert) => {
     const full = await getUserInfo(expert.username);
-    if (full) setWatchlist(prev => [...prev, full]);
+    if (full) setWatchlist(prev => [full, ...prev]);
+  };
+
+  const handleToggleMemberInList = (listId, handle) => {
+    const cleanHandle = (handle || '').trim().replace(/^@/, '').toLowerCase();
+    if (!cleanHandle) return;
+
+    setPostLists(prev => prev.map(l => {
+      if (l.id !== listId) return l;
+      const alreadyIn = l.members.some(m => m.toLowerCase() === cleanHandle);
+      if (alreadyIn) {
+        return { ...l, members: l.members.filter(m => m.toLowerCase() !== cleanHandle) };
+      } else {
+        return { ...l, members: [...l.members, cleanHandle] };
+      }
+    }));
   };
 
   const handleManualSearch = async (e) => {
@@ -693,7 +733,7 @@ const App = () => {
   };
 
   const handleAddUser = (user) => {
-    setWatchlist(prev => [...prev, user]);
+    setWatchlist(prev => [user, ...prev]);
     setManualPreview(null);
     setManualQuery('');
   };
@@ -949,12 +989,42 @@ const App = () => {
                           const isAdded = watchlist.find(w => w.username.toLowerCase() === expert.username.toLowerCase());
                           return (
                             <div key={expert.username} className="expert-card animate-fade-in" style={{ animationDelay: `${i * 0.05}s` }}>
-                              <div className="ai-pick-pill"><Sparkles size={10} /> AI PICK</div>
-                              <img src={`https://unavatar.io/twitter/${expert.username}`} style={{ width: '60px', height: '60px', borderRadius: '50%', marginBottom: '12px' }} onError={e => e.target.src = `https://ui-avatars.com/api/?name=${expert.name}`} />
-                              <div className="expert-name">{expert.name}</div>
-                              <div className="expert-username">@{expert.username}</div>
-                              <div className="expert-reasoning">“{expert.reasoning}”</div>
-                              <button onClick={() => handleAddExpert(expert)} disabled={isAdded} className={`expert-follow-btn ${isAdded ? 'added' : ''}`}>{isAdded ? '✓ เพิ่มแล้ว' : '+ เพิ่มเข้า Watchlist'}</button>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                                <div className="ai-pick-pill"><Sparkles size={10} /> AI PICK</div>
+                                <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+                                  <button
+                                    onClick={(e) => {
+                                      const btn = e.currentTarget;
+                                      const menu = btn.nextElementSibling;
+                                      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+                                    }}
+                                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'var(--text-dim)', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}
+                                  >
+                                    <Plus size={12} />
+                                  </button>
+                                  <div className="discovery-menu" style={{ display: 'none', position: 'absolute', right: 0, top: '100%', marginTop: '8px', background: 'var(--bg-900)', border: '1px solid var(--glass-border)', borderRadius: '12px', zIndex: 100, width: '180px', overflow: 'hidden', boxShadow: '0 12px 32px rgba(0,0,0,0.6)' }}>
+                                    <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--glass-border)', fontSize: '10px', fontWeight: '800', color: 'var(--accent-secondary)' }}>ADD TO LIST</div>
+                                    {postLists.map(list => {
+                                      const isMember = list.members.some(m => m.toLowerCase() === expert.username.toLowerCase());
+                                      return (
+                                        <button
+                                          key={list.id}
+                                          onClick={() => { handleToggleMemberInList(list.id, expert.username); }}
+                                          style={{ width: '100%', background: 'transparent', border: 'none', color: isMember ? 'var(--accent-secondary)' : '#fff', cursor: 'pointer', padding: '8px 12px', textAlign: 'left', fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}
+                                        >
+                                          {list.name}
+                                          {isMember && <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--accent-secondary)' }} />}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              </div>
+                              <img src={`https://unavatar.io/twitter/${expert.username}`} style={{ width: '56px', height: '56px', borderRadius: '50%', marginBottom: '12px', border: '2px solid var(--bg-700)' }} onError={e => e.target.src = `https://ui-avatars.com/api/?name=${expert.name}`} />
+                              <div className="expert-name" style={{ fontSize: '16px' }}>{expert.name}</div>
+                              <div className="expert-username" style={{ marginBottom: '12px' }}>@{expert.username}</div>
+                              <div className="expert-reasoning" style={{ fontSize: '12px', marginBottom: '20px', flex: 1 }}>“{expert.reasoning}”</div>
+                              <button onClick={() => handleAddExpert(expert)} disabled={isAdded} className={`expert-follow-btn ${isAdded ? 'added' : ''}`} style={{ padding: '8px', fontSize: '12px' }}>{isAdded ? '✓ เพิ่มแล้ว' : '+ เพิ่มเข้า Watchlist'}</button>
                             </div>
                           );
                         })}
@@ -985,13 +1055,15 @@ const App = () => {
                       <button type="submit" className="btn-sync-premium">ค้นหา</button>
                     </form>
                     {manualPreview && (
-                      <div className="preview-card">
-                        <img src={manualPreview.profile_image_url} />
+                      <div className="preview-card" style={{ padding: '16px', borderRadius: '16px' }}>
+                        <img src={manualPreview.profile_image_url} style={{ width: '50px', height: '50px' }} />
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: '700' }}>{manualPreview.name}</div>
-                          <div style={{ color: 'var(--text-muted)' }}>@{manualPreview.username}</div>
+                          <div style={{ fontWeight: '700', fontSize: '14px' }}>{manualPreview.name}</div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>@{manualPreview.username}</div>
                         </div>
-                        <button onClick={() => handleAddUser(manualPreview)} className="btn-pill primary">+ เพิ่ม</button>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => handleAddUser(manualPreview)} className="btn-pill primary" style={{ height: '32px', padding: '0 16px', fontSize: '12px' }}>+ เพิ่ม</button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1010,7 +1082,13 @@ const App = () => {
               </header>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', marginTop: '24px' }}>
                 {watchlist.map(user => (
-                  <UserCard key={user.id} user={user} onRemove={handleRemoveAccountGlobal} />
+                  <UserCard 
+                    key={user.id} 
+                    user={user} 
+                    postLists={postLists}
+                    onToggleList={handleToggleMemberInList}
+                    onRemove={handleRemoveAccountGlobal} 
+                  />
                 ))}
               </div>
             </div>
