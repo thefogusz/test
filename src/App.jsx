@@ -129,89 +129,120 @@ const mergePlanLabelsIntoQuery = (requestedQuery, topicLabels = []) =>
   [requestedQuery, ...topicLabels].filter(Boolean).join(' ');
 
 // ---- UserCard: proper component with per-card menu state ----
-const UserCard = ({ user, onRemove, postLists = [], onToggleList }) => {
-  const [menuOpen, setMenuOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!menuOpen) return;
-    const close = () => setMenuOpen(false);
-    window.addEventListener('click', close);
-    return () => window.removeEventListener('click', close);
-  }, [menuOpen]);
+const UserCard = ({ user, postLists = [], onToggleList, onRemove }) => {
+  const [showMenu, setShowMenu] = useState(false);
 
   return (
-    <div
-      style={{ background: 'var(--bg-800)', borderRadius: '16px', border: '1px solid var(--card-border)', padding: '20px 16px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', position: 'relative', transition: 'border-color 0.2s' }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'}
-      onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--card-border)'}
-    >
-      {/* 3-dot menu */}
-      <div style={{ position: 'absolute', top: '10px', right: '10px' }} onClick={e => e.stopPropagation()}>
-        <button
-          onClick={() => setMenuOpen(prev => !prev)}
-          style={{ background: 'var(--bg-800)', border: '1px solid var(--glass-border)', color: 'var(--text-dim)', cursor: 'pointer', padding: '6px 8px', fontSize: '14px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
-          onMouseEnter={e => e.currentTarget.style.color = '#fff'}
-          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-dim)'}
-        >
-          <Plus size={14} />
-        </button>
-        {menuOpen && (
-          <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: '8px', background: 'var(--bg-900)', border: '1px solid var(--glass-border)', borderRadius: '12px', zIndex: 100, width: '200px', overflow: 'hidden', boxShadow: '0 12px 32px rgba(0,0,0,0.6)' }}>
-            <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--glass-border)', fontSize: '11px', fontWeight: '800', color: 'var(--accent-secondary)' }}>ADD TO LIST</div>
-            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-              {postLists.length === 0 && (
-                <div style={{ padding: '12px 14px', fontSize: '12px', color: 'var(--text-dim)' }}>ยังไม่มี Post List</div>
-              )}
-              {postLists.map(list => {
-                const isMember = list.members.some(m => m.toLowerCase() === user.username.toLowerCase());
-                return (
-                  <button
-                    key={list.id}
-                    onClick={() => { onToggleList(list.id, user.username); setMenuOpen(false); }}
-                    style={{ width: '100%', background: 'transparent', border: 'none', color: isMember ? 'var(--accent-secondary)' : '#fff', cursor: 'pointer', padding: '10px 14px', textAlign: 'left', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'background 0.2s' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <span>{list.name}</span>
-                    {isMember && <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-secondary)' }} />}
-                  </button>
-                );
-              })}
-            </div>
-            <button
-              onClick={() => { onRemove(user.id); setMenuOpen(false); }}
-              style={{ width: '100%', background: 'rgba(239,68,68,0.05)', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '12px 14px', textAlign: 'left', fontSize: '13px', fontWeight: '700', borderTop: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '8px' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.1)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.05)'}
-            >
-              ✕ Remove from Feed
-            </button>
-          </div>
-        )}
+    <div className="user-list-item animate-fade-in" style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '16px',
+      padding: '12px 18px', 
+      background: 'rgba(255,255,255,0.02)', 
+      border: '1px solid var(--glass-border)', 
+      borderRadius: '16px',
+      transition: 'all 0.2s',
+      position: 'relative',
+      width: '100%'
+    }}>
+      <img 
+        src={user.profile_image_url ? user.profile_image_url.replace('_normal', '_200x200') : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff&bold=true&size=128`} 
+        style={{ width: '42px', height: '42px', borderRadius: '50%', border: '2px solid var(--bg-700)', flexShrink: 0, objectFit: 'cover' }} 
+        alt={user.name}
+        onError={e => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff&bold=true&size=128`}
+      />
+      
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+          <div style={{ fontWeight: '800', fontSize: '15px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
+          <div style={{ color: 'var(--text-dim)', fontSize: '12px', fontWeight: '500' }}>@{user.username}</div>
+        </div>
+        <div style={{ display: 'flex', gap: '12px', marginTop: '2px' }}>
+          <a
+            href={`https://x.com/${user.username}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: 'var(--accent-secondary)', fontSize: '11px', fontWeight: '700', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
+          >
+            X Profile <ExternalLink size={10} />
+          </a>
+        </div>
       </div>
 
-      <img
-        src={user.profile_image_url ? `${user.profile_image_url.replace('_normal', '_200x200')}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff&bold=true&size=128`}
-        alt={user.name}
-        style={{ width: '80px', height: '80px', borderRadius: '50%', marginBottom: '12px', objectFit: 'cover', border: '2px solid var(--bg-700)' }}
-        onError={e => { 
-          e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff&bold=true&size=128`; 
-        }}
-      />
-      <div style={{ fontWeight: '700', fontSize: '15px', marginBottom: '4px', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user.name}</div>
-      <div style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '16px', width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{user.username}</div>
-
-      <a
-        href={`https://x.com/${user.username}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', width: '100%', padding: '8px 0', background: 'var(--bg-700)', borderRadius: '8px', color: 'var(--text-muted)', fontSize: '13px', fontWeight: '600', textDecoration: 'none', transition: 'all 0.2s' }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#fff'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-700)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-      >
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-        Profile
-      </a>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <button 
+          onClick={() => onRemove(user.id)}
+          title="Remove from Watchlist"
+          style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(239, 68, 68, 0.1)', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s' }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+        >
+          <Trash2 size={14} />
+        </button>
+        
+        <div style={{ position: 'relative' }}>
+          <button 
+            onClick={() => setShowMenu(!showMenu)}
+            style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--bg-700)', border: '1px solid var(--glass-border)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Plus size={16} />
+          </button>
+          
+          {showMenu && (
+            <>
+              <div 
+                style={{ position: 'fixed', inset: 0, zIndex: 90 }} 
+                onClick={() => setShowMenu(false)}
+              />
+              <div style={{ 
+                position: 'absolute', 
+                top: '100%', 
+                right: 0, 
+                marginTop: '8px', 
+                background: 'var(--bg-800)', 
+                border: '1px solid var(--glass-border)', 
+                borderRadius: '12px', 
+                padding: '8px', 
+                zIndex: 100, 
+                minWidth: '200px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                backdropFilter: 'blur(20px)'
+              }}>
+                <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-muted)', padding: '4px 8px 8px', borderBottom: '1px solid var(--glass-border)', marginBottom: '4px' }}>ADD TO POST LIST</div>
+                <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
+                  {postLists.map(list => {
+                    const isMember = list.members?.some(m => (m || '').toLowerCase() === (user.username || '').toLowerCase());
+                    return (
+                      <div 
+                        key={list.id} 
+                        onClick={() => { onToggleList(list.id, user); setShowMenu(false); }}
+                        style={{ 
+                          padding: '8px 12px', 
+                          borderRadius: '8px', 
+                          fontSize: '13px', 
+                          cursor: 'pointer', 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center',
+                          background: isMember ? 'rgba(41, 151, 255, 0.1)' : 'transparent',
+                          color: isMember ? 'var(--accent-secondary)' : 'var(--text-muted)',
+                          marginBottom: '2px'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                        onMouseLeave={e => e.currentTarget.style.background = isMember ? 'rgba(41, 151, 255, 0.1)' : 'transparent'}
+                      >
+                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '8px' }}>{list.name}</span>
+                        {isMember && <Activity size={12} />}
+                      </div>
+                    );
+                  })}
+                  {postLists.length === 0 && <div style={{ padding: '8px', fontSize: '12px', color: 'var(--text-dim)', textAlign: 'center' }}>ไม่มีรายการปลิสต์</div>}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
@@ -699,9 +730,15 @@ const App = () => {
   const handleAiSearchAudience = async (q, isMore = false) => {
     const query = q || aiQuery;
     setAiSearchLoading(true);
-    const experts = await discoverTopExperts(query);
-    setAiSearchResults(isMore ? [...aiSearchResults, ...experts] : experts);
-    setAiSearchLoading(false);
+    try {
+      const excludes = isMore ? aiSearchResults.map(u => u.username) : [];
+      const experts = await discoverTopExperts(query, excludes);
+      setAiSearchResults(prev => isMore ? [...prev, ...experts] : experts);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAiSearchLoading(false);
+    }
   };
 
   const handleAddExpert = async (expert) => {
@@ -709,14 +746,17 @@ const App = () => {
     if (full) setWatchlist(prev => [full, ...prev]);
   };
 
-  const handleToggleMemberInList = async (listId, handle) => {
-    const cleanHandle = (handle || '').trim().replace(/^@/, '').toLowerCase();
+  const handleToggleMemberInList = async (listId, contributor) => {
+    const handle = typeof contributor === 'string' ? contributor : (contributor?.username || '');
+    const cleanHandle = handle.trim().replace(/^@/, '').toLowerCase();
     if (!cleanHandle) return;
 
-    // Ensure the user is in our global watchlist first
+    // 1. Ensure user is in global watchlist first
     if (!watchlist.find(u => (u.username || '').toLowerCase() === cleanHandle)) {
       try {
-        const full = await getUserInfo(cleanHandle);
+        let full = typeof contributor === 'object' && contributor.name ? contributor : null;
+        if (!full) full = await getUserInfo(cleanHandle);
+        
         const newUser = full || { id: cleanHandle, username: cleanHandle, name: cleanHandle, profile_image_url: '', isPlaceholder: true };
         setWatchlist(prev => [newUser, ...prev]);
         if (!full) resolvePlaceholders([newUser]);
@@ -725,6 +765,7 @@ const App = () => {
       }
     }
 
+    // 2. Toggle in list
     setPostLists(prev => prev.map(l => {
       if (l.id !== listId) return l;
       const alreadyIn = l.members.some(m => m.toLowerCase() === cleanHandle);
@@ -905,6 +946,11 @@ const App = () => {
                       <div className="feed-grid">
                         {searchResults.map((item, idx) => <FeedCard key={item.id || idx} tweet={item} />)}
                       </div>
+                      {searchCursor && !isSearching && (
+                        <div style={{ textAlign: 'center', marginTop: '32px', paddingBottom: '40px' }}>
+                          <button onClick={(e) => handleSearch(e, true)} className="btn-pill">โหลดเพิ่มเติม</button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -996,57 +1042,71 @@ const App = () => {
                     )}
 
                     {!aiSearchLoading && aiSearchResults.length > 0 && (
-                      <div className="expert-grid" style={{ marginBottom: '32px' }}>
-                        {aiSearchResults.map((expert, i) => {
-                          const isAdded = watchlist.find(w => w.username.toLowerCase() === expert.username.toLowerCase());
-                          return (
-                            <div key={expert.username} className="expert-card animate-fade-in" style={{ animationDelay: `${i * 0.05}s` }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                                <div className="ai-pick-pill"><Sparkles size={10} /> AI PICK</div>
-                                <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
-                                  <button
-                                    onClick={(e) => {
-                                      const btn = e.currentTarget;
-                                      const menu = btn.nextElementSibling;
-                                      menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-                                    }}
-                                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'var(--text-dim)', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}
-                                  >
-                                    <Plus size={12} />
-                                  </button>
-                                  <div className="discovery-menu" style={{ display: 'none', position: 'absolute', right: 0, top: '100%', marginTop: '8px', background: 'var(--bg-900)', border: '1px solid var(--glass-border)', borderRadius: '12px', zIndex: 100, width: '180px', overflow: 'hidden', boxShadow: '0 12px 32px rgba(0,0,0,0.6)' }}>
-                                    <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--glass-border)', fontSize: '10px', fontWeight: '800', color: 'var(--accent-secondary)' }}>ADD TO LIST</div>
-                                    {postLists.map(list => {
-                                      const isMember = list.members.some(m => m.toLowerCase() === expert.username.toLowerCase());
-                                      return (
-                                        <button
-                                          key={list.id}
-                                          onClick={() => { handleToggleMemberInList(list.id, expert.username); }}
-                                          style={{ width: '100%', background: 'transparent', border: 'none', color: isMember ? 'var(--accent-secondary)' : '#fff', cursor: 'pointer', padding: '8px 12px', textAlign: 'left', fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}
-                                        >
-                                          {list.name}
-                                          {isMember && <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--accent-secondary)' }} />}
-                                        </button>
-                                      );
-                                    })}
+                      <div style={{ marginBottom: '32px' }}>
+                        <div className="expert-grid" style={{ marginBottom: '24px' }}>
+                          {aiSearchResults.map((expert, i) => {
+                            const isAdded = watchlist.find(w => w.username.toLowerCase() === expert.username.toLowerCase());
+                            return (
+                              <div key={expert.username} className="expert-card animate-fade-in" style={{ animationDelay: `${i * 0.05}s` }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+                                  <div className="ai-pick-pill"><Sparkles size={10} /> AI PICK</div>
+                                  <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+                                    <button
+                                      onClick={(e) => {
+                                        const btn = e.currentTarget;
+                                        const menu = btn.nextElementSibling;
+                                        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+                                      }}
+                                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'var(--text-dim)', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}
+                                    >
+                                      <Plus size={12} />
+                                    </button>
+                                    <div className="discovery-menu" style={{ display: 'none', position: 'absolute', right: 0, top: '100%', marginTop: '8px', background: 'var(--bg-900)', border: '1px solid var(--glass-border)', borderRadius: '12px', zIndex: 100, width: '180px', overflow: 'hidden', boxShadow: '0 12px 32px rgba(0,0,0,0.6)' }}>
+                                      <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--glass-border)', fontSize: '10px', fontWeight: '800', color: 'var(--accent-secondary)' }}>ADD TO LIST</div>
+                                      {postLists.map(list => {
+                                        const isMember = list.members.some(m => m.toLowerCase() === expert.username.toLowerCase());
+                                        return (
+                                          <button
+                                            key={list.id}
+                                            onClick={() => { handleToggleMemberInList(list.id, expert.username); }}
+                                            style={{ width: '100%', background: 'transparent', border: 'none', color: isMember ? 'var(--accent-secondary)' : '#fff', cursor: 'pointer', padding: '8px 12px', textAlign: 'left', fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}
+                                          >
+                                            {list.name}
+                                            {isMember && <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--accent-secondary)' }} />}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
                                   </div>
                                 </div>
+                                <img 
+                                  src={`https://unavatar.io/x/${expert.username}?fallback=https://ui-avatars.com/api/?name=${encodeURIComponent(expert.name)}`} 
+                                  style={{ width: '42px', height: '42px', borderRadius: '50%', marginBottom: '10px', border: '2px solid var(--bg-700)', objectFit: 'cover' }} 
+                                />
+                                <a 
+                                  href={`https://x.com/${expert.username}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  style={{ textDecoration: 'none', display: 'block', marginBottom: '8px' }}
+                                >
+                                  <div className="expert-name" style={{ fontSize: '14px', color: '#fff', fontWeight: '800' }}>{expert.name}</div>
+                                  <div className="expert-username" style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>@{expert.username}</div>
+                                </a>
+                                <div className="expert-reasoning" style={{ fontSize: '11px', marginBottom: '16px', flex: 1, color: 'var(--text-muted)', lineHeight: '1.4' }}>“{expert.reasoning}”</div>
+                                <button onClick={() => handleAddExpert(expert)} disabled={isAdded} className={`expert-follow-btn ${isAdded ? 'added' : ''}`} style={{ padding: '6px', fontSize: '11px' }}>{isAdded ? '✓ เพิ่มแล้ว' : '+ เพิ่มเข้า Watchlist'}</button>
                               </div>
-                              <img src={`https://unavatar.io/twitter/${expert.username}`} style={{ width: '42px', height: '42px', borderRadius: '50%', marginBottom: '10px', border: '2px solid var(--bg-700)' }} onError={e => e.target.src = `https://ui-avatars.com/api/?name=${expert.name}`} />
-                              <a 
-                                href={`https://x.com/${expert.username}`} 
-                                target="_blank" 
-                                rel="noopener noreferrer" 
-                                style={{ textDecoration: 'none', display: 'block', marginBottom: '8px' }}
-                              >
-                                <div className="expert-name" style={{ fontSize: '14px', color: '#fff', fontWeight: '800' }}>{expert.name}</div>
-                                <div className="expert-username" style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>@{expert.username}</div>
-                              </a>
-                              <div className="expert-reasoning" style={{ fontSize: '11px', marginBottom: '16px', flex: 1, color: 'var(--text-muted)', lineHeight: '1.4' }}>“{expert.reasoning}”</div>
-                              <button onClick={() => handleAddExpert(expert)} disabled={isAdded} className={`expert-follow-btn ${isAdded ? 'added' : ''}`} style={{ padding: '6px', fontSize: '11px' }}>{isAdded ? '✓ เพิ่มแล้ว' : '+ เพิ่มเข้า Watchlist'}</button>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
+                        <div style={{ textAlign: 'center' }}>
+                          <button 
+                            onClick={() => handleAiSearchAudience(null, true)} 
+                            disabled={aiSearchLoading}
+                            className="btn-pill"
+                          >
+                            {aiSearchLoading ? <RefreshCw size={14} className="animate-spin" /> : 'ค้นหาผู้เชี่ยวชาญเพิ่มเติม'}
+                          </button>
+                        </div>
                       </div>
                     )}
 
@@ -1089,7 +1149,7 @@ const App = () => {
 
                     <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '32px' }}>
                       <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '16px' }}>▌ บัญชีที่ติดตามอยู่ ({watchlist.length})</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
+                      <div className="watchlist-grid">
                         {watchlist.map(user => (
                           <UserCard 
                             key={user.id} 
@@ -1124,8 +1184,8 @@ const App = () => {
               </header>
 
               <div style={{ display: 'flex', gap: '8px', margin: '24px 0', padding: '4px', background: 'var(--bg-800)', borderRadius: '10px', width: 'fit-content' }}>
-                <button onClick={() => setBookmarkTab('news')} className={`btn-pill ${bookmarkTab === 'news' ? 'primary' : ''}`}>📰 ข่าว</button>
-                <button onClick={() => setBookmarkTab('article')} className={`btn-pill ${bookmarkTab === 'article' ? 'primary' : ''}`}>📝 บทความ</button>
+                <button onClick={() => setBookmarkTab('news')} className={`btn-pill ${bookmarkTab === 'news' ? 'active' : ''}`}>📰 ข่าว</button>
+                <button onClick={() => setBookmarkTab('article')} className={`btn-pill ${bookmarkTab === 'article' ? 'active' : ''}`}>📝 บทความ</button>
               </div>
               
               <div className="feed-grid">
@@ -1157,8 +1217,8 @@ const App = () => {
                listModal.mode === 'edit' ? 'แก้ไข Post List' : 'นำเข้า Post List'}
             </div>
             <div className="modal-subtitle">
-              {listModal.mode === 'create' ? 'ตั้งชื่อให้ลิสต์ของคุณเพื่อเริ่มจัดกลุ่มแหล่งข้อมูล' : 
-               listModal.mode === 'edit' ? 'ระบุชื่อใหม่สำหรับลิสต์นี้' : 'วาง URL ของ Post List ที่ต้องการนำเข้า'}
+              {listModal.mode === 'create' ? 'ตั้งชื่อให้ลิสต์ของคุณเพื่อเริ่มจัดกลุ่มแหล่งข้อมูล และรับการสรุปข่าวจากกลุ่มเป้าหมายที่เลือกไว้โดยเฉพาะ' : 
+               listModal.mode === 'edit' ? 'ปรับปรุงชื่อหรือการตั้งค่าสำหรับลิสต์นี้' : 'วางรหัสแชร์เพื่อนำเข้า Post List พร้อมรายชื่อสมาชิกทั้งหมด'}
             </div>
             <input 
               className="modal-input"
@@ -1179,8 +1239,8 @@ const App = () => {
       {filterModal.show && (
         <div className="modal-overlay" onClick={() => setFilterModal({ ...filterModal, show: false })}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">✨ AI Smart Filter</div>
-            <div className="modal-subtitle">ระบุหัวข้อที่คุณต้องการกรอง (เช่น "ข่าวเกี่ยวกัย Apple" หรือ "บทวิเคราะห์จากต่างประเทศ")</div>
+            <div className="modal-title">🪄 AI Smart Filter</div>
+            <div className="modal-subtitle">กรองเนื้อหาที่ต้องการโดยระบุเป็นภาษามนุษย์ (เช่น "หาเฉพาะเรื่องระดมทุนของส้มหยุด" หรือ "ข่าวที่เกี่ยวกับ Apple")</div>
             <textarea 
               className="modal-input"
               style={{ minHeight: '120px', resize: 'none', padding: '16px' }}

@@ -731,9 +731,16 @@ body {
 /* EXPERT DISCOVERY STYLES */
 .expert-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
   margin-top: 20px;
+}
+
+.watchlist-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .expert-card {
@@ -773,29 +780,36 @@ body {
 }
 
 .expert-name {
-  font-size: 18px;
-  font-weight: 900;
+  font-size: 16px;
+  font-weight: 800;
   color: #fff;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
   letter-spacing: -0.01em;
   text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .expert-username {
-  font-size: 14px;
-  color: #0070f3;
-  font-weight: 700;
-  margin-bottom: 20px;
-  opacity: 0.8;
+  font-size: 13px;
+  color: var(--accent-secondary);
+  font-weight: 600;
+  margin-bottom: 12px;
+  opacity: 0.9;
 }
 
 .expert-reasoning {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.6);
-  line-height: 1.6;
-  margin-bottom: 24px;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 16px;
   font-style: italic;
   font-weight: 400;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .expert-follow-btn {
