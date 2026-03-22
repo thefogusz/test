@@ -1165,3 +1165,191 @@ body {
     padding: 20px;
   }
 }
+
+/* Search Suggestions Dropdown */
+.hero-search-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 680px;
+  margin-bottom: 32px;
+}
+
+.hero-search-form {
+  margin-bottom: 0 !important; /* Managed by wrapper */
+}
+
+.search-suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-800);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  margin-top: 8px;
+  padding: 8px;
+  z-index: 1000;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  max-height: 300px;
+  overflow-y: auto;
+  text-align: left;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.suggestion-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.suggestion-item:hover, .suggestion-item.active {
+  background: rgba(41, 151, 255, 0.1);
+  color: #fff;
+}
+
+.suggestion-icon {
+  color: var(--accent-secondary);
+  opacity: 0.7;
+}
+
+.suggestion-item.active .suggestion-icon {
+  opacity: 1;
+}
+
+.hero-search-input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+.searching-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--accent-secondary);
+  margin-top: 8px;
+  padding-left: 20px;
+  opacity: 0.8;
+}
+
+/* Premium Buttons & UI */
+.btn-sync-premium {
+  background: var(--accent-gradient);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 0 24px;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 16px var(--accent-glow-blue);
+  white-space: nowrap;
+  transition: all 0.3s;
+}
+
+.btn-sync-premium:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px var(--accent-glow-blue);
+}
+
+.category-btn {
+  background: var(--bg-800);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 16px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.category-btn:hover {
+  border-color: var(--accent-blue);
+  color: #fff;
+  background: var(--bg-700);
+  transform: translateY(-2px);
+}
+
+.preview-card {
+  background: var(--bg-800);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.preview-card img {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-700);
+}
+
+.custom-input-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-800);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 10px 16px;
+}
+
+.custom-input-wrapper input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  flex: 1;
+  font-size: 14px;
+  outline: none;
+}
+
+.article-card {
+  background: var(--bg-800);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  transition: box-shadow 0.3s;
+}
+
+.article-card:hover {
+  box-shadow: 0 8px 32px rgba(41, 151, 255, 0.1);
+}
+
+.text-red {
+  color: #ef4444 !important;
+}
+
+.active-list-pills {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--accent-secondary);
+  font-weight: 800;
+  background: rgba(41, 151, 255, 0.1);
+  padding: 4px 12px;
+  border-radius: 100px;
+  width: fit-content;
+}
