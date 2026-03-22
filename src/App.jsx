@@ -1081,9 +1081,26 @@ const App = () => {
                    ) : (
                      <div key={item.id} className="article-card" onClick={() => setSelectedArticle(item)}>
                        <div className="article-card-header">
-                         <h3 title={item.title}>{item.title}</h3>
+                         {item.title && item.title.startsWith('http') ? (
+                           <a 
+                             href={item.title} 
+                             target="_blank" 
+                             rel="noopener noreferrer" 
+                             onClick={(e) => e.stopPropagation()}
+                             style={{ color: 'var(--accent-secondary)', textDecoration: 'none', display: 'block', maxWidth: '85%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                           >
+                             {item.title}
+                           </a>
+                         ) : (
+                           <h3 title={item.title}>{item.title}</h3>
+                         )}
                          <button 
-                           onClick={(e) => { e.stopPropagation(); setBookmarks(prev => prev.filter(p => p.id !== item.id)); }} 
+                           onClick={(e) => { 
+                              e.stopPropagation(); 
+                              if (window.confirm('คุณต้องการลบบทความนี้ใช่หรือไม่?')) {
+                                setBookmarks(prev => prev.filter(p => p.id !== item.id)); 
+                              }
+                            }} 
                            className="btn-mini-ghost text-red"
                            style={{ padding: '4px 8px' }}
                          >
@@ -1159,7 +1176,13 @@ const App = () => {
         <div className="modal-overlay" onClick={() => setSelectedArticle(null)}>
           <div className="modal-content" style={{ maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={() => setSelectedArticle(null)}><X size={20} /></button>
-            <div className="modal-title" style={{ fontSize: '24px', marginBottom: '20px' }}>{selectedArticle.title}</div>
+            <div className="modal-title" style={{ fontSize: '24px', marginBottom: '20px' }}>
+              {selectedArticle.title && selectedArticle.title.startsWith('http') ? (
+                <a href={selectedArticle.title} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-secondary)' }}>
+                  {selectedArticle.title}
+                </a>
+              ) : selectedArticle.title}
+            </div>
             <div className="markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(selectedArticle.summary) }} />
             <div className="modal-actions" style={{ marginTop: '32px', justifyContent: 'flex-end' }}>
               <button className="modal-btn modal-btn-secondary" onClick={() => setSelectedArticle(null)}>ปิด</button>
