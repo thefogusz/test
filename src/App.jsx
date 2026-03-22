@@ -1108,7 +1108,7 @@ const App = () => {
                                   href={`https://x.com/${expert.username}`} 
                                   target="_blank" 
                                   rel="noopener noreferrer" 
-                                  style={{ textDecoration: 'none', display: 'block', marginBottom: '8px' }}
+                                  style={{ textDecoration: 'none', display: 'inline-block', marginBottom: '8px', width: 'fit-content' }}
                                 >
                                   <div className="expert-name" style={{ fontSize: '14px', color: '#fff', fontWeight: '800' }}>{expert.name}</div>
                                   <div className="expert-username" style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>@{expert.username}</div>
