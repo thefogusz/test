@@ -318,7 +318,7 @@ const App = () => {
   const [filterModal, setFilterModal] = useState({ show: false, prompt: '' });
   const [readFilters, setReadFilters] = useState({ view: false, engagement: false });
 
-  const [audienceTab, setAudienceTab] = useState('ai'); 
+  const [audienceTab, setAudienceTab] = useState('following'); 
   const [aiQuery, setAiQuery] = useState('');
   const [aiSearchLoading, setAiSearchLoading] = useState(false);
   const [aiSearchResults, setAiSearchResults] = useState([]);
@@ -709,9 +709,21 @@ const App = () => {
     if (full) setWatchlist(prev => [full, ...prev]);
   };
 
-  const handleToggleMemberInList = (listId, handle) => {
+  const handleToggleMemberInList = async (listId, handle) => {
     const cleanHandle = (handle || '').trim().replace(/^@/, '').toLowerCase();
     if (!cleanHandle) return;
+
+    // Ensure the user is in our global watchlist first
+    if (!watchlist.find(u => (u.username || '').toLowerCase() === cleanHandle)) {
+      try {
+        const full = await getUserInfo(cleanHandle);
+        const newUser = full || { id: cleanHandle, username: cleanHandle, name: cleanHandle, profile_image_url: '', isPlaceholder: true };
+        setWatchlist(prev => [newUser, ...prev]);
+        if (!full) resolvePlaceholders([newUser]);
+      } catch (err) {
+        console.error(err);
+      }
+    }
 
     setPostLists(prev => prev.map(l => {
       if (l.id !== listId) return l;
@@ -959,10 +971,32 @@ const App = () => {
                   <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginLeft: '32px' }}>ค้นหาและเพิ่มแหล่งข้อมูลที่ตรงกับความสนใจของคุณ</p>
                 </header>
 
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '28px', padding: '4px', background: 'var(--bg-800)', borderRadius: '10px', width: 'fit-content' }}>
-                  <button onClick={() => setAudienceTab('ai')} style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s', background: audienceTab === 'ai' ? 'var(--accent-gradient)' : 'transparent', color: audienceTab === 'ai' ? '#fff' : 'var(--text-muted)' }}>✨ แนะนำโดย AI</button>
-                  <button onClick={() => setAudienceTab('manual')} style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s', background: audienceTab === 'manual' ? 'var(--bg-700)' : 'transparent', color: audienceTab === 'manual' ? '#fff' : 'var(--text-muted)' }}>🔍 ค้นหาชื่อ</button>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '28px', padding: '4px', background: 'var(--bg-800)', border: '1px solid var(--glass-border)', borderRadius: '14px', width: 'fit-content' }}>
+                  <button onClick={() => setAudienceTab('following')} style={{ padding: '10px 24px', borderRadius: '11px', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.25s', background: audienceTab === 'following' ? 'var(--accent-gradient)' : 'transparent', color: audienceTab === 'following' ? '#fff' : 'var(--text-dim)', boxShadow: audienceTab === 'following' ? '0 4px 12px var(--accent-glow-blue)' : 'none' }}>Following ({watchlist.length})</button>
+                  <button onClick={() => setAudienceTab('ai')} style={{ padding: '10px 24px', borderRadius: '11px', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.25s', background: audienceTab === 'ai' ? 'var(--accent-gradient)' : 'transparent', color: audienceTab === 'ai' ? '#fff' : 'var(--text-dim)', boxShadow: audienceTab === 'ai' ? '0 4px 12px var(--accent-glow-blue)' : 'none' }}>✨ แนะนำโดย AI</button>
+                  <button onClick={() => setAudienceTab('manual')} style={{ padding: '10px 24px', borderRadius: '11px', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.25s', background: audienceTab === 'manual' ? 'var(--accent-gradient)' : 'transparent', color: audienceTab === 'manual' ? '#fff' : 'var(--text-dim)', boxShadow: audienceTab === 'manual' ? '0 4px 12px var(--accent-glow-blue)' : 'none' }}>🔍 ค้นหาชื่อ</button>
                 </div>
+
+                {audienceTab === 'following' && (
+                  <div className="animate-fade-in">
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+                      {watchlist.map(user => (
+                        <UserCard 
+                          key={user.id} 
+                          user={user} 
+                          postLists={postLists}
+                          onToggleList={handleToggleMemberInList}
+                          onRemove={handleRemoveAccountGlobal} 
+                        />
+                      ))}
+                    </div>
+                    {watchlist.length === 0 && (
+                      <div className="empty-state-card" style={{ padding: '80px', textAlign: 'center' }}>
+                        ยังไม่ได้ติดตามใครเลย เริ่มค้นหาบัญชีที่น่าสนใจได้ในแท็บข้างๆ
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {audienceTab === 'ai' && (
                   <div className="animate-fade-in">
@@ -1073,26 +1107,6 @@ const App = () => {
           })()}
 
 
-          {/* ===== FOLLOWING VIEW ===== */}
-          {activeView === 'following' && (
-            <div className="animate-fade-in">
-              <header className="dashboard-header">
-                <h1 style={{ fontSize: '32px', fontWeight: '800' }}>บัญชีที่คุณกำลังติดตาม</h1>
-                <p style={{ color: 'var(--text-muted)' }}>จัดการแหล่งข้อมูลและบุคคลต้นทางทั้งหมด</p>
-              </header>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px', marginTop: '24px' }}>
-                {watchlist.map(user => (
-                  <UserCard 
-                    key={user.id} 
-                    user={user} 
-                    postLists={postLists}
-                    onToggleList={handleToggleMemberInList}
-                    onRemove={handleRemoveAccountGlobal} 
-                  />
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* ===== BOOKMARKS VIEW ===== */}
           {activeView === 'bookmarks' && (
