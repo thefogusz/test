@@ -22,6 +22,7 @@ const SUMMARY_RULES = `
 - รักษาความหมายเดิมให้ครบถ้วน
 - เขียนสรุปเป็นภาษาไทย
 - คำที่เป็นชื่อเฉพาะ, ชื่อผลิตภัณฑ์ และคำศัพท์ทางเทคนิค ให้คงไว้เป็นภาษาอังกฤษ
+- ห้ามระบุชื่อบัญชี (@username) ของบุคคลทั่วไปที่แชร์ข้อมูลโดยไม่มีผลกระทบ แต่ **ยกเว้น** บัญชีที่มีชื่อเสียง, มีผู้ติดตามจำนวนมาก, มียอดไลค์/เอนเกจเม้นท์สูงมาก หรือเป็นต้นทางข้อมูลสำคัญเท่านั้นที่สามารถระบุชื่อได้
 - ห้ามเอ่ยชื่อ Twitter หรือ X
 - ห้ามใส่ URLs ลงในข้อความ
 - เขียนสรุป 1-2 ประโยคต่อเรื่อง
@@ -291,7 +292,7 @@ ${profile.goals}
 - Avoid repetitive sentence structures (e.g., stopping starting 3 sentences in a row with the same word).
 - Choose either a natural Thai term or a professional English term (for technical names) - NEVER use dictionary-style pairs like "Artificial Intelligence (ปัญญาประดิษฐ์)".
 - When low-impact people react, summarize them collectively instead of naming each one.
-- Mention a person or account by name only if they materially shape the story or have real influence.
+- Mention a specific account (@handle) if they are a globally recognized figure, an official organization, or the primary original source. ALSO mention accounts that, while not the primary source, have significant reach (high followers) or created major impact through high engagement (massive likes/reposts). NEVER mention random low-impact accounts.
 
 [CUSTOM INSTRUCTIONS]
 ${customInstructions || 'None'}
@@ -487,7 +488,8 @@ export const generateExecutiveSummary = async (validTweets, userQuery) => {
 - ถ้าข้อมูลส่วนใหญ่พูดถึงเพียงบางมุมของคำถาม ให้บอกตามตรงว่ายังเห็นสัญญาณเด่นแค่ส่วนนั้น
 - ถ้ามีหลายเกมหรือหลายหัวข้อ ให้พูดแยกอย่างระมัดระวัง และห้ามเหมารวมว่าครบทุกหัวข้อหากหลักฐานยังไม่พอ
 - ใช้ markdown bold ได้เฉพาะวลีสำคัญที่มีหลักฐานรองรับชัด
-- ห้ามมีหัวข้อหรือ bullet`;
+- ห้ามมีหัวข้อหรือ bullet
+- ห้ามระบุชื่อบัญชี (@handle) ของผู้ใช้ทั่วไปที่ไม่มีอิมแพค ยกเว้นบัญชีที่มีชื่อเสียง, มีผู้ติดตามสูง, มียอดเอนเกจเม้นท์สูง หรือมีความน่าเชื่อถือชัดเจน ให้เน้นสรุปภาพรวมของสัญญาณจากชุมชน`;
 
   return callGrok({
     modelName: MODEL_NEWS_FAST,
@@ -731,6 +733,11 @@ export const researchAndPreventHallucination = async (input) => {
 - ...
 ## มุมมองที่แนะนำ
 - ...
+
+กฎการระบุชื่อ:
+- ห้ามระบุชื่อบัญชี (@handle) ของผู้ใช้ทั่วไปที่เพียงแค่ทำการรีโพสต์โดยไม่มีอิมแพค
+- สามารถระบุชื่อบุคคล/องค์กรที่มีชื่อเสียง, มีความน่าเชื่อถือสูง, มีผู้ติดตามจำนวนมาก หรือบัญชีที่สร้างเอนเกจเม้นท์ (Likes/Reposts) สูงมากจนมีผลกระทบวงกว้างได้
+- ระบุชื่อที่เป็นต้นทางข้อมูล (Source of truth) ได้เสมอ
 `,
       prompt: [
         `[ORIGINAL REQUEST]\n${input}`,
@@ -779,7 +786,8 @@ export const generateStructuredContent = async (
 3. ห้ามใส่ URL ของแหล่งข้อมูลลงในเนื้อหาหลัก
 4. หากข้อมูลหลักฐานขัดแจ้งกัน ให้ใช้การเลือกใช้คำที่ระมัดระวัง
 5. สำหรับเนื้อหาสั้น ไม่ต้องใส่หัวข้อหลัก
-6. สำหรับเนื้อหาปานกลางและยาว ให้ใช้ Markdown หัวข้อ (Headings) และจบด้วย "## บทสรุป"`;
+6. สำหรับเนื้อหาปานกลางและยาว ให้ใช้ Markdown หัวข้อ (Headings) และจบด้วย "## บทสรุป"
+7. กฎการระบุชื่อ (@handle): สามารถระบุชื่อบัญชีที่มีชื่อเสียง, มีผู้ติดตามสูง, มียอดเอนเกจเม้นท์สูงมาก หรือเป็นต้นทางข้อมูลเท่านั้น ส่วนบัญชีทั่วไปที่แชร์ต่อโดยไม่มีอิมแพค ให้สรุปเป็นภาพรวมว่าเป็นกระแสจากชุมชนแทนการระบุชื่อรายคน`;
 
   const draftUserPrompt = `[FACT SHEET]\n${factSheet}\n\nWrite the final Thai content now.`;
 
@@ -891,7 +899,7 @@ ${format === 'สคริปต์วิดีโอสั้น'
 1. Think and outline the logical structure and core message internally first (Chain of Thought).
 2. Separate verified facts from interpretation or community reaction.
 3. If uncertainty exists, state it plainly and briefly.
-4. Name people only if their identity materially matters to the story or influence.
+4. Name people or accounts (@handle) only if they are highly influential (high followers/engagement), famous, or materially matter to the story. Never list random low-impact reposters.
 5. Write the final output in beautiful, natural Thai.
 </tasks>
 
@@ -988,7 +996,8 @@ export const generateFinalContent = async (enrichedData, targetFormat, customPro
     return await callGrok({
       modelName: MODEL_MULTI_AGENT,
       system: `สร้างผลงานเนื้อหาภาษาไทยที่ขัดเกลาแล้วในรูปแบบของ "${targetFormat}"
-อ้างอิงจากข้อมูลวิจัยที่ให้มาเท่านั้น`,
+อ้างอิงจากข้อมูลวิจัยที่ให้มาเท่านั้น โดยระบุชื่อบัญชี (@handle) เฉพาะคนที่มีชื่อเสียง, มีเอนเกจเม้นท์สูง, มีผู้ติดตามมาก หรือเป็นต้นทางข้อมูลสำคัญเท่านั้น บัญชีที่แค่รีโพสต์ต่อกันโดยไม่มีอิมแพคไม่ต้องระบุชื่อแต่ให้สรุปเป็นภาพรวมแทน
+`,
       prompt: `[RESEARCH]\n${enrichedData}\n\n[EXTRA INSTRUCTIONS]\n${customPrompt || 'None'}`,
     });
   } catch (error) {
