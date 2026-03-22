@@ -103,6 +103,7 @@ const RightSidebar = ({
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [isAddInputFocused, setIsAddInputFocused] = useState(false);
   const [highlightedSuggestion, setHighlightedSuggestion] = useState(0);
+  const [showAllAvailableByList, setShowAllAvailableByList] = useState({});
   const addInputAreaRef = useRef(null);
 
   const COLORS = [
@@ -131,6 +132,10 @@ const RightSidebar = ({
   useEffect(() => {
     setHighlightedSuggestion(0);
   }, [expandedId]);
+
+  useEffect(() => {
+    setShowAllAvailableByList({});
+  }, [expandedId, addHandle]);
 
   const handleListClick = (id) => {
     if (activeListId === id) {
@@ -288,6 +293,9 @@ const RightSidebar = ({
 
             const showTypeahead = isAddInputFocused && (typeaheadAccounts.length > 0 || canAddManually || normalizedQuery);
             const showAvailableAccounts = !normalizedQuery;
+            const showAllAvailable = Boolean(showAllAvailableByList[list.id]);
+            const availableAccountsPreview = showAllAvailable ? matchingAccounts : matchingAccounts.slice(0, 6);
+            const hiddenAvailableCount = Math.max(0, matchingAccounts.length - availableAccountsPreview.length);
 
             const handleInputKeyDown = (e) => {
               if (e.key === 'ArrowDown') {
@@ -603,9 +611,9 @@ const RightSidebar = ({
                        <div style={{ padding: '0 8px 12px', fontSize: '14px', fontWeight: '800', color: '#fff', letterSpacing: '-0.01em' }}>
                          {`Available accounts (${availableAccounts.length})`}
                        </div>
-                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                         {matchingAccounts.map(u => (
-                           <div key={u.id} className="suggestion-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', borderRadius: '8px', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          {availableAccountsPreview.map(u => (
+                            <div key={u.id} className="suggestion-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', borderRadius: '8px', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                              <img 
                                src={u.profile_image_url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png'} 
                               alt={u.username}
@@ -626,12 +634,26 @@ const RightSidebar = ({
                                style={{ border: '1px solid var(--text-dim)', background: 'transparent', borderRadius: '999px', color: '#fff', padding: '6px 16px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }}
                                onMouseEnter={e => { e.currentTarget.style.borderColor = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
                                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--text-dim)'; e.currentTarget.style.background = 'transparent'; }}
-                             >Add</button>
-                           </div>
-                         ))}
-                       </div>
-                     </div>
-                   )}
+                              >Add</button>
+                            </div>
+                          ))}
+                          {matchingAccounts.length > 6 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowAllAvailableByList((current) => ({
+                                  ...current,
+                                  [list.id]: !showAllAvailable,
+                                }));
+                              }}
+                              style={{ marginTop: '8px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', borderRadius: '999px', color: '#fff', padding: '8px 14px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', alignSelf: 'flex-start' }}
+                            >
+                              {showAllAvailable ? 'Show less' : `View all${hiddenAvailableCount > 0 ? ` (+${hiddenAvailableCount})` : ''}`}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                  </div>
                )}
              </React.Fragment>
