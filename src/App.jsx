@@ -281,6 +281,10 @@ const App = () => {
     return sanitizeStoredCollection(safeParse(saved, []));
   });
   const [deletedFeed, setDeletedFeed] = useState([]);
+  const [pendingFeed, setPendingFeed] = useState(() => {
+    const saved = localStorage.getItem('foro_pending_feed_v1');
+    return sanitizeStoredCollection(safeParse(saved, []));
+  });
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
   const [aiReport, setAiReport] = useState('');
@@ -381,6 +385,10 @@ const App = () => {
   }, [originalFeed]);
 
   useEffect(() => {
+    localStorage.setItem('foro_pending_feed_v1', JSON.stringify(pendingFeed));
+  }, [pendingFeed]);
+
+  useEffect(() => {
     if (createContentSource) {
       localStorage.setItem('foro_attached_source_v1', JSON.stringify(createContentSource));
     } else {
@@ -390,6 +398,7 @@ const App = () => {
 
   useEffect(() => {
     setOriginalFeed(prev => sanitizeCollectionState(prev));
+    setPendingFeed(prev => sanitizeCollectionState(prev));
     setReadArchive(prev => sanitizeCollectionState(prev));
     setBookmarks(prev => sanitizeCollectionState(prev));
     setCreateContentSource(prev => sanitizeStoredSingle(prev));
@@ -416,6 +425,51 @@ const App = () => {
     }
   }, [activeListId, originalFeed, activeView, postLists, watchlist]);
 
+  const processAndSummarizeFeed = async (newBatch, statusPrefix = 'พบ') => {
+    if (newBatch.length === 0) return;
+    setStatus(`${statusPrefix} ${newBatch.length} โพสต์! กำลังทยอยแปลและสรุปเป็นภาษาไทย...`);
+    const CHUNK_SIZE = 10;
+    let runningFeed = [...originalFeed]; 
+    
+    for (let i = 0; i < newBatch.length; i += CHUNK_SIZE) {
+      const chunk = newBatch.slice(i, i + CHUNK_SIZE);
+      const toSummarize = chunk.filter(t => {
+        const existing = runningFeed.find(p => p.id === t.id);
+        return !hasUsefulThaiSummary(existing?.summary || t.summary, existing?.text || t.text);
+      });
+
+      if (toSummarize.length > 0) {
+        const batchTexts = toSummarize.map(t => t.text);
+        const summaries = await generateGrokBatch(batchTexts);
+        toSummarize.forEach((post, idx) => {
+          post.summary = summaries[idx] || post.text;
+        });
+      }
+
+      setOriginalFeed(prev => {
+        const postMap = new Map(prev.map(p => [p.id, p]));
+        chunk.forEach(newPost => {
+          const normalizedNewPost = sanitizeStoredPost(newPost);
+          if (postMap.has(newPost.id)) {
+            postMap.set(newPost.id, { ...sanitizeStoredPost(postMap.get(newPost.id)), ...normalizedNewPost });
+          } else {
+            postMap.set(newPost.id, normalizedNewPost);
+          }
+        });
+        const nextList = Array.from(postMap.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        runningFeed = nextList;
+        return nextList;
+      });
+
+      setReadArchive(prev => {
+        const existingIds = new Set(prev.map(p => p.id));
+        const newItems = chunk.filter(p => !existingIds.has(p.id));
+        if (newItems.length > 0) return [...newItems, ...prev];
+        return prev;
+      });
+    }
+  };
+
   const handleSync = async () => {
     if (watchlist.length === 0) {
       setStatus('กรุณาเพิ่มบัญชีที่ต้องการติดตามก่อนซิงค์ข้อมูล');
@@ -439,48 +493,14 @@ const App = () => {
       const { data, meta } = await fetchWatchlistFeed(targetAccounts, '', 'Latest');
       setNextCursor(meta.next_cursor);
       
-      if (data.length > 0) {
-        setStatus(`พบ ${data.length} ข่าวใหม่! กำลังทยอยแปลและสรุปเป็นภาษาไทย...`);
-        const CHUNK_SIZE = 10;
-        let runningFeed = [...originalFeed]; 
-        
-        for (let i = 0; i < data.length; i += CHUNK_SIZE) {
-          const chunk = data.slice(i, i + CHUNK_SIZE);
-          const toSummarize = chunk.filter(t => {
-            const existing = runningFeed.find(p => p.id === t.id);
-            return !hasUsefulThaiSummary(existing?.summary || t.summary, existing?.text || t.text);
-          });
-
-          if (toSummarize.length > 0) {
-            const batchTexts = toSummarize.map(t => t.text);
-            const summaries = await generateGrokBatch(batchTexts);
-            toSummarize.forEach((post, idx) => {
-              post.summary = summaries[idx] || post.text;
-            });
-          }
-
-          setOriginalFeed(prev => {
-            const postMap = new Map(prev.map(p => [p.id, p]));
-            chunk.forEach(newPost => {
-              const normalizedNewPost = sanitizeStoredPost(newPost);
-              if (postMap.has(newPost.id)) {
-                postMap.set(newPost.id, { ...sanitizeStoredPost(postMap.get(newPost.id)), ...normalizedNewPost });
-              } else {
-                postMap.set(newPost.id, normalizedNewPost);
-              }
-            });
-            const nextList = Array.from(postMap.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-            runningFeed = nextList;
-            return nextList;
-          });
-
-          setReadArchive(prev => {
-            const existingIds = new Set(prev.map(p => p.id));
-            const newItems = chunk.filter(p => !existingIds.has(p.id));
-            if (newItems.length > 0) return [...newItems, ...prev];
-            return prev;
-          });
-        }
+      const MAX_SYNC = 20;
+      const displayData = data.slice(0, MAX_SYNC);
+      const remainingData = data.slice(MAX_SYNC);
+      
+      setPendingFeed(remainingData);
+      
+      if (displayData.length > 0) {
+        await processAndSummarizeFeed(displayData, `ดึงข้อมูลสำเร็จ! ได้มา ${data.length} โพสต์ กำลังแปลและแสดงผล`);
       }
       setStatus('อัปเดตข้อมูลเรียบร้อย');
     } catch (err) {
@@ -503,16 +523,34 @@ const App = () => {
   };
 
   const handleLoadMore = async () => {
-    if (!nextCursor || loading) return;
+    if ((!nextCursor && pendingFeed.length === 0) || loading) return;
     setLoading(true);
     try {
-      const activeList = activeListId ? postLists.find(l => l.id === activeListId) : null;
-      const targetAccounts = activeList ? activeList.members : watchlist;
-      const { data, meta } = await fetchWatchlistFeed(targetAccounts, nextCursor, 'Latest');
-      setOriginalFeed(prev => [...prev, ...data]);
-      setNextCursor(meta.next_cursor);
+      let nextBatch = [];
+      const MAX_SYNC = 20;
+
+      if (pendingFeed.length > 0) {
+        nextBatch = pendingFeed.slice(0, MAX_SYNC);
+        setPendingFeed(pendingFeed.slice(MAX_SYNC));
+      } else {
+        const activeList = activeListId ? postLists.find(l => l.id === activeListId) : null;
+        const targetAccounts = activeList ? activeList.members : watchlist;
+        const { data, meta } = await fetchWatchlistFeed(targetAccounts, nextCursor, 'Latest');
+        setNextCursor(meta.next_cursor);
+        
+        nextBatch = data.slice(0, MAX_SYNC);
+        setPendingFeed(data.slice(MAX_SYNC));
+      }
+
+      if (nextBatch.length > 0) {
+        await processAndSummarizeFeed(nextBatch, `กำลังดึงข้อมูลเพิ่มอีก`);
+        setStatus('อัปเดตข้อมูลเพิ่มเติมเรียบร้อย');
+      } else {
+        setStatus('ไม่มีข้อมูลเพิ่มเติม');
+      }
     } catch (err) {
       console.error(err);
+      setStatus('เกิดข้อผิดพลาดในการโหลดข้อมูลเพิ่มเติม');
     } finally {
       setLoading(false);
     }
