@@ -1104,7 +1104,7 @@ const App = () => {
                                   <div className="expert-name" style={{ fontSize: '14px', color: '#fff', fontWeight: '800' }}>{expert.name}</div>
                                   <div className="expert-username" style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>@{expert.username}</div>
                                 </a>
-                                <div className="expert-reasoning" style={{ fontSize: '11px', marginBottom: '16px', flex: 1, color: 'var(--text-muted)', lineHeight: '1.4' }}>“{expert.reasoning}”</div>
+                                <div className="expert-reasoning" style={{ fontSize: '13px', marginBottom: '16px', flex: 1, color: 'rgba(255,255,255,0.7)', lineHeight: '1.5' }}>“{expert.reasoning}”</div>
                                 <button onClick={() => handleAddExpert(expert)} disabled={isAdded} className={`expert-follow-btn ${isAdded ? 'added' : ''}`} style={{ padding: '6px', fontSize: '11px' }}>{isAdded ? '✓ เพิ่มแล้ว' : '+ เพิ่มเข้า Watchlist'}</button>
                               </div>
                             );
