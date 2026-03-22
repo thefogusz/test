@@ -875,7 +875,7 @@ const App = () => {
                   <Search size={16} /> ค้นหา
                 </button>
                 <button className={`btn-pill ${contentTab === 'create' ? 'primary' : ''}`} onClick={() => setContentTab('create')}>
-                  <Sparkles size={16} /> สร้างบทความ
+                  <Sparkles size={16} /> สร้างคอนเทนต์
                 </button>
               </div>
 
