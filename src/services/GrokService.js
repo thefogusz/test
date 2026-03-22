@@ -148,13 +148,13 @@ const CONTENT_FORMAT_PROFILES = {
 };
 
 const TONE_GUIDES = {
-  'ให้ข้อมูล/ปกติ': 'Calm, informed, and neutral. Avoid exaggeration.',
-  'กระตือรือร้น/ไวรัล': 'Energetic, sharp, and trend-focused. Strictly avoid literal Western greetings like "Hey fans" or "Hey folks". Use natural Thai social media hooks like "สาย... ห้ามพลาด", "สรุปมาให้จบในโพสต์เดียว", "ใครจะไปเชื่อว่า...", "นึกว่าฝันไป" etc.',
-  'ทางการ/วิชาการ': 'Precise, measured, and professional.',
-  'เป็นกันเอง/เพื่อนเล่าให้ฟัง': 'Warm and conversational while staying trustworthy.',
-  'ตลก/มีอารมณ์ขัน': 'Lightly playful. Keep humor subtle and grounded.',
-  'ดุดัน/วิจารณ์เชิงลึก': 'Direct and analytical. Strong opinions must remain evidence-based.',
-  'ฮาร์ดเซลล์/ขายของ': 'Persuasive, but never spammy or manipulative.',
+  'ให้ข้อมูล/ปกติ': 'Calm, informed, editorial. Use professional but accessible Thai. Use particles like ครับ/ค่ะ appropriately. Avoid robotic transitions.',
+  'กระตือรือร้น/ไวรัล': 'Energetic, sharp, and trend-focused. Use genuine insight as the hook. Use particles like นะ/น้า or สิ/ซะ to drive engagement without being overly formal. NEVER use clichéd openings like "สาย... ห้ามพลาด".',
+  'ทางการ/วิชาการ': 'Precise, objective, and well-structured. No slang. Use ครับ/ค่ะ for standard politeness.',
+  'เป็นกันเอง/เพื่อนเล่าให้ฟัง': 'Warm, conversational, dropping formal pronouns where implied. Flow like a natural speech. Use particles like เถอะ/หน่อย, นะ/น้า for closeness.',
+  'ตลก/มีอารมณ์ขัน': 'Lightly playful, witty observations. No forced jokes.',
+  'ดุดัน/วิจารณ์เชิงลึก': 'Direct, analytical, pulling no punches. Evidence-driven.',
+  'ฮาร์ดเซลล์/ขายของ': 'Persuasive, value-oriented, clear CTA.',
 };
 
 const HYPE_PHRASES = [
@@ -169,6 +169,13 @@ const HYPE_PHRASES = [
   'เดือดพล่าน',
   'สัญญาณไฟเขียว',
   'โลกจะไม่เหมือนเดิมอีกต่อไป',
+  'ไอคอนิก',
+  'ข้ามไปมา',
+  'หัวหอก',
+  'กระหาย',
+  'ปฏิวัติวงการ',
+  'พลิกโฉม',
+  'จับตามองให้ดี',
 ];
 
 const buildFormatProfile = (format) =>
@@ -176,9 +183,10 @@ const buildFormatProfile = (format) =>
 
 const normalizeThaiSpacing = (text = '') =>
   text
+    .replace(/[\u200B-\u200D\uFEFF]/g, '') // NLP Post-Processing: Remove zero-width spaces
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
-    .replace(/([!?])\1{1,}/g, '$1')
+    .replace(/([!?])\1{2,}/g, '$1$1') // Reduce !!! to !! at most
     .replace(/[ ]{2,}/g, ' ')
     .trim();
 
@@ -273,17 +281,17 @@ ${toneGuide}
 ${profile.structure}
 ${profile.goals}
 
-[STYLE RULES]
+[STYLE RULES & NATIVE THAI FLOW]
+- You are a Senior Thai Content Editor. Your writing must feel 100% human, rhythmic, and culturally native.
+- ANTI-ROBOT RULE 1: NO PASSIVE VOICE translated from English. Do not use "ถูก..." unless describing a negative/punishing action.
+- ANTI-ROBOT RULE 2: DROP UNNECESSARY PRONOUNS. Native Thai drops "มัน" (it) and "พวกเขา" (they) when context is clear.
+- ANTI-ROBOT RULE 3: SEMANTIC SPACING. Use spacebars to separate independent clauses and ideas instead of rigid punctuation or massive text blocks.
+- ANTI-ROBOT RULE 4: NO LITERAL IDIOMS. Never translate "at the end of the day" or "game changer" literally. Find the Thai cultural equivalent.
 - Keep verified facts separate from interpretation.
-- Match the requested tone. Viral tone may sound energetic, but it must still stay grounded in facts.
-- Avoid empty hype that is not supported by the source material.
-- Avoid repetition.
-- Prefer natural, professional Thai. Avoid "English (Thai)" or "English / Thai" translation pairs.
-- Choose either a natural Thai term or a professional English term (for technical names), but do not include both in a way that feels like a dictionary entry.
-- For short and medium outputs, do not force section headings.
-- Only include CTA when the format truly benefits from it.
+- Avoid repetitive sentence structures (e.g., stopping starting 3 sentences in a row with the same word).
+- Choose either a natural Thai term or a professional English term (for technical names) - NEVER use dictionary-style pairs like "Artificial Intelligence (ปัญญาประดิษฐ์)".
 - When low-impact people react, summarize them collectively instead of naming each one.
-- Mention a person or account by name only if they materially shape the story, have real influence, or their reaction drew unusually high engagement.
+- Mention a person or account by name only if they materially shape the story or have real influence.
 
 [CUSTOM INSTRUCTIONS]
 ${customInstructions || 'None'}
@@ -323,7 +331,10 @@ const callGrok = async ({
   prompt,
   modelName = MODEL_NEWS_FAST,
   providerOptions,
-  temperature,
+  temperature = 0.7,
+  topP = 0.85,
+  frequencyPenalty = 0.35,
+  presencePenalty = 0.1,
   allowEmoji = false,
 }) => {
   try {
@@ -332,7 +343,10 @@ const callGrok = async ({
       system,
       prompt,
       providerOptions,
-      ...(typeof temperature === 'number' ? { temperature } : {}),
+      temperature,
+      topP,
+      frequencyPenalty,
+      presencePenalty,
     });
 
     return cleanGeneratedContent(text, { allowEmoji });
@@ -776,6 +790,9 @@ export const generateStructuredContent = async (
         system: draftSystemPrompt,
         prompt: draftUserPrompt,
         temperature: 0.7,
+        topP: 0.85,
+        frequencyPenalty: 0.35,
+        presencePenalty: 0.1,
       });
 
       let fullContent = '';
@@ -796,6 +813,9 @@ export const generateStructuredContent = async (
     system: draftSystemPrompt,
     prompt: draftUserPrompt,
     temperature: 0.7,
+    topP: 0.85,
+    frequencyPenalty: 0.35,
+    presencePenalty: 0.1,
     allowEmoji,
   });
 
@@ -845,30 +865,48 @@ export const generateStructuredContentV2 = async (
   const profile = buildFormatProfile(format);
   const brief = await buildContentBrief({ factSheet, length, tone, format, customInstructions });
 
-  const draftSystemPrompt = `You are a senior Thai content editor.
-Write only from the provided fact sheet and structured brief.
+  const draftSystemPrompt = `<global_system_instruction>
+คุณคือ Copywriter ตัวท็อปของไทยที่เชี่ยวชาญการเขียนคอนเทนต์และโพสต์ Social Media หน้าที่ของคุณคือการดึงดูดคนอ่านตั้งแต่บรรทัดแรก โดยต้องใช้หลักการ Bento-Box Prompting ในการรับคำสั่ง
+</global_system_instruction>
 
-Format: ${format} (${profile.label})
-Tone: ${TONE_GUIDES[tone] || tone}
-Length: ${lengthInstruction}
+<tone_of_voice>
+- ${TONE_GUIDES[tone] || tone}
+- เป็นมืออาชีพแต่ไม่ก้าวร้าว มั่นใจแต่ไม่โอ้อวด (Professional but not aggressive, confident but not boastful).
+- ห้ามใช้คำศัพท์ที่เป็นทางการเกินไป (Corporate jargon) หรือสำนวนที่แปลตรงตัวจากภาษาอังกฤษ
+</tone_of_voice>
 
-Rules:
-1. Do not invent facts, quotes, numbers, timelines, or certainty.
-2. Keep named entities and product names in English when appropriate.
-3. Separate verified facts from interpretation or community reaction.
-4. Match the requested tone. Viral tone can be punchy, but must not overclaim beyond the evidence.
-5. Avoid headings unless the format truly benefits from them.
-6. Do not end with engagement bait unless the brief clearly calls for it.
-7. Make the Thai feel natural, not like translation output. **Strictly avoid using "English (Thai)" or "English / Thai" translation pairs.** Choose the most appropriate single term for the context.
-8. If uncertainty exists, state it plainly and briefly.
-9. When reactions come from low-impact voices, summarize them collectively instead of naming each one.
-10. Mention a person or account by name only if their identity materially matters, they have real influence, or their reaction received unusually high engagement.`;
+<rules_and_constraints>
+1. ห้ามใช้โครงสร้างประโยคแบบแปลกๆ (Thai-glish): เช่น "มันเป็นสิ่งสำคัญที่..." ให้เปลี่ยนเป็น "สิ่งสำคัญคือ..."
+2. การเว้นวรรค: ภาษาไทยไม่เว้นวรรคระหว่างคำ แต่เว้นวรรคเมื่อจบประโยค หรือต้องการแยกไอเดีย
+3. ความกระชับ: ตัดคำฟุ่มเฟือยทิ้งให้หมด สื่อสารตรงประเด็น
+4. การใช้ Emoji: ใช้ประกอบพองาม (ไม่เกิน 3-4 ตัวต่อโพสต์)
+5. การสลับรหัสภาษา (Code-Switching): คงคำศัพท์ทางเทคนิคไว้ (เช่น แคมเปญ, ฟีเจอร์) แต่ใช้ไวยากรณ์และโครงสร้างประโยคแบบภาษาไทยธรรมชาติ
+${format === 'สคริปต์วิดีโอสั้น' 
+  ? '6. คำลงท้าย (Sentence Particles): วิดีโอสคริปต์ต้องใช้คำลงท้ายพูด (เช่น ครับ/ค่ะ, นะ/น้า, สิ/ซะ) เพื่อให้เหมือนคนพูดจริงๆ และมีจังหวะหายใจ'
+  : '6. คำลงท้าย (Sentence Particles): งานเขียนเพจทั่วไปให้หลีกเลี่ยงคำลงท้าย (เช่น ครับ/ค่ะ, นะ) เพื่อความเป็นมืออาชีพและกระชับ ยกเว้นโทนเพื่อนเล่าให้ฟัง'}
+7. NO DICTIONARY PAIRS. Choose either English or Thai for a term. Never write "Artificial Intelligence (ปัญญาประดิษฐ์)".
+</rules_and_constraints>
+
+<tasks>
+1. Think and outline the logical structure and core message internally first (Chain of Thought).
+2. Separate verified facts from interpretation or community reaction.
+3. If uncertainty exists, state it plainly and briefly.
+4. Name people only if their identity materially matters to the story or influence.
+5. Write the final output in beautiful, natural Thai.
+</tasks>
+
+<few_shot_examples>
+Example of BAD AI Thai:
+"มันถูกรายงานว่าบริษัท Apple (แอปเปิ้ล) ได้ทำการเปิดตัวสินค้าใหม่ ซึ่งนี่คือเกมเชนเจอร์ของตลาด"
+Example of GOOD Native Thai:
+"มีรายงานว่า Apple เปิดตัวสินค้าใหม่ที่อาจพลิกโฉมตลาดไปชั่วข้ามคืน"
+</few_shot_examples>`;
 
   const draftUserPrompt = [
-    `[FORMAT RULES]\n${profile.structure}\n${profile.goals}`,
-    `[STRUCTURED BRIEF]\n${JSON.stringify(brief, null, 2)}`,
-    `[FACT SHEET]\n${factSheet}`,
-    `[EXTRA INSTRUCTIONS]\n${customInstructions || 'None'}`,
+    `<format_rules>\nFormat: ${format} (${profile.label})\nLength: ${lengthInstruction}\n${profile.structure}\n${profile.goals}\n</format_rules>`,
+    `<structured_brief>\n${JSON.stringify(brief, null, 2)}\n</structured_brief>`,
+    `<fact_sheet>\n${factSheet}\n</fact_sheet>`,
+    `<extra_instructions>\n${customInstructions || 'None'}\n</extra_instructions>`,
     'Write the final Thai content now.',
   ].join('\n\n');
 
@@ -879,6 +917,9 @@ Rules:
         system: draftSystemPrompt,
         prompt: draftUserPrompt,
         temperature: 0.7,
+        topP: 0.85,
+        frequencyPenalty: 0.35,
+        presencePenalty: 0.1,
       });
 
       let fullContent = '';
@@ -899,6 +940,9 @@ Rules:
     system: draftSystemPrompt,
     prompt: draftUserPrompt,
     temperature: 0.7,
+    topP: 0.85,
+    frequencyPenalty: 0.35,
+    presencePenalty: 0.1,
     allowEmoji,
   });
 

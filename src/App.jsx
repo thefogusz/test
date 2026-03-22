@@ -314,6 +314,7 @@ const App = () => {
   });
   const [bookmarkTab, setBookmarkTab] = useState('news');
   const [editingArticleId, setEditingArticleId] = useState(null);
+  const [selectedArticle, setSelectedArticle] = useState(null);
   
   const [isMobilePostListOpen, setIsMobilePostListOpen] = useState(false);
   const [readArchive, setReadArchive] = useState(() => {
@@ -1248,12 +1249,24 @@ const App = () => {
                    bookmarkTab === 'news' ? (
                      <FeedCard key={item.id || idx} tweet={item} isBookmarked={true} onBookmark={handleBookmark} />
                    ) : (
-                     <div key={item.id} className="article-card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                          <h3 style={{ margin: 0 }}>{item.title}</h3>
-                          <button onClick={() => setBookmarks(prev => prev.filter(p => p.id !== item.id))} className="btn-mini-ghost text-red">ลบ</button>
-                        </div>
-                        <div className="markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(item.summary) }} />
+                     <div key={item.id} className="article-card" onClick={() => setSelectedArticle(item)}>
+                       <div className="article-card-header">
+                         <h3 title={item.title}>{item.title}</h3>
+                         <button 
+                           onClick={(e) => { e.stopPropagation(); setBookmarks(prev => prev.filter(p => p.id !== item.id)); }} 
+                           className="btn-mini-ghost text-red"
+                           style={{ padding: '4px 8px' }}
+                         >
+                           <Trash2 size={12} />
+                         </button>
+                       </div>
+                       <div className="article-preview">
+                         {(item.summary || '').replace(/[#*`]/g, '').slice(0, 300)}
+                       </div>
+                       <div className="article-card-footer">
+                         <span>{item.created_at ? new Date(item.created_at).toLocaleDateString('th-TH') : ''}</span>
+                         <span>อ่านเพิ่มเติม →</span>
+                       </div>
                      </div>
                    )
                 ))}
@@ -1307,6 +1320,19 @@ const App = () => {
             <div className="modal-actions">
               <button className="modal-btn modal-btn-secondary" onClick={() => setFilterModal({ ...filterModal, show: false })}>ยกเลิก</button>
               <button className="modal-btn modal-btn-primary" onClick={handleAiFilter}>กรองข้อมูล</button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {selectedArticle && (
+        <div className="modal-overlay" onClick={() => setSelectedArticle(null)}>
+          <div className="modal-content" style={{ maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <button className="modal-close-btn" onClick={() => setSelectedArticle(null)}><X size={20} /></button>
+            <div className="modal-title" style={{ fontSize: '24px', marginBottom: '20px' }}>{selectedArticle.title}</div>
+            <div className="markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(selectedArticle.summary) }} />
+            <div className="modal-actions" style={{ marginTop: '32px', justifyContent: 'flex-end' }}>
+              <button className="modal-btn modal-btn-secondary" onClick={() => setSelectedArticle(null)}>ปิด</button>
             </div>
           </div>
         </div>
