@@ -413,7 +413,7 @@ const RightSidebar = ({
                         textOverflow: 'ellipsis', 
                         marginBottom: '2px',
                         transition: 'color 0.2s',
-                        cursor: 'text'
+                        cursor: 'pointer'
                       }}
                     >
                       {list.name}
