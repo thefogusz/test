@@ -793,6 +793,41 @@ h1, h2, h3, h4, h5, h6 {
   text-overflow: ellipsis;
 }
 
+.ai-filtered-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: var(--accent-tint);
+  border: 1px solid var(--blue-border);
+  border-radius: 100px;
+  box-shadow: 0 0 15px var(--accent-glow-subtle);
+  animation: fadeIn 0.4s ease-out;
+}
+
+.ai-filtered-badge span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--accent-secondary);
+}
+
+.ai-filtered-clear-btn {
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s;
+  padding: 2px;
+}
+
+.ai-filtered-clear-btn:hover {
+  transform: scale(1.2);
+  color: #ef4444;
+}
+
 .expert-username {
   font-size: 13px;
   color: var(--accent-secondary);

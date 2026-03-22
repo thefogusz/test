@@ -141,6 +141,8 @@ const App = () => {
   const [manualQuery, setManualQuery] = useState('');
   const [manualPreview, setManualPreview] = useState(null);
   const [manualLoading, setManualLoading] = useState(false);
+  const [isFiltered, setIsFiltered] = useState(false);
+  const [aiFilterSummary, setAiFilterSummary] = useState('');
 
   useEffect(() => {
     localStorage.setItem('foro_watchlist_v2', JSON.stringify(watchlist));
@@ -197,7 +199,7 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    if (activeView === 'search') return; 
+    if (activeView === 'search' || isFiltered) return; 
     
     if (activeListId) {
       const activeList = postLists.find(l => l.id === activeListId);
@@ -215,7 +217,7 @@ const App = () => {
       );
       setFeed(filtered);
     }
-  }, [activeListId, originalFeed, activeView, postLists, watchlist]);
+  }, [activeListId, originalFeed, activeView, postLists, watchlist, isFiltered]);
 
   const processAndSummarizeFeed = async (newBatch, statusPrefix = 'พบ') => {
     if (newBatch.length === 0) return;
@@ -381,7 +383,7 @@ const App = () => {
 
       if (data.length > 0) {
         const validIds = await agentFilterFeed(data, rankingQuery);
-        const cleanData = data.filter(t => validIds.includes(t.id));
+        const cleanData = data.filter(t => validIds.some(vid => String(vid) === String(t.id)));
         
         if (!isMore) {
           const summaryText = await generateExecutiveSummary(cleanData.slice(0, 5), requestedQuery);
@@ -544,12 +546,44 @@ const App = () => {
   };
 
   const handleAiFilter = async () => {
-    if (!filterModal.prompt) return;
-    setLoading(true);
-    const validIds = await agentFilterFeed(feed, filterModal.prompt);
-    setFeed(feed.filter(t => validIds.includes(t.id)));
-    setFilterModal({ show: false, prompt: '' });
-    setLoading(false);
+    if (!filterModal.prompt || filterModal.isFiltering) return;
+    setFilterModal(prev => ({ ...prev, isFiltering: true }));
+    setStatus('AI กำลังวิเคราะห์และคัดกรองเนื้อหา...');
+    
+    try {
+      const validIds = await agentFilterFeed(feed, filterModal.prompt);
+      const filteredResult = feed.filter(t => validIds.some(vid => String(vid) === String(t.id)));
+      
+      setFeed(filteredResult);
+      setIsFiltered(true);
+      
+      if (filteredResult.length > 0) {
+        setStatus('กำลังวิเคราะห์บทสรุปสำหรับคุณ...');
+        const summary = await generateExecutiveSummary(filteredResult.slice(0, 5), filterModal.prompt);
+        setAiFilterSummary(summary);
+      }
+      
+      setFilterModal(prev => ({ ...prev, show: false, isFiltering: false }));
+      
+      if (filteredResult.length > 0) {
+        setStatus(`กรองสำเร็จ! พบ ${filteredResult.length} โพสต์ที่ตรงตามเจตนาของคุณ`);
+      } else {
+        setStatus('ไม่พบโพสต์ที่ตรงตามเงื่อนไข ลองปรับคำสั่งกรองใหม่');
+      }
+    } catch (err) {
+      console.error(err);
+      setStatus('การกรองข้อมูลล้มเหลว กรุณาลองใหม่อีกครั้ง');
+      setFilterModal(prev => ({ ...prev, isFiltering: false }));
+    }
+  };
+
+  const clearAiFilter = () => {
+    setIsFiltered(false);
+    setAiFilterSummary('');
+    // This will trigger the useEffect to restore the feed from originalFeed
+    setActiveListId(activeListId);
+    setOriginalFeed([...originalFeed]);
+    setStatus('ล้างตัวกรองแล้ว');
   };
 
   const handleAiSearchAudience = async (q, isMore = false) => {
@@ -668,13 +702,46 @@ const App = () => {
                 </div>
               </header>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-                <div className="section-title">โพสต์ล่าสุด</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="section-title">โพสต์ล่าสุด</div>
+                  {isFiltered && (
+                    <div className="ai-filtered-badge">
+                      <Sparkles size={12} className="text-accent" />
+                      <span>AI FILTERED</span>
+                      <button onClick={clearAiFilter} className="ai-filtered-clear-btn" title="ล้างตัวกรอง">
+                        <X size={12} />
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => handleSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`}>ยอดวิว</button>
                   <button onClick={() => handleSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`}>เอนเกจเมนต์</button>
                 </div>
               </div>
+
+              {aiFilterSummary && (
+                <div className="ai-summary-container animate-fade-in" style={{ 
+                  background: 'linear-gradient(135deg, rgba(41, 151, 255, 0.08) 0%, rgba(157, 117, 255, 0.08) 100%)',
+                  border: '1px solid var(--blue-border)',
+                  borderRadius: '16px',
+                  padding: '24px',
+                  marginBottom: '28px',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{ position: 'absolute', top: 0, right: 0, padding: '8px 16px', background: 'var(--accent-secondary)', color: '#000', fontSize: '10px', fontWeight: '900', borderRadius: '0 0 0 12px' }}>AI ANALYST</div>
+                  <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
+                    <div style={{ background: 'var(--accent-gradient)', padding: '10px', borderRadius: '12px', color: '#fff' }}>
+                      <Sparkles size={20} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div className="markdown-body" style={{ fontSize: '15px', lineHeight: '1.7' }} dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(aiFilterSummary) }} />
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="feed-grid">
                 {feed.length === 0 ? (
                   <div className="empty-state-card">
@@ -1152,21 +1219,42 @@ const App = () => {
       )}
 
       {filterModal.show && (
-        <div className="modal-overlay" onClick={() => setFilterModal({ ...filterModal, show: false })}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={() => !filterModal.isFiltering && setFilterModal({ ...filterModal, show: false })}>
+          <div className="modal-content animate-fade-in" style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
             <div className="modal-title">🪄 AI Smart Filter</div>
             <div className="modal-subtitle">กรองเนื้อหาที่ต้องการโดยระบุเป็นภาษามนุษย์ (เช่น "หาเฉพาะเรื่องระดมทุนของส้มหยุด" หรือ "ข่าวที่เกี่ยวกับ Apple")</div>
             <textarea 
               className="modal-input"
               style={{ minHeight: '120px', resize: 'none', padding: '16px' }}
               autoFocus
+              disabled={filterModal.isFiltering}
               placeholder="ระบุสิ่งที่ต้องการกรองที่นี่..."
               value={filterModal.prompt}
               onChange={e => setFilterModal({ ...filterModal, prompt: e.target.value })}
             />
             <div className="modal-actions">
-              <button className="modal-btn modal-btn-secondary" onClick={() => setFilterModal({ ...filterModal, show: false })}>ยกเลิก</button>
-              <button className="modal-btn modal-btn-primary" onClick={handleAiFilter}>กรองข้อมูล</button>
+              <button 
+                className="modal-btn modal-btn-secondary" 
+                disabled={filterModal.isFiltering}
+                onClick={() => setFilterModal({ ...filterModal, show: false })}
+              >
+                ยกเลิก
+              </button>
+              <button 
+                className="modal-btn modal-btn-primary" 
+                onClick={handleAiFilter}
+                disabled={filterModal.isFiltering || !filterModal.prompt.trim()}
+                style={{ position: 'relative', overflow: 'hidden' }}
+              >
+                {filterModal.isFiltering ? (
+                  <>
+                    <RefreshCw size={16} className="animate-spin" />
+                    <span>กำลังประมวลผล...</span>
+                  </>
+                ) : (
+                  'กรองข้อมูล'
+                )}
+              </button>
             </div>
           </div>
         </div>

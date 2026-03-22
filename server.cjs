@@ -31,7 +31,7 @@ const TWITTER_API_KEY = process.env.TWITTER_API_KEY || process.env.VITE_TWITTER_
 const XAI_API_KEY = process.env.XAI_API_KEY || process.env.VITE_XAI_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY || process.env.VITE_TAVILY_API_KEY;
 
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '5mb' }));
 
 app.use('/api/twitter', createProxyMiddleware({
   target: 'https://api.twitterapi.io',
@@ -56,17 +56,11 @@ app.use('/api/xai', createProxyMiddleware({
   },
   on: {
     proxyReq: (proxyReq, req) => {
-      // Set headers first!
       if (XAI_API_KEY) {
         proxyReq.setHeader('Authorization', `Bearer ${XAI_API_KEY}`);
       }
-
-      // Re-stream the body if it was parsed by express.json()
-      if (req.body && Object.keys(req.body).length > 0) {
-        const bodyData = JSON.stringify(req.body);
-        proxyReq.setHeader('Content-Type', 'application/json');
-        proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
-        proxyReq.write(bodyData);
+      if (req.body) {
+        fixRequestBody(proxyReq, req);
       }
     },
     error: (err, req, res) => {
