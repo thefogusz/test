@@ -1091,8 +1091,17 @@ const App = () => {
                                   src={`https://unavatar.io/twitter/${expert.username}`} 
                                   style={{ width: '42px', height: '42px', borderRadius: '50%', marginBottom: '10px', border: '2px solid var(--bg-700)', objectFit: 'cover' }} 
                                   onError={e => {
-                                    e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(expert.name)}&background=random&color=fff`;
-                                    e.target.onerror = null; // Prevent infinite loop if fallback fails
+                                    if (e.target.src.includes('unavatar.io')) {
+                                      // Try GitHub as a secondary fallback (common for tech types)
+                                      e.target.src = `https://unavatar.io/github/${expert.username}`;
+                                    } else if (e.target.src.includes('github')) {
+                                       // Final try: Google favicon (not an user photo but consistent)
+                                       e.target.src = `https://www.google.com/s2/favicons?domain=x.com&sz=128`;
+                                    } else {
+                                      // Absolute final: Initials
+                                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(expert.name)}&background=random&color=fff&bold=true`;
+                                      e.target.onerror = null;
+                                    }
                                   }}
                                 />
                                 <a 
