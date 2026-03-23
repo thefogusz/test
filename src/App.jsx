@@ -906,6 +906,9 @@ const App = () => {
                     return item && item.author && activeList.members.some(m => m.toLowerCase() === item.author.username?.toLowerCase());
                   })
                   .sort((a, b) => {
+                    if (!readFilters.view && !readFilters.engagement) {
+                      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+                    }
                     const scoreA = (readFilters.view ? (parseInt(a.view_count) || 0) : 0) + (readFilters.engagement ? getEngagementTotal(a) : 0);
                     const scoreB = (readFilters.view ? (parseInt(b.view_count) || 0) : 0) + (readFilters.engagement ? getEngagementTotal(b) : 0);
                     return scoreB - scoreA;
