@@ -28,7 +28,7 @@ import FeedCard from './components/FeedCard';
 import CreateContent from './components/CreateContent';
 import {
   curateSearchResults,
-  filterTweetsWithinHours,
+// Removed unused filterTweetsWithinHours
   getUserInfo,
   fetchWatchlistFeed,
   RECENT_WINDOW_HOURS,
@@ -40,7 +40,6 @@ import './index.css';
 import {
   safeParse,
   mergeUniquePostsById,
-  hasThaiCharacters,
   hasUsefulThaiSummary,
   sanitizeStoredPost,
   sanitizeStoredCollection,
@@ -52,11 +51,7 @@ import {
 import UserCard from './components/UserCard';
 import ContentErrorBoundary from './components/ContentErrorBoundary';
 
-const getSearchFallbackResults = (tweets, requestedQuery, isLatestMode) =>
-  curateSearchResults(tweets, requestedQuery, {
-    latestMode: isLatestMode,
-    preferCredibleSources: true,
-  });
+
 
 
 
@@ -84,9 +79,7 @@ const App = () => {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
-  const [originalSearchResults, setOriginalSearchResults] = useState([]);
   const [searchSummary, setSearchSummary] = useState('');
-  const [searchFilters, setSearchFilters] = useState({ view: false, engagement: false });
   const [isSearching, setIsSearching] = useState(false);
   const [searchCursor, setSearchCursor] = useState(null);
   const [activeSearchPlan, setActiveSearchPlan] = useState(null);
@@ -109,7 +102,6 @@ const App = () => {
     return sanitizeStoredCollection(safeParse(saved, []));
   });
   const [bookmarkTab, setBookmarkTab] = useState('news');
-  const [editingArticleId, setEditingArticleId] = useState(null);
   const [selectedArticle, setSelectedArticle] = useState(null);
   
   const [isMobilePostListOpen, setIsMobilePostListOpen] = useState(false);
@@ -140,7 +132,7 @@ const App = () => {
   const [aiSearchResults, setAiSearchResults] = useState([]);
   const [manualQuery, setManualQuery] = useState('');
   const [manualPreview, setManualPreview] = useState(null);
-  const [manualLoading, setManualLoading] = useState(false);
+
   const [isFiltered, setIsFiltered] = useState(false);
   const [aiFilterSummary, setAiFilterSummary] = useState('');
 
@@ -271,7 +263,7 @@ const App = () => {
     }
     setLoading(true);
     setStatus('กำลังเชื่อมต่อฐานข้อมูล... ดึงฟีดข่าวล่าสุด');
-    const startTime = Date.now();
+
     try {
       const activeList = activeListId ? postLists.find(l => l.id === activeListId) : null;
       const rawAccounts = activeList ? activeList.members : watchlist;
@@ -368,31 +360,23 @@ const App = () => {
       const planQueries = !isMore && searchPlan?.queries?.length > 0 ? searchPlan.queries : [requestedQuery];
       const rankingQuery = mergePlanLabelsIntoQuery(requestedQuery, searchPlan?.topicLabels || []);
 
-      let data = [];
-      let meta = { next_cursor: null };
-
-      if (isLatestMode) {
-        const response = await searchEverything(planQueries[0], isMore ? searchCursor : null, onlyNews, 'Latest');
-        data = filterTweetsWithinHours(response.data, RECENT_WINDOW_HOURS);
-        meta = response.meta;
-      } else {
-        const response = await searchEverything(planQueries[0], isMore ? searchCursor : null, onlyNews, 'Top');
-        data = response.data;
-        meta = response.meta;
-      }
-
+      const finalQuery = planQueries[0];
+      setStatus(`[API] กำลังแสกนหาข้อมูลและกวาดล้างเนื้อหาดิบจาก X ทั่วโลก (Duo-Fetch)...`);
+      const { data, meta } = await searchEverything(finalQuery, isMore ? searchCursor : null, onlyNews, isLatestMode ? 'Latest' : 'Top', !isMore); 
+      
       if (data.length > 0) {
+        setStatus(`[Agent 2/3] กำลังกรองสแปมและคัดเลือกโพสต์ระดับคุณภาพจากฐานข้อมูล 40 ชุด...`);
         const validIds = await agentFilterFeed(data, rankingQuery);
         const cleanData = data.filter(t => validIds.some(vid => String(vid) === String(t.id)));
         
         if (!isMore) {
+          setStatus(`[Agent 3/3] กำลังสังเคราะห์ข้อมูลและเขียน Executive Summary...`);
           const summaryText = await generateExecutiveSummary(cleanData.slice(0, 5), requestedQuery);
           setSearchSummary(summaryText);
         }
 
         const nextResults = isMore ? mergeUniquePostsById(searchResults, cleanData) : cleanData;
         setSearchResults(nextResults);
-        setOriginalSearchResults(nextResults);
         setSearchCursor(meta.next_cursor);
         
         // Progressive Translation for results...
@@ -433,6 +417,8 @@ const App = () => {
     ).slice(0, 5);
     setSuggestions(filteredSuggestions);
 
+    // Removed automatic debounced search as requested by user (Bug fix)
+    /*
     if (!isAudienceManual) {
       const timer = setTimeout(() => {
         if (searchQuery.trim().length >= 1) {
@@ -442,6 +428,8 @@ const App = () => {
       }, 800);
       return () => clearTimeout(timer);
     }
+    */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, manualQuery, activeView, audienceTab, contentTab]);
 
   const resolvePlaceholders = async (nodes) => {
@@ -532,18 +520,7 @@ const App = () => {
     });
   };
 
-  const handleSearchSort = (type) => {
-    setSearchFilters(prev => {
-      const next = { ...prev, [type]: !prev[type] };
-      const sorted = [...searchResults].sort((a, b) => {
-        const scoreA = (next.view ? (parseInt(a.view_count) || 0) : 0) + (next.engagement ? getEngagementTotal(a) : 0);
-        const scoreB = (next.view ? (parseInt(b.view_count) || 0) : 0) + (next.engagement ? getEngagementTotal(b) : 0);
-        return scoreB - scoreA;
-      });
-      setSearchResults(sorted);
-      return next;
-    });
-  };
+
 
   const handleAiFilter = async () => {
     if (!filterModal.prompt || filterModal.isFiltering) return;
@@ -771,110 +748,119 @@ const App = () => {
           {/* ===== UNIFIED CONTENT VIEW ===== */}
           <div className="unified-content-view animate-fade-in" style={{ display: activeView === 'content' ? 'block' : 'none' }}>
             <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '16px' }}>
-                <button className={`btn-pill ${contentTab === 'search' ? 'primary' : ''}`} onClick={() => setContentTab('search')}>
-                  <Search size={16} /> ค้นหา
-                </button>
-                <button className={`btn-pill ${contentTab === 'create' ? 'primary' : ''}`} onClick={() => setContentTab('create')}>
-                  <Sparkles size={16} /> สร้างคอนเทนต์
-                </button>
-              </div>
+              <button className={`btn-pill ${contentTab === 'search' ? 'primary' : ''}`} onClick={() => setContentTab('search')}>
+                <Search size={16} /> ค้นหา
+              </button>
+              <button className={`btn-pill ${contentTab === 'create' ? 'primary' : ''}`} onClick={() => setContentTab('create')}>
+                <Sparkles size={16} /> สร้างคอนเทนต์
+              </button>
+            </div>
 
-              <div style={{ display: contentTab === 'create' ? 'block' : 'none' }}>
-                <div className="animate-fade-in">
-                  <ContentErrorBoundary key={createContentSource?.id}>
-                    <CreateContent 
-                      sourceNode={createContentSource} 
-                      onRemoveSource={() => setCreateContentSource(null)}
-                      onSaveArticle={(title, content) => {
-                        const newArt = { id: Date.now().toString(), type: 'article', title: title || 'บทความ AI', summary: content, created_at: new Date().toISOString() };
-                        setBookmarks(prev => [newArt, ...prev]);
-                      }}
-                    />
-                  </ContentErrorBoundary>
-                </div>
-              </div>
-
-              <div style={{ display: contentTab === 'search' ? 'block' : 'none' }}>
-                <div className="search-discovery-view animate-fade-in">
-                  <div className="hero-search-container">
-                    <h1 className="hero-search-title">ค้นหาคอนเทนต์</h1>
-                    <p className="hero-search-subtitle">สำรวจเทรนด์และเจาะลึกข้อมูลจากทั่วโลก</p>
-                    <div className="hero-search-wrapper" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <form onSubmit={(e) => { e.preventDefault(); handleSearch(e); setShowSuggestions(false); }} className="hero-search-form">
-                        <Search size={20} className="hero-search-icon" />
-                        <input
-                          type="text"
-                          className="hero-search-input"
-                          placeholder="พิมพ์คีย์เวิร์ดที่สนใจ..."
-                          value={searchQuery}
-                          onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); setActiveSuggestionIndex(-1); }}
-                          onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-                          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'ArrowDown') setActiveSuggestionIndex(prev => Math.min(prev + 1, suggestions.length - 1));
-                            else if (e.key === 'ArrowUp') setActiveSuggestionIndex(prev => Math.max(prev - 1, -1));
-                            else if (e.key === 'Enter' && activeSuggestionIndex >= 0) {
-                              const sel = suggestions[activeSuggestionIndex];
-                              setSearchQuery(sel); handleSearch(null, false, sel); setShowSuggestions(false);
-                            }
-                          }}
-                        />
-                        <div className="hero-search-actions">
-                          <button 
-                            type="button" 
-                            onClick={() => setIsLatestMode(!isLatestMode)} 
-                            className={`zap-toggle-btn ${isLatestMode ? 'active' : ''}`}
-                            title={isLatestMode ? "โหมดล่าสุด (Latest)" : "โหมดยอดนิยม (Top)"}
-                          >
-                            <Zap size={18} fill={isLatestMode ? "currentColor" : "none"} />
-                          </button>
-                          {searchQuery && <button type="button" onClick={() => { setSearchQuery(''); setSuggestions([]); }} className="hero-clear-btn"><X size={16} /></button>}
-                          <button type="submit" className="hero-submit-btn" disabled={isSearching}>
-                            {isSearching ? <Loader2 size={18} className="animate-spin" /> : 'ค้นหา'}
-                          </button>
-                        </div>
-                      </form>
-                      {showSuggestions && suggestions.length > 0 && (
-                        <div className="search-suggestions-dropdown">
-                          {suggestions.map((item, idx) => (
-                            <div key={item} className={`suggestion-item ${idx === activeSuggestionIndex ? 'active' : ''}`} onClick={() => { setSearchQuery(item); handleSearch(null, false, item); setShowSuggestions(false); }}>
-                              <Search size={14} className="suggestion-icon" /><span>{item}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {isLiveSearching && !isSearching && <div className="searching-indicator" style={{ marginTop: '16px' }}><RefreshCw size={12} className="animate-spin" /> กำลังประมวลผลการค้นหา...</div>}
-                      
-                      {!searchQuery && searchResults.length === 0 && (
-                        <div className="search-idea-tags animate-fade-in">
-                          <p>ลองค้นหาคีย์เวิร์ดเหล่านี้...</p>
-                          <div className="tags-row">
-                            {['AI Trends 2026', 'สรุปข่าว AI', 'เทคโนโลยี', 'Web3 & Crypto', 'Social Media', 'Marketing', 'Startup Funding'].map(tag => (
-                              <button key={tag} className="idea-tag" type="button" onClick={() => { setSearchQuery(tag); handleSearch(null, false, tag); }}>
-                                {tag}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {searchResults.length > 0 && (
-                    <div className="search-results-container">
-                      {searchSummary && <div className="markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(searchSummary) }} />}
-                      <div className="feed-grid">
-                        {searchResults.map((item, idx) => <FeedCard key={item.id || idx} tweet={item} />)}
-                      </div>
-                      {searchCursor && !isSearching && (
-                        <div style={{ textAlign: 'center', marginTop: '32px', paddingBottom: '40px' }}>
-                          <button onClick={(e) => handleSearch(e, true)} className="btn-pill">โหลดเพิ่มเติม</button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+            <div style={{ display: contentTab === 'create' ? 'block' : 'none' }}>
+              <div className="animate-fade-in">
+                <ContentErrorBoundary key={createContentSource?.id}>
+                  <CreateContent 
+                    sourceNode={createContentSource} 
+                    onRemoveSource={() => setCreateContentSource(null)}
+                    onSaveArticle={(title, content) => {
+                      const newArt = { id: Date.now().toString(), type: 'article', title: title || 'บทความ AI', summary: content, created_at: new Date().toISOString() };
+                      setBookmarks(prev => [newArt, ...prev]);
+                    }}
+                  />
+                </ContentErrorBoundary>
               </div>
             </div>
+
+            <div style={{ display: contentTab === 'search' ? 'block' : 'none' }}>
+              <div className="search-discovery-view animate-fade-in">
+                <div className="hero-search-container">
+                  <h1 className="hero-search-title">ค้นหาคอนเทนต์</h1>
+                  <p className="hero-search-subtitle">สำรวจเทรนด์และเจาะลึกข้อมูลจากทั่วโลก</p>
+                  <div className="hero-search-wrapper" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div className="hero-search-form" style={{ display: 'flex', width: '100%' }}>
+                      <Search size={20} className="hero-search-icon" />
+                      <input
+                        type="text"
+                        className="hero-search-input"
+                        placeholder="พิมพ์คีย์เวิร์ดที่สนใจ..."
+                        value={searchQuery}
+                        onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); setActiveSuggestionIndex(-1); }}
+                        onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'ArrowDown') setActiveSuggestionIndex(prev => Math.min(prev + 1, suggestions.length - 1));
+                          else if (e.key === 'ArrowUp') setActiveSuggestionIndex(prev => Math.max(prev - 1, -1));
+                          else if (e.key === 'Enter') {
+                            if (activeSuggestionIndex >= 0) {
+                              const sel = suggestions[activeSuggestionIndex];
+                              setSearchQuery(sel); handleSearch(null, false, sel); setShowSuggestions(false);
+                            } else if (!e.nativeEvent.isComposing) {
+                              handleSearch(e); setShowSuggestions(false);
+                            }
+                          }
+                        }}
+                      />
+                      <div className="hero-search-actions">
+                        <button 
+                          type="button" 
+                          onClick={() => setIsLatestMode(!isLatestMode)} 
+                          className={`zap-toggle-btn ${isLatestMode ? 'active' : ''}`}
+                          title={isLatestMode ? "โหมดล่าสุด (Latest)" : "โหมดยอดนิยม (Top)"}
+                        >
+                          <Zap size={18} fill={isLatestMode ? "currentColor" : "none"} />
+                        </button>
+                        {searchQuery && <button type="button" onClick={() => { setSearchQuery(''); setSuggestions([]); }} className="hero-clear-btn"><X size={16} /></button>}
+                        <button 
+                          type="button" 
+                          className="hero-submit-btn" 
+                          onClick={(e) => { handleSearch(e); setShowSuggestions(false); }} 
+                          disabled={isSearching}
+                        >
+                          {isSearching ? <Loader2 size={18} className="animate-spin" /> : 'ค้นหา'}
+                        </button>
+                      </div>
+                    </div>
+                    {showSuggestions && suggestions.length > 0 && (
+                      <div className="search-suggestions-dropdown">
+                        {suggestions.map((item, idx) => (
+                          <div key={item} className={`suggestion-item ${idx === activeSuggestionIndex ? 'active' : ''}`} onClick={() => { setSearchQuery(item); handleSearch(null, false, item); setShowSuggestions(false); }}>
+                            <Search size={14} className="suggestion-icon" /><span>{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {isLiveSearching && !isSearching && <div className="searching-indicator" style={{ marginTop: '16px' }}><RefreshCw size={12} className="animate-spin" /> กำลังประมวลผลการค้นหา...</div>}
+                    
+                    {!searchQuery && searchResults.length === 0 && (
+                      <div className="search-idea-tags animate-fade-in">
+                        <p>ลองค้นหาคีย์เวิร์ดเหล่านี้...</p>
+                        <div className="tags-row">
+                          {['AI Trends 2026', 'สรุปข่าว AI', 'เทคโนโลยี', 'Web3 & Crypto', 'Social Media', 'Marketing', 'Startup Funding'].map(tag => (
+                            <button key={tag} className="idea-tag" type="button" onClick={() => { setSearchQuery(tag); handleSearch(null, false, tag); }}>
+                              {tag}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {searchResults.length > 0 && (
+                  <div className="search-results-container">
+                    {searchSummary && <div className="markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(searchSummary) }} />}
+                    <div className="feed-grid">
+                      {searchResults.map((item, idx) => <FeedCard key={item.id || idx} tweet={item} />)}
+                    </div>
+                    {searchCursor && !isSearching && (
+                      <div style={{ textAlign: 'center', marginTop: '32px', paddingBottom: '40px' }}>
+                        <button onClick={(e) => handleSearch(e, true)} className="btn-pill">โหลดเพิ่มเติม</button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
 
           {/* ===== READ VIEW ===== */}
           <div className="reader-library-view animate-fade-in" style={{ display: activeView === 'read' ? 'block' : 'none' }}>
@@ -1122,9 +1108,10 @@ const App = () => {
                         ))}
                       </div>
                     </div>
-                  )}
-                </div>
-              );
+                  </div>
+                )}
+              </div>
+            );
             })()}
           </div>
 
@@ -1185,9 +1172,8 @@ const App = () => {
                 ))}
               </div>
             </div>
-          
-        </div>
-      </main>
+          </div>
+        </main>
 
       {listModal.show && (
         <div className="modal-overlay" onClick={() => setListModal({ ...listModal, show: false })}>

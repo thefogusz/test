@@ -508,30 +508,47 @@ export const searchEverything = async (
   cursor = '',
   onlyNews = true,
   queryType = 'Latest',
+  duoFetch = false,
 ) => {
   try {
     const fullQuery = appendNewsFilter(query, onlyNews);
+    
+    // FIRST FETCH
     const url = `${BASE_URL}/tweet/advanced_search?query=${encodeURIComponent(fullQuery)}&queryType=${queryType}${
       cursor ? `&cursor=${cursor}` : ''
     }`;
 
     const response = await fetch(url, { method: 'GET' });
-    if (!response.ok) throw new Error('Search failed');
+    if (!response.ok) throw new Error('Search failed (1)');
 
-    const data = await safeJson(response, { tweets: [], next_cursor: null });
-    const normalized = normalizeTweets(data.tweets);
+    const data1 = await safeJson(response, { tweets: [], next_cursor: null });
+    let allTweets = normalizeTweets(data1.tweets);
+    let nextCursor = data1.next_cursor || null;
+
+    // OPTIONAL DUO-FETCH (Fetch next page if requested and available)
+    if (duoFetch && nextCursor) {
+      console.log('⚡ Duo-Fetch: Requesting second page of results...');
+      const url2 = `${BASE_URL}/tweet/advanced_search?query=${encodeURIComponent(fullQuery)}&queryType=${queryType}&cursor=${nextCursor}`;
+      const resp2 = await fetch(url2, { method: 'GET' });
+      if (resp2.ok) {
+        const data2 = await safeJson(resp2, { tweets: [], next_cursor: null });
+        allTweets = [...allTweets, ...normalizeTweets(data2.tweets)];
+        nextCursor = data2.next_cursor || null;
+      }
+    }
+
     const sorted =
       queryType === 'Latest'
-        ? [...normalized].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-        : normalized;
+        ? [...allTweets].sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        : allTweets;
 
     return {
       data: sorted,
-      meta: { next_cursor: data.next_cursor || null },
+      meta: { next_cursor: nextCursor },
     };
   } catch (error) {
-    console.error('Error in searchEverything:', error);
-    throw error;
+    console.error('searchEverything failed:', error);
+    return { data: [], meta: {} };
   }
 };
 

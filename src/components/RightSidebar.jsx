@@ -130,10 +130,8 @@ const RightSidebar = ({
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHighlightedSuggestion(0);
-  }, [expandedId]);
-
-  useEffect(() => {
     setShowAllAvailableByList({});
   }, [expandedId, addHandle]);
 
