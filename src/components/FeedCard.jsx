@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   BarChart2, Heart, MessageCircle, Repeat,
   ExternalLink, Sparkles, PenTool, Bookmark,
-  MessageSquare
+  MessageSquare, Reply
 } from 'lucide-react';
 
 const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
@@ -76,13 +76,6 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
             </div>
             <div style={{ color: 'var(--text-dim)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               <span>@{tweet.author?.username}</span>
-              {tweet.isReply && (
-                <>
-                  <span style={{ opacity: 0.4, margin: '0 2px' }}>•</span>
-                  <MessageSquare size={10} style={{ opacity: 0.7 }} />
-                  <span style={{ textOverflow: 'ellipsis', overflow: 'hidden' }}>ตอบกลับ @{tweet.inReplyToUsername || 'ใครบางคน'}</span>
-                </>
-              )}
             </div>
           </div>
         </div>
@@ -126,10 +119,32 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
         </div>
       </div>
 
+      {/* ── CREATIVE REPLY BADGE ── */}
+      {tweet.isReply && (
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '6px 12px',
+          background: 'linear-gradient(90deg, rgba(41, 151, 255, 0.1) 0%, rgba(157, 117, 255, 0.05) 100%)',
+          borderLeft: '3px solid var(--accent-blue)',
+          borderRadius: '4px 8px 8px 4px',
+          color: 'var(--accent-blue)',
+          fontSize: '11.5px',
+          fontWeight: '600',
+          marginBottom: '14px',
+          letterSpacing: '0.02em',
+          backdropFilter: 'blur(10px)',
+          boxShadow: '0 2px 10px rgba(41, 151, 255, 0.05)'
+        }}>
+          <Reply size={13} strokeWidth={2.5} style={{ opacity: 0.9 }} />
+          <span>ตอบกลับ <b>@{tweet.inReplyToUsername || 'ใครบางคน'}</b></span>
+        </div>
+      )}
+
       {/* ── BODY: The Star Content ── */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
-        <p style={{
-          fontSize: '16px', lineHeight: '1.6', color: 'rgba(255, 255, 255, 0.9)',
+        <p style={{          fontSize: '16px', lineHeight: '1.6', color: 'rgba(255, 255, 255, 0.9)',
           fontWeight: '500', margin: 0, display: '-webkit-box',
           WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden',
           letterSpacing: '-0.01em'
