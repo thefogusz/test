@@ -52,21 +52,7 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
 
   return (
     <div className="feed-card animate-fade-in">
-      {/* ── REPLY BADGE (Free context) ── */}
-      {tweet.isReply && (
-        <div style={{ 
-          marginBottom: '12px',
-          padding: '6px 12px',
-          background: 'rgba(255,255,255,0.03)',
-          borderRadius: '8px',
-          borderLeft: '3px solid rgba(255,255,255,0.1)'
-        }}>
-          <div style={{ fontSize: '11px', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <MessageSquare size={12} />
-            <span>ตอบกลับ @{tweet.inReplyToUsername || 'ใครบางคน'}</span>
-          </div>
-        </div>
-      )}
+
 
       {/* ── HEADER: Avatar, Author & Time ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -88,8 +74,15 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
             <div style={{ fontWeight: '800', fontSize: '13px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {tweet.author?.name}
             </div>
-            <div style={{ color: 'var(--text-dim)', fontSize: '11px' }}>
-              @{tweet.author?.username}
+            <div style={{ color: 'var(--text-dim)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <span>@{tweet.author?.username}</span>
+              {tweet.isReply && (
+                <>
+                  <span style={{ opacity: 0.4, margin: '0 2px' }}>•</span>
+                  <MessageSquare size={10} style={{ opacity: 0.7 }} />
+                  <span style={{ textOverflow: 'ellipsis', overflow: 'hidden' }}>ตอบกลับ @{tweet.inReplyToUsername || 'ใครบางคน'}</span>
+                </>
+              )}
             </div>
           </div>
         </div>
