@@ -52,7 +52,26 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
 
   return (
     <div className="feed-card animate-fade-in">
-
+      {/* ── AI INTENT BADGE ── */}
+      {tweet.ai_reasoning && (
+        <div style={{
+          marginBottom: '16px',
+          padding: '12px',
+          background: 'rgba(41, 151, 255, 0.08)',
+          border: '1px solid rgba(41, 151, 255, 0.2)',
+          borderRadius: '12px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-secondary)', fontSize: '11px', fontWeight: '800', letterSpacing: '0.05em' }}>
+            <Sparkles size={12} fill="currentColor" /> AI PICK
+          </div>
+          <div style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.9)', lineHeight: '1.5', fontStyle: 'italic' }}>
+            "{tweet.ai_reasoning}"
+          </div>
+        </div>
+      )}
 
       {/* ── HEADER: Avatar, Author & Time ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>

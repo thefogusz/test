@@ -584,15 +584,20 @@ const App = () => {
     setStatus('AI กำลังวิเคราะห์และคัดกรองเนื้อหา...');
     
     try {
-      const validIds = await agentFilterFeed(feed, filterModal.prompt);
-      const filteredResult = feed.filter(t => validIds.some(vid => String(vid) === String(t.id)));
+      const validPicks = await agentFilterFeed(feed, filterModal.prompt);
+      const filteredResult = feed
+        .filter(t => validPicks.some(pick => String(pick.id) === String(t.id)))
+        .map(t => {
+          const matchingPick = validPicks.find(pick => String(pick.id) === String(t.id));
+          return { ...t, ai_reasoning: matchingPick?.reasoning };
+        });
       
       setFeed(filteredResult);
       setIsFiltered(true);
       
       if (filteredResult.length > 0) {
         setStatus('กำลังวิเคราะห์บทสรุปสำหรับคุณ...');
-        const summary = await generateExecutiveSummary(filteredResult.slice(0, 10), filterModal.prompt);
+        const summary = await generateExecutiveSummary(filteredResult.slice(0, 8), filterModal.prompt);
         setAiFilterSummary(summary);
       }
       

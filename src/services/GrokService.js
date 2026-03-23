@@ -619,31 +619,32 @@ export const agentFilterFeed = async (tweetsData, userPrompt, options = {}) => {
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
-      system: `Select only the posts that match this user intent: "${userPrompt}".
+      system: `Select the absolute BEST posts that match this user intent: "${userPrompt}".
 ${webContext ? `Use this WEB CONTEXT as a source of truth to prioritize tweets that discuss confirmed events or high-quality topics:\n${webContext}\n` : ''}
-Return IDs only.
 Rules:
-- Keep all posts that are substantially relevant to the topic.
-- Remove high-noise spam, scam, completely unrelated posts, and boring 0-engagement replies to other people.
-- Aim for a high-quality selection but prioritize variety (capture different angles) to provide up to 15 relevant results.
-- For recreational/general topics (like gaming, humor, hobby), be inclusive of community voices BUT DO NOT accept low-effort random game chatter that has zero likes/shares. Ensure the voice is actually interesting.
-${preferCredibleSources ? '- Prioritize topic fit first, then prefer credible sources while still allowing unique community perspectives.' : ''}
-${preferCredibleSources ? '- Filter out low-value bot-like aggregators but keep humans with real engagement.' : ''}`,
+- STRICT LIMIT: Select a maximum of 8 posts. Only the very best.
+- For each selected post, provide a 1-sentence 'reasoning' (in Thai) explaining exactly why it matches the query and is worth reading.
+- Remove high-noise spam, scam, completely unrelated posts.
+- For recreational/general topics be inclusive, BUT DO NOT accept low-effort random chatter.
+${preferCredibleSources ? '- Prioritize topic fit first, then prefer credible sources.' : ''}`,
       prompt: JSON.stringify(compressedInput),
       schema: z.object({
-        validIds: z.array(z.string()),
+        picks: z.array(z.object({
+          id: z.string(),
+          reasoning: z.string()
+        })),
       }),
       temperature: 0,
     });
 
     const validIdSet = new Set(compressedInput.map((tweet) => tweet.id));
-    return object.validIds.filter((id) => validIdSet.has(id));
+    return object.picks.filter((pick) => validIdSet.has(pick.id));
   } catch (error) {
     if (error.status === 400) {
       console.warn('[GrokService] 400 Bad Request in agentFilterFeed. Check parameters/model.');
     }
     console.error('[GrokService] Filter error:', error);
-    return tweetsData.map((tweet) => tweet.id);
+    return tweetsData.map((tweet) => ({ id: tweet.id, reasoning: 'Error filtering' }));
   }
 };
 
