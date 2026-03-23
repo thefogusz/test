@@ -406,7 +406,7 @@ const App = () => {
         if (!isMore) {
           setStatus(`[Agent 3/3] กำลังสังเคราะห์ข้อมูลและเขียน Executive Summary...`);
           setSearchSummary('');
-          const summaryText = await generateExecutiveSummary(cleanData.slice(0, 5), requestedQuery, (chunk, fullText) => {
+          const summaryText = await generateExecutiveSummary(cleanData.slice(0, 10), requestedQuery, (chunk, fullText) => {
             setSearchSummary(fullText);
           });
           setSearchSummary(summaryText);
