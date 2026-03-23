@@ -780,18 +780,18 @@ export const buildSearchPlan = async (originalQuery, isLatest = false) => {
       model: grok(MODEL_REASONING_FAST),
       system: `คุณกำลังออกแบบ search plan สำหรับค้นหาคอนเทนต์บน X
 เป้าหมาย:
-- อย่าค้นแบบยิงคำตรงอย่างเดียว
-- ต้องตีความ intent ของหัวข้อ แล้วแตกเป็นคำค้นที่ช่วยกวาดโพสต์คุณภาพสูงที่เกี่ยวข้องจริง
-- สำหรับหัวข้อกว้าง ให้แตกเป็นหลายมุมที่คนติดตามเรื่องนั้นใช้จริง
+- ผู้ใช้ต้องการเห็นผลลัพธ์ที่ "ว๊าว" (Wow factor) โดดเด่น และตรงกับคำค้นหา
+- อย่าค้นแบบยิงคำตรงอย่างเดียว ให้แตกเป็นคำค้นที่ช่วยดึง "ที่สุดของวงการ" (Top tier/High-profile content) ออกมา
 
 กฎ:
 - ส่ง query หลัก 1 อัน และ query ย่อยที่เกี่ยวข้องอีก 3-4 อัน
-- แต่ละ query ต้องค้นหาคนละมุมของ topic เช่น scene, tournament, viral moments, fail clips, community reactions
-- ใช้ทั้งไทยและอังกฤษควบคู่กันเสมอในแผนการค้นหา (e.g., "gaming funny" OR "เกมฮาๆ")
-- สำหรับหัวข้อที่เป็นความบันเทิง/ฮา/ไวรัล ให้คำนึงถึงคำค้นประเภท: viral, highlight, funny moments, epic fail, meme, ตลก, ฮาๆ
-- Every query MUST have -filter:replies.
-- For high-impact results, you can strategically add min_faves:10 or min_retweets:3 as needed for broader topics.
-- ${isLatest ? 'โหมดสายฟ้า: เน้น recent developments และไวรัลล่าสุด โดยใช้เกณฑ์ยอดนิยมที่ยืดหยุ่นขึ้น' : 'โหมดปกติ: เน้นเจาะลึกจากหลายมุมมอง โดยใช้เกณฑ์ min_faves:10-15 เพื่อกรองโพสต์ไร้คุณภาพเบื้องต้น'}
+- ต้องใช้วิธีค้นหาแบบกวาดเฉพาะคอนเทนต์ระดับท็อป (เช่น ข่าวใหญ่, ดราม่าดัง, ไวรัล, ประกาศระดับโลก)
+- ใช้ทั้งไทยและอังกฤษควบคู่กันเสมอในแผนการค้นหา
+- ทุก query ต้องต่อท้ายด้วยตัวกรองขยะเสมอ เช่น: -filter:replies
+- ***บังคับ***: ทุก Query ต้องมีคำสั่ง min_faves:15 ขึ้นไปเพื่อให้มั่นใจว่าได้ของที่มีคุณภาพคนสนใจจริงๆ 
+  - ตัวอย่างโหมดปกติ: "game online" min_faves:50 -filter:replies
+  - ตัวอย่างโหมดสายฟ้า (Latest): "game online" min_faves:10 -filter:replies
+- ${isLatest ? 'โหมดสายฟ้า: บังคับใช้ min_faves:10 ถึง min_faves:30 เพื่อกรองโพสต์ไก่กาออกไป เน้นกระแสใหม่ๆ' : 'โหมดปกติ: บังคับใช้ min_faves:30 ถึง min_faves:100 เพื่อดึงเฉพาะระดับ Masterpiece ขึ้นมา'}
 - topicLabels เป็นคำสั้น ๆ 4-8 คำที่ครอบคลุม subtopics ทั้งหมด
 - ตอบเป็น JSON เท่านั้น`,
       prompt: `Topic: ${originalQuery}`,
