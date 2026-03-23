@@ -406,8 +406,13 @@ const App = () => {
         const curated = curateSearchResults(data, rankingQuery, { latestMode: isLatestMode, preferCredibleSources: !isFunTopic });
         
         setStatus(`[Agent 2/3] กำลังกรองสแปมและคัดเลือกโพสต์ระดับคุณภาพจากฐานข้อมูล 40 ชุด...`);
-        const validIds = await agentFilterFeed(curated, rankingQuery, { preferCredibleSources: !isFunTopic, webContext });
-        const cleanData = curated.filter(t => validIds.some(vid => String(vid) === String(t.id)));
+        const validPicks = await agentFilterFeed(curated, rankingQuery, { preferCredibleSources: !isFunTopic, webContext });
+        const cleanData = curated
+          .filter(t => validPicks.some(pick => String(pick.id) === String(t.id)))
+          .map(t => {
+            const pick = validPicks.find(p => String(p.id) === String(t.id));
+            return { ...t, ai_reasoning: pick?.reasoning };
+          });
         
         if (!isMore) {
           setStatus(`[Agent 3/3] กำลังสังเคราะห์ข้อมูลและเขียน Executive Summary...`);
