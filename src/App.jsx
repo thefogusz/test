@@ -74,7 +74,7 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
   const [aiReport, setAiReport] = useState('');
-  const [activeFilters, setActiveFilters] = useState({ view: false, like: false });
+  const [activeFilters, setActiveFilters] = useState({ view: false, engagement: false });
   
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -192,23 +192,33 @@ const App = () => {
   useEffect(() => {
     if (activeView === 'search' || isFiltered) return; 
     
+    let result = [];
     if (activeListId) {
       const activeList = postLists.find(l => l.id === activeListId);
       if (activeList) {
-        const filtered = originalFeed.filter(post => 
+        result = originalFeed.filter(post => 
           post && post.author && activeList.members.some(m => (m || '').toLowerCase() === (post.author.username || '').toLowerCase())
         );
-        setFeed(filtered);
       }
     } else if (activeView === 'home') {
       const watchlistHandles = watchlist.map(w => (w.username || '').toLowerCase()).filter(Boolean);
-      const filtered = originalFeed.filter(post => 
+      result = originalFeed.filter(post => 
         post && post.author && (post.author.username || '').toLowerCase() && 
         watchlistHandles.includes((post.author.username || '').toLowerCase())
       );
-      setFeed(filtered);
     }
-  }, [activeListId, originalFeed, activeView, postLists, watchlist, isFiltered]);
+    
+    // Apply sorting
+    if (activeFilters.view || activeFilters.engagement) {
+      result = [...result].sort((a, b) => {
+        const scoreA = (activeFilters.view ? (parseInt(a.view_count) || 0) : 0) + (activeFilters.engagement ? getEngagementTotal(a) : 0);
+        const scoreB = (activeFilters.view ? (parseInt(b.view_count) || 0) : 0) + (activeFilters.engagement ? getEngagementTotal(b) : 0);
+        return scoreB - scoreA;
+      });
+    }
+    
+    setFeed(result);
+  }, [activeListId, originalFeed, activeView, postLists, watchlist, isFiltered, activeFilters]);
 
   const processAndSummarizeFeed = async (newBatch, statusPrefix = 'พบ') => {
     if (newBatch.length === 0) return;
@@ -529,16 +539,7 @@ const App = () => {
   };
 
   const handleSort = (type) => {
-    setActiveFilters(prev => {
-      const next = { ...prev, [type]: !prev[type] };
-      const sorted = [...feed].sort((a, b) => {
-        const scoreA = (next.view ? (parseInt(a.view_count) || 0) : 0) + (next.engagement ? getEngagementTotal(a) : 0);
-        const scoreB = (next.view ? (parseInt(b.view_count) || 0) : 0) + (next.engagement ? getEngagementTotal(b) : 0);
-        return scoreB - scoreA;
-      });
-      setFeed(sorted);
-      return next;
-    });
+    setActiveFilters(prev => ({ ...prev, [type]: !prev[type] }));
   };
 
 
