@@ -233,17 +233,17 @@ const getLowSignalPenalty = (tweet, queryTerms, rawQuery = '') => {
   const totalEngagement = likes + retweets;
   
   if (isReply) {
-    if (totalEngagement < 5) penalty += 4.5; // Almost immediate rejection
-    else if (totalEngagement < 20) penalty += 2.0;
+    if (totalEngagement < 5) return 99; // 🛑 INSTANT DEATH FOR GARBAGE REPLIES
+    else if (totalEngagement < 20) penalty += 4.0;
   } else {
     // Even for non-replies, if it's a broad gaming/hobby query, we need some baseline engagement
     // so we don't pick up random 0-like screaming into the void.
     if (totalEngagement === 0 && !author.isVerified && followers < 2000) {
-      penalty += 1.8;
+      penalty += 3.5;
     }
   }
 
-  return Math.min(penalty, 10);
+  return Math.min(penalty, 99);
 };
 
 const getProviderRankScore = (index, total, latestMode) => {

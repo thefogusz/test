@@ -355,7 +355,13 @@ const App = () => {
       
       // Parallel Web Context Fetch
       let webContext = '';
-      const webPromise = (!isMore ? tavilySearch(requestedQuery, isLatestMode) : Promise.resolve({ results: [], answer: '' }));
+      let webQuery = requestedQuery;
+      if (searchPlan && searchPlan.topicLabels && searchPlan.topicLabels.length > 0) {
+        webQuery = searchPlan.topicLabels.slice(0, 3).join(' ').replace(/['"]/g, '');
+      } else if (searchPlan && searchPlan.primaryQuery) {
+        webQuery = searchPlan.primaryQuery.replace(/min_faves:\d+/ig, '').replace(/min_retweets:\d+/ig, '').replace(/-filter:\w+/ig, '').trim();
+      }
+      const webPromise = (!isMore ? tavilySearch(webQuery, isLatestMode) : Promise.resolve({ results: [], answer: '' }));
       
       for (const query of planQueries) {
         let scopedQuery = query;
