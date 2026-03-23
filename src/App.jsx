@@ -824,7 +824,7 @@ const App = () => {
                           type="button" 
                           onClick={() => setIsLatestMode(!isLatestMode)} 
                           className={`zap-toggle-btn ${isLatestMode ? 'active' : ''}`}
-                          title={isLatestMode ? "โหมดล่าสุด (Latest)" : "โหมดยอดนิยม (Top)"}
+                          title={isLatestMode ? "เน้นคอนเทนต์ใหม่ (24 ชม. ล่าสุด)" : "ค้นหาคอนเทนต์ทั้งหมด"}
                         >
                           <Zap size={18} fill={isLatestMode ? "currentColor" : "none"} />
                         </button>
