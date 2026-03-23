@@ -143,11 +143,19 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
       )}
 
       {/* ── BODY: The Star Content ── */}
-      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
-        <p style={{          fontSize: '16px', lineHeight: '1.6', color: 'rgba(255, 255, 255, 0.9)',
-          fontWeight: '500', margin: 0, display: '-webkit-box',
-          WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-          letterSpacing: '-0.01em'
+      <div style={{ marginBottom: '16px' }}>
+        <p style={{ 
+          fontSize: '16px', 
+          lineHeight: '1.6', 
+          color: 'rgba(255, 255, 255, 0.9)',
+          fontWeight: '500', 
+          margin: 0, 
+          display: '-webkit-box',
+          WebkitLineClamp: 10, 
+          WebkitBoxOrient: 'vertical', 
+          overflow: 'hidden',
+          letterSpacing: '-0.01em',
+          wordBreak: 'break-word'
         }}>
           {displayText}
         </p>
