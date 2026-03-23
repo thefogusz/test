@@ -890,12 +890,15 @@ const App = () => {
                 {activeListId && <div className="active-list-pills">กำลังกรองตาม: {postLists.find(l => l.id === activeListId)?.name}</div>}
               </header>
 
-              {readArchive.length > 0 && (
-                <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                  <button onClick={() => setReadFilters(p => ({ ...p, view: !p.view }))} className={`btn-pill ${readFilters.view ? 'active' : ''}`}>ยอดวิว</button>
-                  <button onClick={() => setReadFilters(p => ({ ...p, engagement: !p.engagement }))} className={`btn-pill ${readFilters.engagement ? 'active' : ''}`}>เอนเกจเมนต์</button>
-                </div>
-              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <div className="section-title">คลังบทความ</div>
+                {readArchive.length > 0 && (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={() => setReadFilters(p => ({ ...p, view: !p.view }))} className={`btn-pill ${readFilters.view ? 'active' : ''}`}>ยอดวิว</button>
+                    <button onClick={() => setReadFilters(p => ({ ...p, engagement: !p.engagement }))} className={`btn-pill ${readFilters.engagement ? 'active' : ''}`}>เอนเกจเมนต์</button>
+                  </div>
+                )}
+              </div>
               
               <div className="feed-grid">
                 {readArchive
