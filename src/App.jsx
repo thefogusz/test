@@ -696,7 +696,7 @@ const App = () => {
           <div className="animate-fade-in" style={{ display: activeView === 'home' ? 'block' : 'none' }}>
             <header className="dashboard-header" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '32px' }}>
                 <div className="mobile-only-flex" style={{ justifyContent: 'center', width: '100%', marginBottom: '-8px', minHeight: '32px' }}>
-                  <img src="logo.png" alt="FO" style={{ height: '24px', width: 'auto', display: 'block' }} width="48" height="24" loading="eager" />
+                  <img src="logo.png" alt="FO" style={{ height: '24px', width: '48px', display: 'block' }} loading="eager" />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>

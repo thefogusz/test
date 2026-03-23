@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Plus, Trash2, X, FileCode, List, Library, Share2, Pencil } from 'lucide-react';
+import { Plus, Trash2, X, FileCode, List, Library, Share2, Pencil, Users } from 'lucide-react';
 
 const normalizeHandle = (value) => (value || '').trim().replace(/^@/, '').toLowerCase();
 
@@ -417,8 +417,8 @@ const RightSidebar = ({
                       {list.name}
                     </div>
                   )}
-                  <div className="list-meta" style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500' }}>
-                    List • {list.members.length} accounts
+                  <div className="list-meta" style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Users size={12} /> {list.members.length}
                   </div>
                 </div>
 

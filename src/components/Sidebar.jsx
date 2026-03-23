@@ -5,7 +5,7 @@ const Sidebar = ({ activeView, onNavClick, backgroundTasks = {} }) => {
     <aside className="sidebar">
       {/* Brand Logo */}
       <div className="sidebar-logo" style={{ padding: '24px 16px 20px', display: 'flex', alignItems: 'center', minHeight: '80px' }}>
-        <img src="logo.png" alt="RO Logo" style={{ height: '36px', width: 'auto', display: 'block' }} width="72" height="36" loading="eager" />
+        <img src="logo.png" alt="RO Logo" style={{ height: '36px', width: '72px', display: 'block' }} loading="eager" />
         {(backgroundTasks.syncing || backgroundTasks.generating || backgroundTasks.searching || backgroundTasks.filtering) && (
           <div style={{ marginLeft: 'auto', background: 'rgba(41, 151, 255, 0.1)', color: 'var(--accent-secondary)', padding: '4px 8px', borderRadius: '100px', fontSize: '10px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Loader2 size={10} className="animate-spin" /> WORKING...
