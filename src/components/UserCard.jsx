@@ -79,23 +79,14 @@ const UserCard = ({ user, postLists = [], onToggleList, onRemove }) => {
                   {postLists.map(list => {
                     const isMember = list.usernames?.includes(user.username);
                     return (
-                      <div 
-                        key={list.id} 
-                        onClick={() => { onToggleList(user.username, list.id); setShowMenu(false); }}
-                        style={{ 
-                          padding: '10px 12px', 
-                          fontSize: '12px', 
-                          cursor: 'pointer', 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center',
-                          background: isMember ? 'rgba(41, 151, 255, 0.1)' : 'transparent',
-                          color: isMember ? 'var(--accent-secondary)' : '#fff',
-                        }}
-                      >
-                        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '8px' }}>{list.name}</span>
-                        {isMember && <Trash2 size={12} />}
-                      </div>
+                        <div 
+                          key={list.id} 
+                          onClick={() => { onToggleList(user.username, list.id); setShowMenu(false); }}
+                          className={`discovery-menu-item ${isMember ? 'active' : ''}`}
+                        >
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '8px' }}>{list.name}</span>
+                          {isMember && <Trash2 size={12} />}
+                        </div>
                     );
                   })}
                   {postLists.length === 0 && <div style={{ padding: '12px', fontSize: '12px', color: 'var(--text-dim)', textAlign: 'center' }}>ไม่มีรายการปลิสต์</div>}

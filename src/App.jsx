@@ -144,6 +144,10 @@ const App = () => {
   const [isFiltered, setIsFiltered] = useState(false);
   const [aiFilterSummary, setAiFilterSummary] = useState('');
 
+  // Global Background Tasks Persistence
+  const [isGeneratingContent, setIsGeneratingContent] = useState(false);
+  const [genPhase, setGenPhase] = useState('idle');
+
   useEffect(() => {
     if (status) {
       const timer = setTimeout(() => setStatus(''), 3000);
@@ -664,13 +668,16 @@ const App = () => {
         activeView={activeView}
         onNavClick={(view) => {
           setActiveView(view);
-          // Only reset list filtering if actually leaving or entering home, but maybe it's better to keep it?
-          // For now, let's just avoid resetting searches if the user is just moving around.
           if (view === 'home') { 
             setActiveListId(null);
-            // setSearchQuery(''); // Don't reset search, it's in a different tab now
-            // setSearchResults([]); 
           }
+        }}
+        backgroundTasks={{
+          syncing: loading,
+          generating: isGeneratingContent,
+          searching: isSearching,
+          filtering: filterModal.isFiltering,
+          audienceSearch: aiSearchLoading
         }}
       />
 
@@ -684,8 +691,8 @@ const App = () => {
           {/* ===== HOME VIEW ===== */}
           <div className="animate-fade-in" style={{ display: activeView === 'home' ? 'block' : 'none' }}>
             <header className="dashboard-header" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '32px' }}>
-                <div className="mobile-only-flex" style={{ justifyContent: 'center', width: '100%', marginBottom: '-8px' }}>
-                  <img src="logo.png" alt="FO" style={{ height: '24px', width: 'auto' }} />
+                <div className="mobile-only-flex" style={{ justifyContent: 'center', width: '100%', marginBottom: '-8px', minHeight: '32px' }}>
+                  <img src="logo.png" alt="FO" style={{ height: '24px', width: 'auto', display: 'block' }} width="48" height="24" loading="eager" />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
@@ -831,6 +838,10 @@ const App = () => {
                       const newArt = { id: Date.now().toString(), type: 'article', title: title || 'บทความ AI', summary: content, created_at: new Date().toISOString() };
                       setBookmarks(prev => [newArt, ...prev]);
                     }}
+                    isGenerating={isGeneratingContent}
+                    setIsGenerating={setIsGeneratingContent}
+                    phase={genPhase}
+                    setPhase={setGenPhase}
                   />
                 </ContentErrorBoundary>
               </div>
@@ -1092,7 +1103,7 @@ const App = () => {
                                     >
                                       <Plus size={12} />
                                     </button>
-                                    <div className="discovery-menu" style={{ display: 'none', position: 'absolute', right: 0, top: '100%', marginTop: '8px', background: 'var(--bg-900)', border: '1px solid var(--glass-border)', borderRadius: '12px', zIndex: 100, width: '180px', overflow: 'hidden', boxShadow: '0 12px 32px rgba(0,0,0,0.6)' }}>
+                                    <div className="discovery-menu" style={{ display: 'none', position: 'absolute', right: 0, top: '100%', marginTop: '8px', zIndex: 100, width: '180px' }}>
                                       <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--glass-border)', fontSize: '10px', fontWeight: '800', color: 'var(--accent-secondary)' }}>ADD TO LIST</div>
                                       {postLists.map(list => {
                                         const isMember = list.members.some(m => m.toLowerCase() === expert.username.toLowerCase());
@@ -1100,9 +1111,9 @@ const App = () => {
                                           <button
                                             key={list.id}
                                             onClick={() => { handleToggleMemberInList(list.id, expert.username); }}
-                                            style={{ width: '100%', background: 'transparent', border: 'none', color: isMember ? 'var(--accent-secondary)' : '#fff', cursor: 'pointer', padding: '8px 12px', textAlign: 'left', fontSize: '12px', display: 'flex', justifyContent: 'space-between' }}
+                                            className={`discovery-menu-item ${isMember ? 'active' : ''}`}
                                           >
-                                            {list.name}
+                                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '8px' }}>{list.name}</span>
                                             {isMember && <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--accent-secondary)' }} />}
                                           </button>
                                         );

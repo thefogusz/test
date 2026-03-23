@@ -1646,3 +1646,45 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--bg-600);
   color: #fff;
 }
+
+/* Discovery Menu & Dropdown Styles */
+.discovery-menu {
+  background: var(--bg-900);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.discovery-menu-item {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: inherit;
+  outline: none;
+}
+
+.discovery-menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.discovery-menu-item.active {
+  background: rgba(41, 151, 255, 0.12);
+  color: var(--accent-secondary);
+}
+
+.discovery-menu-item.active:hover {
+  background: rgba(41, 151, 255, 0.18);
+}

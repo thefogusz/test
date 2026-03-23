@@ -152,7 +152,15 @@ const CustomDropdown = ({ icon, value, onChange, options, isObject }) => {
   );
 };
 
-const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
+const CreateContent = ({ 
+  sourceNode, 
+  onRemoveSource, 
+  onSaveArticle,
+  isGenerating,
+  setIsGenerating,
+  phase,
+  setPhase
+}) => {
   const [input, setInput] = useState(() => localStorage.getItem('foro_gen_input_v1') || '');
   
   // Settings
@@ -162,9 +170,7 @@ const CreateContent = ({ sourceNode, onRemoveSource, onSaveArticle }) => {
   const [customInstructions, setCustomInstructions] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Generation state
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [phase, setPhase] = useState('idle'); // 'idle', 'researching', 'generating', 'done'
+  // Generation state (LIFTED TO APP.JSX)
   const [factSheet, setFactSheet] = useState(() => localStorage.getItem('foro_gen_factsheet_v1') || null);
   const [articleSources, setArticleSources] = useState(() => {
     const saved = localStorage.getItem('foro_gen_sources_v1');
