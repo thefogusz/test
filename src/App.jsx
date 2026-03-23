@@ -98,7 +98,7 @@ const App = () => {
   const [searchWebSources, setSearchWebSources] = usePersistentState(STORAGE_KEYS.searchWebSources, [], {
     deserialize: deserializeStoredCollection,
   });
-  const [isSearching, setIsSearching] = useState(false);
+  const [isSearching, setIsSearching] = usePersistentState(STORAGE_KEYS.isSearching, false);
   const [isSourcesExpanded, setIsSourcesExpanded] = useState(false);
   const [searchCursor, setSearchCursor] = useState(null);
   const [activeSearchPlan, setActiveSearchPlan] = useState(null);
@@ -144,7 +144,7 @@ const App = () => {
 
   const [audienceTab, setAudienceTab] = usePersistentState(STORAGE_KEYS.audienceTab, 'manual'); 
   const [aiQuery, setAiQuery] = useState('');
-  const [aiSearchLoading, setAiSearchLoading] = useState(false);
+  const [aiSearchLoading, setAiSearchLoading] = usePersistentState(STORAGE_KEYS.aiSearchLoading, false);
   const [aiSearchResults, setAiSearchResults] = usePersistentState(STORAGE_KEYS.aiSearchResults, [], {
     deserialize: deserializeStoredCollection,
   });
@@ -155,7 +155,7 @@ const App = () => {
   const [aiFilterSummary, setAiFilterSummary] = useState('');
 
   // Global Background Tasks Persistence
-  const [isGeneratingContent, setIsGeneratingContent] = useState(false);
+  const [isGeneratingContent, setIsGeneratingContent] = usePersistentState(STORAGE_KEYS.isGeneratingContent, false);
   const [genPhase, setGenPhase] = useState('idle');
 
   useEffect(() => {

@@ -15,4 +15,7 @@ export const STORAGE_KEYS = {
   aiSearchResults: 'foro_ai_search_results_v1',
   searchWebSources: 'foro_search_web_sources_v1',
   activeListId: 'foro_active_list_id_v1',
+  isSearching: 'foro_is_searching_v1',
+  aiSearchLoading: 'foro_ai_search_loading_v1',
+  isGeneratingContent: 'foro_is_generating_content_v1',
 };
