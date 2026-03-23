@@ -27,7 +27,6 @@ import RightSidebar from './components/RightSidebar';
 import FeedCard from './components/FeedCard';
 import CreateContent from './components/CreateContent';
 import {
-  curateSearchResults,
 // Removed unused filterTweetsWithinHours
   getUserInfo,
   fetchWatchlistFeed,
@@ -457,8 +456,30 @@ const App = () => {
       try {
         const decoded = JSON.parse(decodeURIComponent(escape(atob(listModal.value))));
         const newList = { ...decoded, id: Date.now().toString(), createdAt: new Date().toISOString() };
+        
+        // Sync members with watchlist
+        const newMembers = (newList.members || []).map(m => m.trim().replace(/^@/, '').toLowerCase());
+        const existingHandles = new Set(watchlist.map(u => (u.username || '').toLowerCase()));
+        
+        const placeholdersToAdd = [];
+        newMembers.forEach(handle => {
+          if (!existingHandles.has(handle)) {
+            const newUser = { id: handle, username: handle, name: handle, profile_image_url: '', isPlaceholder: true };
+            placeholdersToAdd.push(newUser);
+          }
+        });
+        
+        if (placeholdersToAdd.length > 0) {
+          setWatchlist(prev => [...prev, ...placeholdersToAdd]);
+          resolvePlaceholders(placeholdersToAdd);
+        }
+
         setPostLists([...postLists, newList]);
-      } catch (err) { console.error(err); }
+        setStatus(`นำเข้า Post List "${newList.name}" สำเร็จ (${newMembers.length} บัญชี)`);
+      } catch (err) { 
+        console.error(err); 
+        setStatus('นำเข้าล้มเหลว: รหัสไม่ถูกต้อง');
+      }
     }
     setListModal({ show: false, mode: 'create', value: '' });
   };
@@ -618,10 +639,8 @@ const App = () => {
 
   const handleManualSearch = async (e) => {
     if (e) e.preventDefault();
-    setManualLoading(true);
     const data = await getUserInfo(manualQuery);
     setManualPreview(data);
-    setManualLoading(false);
   };
 
   const handleAddUser = (user) => {
