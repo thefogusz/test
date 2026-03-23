@@ -477,6 +477,7 @@ h1, h2, h3, h4, h5, h6 {
   display: flex !important;
   flex-direction: row !important;
   align-items: center;
+  gap: 12px;
   background: var(--bg-800);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-full);
