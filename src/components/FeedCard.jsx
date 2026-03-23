@@ -124,6 +124,8 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
         <div style={{
           display: 'inline-flex',
           alignItems: 'center',
+          alignSelf: 'flex-start',
+          width: 'fit-content',
           gap: '6px',
           padding: '6px 12px',
           background: 'linear-gradient(90deg, rgba(41, 151, 255, 0.1) 0%, rgba(157, 117, 255, 0.05) 100%)',
