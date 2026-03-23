@@ -79,5 +79,57 @@ export const getEngagementTotal = (post) =>
   (parseInt(post?.like_count) || 0) +
   (parseInt(post?.quote_count) || 0);
 
+export const deriveVisibleFeed = ({
+  activeFilters,
+  activeListId,
+  activeView,
+  originalFeed,
+  postLists,
+  watchlist,
+}) => {
+  let result = [];
+
+  if (activeListId) {
+    const activeList = postLists.find((list) => list.id === activeListId);
+    if (activeList) {
+      result = originalFeed.filter(
+        (post) =>
+          post &&
+          post.author &&
+          activeList.members.some(
+            (member) => (member || '').toLowerCase() === (post.author.username || '').toLowerCase(),
+          ),
+      );
+    }
+  } else if (activeView === 'home') {
+    const watchlistHandles = watchlist
+      .map((user) => (user.username || '').toLowerCase())
+      .filter(Boolean);
+
+    result = originalFeed.filter(
+      (post) =>
+        post &&
+        post.author &&
+        (post.author.username || '').toLowerCase() &&
+        watchlistHandles.includes((post.author.username || '').toLowerCase()),
+    );
+  }
+
+  if (activeFilters.view || activeFilters.engagement) {
+    result = [...result].sort((left, right) => {
+      const leftScore =
+        (activeFilters.view ? parseInt(left.view_count) || 0 : 0) +
+        (activeFilters.engagement ? getEngagementTotal(left) : 0);
+      const rightScore =
+        (activeFilters.view ? parseInt(right.view_count) || 0 : 0) +
+        (activeFilters.engagement ? getEngagementTotal(right) : 0);
+
+      return rightScore - leftScore;
+    });
+  }
+
+  return result;
+};
+
 export const mergePlanLabelsIntoQuery = (requestedQuery, topicLabels = []) =>
   [requestedQuery, ...topicLabels].filter(Boolean).join(' ');

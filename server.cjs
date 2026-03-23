@@ -27,15 +27,32 @@ loadEnvFile();
 
 const app = express();
 const PORT = process.env.PORT || 8000;
+const UPSTREAM_TIMEOUT_MS = Number(process.env.UPSTREAM_TIMEOUT_MS || 20000);
+const API_LOG_THRESHOLD_MS = Number(process.env.API_LOG_THRESHOLD_MS || 250);
 const TWITTER_API_KEY = process.env.TWITTER_API_KEY || process.env.VITE_TWITTER_API_KEY;
 const XAI_API_KEY = process.env.XAI_API_KEY || process.env.VITE_XAI_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY || process.env.VITE_TAVILY_API_KEY;
 
 app.use(express.json({ limit: '5mb' }));
 
+app.use('/api', (req, res, next) => {
+  const startedAt = Date.now();
+
+  res.on('finish', () => {
+    const durationMs = Date.now() - startedAt;
+    if (durationMs >= API_LOG_THRESHOLD_MS || res.statusCode >= 400) {
+      console.log(`[server] ${req.method} ${req.originalUrl} -> ${res.statusCode} in ${durationMs}ms`);
+    }
+  });
+
+  next();
+});
+
 app.use('/api/twitter', createProxyMiddleware({
   target: 'https://api.twitterapi.io',
   changeOrigin: true,
+  proxyTimeout: UPSTREAM_TIMEOUT_MS,
+  timeout: UPSTREAM_TIMEOUT_MS,
   pathRewrite: {
     '^/api/twitter': '',
   },
@@ -45,12 +62,20 @@ app.use('/api/twitter', createProxyMiddleware({
         proxyReq.setHeader('X-API-Key', TWITTER_API_KEY);
       }
     },
+    error: (err, req, res) => {
+      console.error('[server] Twitter proxy error:', err);
+      if (!res.headersSent) {
+        res.status(502).json({ error: 'Twitter proxy timeout or connection lost' });
+      }
+    },
   },
 }));
 
 app.use('/api/xai', createProxyMiddleware({
   target: 'https://api.x.ai',
   changeOrigin: true,
+  proxyTimeout: UPSTREAM_TIMEOUT_MS,
+  timeout: UPSTREAM_TIMEOUT_MS,
   pathRewrite: {
     '^/api/xai': '',
   },
@@ -82,6 +107,7 @@ app.post('/api/tavily/search', async (req, res) => {
     const upstreamResponse = await fetch('https://api.tavily.com/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
       body: JSON.stringify({
         ...req.body,
         api_key: TAVILY_API_KEY,

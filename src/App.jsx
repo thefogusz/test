@@ -37,7 +37,10 @@ import {
 import { agentFilterFeed, buildSearchPlan, discoverTopExperts, generateExecutiveSummary, generateGrokBatch, tavilySearch } from './services/GrokService';
 import { renderMarkdownToHtml } from './utils/markdown';
 import './index.css';
+import { STORAGE_KEYS } from './constants/storageKeys';
+import { usePersistentState } from './hooks/usePersistentState';
 import {
+  deriveVisibleFeed,
   safeParse,
   mergeUniquePostsById,
   hasUsefulThaiSummary,
@@ -51,26 +54,33 @@ import {
 import UserCard from './components/UserCard';
 import ContentErrorBoundary from './components/ContentErrorBoundary';
 
+const deserializeWatchlist = (saved) => {
+  const parsed = safeParse(saved, []);
+  return Array.isArray(parsed) ? parsed.filter((user) => user && user.username) : [];
+};
 
+const deserializeStoredCollection = (saved) =>
+  sanitizeStoredCollection(safeParse(saved, []));
 
+const deserializeAttachedSource = (saved) =>
+  sanitizeStoredSingle(safeParse(saved, null));
 
+const deserializePostLists = (saved) => safeParse(saved, []);
+
+const shouldRemoveWhenFalsy = (value) => !value;
 
 const App = () => {
-  const [watchlist, setWatchlist] = useState(() => {
-    const saved = localStorage.getItem('foro_watchlist_v2');
-    const parsed = safeParse(saved, []);
-    return Array.isArray(parsed) ? parsed.filter(u => u && u.username) : [];
+  const [watchlist, setWatchlist] = usePersistentState(STORAGE_KEYS.watchlist, [], {
+    deserialize: deserializeWatchlist,
   });
   
   const [feed, setFeed] = useState([]);
-  const [originalFeed, setOriginalFeed] = useState(() => {
-    const saved = localStorage.getItem('foro_home_feed_v1');
-    return sanitizeStoredCollection(safeParse(saved, []));
+  const [originalFeed, setOriginalFeed] = usePersistentState(STORAGE_KEYS.homeFeed, [], {
+    deserialize: deserializeStoredCollection,
   });
   const [deletedFeed, setDeletedFeed] = useState([]);
-  const [pendingFeed, setPendingFeed] = useState(() => {
-    const saved = localStorage.getItem('foro_pending_feed_v1');
-    return sanitizeStoredCollection(safeParse(saved, []));
+  const [pendingFeed, setPendingFeed] = usePersistentState(STORAGE_KEYS.pendingFeed, [], {
+    deserialize: deserializeStoredCollection,
   });
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
@@ -97,27 +107,24 @@ const App = () => {
   'Market Analysis', 'Web3', 'Blockchain', 'Social Media', 'Marketing Strategy'
 ];
 
-  const [bookmarks, setBookmarks] = useState(() => {
-    const saved = localStorage.getItem('foro_bookmarks_v1');
-    return sanitizeStoredCollection(safeParse(saved, []));
+  const [bookmarks, setBookmarks] = usePersistentState(STORAGE_KEYS.bookmarks, [], {
+    deserialize: deserializeStoredCollection,
   });
   const [bookmarkTab, setBookmarkTab] = useState('news');
   const [selectedArticle, setSelectedArticle] = useState(null);
   
   const [isMobilePostListOpen, setIsMobilePostListOpen] = useState(false);
-  const [readArchive, setReadArchive] = useState(() => {
-    const saved = localStorage.getItem('foro_read_archive_v1');
-    return sanitizeStoredCollection(safeParse(saved, []));
+  const [readArchive, setReadArchive] = usePersistentState(STORAGE_KEYS.readArchive, [], {
+    deserialize: deserializeStoredCollection,
   });
 
-  const [createContentSource, setCreateContentSource] = useState(() => {
-    const saved = localStorage.getItem('foro_attached_source_v1');
-    return sanitizeStoredSingle(safeParse(saved, null));
+  const [createContentSource, setCreateContentSource] = usePersistentState(STORAGE_KEYS.attachedSource, null, {
+    deserialize: deserializeAttachedSource,
+    shouldRemove: shouldRemoveWhenFalsy,
   });
 
-  const [postLists, setPostLists] = useState(() => {
-    const saved = localStorage.getItem('foro_postlists_v2');
-    return safeParse(saved, []);
+  const [postLists, setPostLists] = usePersistentState(STORAGE_KEYS.postLists, [], {
+    deserialize: deserializePostLists,
   });
   const [activeListId, setActiveListId] = useState(null);
   const [activeView, setActiveView] = useState('home');
@@ -137,18 +144,6 @@ const App = () => {
   const [aiFilterSummary, setAiFilterSummary] = useState('');
 
   useEffect(() => {
-    localStorage.setItem('foro_watchlist_v2', JSON.stringify(watchlist));
-  }, [watchlist]);
-
-  useEffect(() => {
-    localStorage.setItem('foro_postlists_v2', JSON.stringify(postLists));
-  }, [postLists]);
-
-   useEffect(() => {
-     localStorage.setItem('foro_bookmarks_v1', JSON.stringify(bookmarks));
-   }, [bookmarks]);
-
-  useEffect(() => {
     if (status) {
       const timer = setTimeout(() => setStatus(''), 3000);
       return () => clearTimeout(timer);
@@ -163,62 +158,30 @@ const App = () => {
   }, [aiReport]);
 
   useEffect(() => {
-    localStorage.setItem('foro_read_archive_v1', JSON.stringify(readArchive));
-  }, [readArchive]);
-
-  useEffect(() => {
-    localStorage.setItem('foro_home_feed_v1', JSON.stringify(originalFeed));
-  }, [originalFeed]);
-
-  useEffect(() => {
-    localStorage.setItem('foro_pending_feed_v1', JSON.stringify(pendingFeed));
-  }, [pendingFeed]);
-
-  useEffect(() => {
-    if (createContentSource) {
-      localStorage.setItem('foro_attached_source_v1', JSON.stringify(createContentSource));
-    } else {
-      localStorage.removeItem('foro_attached_source_v1');
-    }
-  }, [createContentSource]);
-
-  useEffect(() => {
     setOriginalFeed(prev => sanitizeCollectionState(prev));
     setPendingFeed(prev => sanitizeCollectionState(prev));
     setReadArchive(prev => sanitizeCollectionState(prev));
     setBookmarks(prev => sanitizeCollectionState(prev));
     setCreateContentSource(prev => sanitizeStoredSingle(prev));
-  }, []);
+  }, [
+    setBookmarks,
+    setCreateContentSource,
+    setOriginalFeed,
+    setPendingFeed,
+    setReadArchive,
+  ]);
 
   useEffect(() => {
     if (activeView === 'search' || isFiltered) return; 
-    
-    let result = [];
-    if (activeListId) {
-      const activeList = postLists.find(l => l.id === activeListId);
-      if (activeList) {
-        result = originalFeed.filter(post => 
-          post && post.author && activeList.members.some(m => (m || '').toLowerCase() === (post.author.username || '').toLowerCase())
-        );
-      }
-    } else if (activeView === 'home') {
-      const watchlistHandles = watchlist.map(w => (w.username || '').toLowerCase()).filter(Boolean);
-      result = originalFeed.filter(post => 
-        post && post.author && (post.author.username || '').toLowerCase() && 
-        watchlistHandles.includes((post.author.username || '').toLowerCase())
-      );
-    }
-    
-    // Apply sorting
-    if (activeFilters.view || activeFilters.engagement) {
-      result = [...result].sort((a, b) => {
-        const scoreA = (activeFilters.view ? (parseInt(a.view_count) || 0) : 0) + (activeFilters.engagement ? getEngagementTotal(a) : 0);
-        const scoreB = (activeFilters.view ? (parseInt(b.view_count) || 0) : 0) + (activeFilters.engagement ? getEngagementTotal(b) : 0);
-        return scoreB - scoreA;
-      });
-    }
-    
-    setFeed(result);
+
+    setFeed(deriveVisibleFeed({
+      activeFilters,
+      activeListId,
+      activeView,
+      originalFeed,
+      postLists,
+      watchlist,
+    }));
   }, [activeListId, originalFeed, activeView, postLists, watchlist, isFiltered, activeFilters]);
 
   const processAndSummarizeFeed = async (newBatch, statusPrefix = 'พบ') => {

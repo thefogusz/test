@@ -14,6 +14,84 @@ const grok = createXai({
 });
 
 const factCache = new Map();
+const responseCache = new Map();
+const CACHE_MAX_ENTRIES = 400;
+const TAVILY_CACHE_TTL_MS = 5 * 60 * 1000;
+const QUERY_CACHE_TTL_MS = 15 * 60 * 1000;
+const SUMMARY_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+const EXECUTIVE_SUMMARY_CACHE_TTL_MS = 10 * 60 * 1000;
+const CONTENT_BRIEF_CACHE_TTL_MS = 30 * 60 * 1000;
+
+const normalizeCacheText = (value = '') => String(value || '').replace(/\s+/g, ' ').trim();
+
+const hashString = (value = '') => {
+  let hash = 2166136261;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0).toString(36);
+};
+
+const buildCacheKey = (namespace, value) =>
+  `${namespace}:${hashString(typeof value === 'string' ? value : JSON.stringify(value))}`;
+
+const pruneCache = (cache) => {
+  const now = Date.now();
+
+  for (const [key, entry] of cache.entries()) {
+    if (entry.expiresAt <= now) {
+      cache.delete(key);
+    }
+  }
+
+  while (cache.size >= CACHE_MAX_ENTRIES) {
+    const oldestKey = cache.keys().next().value;
+    if (!oldestKey) break;
+    cache.delete(oldestKey);
+  }
+};
+
+const getCachedValue = (cache, key) => {
+  const entry = cache.get(key);
+  if (!entry) return null;
+
+  if (entry.expiresAt <= Date.now()) {
+    cache.delete(key);
+    return null;
+  }
+
+  cache.delete(key);
+  cache.set(key, entry);
+  return entry.value;
+};
+
+const setCachedValue = (cache, key, value, ttlMs) => {
+  pruneCache(cache);
+  cache.set(key, {
+    value,
+    expiresAt: Date.now() + ttlMs,
+  });
+  return value;
+};
+
+const dedupeByNormalizedText = (items = [], selector = (item) => item) => {
+  const result = [];
+  const seen = new Set();
+
+  for (const item of items) {
+    const normalized = normalizeCacheText(selector(item));
+    const key = normalized || `empty:${result.length}`;
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+  }
+
+  return result;
+};
 
 const SUMMARY_RULES = `
 คุณต้องเปลี่ยนโพสต์จากโซเชียลมีเดียให้เป็นสรุปข่าวภาษาไทยแบบสั้น
@@ -67,12 +145,19 @@ const buildTweetUrl = (tweet) => {
 };
 
 export const tavilySearch = async (query, isLatest = false) => {
+  const normalizedQuery = normalizeCacheText(query);
+  if (!normalizedQuery) return { results: [], answer: '' };
+
+  const cacheKey = buildCacheKey('tavily', { normalizedQuery, isLatest });
+  const cached = getCachedValue(responseCache, cacheKey);
+  if (cached) return cached;
+
   try {
     const response = await fetch('/api/tavily/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        query,
+        query: normalizedQuery,
         search_depth: 'advanced',
         include_answer: true,
         max_results: 5,
@@ -81,7 +166,8 @@ export const tavilySearch = async (query, isLatest = false) => {
     });
 
     if (!response.ok) return { results: [], answer: '' };
-    return await response.json();
+    const result = await response.json();
+    return setCachedValue(responseCache, cacheKey, result, TAVILY_CACHE_TTL_MS);
   } catch (err) {
     console.warn('[GrokService] Tavily fetch failed:', err);
     return { results: [], answer: '' };
@@ -327,6 +413,15 @@ ${factSheet}
 };
 
 const buildContentBrief = async ({ factSheet, length, tone, format, customInstructions = '' }) => {
+  const cacheKey = buildCacheKey('content-brief', {
+    factSheet,
+    length,
+    tone,
+    format,
+    customInstructions,
+  });
+  const cached = getCachedValue(responseCache, cacheKey);
+  if (cached) return cached;
   try {
     const { object } = await generateObject({
       model: grok(MODEL_REASONING_FAST),
@@ -335,10 +430,10 @@ const buildContentBrief = async ({ factSheet, length, tone, format, customInstru
       schema: CONTENT_BRIEF_SCHEMA,
     });
 
-    return object;
+    return setCachedValue(responseCache, cacheKey, object, CONTENT_BRIEF_CACHE_TTL_MS);
   } catch (error) {
     console.warn('[GrokService] Brief generation fallback:', error);
-    return {
+    return setCachedValue(responseCache, cacheKey, {
       mainAngle: 'สรุปประเด็นสำคัญจากข้อมูลที่มีอย่างชัดเจนและน่าเชื่อถือ',
       audience: 'ผู้อ่านทั่วไปที่ต้องการความเข้าใจเร็ว',
       voiceNotes: ['กระชับ', 'น่าเชื่อถือ', 'ไม่โอเวอร์'],
@@ -347,7 +442,7 @@ const buildContentBrief = async ({ factSheet, length, tone, format, customInstru
       structure: ['เปิดด้วยประเด็นหลัก', 'ขยายบริบทสำคัญ', 'ปิดด้วยข้อสรุปที่พอดี'],
       titleIdea: 'สรุปประเด็นสำคัญล่าสุด',
       ctaMode: 'none',
-    };
+    }, CONTENT_BRIEF_CACHE_TTL_MS);
   }
 };
 
@@ -386,6 +481,9 @@ const callGrok = async ({
 
 const deriveResearchQuery = async (input) => {
   const fallback = (input || '').replace(/\s+/g, ' ').trim().slice(0, 160) || 'latest news';
+  const cacheKey = buildCacheKey('research-query', fallback);
+  const cached = getCachedValue(responseCache, cacheKey);
+  if (cached) return cached;
 
   try {
     const { object } = await generateObject({
@@ -398,13 +496,18 @@ const deriveResearchQuery = async (input) => {
       }),
     });
 
-    return (object.searchQuery || fallback).trim();
+    return setCachedValue(
+      responseCache,
+      cacheKey,
+      (object.searchQuery || fallback).trim(),
+      QUERY_CACHE_TTL_MS,
+    );
   } catch (error) {
     if (error.status === 400) {
       console.warn('[GrokService] 400 Bad Request in deriveResearchQuery. Check parameters/model.');
     }
     console.warn('[GrokService] Falling back to raw research query:', error.message);
-    return fallback;
+    return setCachedValue(responseCache, cacheKey, fallback, QUERY_CACHE_TTL_MS);
   }
 };
 
@@ -420,25 +523,74 @@ export const generateGrokSummary = async (fullStoryText) => {
 export const generateGrokBatch = async (stories) => {
   if (!stories || stories.length === 0) return [];
 
+  const uniqueStories = [];
+  const storyIndexes = [];
+  const uniqueKeys = [];
+  const seenStories = new Map();
+
+  for (const story of stories) {
+    const normalizedStory = normalizeCacheText(story);
+    const summaryKey = buildCacheKey('story-summary', normalizedStory);
+    let uniqueIndex = seenStories.get(summaryKey);
+
+    if (uniqueIndex === undefined) {
+      uniqueIndex = uniqueStories.length;
+      seenStories.set(summaryKey, uniqueIndex);
+      uniqueStories.push(story);
+      uniqueKeys.push(summaryKey);
+    }
+
+    storyIndexes.push(uniqueIndex);
+  }
+
+  const uniqueSummaries = Array(uniqueStories.length);
+  const uncachedStories = [];
+  const uncachedIndexes = [];
+
+  uniqueKeys.forEach((key, index) => {
+    const cachedSummary = getCachedValue(responseCache, key);
+    if (cachedSummary) {
+      uniqueSummaries[index] = cachedSummary;
+      return;
+    }
+
+    uncachedStories.push(uniqueStories[index]);
+    uncachedIndexes.push(index);
+  });
+
+  if (uncachedStories.length === 0) {
+    return storyIndexes.map((index, storyIndex) => uniqueSummaries[index] || stories[storyIndex]);
+  }
+
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
       system: SUMMARY_RULES,
       prompt: JSON.stringify({
-        count: stories.length,
-        stories,
+        count: uncachedStories.length,
+        stories: uncachedStories,
         outputRule: 'แปลงเนื้อหาบทความ (stories) ทั้งหมดเป็นบทสรุปภาษาไทย (Translate and summarize to Thai) ให้คืนค่ากลับมา 1 บทสรุปภาษาไทย ต่อ 1 ต้นฉบับ ในลำดับเดิมอย่างเคร่งครัด',
       }),
       schema: z.object({
-        summaries: z.array(z.string()).length(stories.length),
+        summaries: z.array(z.string()).length(uncachedStories.length),
       }),
       temperature: 0.2,
     });
 
-      return object.summaries.map((summary) => cleanGeneratedContent(summary));
+    object.summaries.forEach((summary, index) => {
+      const cleanedSummary = cleanGeneratedContent(summary);
+      const uniqueIndex = uncachedIndexes[index];
+      uniqueSummaries[uniqueIndex] = cleanedSummary;
+      setCachedValue(responseCache, uniqueKeys[uniqueIndex], cleanedSummary, SUMMARY_CACHE_TTL_MS);
+    });
+
+    return storyIndexes.map((index, storyIndex) => uniqueSummaries[index] || stories[storyIndex]);
   } catch (error) {
     console.error('[GrokService] Batch summarization error:', error);
-    return stories.map(() => '(Grok API Error)');
+    uncachedIndexes.forEach((index) => {
+      uniqueSummaries[index] = '(Grok API Error)';
+    });
+    return storyIndexes.map((index) => uniqueSummaries[index] || '(Grok API Error)');
   }
 };
 
@@ -498,8 +650,28 @@ ${preferCredibleSources ? '- Filter out low-value bot-like aggregators but keep 
 export const generateExecutiveSummary = async (validTweets, userQuery, onStreamChunk, webContext = '') => {
   if (!validTweets?.length) return null;
 
-  const contentToAnalyze = validTweets
-    .slice(0, 10)
+  const tweetsForSummary = dedupeByNormalizedText(validTweets, (tweet) => tweet?.text).slice(0, 10);
+  if (!tweetsForSummary.length) return null;
+
+  const cacheKey = buildCacheKey('executive-summary', {
+    userQuery,
+    webContext,
+    tweets: tweetsForSummary.map((tweet) => ({
+      id: tweet.id,
+      text: normalizeCacheText(tweet.text),
+      createdAt: tweet.created_at || tweet.createdAt || null,
+    })),
+  });
+  const cached = getCachedValue(responseCache, cacheKey);
+
+  if (cached) {
+    if (onStreamChunk) {
+      onStreamChunk(cached, cached);
+    }
+    return cached;
+  }
+
+  const contentToAnalyze = tweetsForSummary
     .map((tweet, index) => {
       const authorLabel = tweet.author?.username ? `@${tweet.author.username}` : tweet.author?.name || 'unknown';
       return `[${index + 1}] (${authorLabel}) ${tweet.text}`;
@@ -530,22 +702,30 @@ ${webContext ? `ใช้ข้อมูลจากโลกอินเทอ�
         fullText += textPart;
         onStreamChunk(textPart, fullText);
       }
-      return cleanGeneratedContent(fullText);
+      return setCachedValue(
+        responseCache,
+        cacheKey,
+        cleanGeneratedContent(fullText),
+        EXECUTIVE_SUMMARY_CACHE_TTL_MS,
+      );
     } catch (error) {
       console.error('[GrokService] Stream summary error:', error);
       // Fallback to normal if stream fails
     }
   }
 
-  return callGrok({
+  return setCachedValue(responseCache, cacheKey, await callGrok({
     modelName: MODEL_NEWS_FAST,
     system: summarySystem,
     prompt: contentToAnalyze,
-  });
+  }), EXECUTIVE_SUMMARY_CACHE_TTL_MS);
 };
 
 export const expandSearchQuery = async (originalQuery, isLatest = false) => {
   if (!originalQuery) return originalQuery;
+  const cacheKey = buildCacheKey('expand-search-query', { originalQuery, isLatest });
+  const cached = getCachedValue(responseCache, cacheKey);
+  if (cached) return cached;
 
   try {
     const { object } = await generateObject({
@@ -565,20 +745,24 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
     });
 
     const finalQuery = object.finalXQuery.replace(/\s+/g, ' ').trim();
-    return finalQuery.includes('-filter:replies')
-      ? finalQuery
-      : `${finalQuery} -filter:replies`;
+    return setCachedValue(
+      responseCache,
+      cacheKey,
+      finalQuery.includes('-filter:replies') ? finalQuery : `${finalQuery} -filter:replies`,
+      QUERY_CACHE_TTL_MS,
+    );
   } catch (error) {
     if (error.status === 400) {
       console.warn('[GrokService] 400 Bad Request in expandSearchQuery. Check parameters/model.');
     }
     console.error('[GrokService] Query optimizer error:', error);
-    return `${originalQuery} -filter:replies`;
+    return setCachedValue(responseCache, cacheKey, `${originalQuery} -filter:replies`, QUERY_CACHE_TTL_MS);
   }
 };
 
 export const buildSearchPlan = async (originalQuery, isLatest = false) => {
   const fallbackQuery = `${originalQuery} -filter:replies`.trim();
+  const cacheKey = buildCacheKey('search-plan', { originalQuery, isLatest });
 
   if (!originalQuery) {
     return {
@@ -587,6 +771,9 @@ export const buildSearchPlan = async (originalQuery, isLatest = false) => {
       topicLabels: [],
     };
   }
+
+  const cached = getCachedValue(responseCache, cacheKey);
+  if (cached) return cached;
 
   try {
     const { object } = await generateObject({
@@ -625,20 +812,20 @@ export const buildSearchPlan = async (originalQuery, isLatest = false) => {
       new Set([object.primaryQuery, ...(object.relatedQueries || [])].map(normalizeQuery).filter(Boolean)),
     ).slice(0, 4);
 
-    return {
+    return setCachedValue(responseCache, cacheKey, {
       queries: queries.length ? queries : [fallbackQuery],
       primaryQuery: queries[0] || fallbackQuery,
       topicLabels: Array.from(
         new Set((object.topicLabels || []).map((label) => String(label || '').trim()).filter(Boolean)),
       ),
-    };
+    }, QUERY_CACHE_TTL_MS);
   } catch (error) {
     console.error('[GrokService] Search plan optimizer error:', error);
-    return {
+    return setCachedValue(responseCache, cacheKey, {
       queries: [fallbackQuery],
       primaryQuery: fallbackQuery,
       topicLabels: [originalQuery],
-    };
+    }, QUERY_CACHE_TTL_MS);
   }
 };
 
@@ -737,7 +924,10 @@ export const researchAndPreventHallucination = async (input) => {
         .join('\n\n');
     }
 
-    const xTweets = [...(xTopResponse?.data || []).slice(0, 4), ...(xLatestResponse?.data || []).slice(0, 4)];
+    const xTweets = dedupeByNormalizedText(
+      [...(xTopResponse?.data || []).slice(0, 4), ...(xLatestResponse?.data || []).slice(0, 4)],
+      (tweet) => tweet?.id || tweet?.text,
+    );
     extractedSources.push(...extractSourcesFromTweets(xTweets, 6));
 
     if (xTweets.length) {
