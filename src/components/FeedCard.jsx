@@ -52,27 +52,6 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
 
   return (
     <div className="feed-card animate-fade-in">
-      {/* ── AI INTENT BADGE ── */}
-      {tweet.ai_reasoning && (
-        <div style={{
-          marginBottom: '16px',
-          padding: '12px',
-          background: 'rgba(41, 151, 255, 0.08)',
-          border: '1px solid rgba(41, 151, 255, 0.2)',
-          borderRadius: '12px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--accent-secondary)', fontSize: '11px', fontWeight: '800', letterSpacing: '0.05em' }}>
-            <Sparkles size={12} fill="currentColor" /> AI PICK
-          </div>
-          <div style={{ fontSize: '13px', color: 'rgba(255, 255, 255, 0.9)', lineHeight: '1.5', fontStyle: 'italic' }}>
-            "{tweet.ai_reasoning}"
-          </div>
-        </div>
-      )}
-
       {/* ── HEADER: Avatar, Author & Time ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
@@ -199,6 +178,25 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
           )}
         </div>
       </div>
+      {/* ── SUBTLE AI REASONING BADGE ── */}
+      {tweet.ai_reasoning && (
+        <div style={{
+          marginTop: '16px',
+          padding: '8px 12px',
+          background: 'rgba(255, 255, 255, 0.03)',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
+          borderRadius: '8px',
+          fontSize: '11.5px',
+          color: 'var(--text-dim)',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '8px',
+          lineHeight: '1.4'
+        }}>
+          <Sparkles size={12} style={{ color: 'var(--accent-secondary)', marginTop: '2px', flexShrink: 0 }} fill="currentColor" />
+          <span style={{ fontStyle: 'italic' }}>AI Insight: {tweet.ai_reasoning}</span>
+        </div>
+      )}
     </div>
   );
 };
