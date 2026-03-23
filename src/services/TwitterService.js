@@ -492,10 +492,15 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
     });
 
   const softThreshold = latestMode ? 2.6 : 2.9;
-  const minimumKeep = Math.min(scored.length, latestMode ? 6 : 8);
-  const filtered = scored.filter((tweet, index) => index < minimumKeep || tweet.search_score >= softThreshold);
-  const curated = filtered.length >= Math.min(6, scored.length) ? filtered : scored;
-  const covered = ensureQueryCoverage(curated, scored, queryTerms, latestMode);
+  const hardThreshold = latestMode ? 1.5 : 2.0;
+
+  // Filter out complete garbage (bots, 0-engagement) no matter what
+  const acceptable = scored.filter(tweet => tweet.search_score >= hardThreshold);
+
+  const minimumKeep = Math.min(acceptable.length, latestMode ? 6 : 8);
+  const filtered = acceptable.filter((tweet, index) => index < minimumKeep || tweet.search_score >= softThreshold);
+  const curated = filtered.length >= Math.min(6, acceptable.length) ? filtered : acceptable;
+  const covered = ensureQueryCoverage(curated, acceptable, queryTerms, latestMode);
 
   return diversifyByAuthor(covered, latestMode ? 8 : 12);
 };

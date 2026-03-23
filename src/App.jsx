@@ -27,11 +27,11 @@ import RightSidebar from './components/RightSidebar';
 import FeedCard from './components/FeedCard';
 import CreateContent from './components/CreateContent';
 import {
-// Removed unused filterTweetsWithinHours
   getUserInfo,
   fetchWatchlistFeed,
   RECENT_WINDOW_HOURS,
   searchEverything,
+  curateSearchResults
 } from './services/TwitterService';
 import { agentFilterFeed, buildSearchPlan, discoverTopExperts, generateExecutiveSummary, generateGrokBatch } from './services/GrokService';
 import { renderMarkdownToHtml } from './utils/markdown';
@@ -370,13 +370,25 @@ const App = () => {
       const rankingQuery = mergePlanLabelsIntoQuery(requestedQuery, searchPlan?.topicLabels || []);
 
       const finalQuery = planQueries[0];
+      
+      let scopedQuery = finalQuery;
+      if (isLatestMode && !finalQuery.includes('since:')) {
+        const date = new Date();
+        date.setHours(date.getHours() - 24);
+        const sinceDate = date.toISOString().split('T')[0];
+        scopedQuery = `${finalQuery} since:${sinceDate}`;
+      }
+      
       setStatus(`[API] กำลังแสกนหาข้อมูลและกวาดล้างเนื้อหาดิบจาก X ทั่วโลก (Duo-Fetch)...`);
-      const { data, meta } = await searchEverything(finalQuery, isMore ? searchCursor : null, onlyNews, isLatestMode ? 'Latest' : 'Top', !isMore); 
+      const { data, meta } = await searchEverything(scopedQuery, isMore ? searchCursor : null, onlyNews, 'Top', !isMore);
       
       if (data.length > 0) {
+        setStatus(`[Quality Gate] คัดกรองและประเมิน Engagement...`);
+        const curated = curateSearchResults(data, rankingQuery, { latestMode: isLatestMode, preferCredibleSources: true });
+        
         setStatus(`[Agent 2/3] กำลังกรองสแปมและคัดเลือกโพสต์ระดับคุณภาพจากฐานข้อมูล 40 ชุด...`);
-        const validIds = await agentFilterFeed(data, rankingQuery);
-        const cleanData = data.filter(t => validIds.some(vid => String(vid) === String(t.id)));
+        const validIds = await agentFilterFeed(curated, rankingQuery);
+        const cleanData = curated.filter(t => validIds.some(vid => String(vid) === String(t.id)));
         
         if (!isMore) {
           setStatus(`[Agent 3/3] กำลังสังเคราะห์ข้อมูลและเขียน Executive Summary...`);
