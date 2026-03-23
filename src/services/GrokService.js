@@ -472,7 +472,7 @@ ${preferCredibleSources ? '- Down-rank low-value aggregator accounts that only r
   }
 };
 
-export const generateExecutiveSummary = async (validTweets, userQuery) => {
+export const generateExecutiveSummary = async (validTweets, userQuery, onStreamChunk) => {
   if (!validTweets?.length) return null;
 
   const contentToAnalyze = validTweets
@@ -493,13 +493,28 @@ export const generateExecutiveSummary = async (validTweets, userQuery) => {
 - ห้ามมีหัวข้อหรือ bullet
 - ห้ามระบุชื่อบัญชี (@handle) ของผู้ใช้ทั่วไปที่ไม่มีอิมแพค ยกเว้นบัญชีที่มีชื่อเสียง, มีผู้ติดตามสูง, มียอดเอนเกจเม้นท์สูง หรือมีความน่าเชื่อถือชัดเจน ให้เน้นสรุปภาพรวมของสัญญาณจากชุมชน`;
 
+  if (onStreamChunk) {
+    try {
+      const { textStream } = await streamText({
+        model: grok(MODEL_NEWS_FAST),
+        system: summarySystem,
+        prompt: contentToAnalyze,
+      });
+
+      let fullText = '';
+      for await (const textPart of textStream) {
+        fullText += textPart;
+        onStreamChunk(textPart, fullText);
+      }
+      return cleanGeneratedContent(fullText);
+    } catch (error) {
+      console.error('[GrokService] Stream summary error:', error);
+      // Fallback to normal if stream fails
+    }
+  }
+
   return callGrok({
     modelName: MODEL_NEWS_FAST,
-    /*
-    system: `คุณคือนักวิเคราะห์ที่กำลังเขียนสรุปสำหรับผู้บริหารแบบกระชับในหัวข้อ "${userQuery}" เป็นภาษาไทย
-เขียน 2-3 ประโยคในภาษาไทย เน้นเฉพาะประเด็นสำคัญที่น่าเชื่อถือที่สุด
-ใช้ตัวหนา (markdown bold) สำหรับวลีที่สำคัญที่สุดถ้าจำเป็น ห้ามมีหัวข้อหลักด้านบน`,
-    */
     system: summarySystem,
     prompt: contentToAnalyze,
   });
