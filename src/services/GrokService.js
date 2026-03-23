@@ -831,21 +831,50 @@ export const buildSearchPlan = async (originalQuery, isLatest = false) => {
 
 export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) => {
   try {
+    // 1. Pre-fetch real active accounts right now using the query
+    let activeContext = '';
+    try {
+      const searchData = await searchEverything(categoryQuery, '', false, 'Top', false);
+      if (searchData?.data?.length > 0) {
+        const uniqueAuthors = [];
+        const seenUsernames = new Set();
+        for (const t of searchData.data) {
+          if (t.author && t.author.username && !seenUsernames.has(t.author.username.toLowerCase())) {
+            seenUsernames.add(t.author.username.toLowerCase());
+            uniqueAuthors.push(t.author);
+          }
+        }
+        
+        // Filter out small accounts
+        const qualifiedAuthors = uniqueAuthors
+          .filter(a => (a.followers || a.fastFollowersCount || 0) > 1000)
+          .slice(0, 15);
+          
+        if (qualifiedAuthors.length > 0) {
+          activeContext = `\n[อัปเดตแบบ Real-time]: นี่คือรายชื่อบัญชีเทียร์สูงที่มีความเคลื่อนไหว (Active) และกำลังพูดถึงหัวข้อนี้ในช่วง 24 ชั่วโมงที่ผ่านมา จงพิจารณาบัญชีเหล่านี้เป็นพิเศษ:\n${
+            qualifiedAuthors.map(a => `- @${a.username} (${a.name}) | ผู้ติดตาม: ${a.followers || a.fastFollowersCount}`).join('\n')
+          }\n`;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not fetch active context for experts:', e);
+    }
+
     const { object } = await generateObject({
       model: grok(MODEL_REASONING_FAST),
       system: `คุณคือ "นักล่าดาวรุ่งและปรมาจารย์ระดับโลก" (Global Headhunter AI)
-ภารกิจ: จงค้นหาและแนะนำสุดยอดบัญชี Twitter (X) จำนวน 6 บัญชี ที่เป็นผู้เชี่ยวชาญหรือเป็นแหล่งข้อมูลที่สำคัญที่สุดในหัวข้อ "${categoryQuery}" แบบ Real-time
-
-คุณต้องใช้ "ความสามารถในการค้นหาข้อมูลที่สดใหม่บน X" ของคุณ เพื่อดึงตัวตนที่มีอิทธิพลในระดับโลกจริงๆ (วิเคราะห์ข้ามไปมาเพื่อเลือกคนที่เป็นตัวจริงที่สุด)
+ภารกิจ: จงค้นหาและแนะนำสุดยอดบัญชี Twitter (X) จำนวน 6 บัญชี ที่เป็นผู้เชี่ยวชาญหรือเป็นแหล่งข้อมูลที่สำคัญที่สุดในหัวข้อ "${categoryQuery}" 
+${activeContext}
+คุณต้องใช้ "ความสามารถในการพิจารณาบริบทปัจจุบัน" ของคุณ เพื่อดึงตัวตนที่มีอิทธิพลในระดับโลกจริงๆ
 
 [กฎการคัดเลือก - สำคัญมาก]:
-1. **Diversity Enforcement (ความหลากหลาย):** ใน 6 บัญชีนี้ ห้ามมีบทบาทซ้ำกันเกิน 2 คน (เช่น ต้องมีทั้งนักเตือนภัย, ผู้สื่อข่าว, ผู้รวบรวมข้อมูล, และผู้ก่อตั้งโปรเจกต์)
-2. **The Red Flag Filter (ไร้ขยะ):** ตัดบัญชีที่เป็น Bot, บัญชีที่เอาแต่สอนกด Airdrop, บัญชีปั่น/สแปม, หรือบัญชีที่มีแต่ยอด Follow ทิพย์ หรือบัญชีเน้นขายหน้าตา (OnlyFans/Model)
-3. **Active & Public Only (ตัวจริงที่ยังอยู่):** จงเลือกเฉพาะบัญชีที่คุณรู้จักและแน่ใจ 100% ว่ามันเป็นบัญชีสาธารณะ (Public) และมีการเคลื่อนไหว (Active) ในช่วง 30 วันที่ผ่านมา ห้ามแนะนำบัญชีที่ระงับการใช้งาน (Suspended), บัญชีส่วนตัว (Private/Protected), หรือบัญชีที่ดูเหมือนเลิกเล่นแล้วเด็ดขาด ห้าม Hallucinate ชื่อบัญชี
+1. **Diversity Enforcement (ความหลากหลาย):** ใน 6 บัญชีนี้ ห้ามมีบทบาทซ้ำกันเกิน 2 คน (เช่น ต้องมีทั้งนักวิจารณ์, สำนักข่าว, คนในวงการ, และผู้เล่นระดับโปร)
+2. **The Red Flag Filter (ไร้ขยะ):** ตัดบัญชีที่เป็น Bot, สแปม, ข่าวลือมั่ว, หรือบัญชีที่เอาแต่รีทวีต
+3. **Active & Public Only (บัญชีที่ยังหายใจ):** อาการ "ทวิตล้าง/ร้าง" คือปัญหาใหญ่ที่สุด ผู้ใช้เกลียดบัญชีที่ไม่แอคทีฟ จงพิจารณาผู้ใช้จาก [อัปเดตแบบ Real-time] ที่ให้ไปก่อนเป็นอันดับแรก หากจำเป็นต้องแนะนำคนนอกลิสต์ ต้องเป็นตัวท็อปในยุทธจักรที่โพสต์เป็นประจำทุกวันห้ามแนะนำบอทหรือคนที่เลิกเล่น X แล้วเด็ดขาด
 4. จัดลำดับความสำคัญให้ "บัญชีของคน/องค์กรระดับโลกที่มีผู้ติดตามจริงมหาศาล" เป็นกลุ่มแรก ๆ
 5. ตัดบัญชีที่มีชื่อผู้ใช้เหล่านี้ทิ้ง: [${excludeUsernames.join(', ')}]
 6. สำหรับ "reasoning": เขียนรีวิวภาษาไทยความยาว 1 ประโยคสั้นๆ เน้นความว้าวว่าทำไมต้องตามคนนี้ เขาเจ๋งแค่ไหนในสายนี้`,
-      prompt: `ค้นหายอดฝีมือ 6 คนที่เป็น The Best of the Best ในสาย "${categoryQuery}" อย่างเคร่งครัดตามกฎ อย่าลืมคัดให้หลากหลาย (username ต้องไม่มี @ นำหน้า และ reasoning ต้องยาวแค่ 1 ประโยคในภาษาไทยเท่านั้น)`,
+      prompt: `ค้นหายอดฝีมือ 6 คนที่เป็น The Best of the Best ในสาย "${categoryQuery}" อย่างเคร่งครัดตามกฎ ห้ามเอาบัญชีร้างมาเด็ดขาด (username ต้องไม่มี @ นำหน้า และ reasoning ต้องยาวแค่ 1 ประโยคในภาษาไทยเท่านั้น)`,
       schema: z.object({
         experts: z.array(
           z.object({
