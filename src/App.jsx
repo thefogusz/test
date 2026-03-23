@@ -88,9 +88,11 @@ const App = () => {
   const [aiReport, setAiReport] = useState('');
   const [activeFilters, setActiveFilters] = useState({ view: false, engagement: false });
   
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState([]);
-  const [searchSummary, setSearchSummary] = useState('');
+  const [searchQuery, setSearchQuery] = usePersistentState(STORAGE_KEYS.searchQuery, '');
+  const [searchResults, setSearchResults] = usePersistentState(STORAGE_KEYS.searchResults, [], {
+    deserialize: deserializeStoredCollection,
+  });
+  const [searchSummary, setSearchSummary] = usePersistentState(STORAGE_KEYS.searchSummary, '');
   const [isSearching, setIsSearching] = useState(false);
   const [searchCursor, setSearchCursor] = useState(null);
   const [activeSearchPlan, setActiveSearchPlan] = useState(null);
@@ -127,17 +129,19 @@ const App = () => {
   const [postLists, setPostLists] = usePersistentState(STORAGE_KEYS.postLists, [], {
     deserialize: deserializePostLists,
   });
-  const [activeListId, setActiveListId] = useState(null);
-  const [activeView, setActiveView] = useState('home');
-  const [contentTab, setContentTab] = useState('search');
+  const [activeListId, setActiveListId] = usePersistentState(STORAGE_KEYS.activeListId, null);
+  const [activeView, setActiveView] = usePersistentState(STORAGE_KEYS.activeView, 'home');
+  const [contentTab, setContentTab] = usePersistentState(STORAGE_KEYS.contentTab, 'search');
   const [listModal, setListModal] = useState({ show: false, mode: 'create', value: '' });
   const [filterModal, setFilterModal] = useState({ show: false, prompt: '' });
   const [readFilters, setReadFilters] = useState({ view: false, engagement: false });
 
-  const [audienceTab, setAudienceTab] = useState('manual'); 
+  const [audienceTab, setAudienceTab] = usePersistentState(STORAGE_KEYS.audienceTab, 'manual'); 
   const [aiQuery, setAiQuery] = useState('');
   const [aiSearchLoading, setAiSearchLoading] = useState(false);
-  const [aiSearchResults, setAiSearchResults] = useState([]);
+  const [aiSearchResults, setAiSearchResults] = usePersistentState(STORAGE_KEYS.aiSearchResults, [], {
+    deserialize: deserializeStoredCollection,
+  });
   const [manualQuery, setManualQuery] = useState('');
   const [manualPreview, setManualPreview] = useState(null);
 
@@ -905,9 +909,27 @@ const App = () => {
                         ))}
                       </div>
                     )}
-                    {isLiveSearching && !isSearching && <div className="searching-indicator" style={{ marginTop: '16px' }}><RefreshCw size={12} className="animate-spin" /> กำลังประมวลผลการค้นหา...</div>}
+                    {isLiveSearching && !isSearching && <div className="searching-indicator" style={{ marginTop: '16px' }}><RefreshCw size={12} className="animate-spin" /> กำลังเตรียมข้อมูล...</div>}
                     
-                    {!searchQuery && searchResults.length === 0 && (
+                    {isSearching && (
+                      <div className="search-loading-state animate-fade-in" style={{ padding: '40px 0', width: '100%' }}>
+                        <div className="neural-nexus">
+                          <div className="nexus-ring"></div>
+                          <div className="nexus-ring-inner"></div>
+                          <div className="nexus-core">
+                            <Sparkles size={32} />
+                          </div>
+                        </div>
+                        <div className="nexus-text">Intelligence Engine Active</div>
+                        <div className="search-narrative">
+                          <div className="narrative-item" key={status} style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '500' }}>
+                            {status.replace(/\[.*?\]/g, '⚡')}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {!searchQuery && searchResults.length === 0 && !isSearching && (
                       <div className="search-idea-tags animate-fade-in">
                         <p>ลองค้นหาคีย์เวิร์ดเหล่านี้...</p>
                         <div className="tags-row">

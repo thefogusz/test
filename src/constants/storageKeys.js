@@ -6,4 +6,12 @@ export const STORAGE_KEYS = {
   readArchive: 'foro_read_archive_v1',
   attachedSource: 'foro_attached_source_v1',
   postLists: 'foro_postlists_v2',
+  activeView: 'foro_active_view_v2',
+  contentTab: 'foro_content_tab_v1',
+  audienceTab: 'foro_audience_tab_v1',
+  searchQuery: 'foro_search_query_v1',
+  searchResults: 'foro_search_results_v1',
+  searchSummary: 'foro_search_summary_v1',
+  aiSearchResults: 'foro_ai_search_results_v1',
+  activeListId: 'foro_active_list_id_v1',
 };

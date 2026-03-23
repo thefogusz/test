@@ -458,6 +458,8 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 800;
   margin-bottom: 16px;
   letter-spacing: -0.03em;
+  line-height: 1.3;
+  padding: 10px 0;
   background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -1687,4 +1689,109 @@ h1, h2, h3, h4, h5, h6 {
 
 .discovery-menu-item.active:hover {
   background: rgba(41, 151, 255, 0.18);
+}
+
+/* GENIUS NEURAL NEXUS ANIMATION */
+@keyframes nexus-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes nexus-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+@keyframes nexus-shimmer {
+  0% { transform: translate(-100%, -100%) rotate(45deg); opacity: 0; }
+  20% { opacity: 0.2; }
+  50% { transform: translate(100%, 100%) rotate(45deg); opacity: 0; }
+  100% { opacity: 0; }
+}
+
+.neural-nexus {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin: 40px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nexus-ring {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(41, 151, 255, 0.2);
+  border-radius: 50%;
+  animation: nexus-spin 8s linear infinite;
+}
+
+.nexus-ring::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  background: var(--accent-secondary);
+  border-radius: 50%;
+  box-shadow: 0 0 15px var(--accent-secondary);
+}
+
+.nexus-ring-inner {
+  position: absolute;
+  inset: 20px;
+  border: 1px dashed rgba(157, 117, 255, 0.2);
+  border-radius: 50%;
+  animation: nexus-spin 5s linear reverse infinite;
+}
+
+.nexus-core {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  background: radial-gradient(circle, var(--accent-secondary) 0%, transparent 70%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: nexus-pulse 2s ease-in-out infinite;
+}
+
+.nexus-core svg {
+  color: #fff;
+  filter: drop-shadow(0 0 10px #fff);
+}
+
+.nexus-text {
+  margin-top: 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-secondary);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: center;
+  animation: nexus-pulse 2s ease-in-out infinite;
+}
+
+.search-narrative {
+  margin-top: 24px;
+  text-align: center;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.narrative-item {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+  to { opacity: 1; transform: translateY(0); }
 }
