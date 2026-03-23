@@ -176,21 +176,28 @@ export const tavilySearch = async (query, isLatest = false) => {
 
 
 
-const extractSourcesFromTweets = (tweets, limit = 4) =>
-  dedupeSources(
-    (tweets || [])
-      .slice(0, limit)
-      .map((tweet) => {
-        const url = buildTweetUrl(tweet);
-        if (!url) return null;
+const isMajorXAccount = (tweet) => {
+  const followers = tweet.author?.followers || tweet.author?.fastFollowersCount || 0;
+  const likes = tweet.like_count || tweet.likeCount || 0;
+  return followers > 10000 || likes > 500 || tweet.author?.isVerified || tweet.author?.isBlueVerified;
+};
 
-        return {
-          title: `@${tweet.author?.username || 'unknown'} on X`,
-          url,
-        };
-      })
-      .filter(Boolean),
-  );
+const extractSourcesFromTweets = (tweets, limit = 4) => {
+  const validSources = (tweets || [])
+    .filter(t => isMajorXAccount(t))
+    .slice(0, limit)
+    .map((tweet) => {
+      const url = buildTweetUrl(tweet);
+      if (!url) return null;
+      return {
+        title: `@${tweet.author?.username || 'unknown'} on X`,
+        url,
+      };
+    })
+    .filter(Boolean);
+    
+  return dedupeSources(validSources);
+};
 
 const toTweetEvidence = (tweets, limit = 6) =>
   (tweets || [])
@@ -974,26 +981,18 @@ export const researchAndPreventHallucination = async (input) => {
   try {
     const factSheet = await callGrok({
       modelName: MODEL_REASONING_FAST,
-      system: `คุณคือทีมนักวิจัยไทยที่กำลังเตรียมข้อมูลข้อเท็จจริง (Fact Sheet) ที่มีความน่าเชื่อถือ
-ใช้เฉพาะข้อมูลหลักฐานที่ให้มาเท่านั้น
-หากข้อมูลใดไม่ได้รับการสนับสนุนอย่างชัดเจน ให้ระบุว่ายังไม่แน่นอน
-เขียนเป็นภาษาไทย แต่คงชื่อเฉพาะและชื่อผลิตภัณฑ์เป็นภาษาอังกฤษ
+      system: `คุณคือหัวหน้าทีมนักวิจัย (Lead Investigator) ที่รับผิดชอบความถูกต้องของข้อมูล (Fact-Check) 100%
+เป้าหมาย: สร้าง Fact Sheet ภาษาไทยที่แม่นยำที่สุด โดยห้ามมั่วและห้ามมี Hallucination เด็ดขาด
 
-รูปแบบการเขียน:
-## ข้อเท็จจริงที่ตรวจสอบแล้ว
-- ...
-## สัญญาณจากตลาด / ชุมชน
-- ...
-## ข้อควรระวัง / ข้อมูลที่ยังไม่ทราบ
-- ...
-## มุมมองที่แนะนำ
-- ...
+[การใช้แหล่งข้อมูล]
+- ให้ลำดับความสำคัญสูงสุดกับ [WEB SOURCES] (แหล่งข่าวทางการ/บทความเว็บ) เป็นหลัก
+- ใช้ [X EVIDENCE] เพื่อสรุป "ความเคลื่อนไหว" หรือ "รายละเอียดเชิงลึก" เท่านั้น ห้ามยกเอาความเห็นมั่วๆ มาเป็นข้อเท็จจริง
 
-กฎการระบุชื่อ:
-- ห้ามระบุชื่อบัญชี (@handle) ของผู้ใช้ทั่วไปที่เพียงแค่ทำการรีโพสต์โดยไม่มีอิมแพค
-- สามารถระบุชื่อบุคคล/องค์กรที่มีชื่อเสียง, มีความน่าเชื่อถือสูง, มีผู้ติดตามจำนวนมาก หรือบัญชีที่สร้างเอนเกจเม้นท์ (Likes/Reposts) สูงมากจนมีผลกระทบวงกว้างได้
-- ระบุชื่อที่เป็นต้นทางข้อมูล (Source of truth) ได้เสมอ
-`,
+[CITATIONS RULE]
+- **ห้ามระบุชื่อบัญชี (@handle)** ของผู้ใช้ทั่วไปที่ไม่มีอิมแพคเด็ดขาด
+- ระบุชื่อได้เฉพาะ: 1. ต้นทางข้อมูลหลัก 2. บัญชีองค์กร/สำนักข่าว 3. บัญชีที่มีผู้ติดตามมหาศาลหรือเป็น Verified ตัวจริงในวงการ
+- หากข้อมูลมาจากหลายบัญชีที่ไม่มีอิมแพค ให้ใช้คำว่า "ชุมชนชาว X" หรือ "กลุ่มผู้ใช้" แทน
+- หากแหล่งที่มา (Source) ดูไม่น่าเชื่อถือ (เช่น บัญชีหลุม/บอท) ให้คัดออกจากการอ้างอิงทันที`,
       prompt: [
         `[ORIGINAL REQUEST]\n${input}`,
         `[SEARCH QUERY]\n${researchQuery}`,
@@ -1004,9 +1003,11 @@ export const researchAndPreventHallucination = async (input) => {
         .join('\n\n'),
     });
 
+    const finalSources = dedupeSources([...extractedSources]).slice(0, 8);
+
     const resultPayload = {
       factSheet,
-      sources: dedupeSources(extractedSources).slice(0, 8),
+      sources: finalSources,
     };
 
     factCache.set(input, resultPayload);
