@@ -21,7 +21,9 @@ import {
   LayoutGrid,
   Activity,
   BookOpen,
-  ExternalLink
+  ExternalLink,
+  Link,
+  Users
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import RightSidebar from './components/RightSidebar';
@@ -93,7 +95,11 @@ const App = () => {
     deserialize: deserializeStoredCollection,
   });
   const [searchSummary, setSearchSummary] = usePersistentState(STORAGE_KEYS.searchSummary, '');
+  const [searchWebSources, setSearchWebSources] = usePersistentState(STORAGE_KEYS.searchWebSources, [], {
+    deserialize: deserializeStoredCollection,
+  });
   const [isSearching, setIsSearching] = useState(false);
+  const [isSourcesExpanded, setIsSourcesExpanded] = useState(false);
   const [searchCursor, setSearchCursor] = useState(null);
   const [activeSearchPlan, setActiveSearchPlan] = useState(null);
   const [onlyNews] = useState(true);
@@ -376,6 +382,12 @@ const App = () => {
           webData.answer ? `[WEB NEWS ANSWER]\n${webData.answer}` : '',
           (webData.results || []).map((r, i) => `${i+1}. ${r.title}: ${r.content?.slice(0, 200)}... (${r.url})`).join('\n')
         ].filter(Boolean).join('\n\n');
+        
+        if (!isMore) {
+          setSearchWebSources(webData.results || []);
+        }
+      } else if (!isMore) {
+        setSearchWebSources([]);
       }
 
 
@@ -995,13 +1007,54 @@ const App = () => {
                         />
                         
                         <div style={{ 
-                          display: 'flex', alignItems: 'center', gap: '8px', 
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
                           marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)',
-                          fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600'
                         }}>
-                          <ShieldCheck size={12} className="text-accent" />
-                          สรุปโดย AI อ้างอิงจากข้อมูลล่าสุดใน 24-48 ชั่วโมงที่ผ่านมา
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>
+                            <ShieldCheck size={12} className="text-accent" />
+                            สรุปโดย AI อ้างอิงจากข้อมูลล่าสุดใน 24-48 ชั่วโมงที่ผ่านมา
+                          </div>
+                          
+                          {searchWebSources.length > 0 && (
+                            <button 
+                              onClick={() => setIsSourcesExpanded(!isSourcesExpanded)}
+                              style={{ 
+                                background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', 
+                                color: 'var(--text-dim)', fontSize: '11px', padding: '4px 10px', 
+                                borderRadius: '100px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' 
+                              }}
+                              className="action-hover-btn"
+                            >
+                              <Link size={12} /> {isSourcesExpanded ? 'ซ่อนแหล่งอ้างอิง' : `อ้างอิงจาก ${searchWebSources.length} เว็บไซต์`}
+                            </button>
+                          )}
                         </div>
+
+                        {/* Collapsible Source List */}
+                        {isSourcesExpanded && searchWebSources.length > 0 && (
+                          <div className="animate-fade-in" style={{ 
+                            marginTop: '16px', padding: '16px', background: 'rgba(0,0,0,0.3)', 
+                            borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' 
+                          }}>
+                            <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-dim)', marginBottom: '12px', letterSpacing: '0.05em' }}>WEB SOURCES</div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              {searchWebSources.map((src, i) => (
+                                <a key={i} href={src.url} target="_blank" rel="noreferrer" style={{ 
+                                  display: 'flex', flexDirection: 'column', gap: '4px', textDecoration: 'none',
+                                  padding: '10px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px',
+                                  transition: 'background 0.2s'
+                                }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}>
+                                  <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                    {src.title}
+                                  </div>
+                                  <div style={{ fontSize: '11px', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <ExternalLink size={10} /> เปิดอ่านต้นฉบับเว็บไซต์
+                                  </div>
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                     <div className="feed-grid">

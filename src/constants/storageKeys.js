@@ -13,5 +13,6 @@ export const STORAGE_KEYS = {
   searchResults: 'foro_search_results_v1',
   searchSummary: 'foro_search_summary_v1',
   aiSearchResults: 'foro_ai_search_results_v1',
+  searchWebSources: 'foro_search_web_sources_v1',
   activeListId: 'foro_active_list_id_v1',
 };
