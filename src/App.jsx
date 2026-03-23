@@ -1,21 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Sparkles, 
-  RefreshCw, 
-  Trash2, 
-  Undo2, 
-  Eye, 
-  Heart, 
-  Zap, 
-  X, 
-  Plus, 
-  FileCode, 
-  Share2, 
-  PenTool, 
-  Loader2, 
-  Filter, 
+import {
+  Search,
+  Sparkles,
+  RefreshCw,
+  Trash2,
+  Undo2,
+  Eye,
+  Heart,
+  Zap,
+  X,
+  Plus,
+  FileCode,
+  Share2,
+  PenTool,
+  Loader2,
+  Filter,
   Copy,
+  ShieldCheck,
   List,
   LayoutGrid,
   Activity,
@@ -33,7 +34,7 @@ import {
   searchEverything,
   curateSearchResults
 } from './services/TwitterService';
-import { agentFilterFeed, buildSearchPlan, discoverTopExperts, generateExecutiveSummary, generateGrokBatch } from './services/GrokService';
+import { agentFilterFeed, buildSearchPlan, discoverTopExperts, generateExecutiveSummary, generateGrokBatch, tavilySearch } from './services/GrokService';
 import { renderMarkdownToHtml } from './utils/markdown';
 import './index.css';
 import {
@@ -374,6 +375,10 @@ const App = () => {
 
       setStatus(`[API] กำลังระดมพลและแสกนหาข้อมูลจากมุมมองที่หลากหลาย (${planQueries.length} แหล่ง...)...`);
       
+      // Parallel Web Context Fetch
+      let webContext = '';
+      const webPromise = (!isMore ? tavilySearch(requestedQuery, isLatestMode) : Promise.resolve({ results: [], answer: '' }));
+      
       for (const query of planQueries) {
         let scopedQuery = query;
         if (isLatestMode && !query.includes('since:')) {
@@ -392,15 +397,26 @@ const App = () => {
         }
       }
 
+      // Finalize Web Context
+      const webData = await webPromise;
+      if (webData && (webData.results?.length || webData.answer)) {
+        webContext = [
+          webData.answer ? `[WEB NEWS ANSWER]\n${webData.answer}` : '',
+          (webData.results || []).map((r, i) => `${i+1}. ${r.title}: ${r.content?.slice(0, 200)}... (${r.url})`).join('\n')
+        ].filter(Boolean).join('\n\n');
+      }
+
+
       const data = mergeUniquePostsById(...rawDataChunks);
       const meta = { next_cursor: finalCursor };
       
       if (data.length > 0) {
         setStatus(`[Quality Gate] คัดกรองและประเมิน Engagement...`);
-        const curated = curateSearchResults(data, rankingQuery, { latestMode: isLatestMode, preferCredibleSources: true });
+        const isFunTopic = /ฮา|ตลก|ขำ|funny|meme|lol|haha/i.test(requestedQuery);
+        const curated = curateSearchResults(data, rankingQuery, { latestMode: isLatestMode, preferCredibleSources: !isFunTopic });
         
         setStatus(`[Agent 2/3] กำลังกรองสแปมและคัดเลือกโพสต์ระดับคุณภาพจากฐานข้อมูล 40 ชุด...`);
-        const validIds = await agentFilterFeed(curated, rankingQuery);
+        const validIds = await agentFilterFeed(curated, rankingQuery, { preferCredibleSources: !isFunTopic, webContext });
         const cleanData = curated.filter(t => validIds.some(vid => String(vid) === String(t.id)));
         
         if (!isMore) {
@@ -408,7 +424,7 @@ const App = () => {
           setSearchSummary('');
           const summaryText = await generateExecutiveSummary(cleanData.slice(0, 10), requestedQuery, (chunk, fullText) => {
             setSearchSummary(fullText);
-          });
+          }, webContext);
           setSearchSummary(summaryText);
         }
 
@@ -586,7 +602,7 @@ const App = () => {
       
       if (filteredResult.length > 0) {
         setStatus('กำลังวิเคราะห์บทสรุปสำหรับคุณ...');
-        const summary = await generateExecutiveSummary(filteredResult.slice(0, 5), filterModal.prompt);
+        const summary = await generateExecutiveSummary(filteredResult.slice(0, 10), filterModal.prompt);
         setAiFilterSummary(summary);
       }
       
@@ -751,23 +767,60 @@ const App = () => {
               </div>
 
               {aiFilterSummary && (
-                <div className="ai-summary-container animate-fade-in" style={{ 
-                  background: 'linear-gradient(135deg, rgba(41, 151, 255, 0.08) 0%, rgba(157, 117, 255, 0.08) 100%)',
-                  border: '1px solid var(--blue-border)',
-                  borderRadius: '16px',
+                <div className="search-summary-card animate-fade-in" style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  borderRadius: '24px',
+                  border: '1px solid var(--glass-border)',
                   padding: '24px',
-                  marginBottom: '28px',
+                  marginBottom: '32px',
                   position: 'relative',
-                  overflow: 'hidden'
+                  overflow: 'hidden',
+                  boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
                 }}>
-                  <div style={{ position: 'absolute', top: 0, right: 0, padding: '8px 16px', background: 'var(--accent-secondary)', color: '#000', fontSize: '10px', fontWeight: '900', borderRadius: '0 0 0 12px' }}>AI ANALYST</div>
-                  <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-                    <div style={{ background: 'var(--accent-gradient)', padding: '10px', borderRadius: '12px', color: '#fff' }}>
-                      <Sparkles size={20} />
+                  <div style={{
+                    position: 'absolute', top: '-20px', left: '-20px', width: '120px', height: '120px',
+                    background: 'radial-gradient(circle, rgba(41, 151, 255, 0.15) 0%, transparent 70%)',
+                    zIndex: 0
+                  }}></div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ 
+                        background: 'var(--accent-gradient)', padding: '8px', borderRadius: '12px', 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff'
+                      }}>
+                        <Sparkles size={18} fill="currentColor" />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>AI FILTER SUMMARY</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>SYNTHESIZING {feed.length} FILTERED RESULTS</div>
+                      </div>
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div className="markdown-body" style={{ fontSize: '15px', lineHeight: '1.7' }} dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(aiFilterSummary) }} />
-                    </div>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(aiFilterSummary);
+                        setStatus('คัดลอกบทสรุปแล้ว');
+                      }}
+                      className="btn-mini-ghost" 
+                      style={{ padding: '6px 12px', fontSize: '12px' }}
+                    >
+                      <Copy size={14} /> ก๊อปปี้สรุป
+                    </button>
+                  </div>
+
+                  <div 
+                    className="markdown-body search-summary-content" 
+                    style={{ fontSize: '15px', lineHeight: '1.8', color: 'rgba(255,255,255,0.9)', position: 'relative', zIndex: 1 }}
+                    dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(aiFilterSummary) }} 
+                  />
+                  
+                  <div style={{ 
+                    display: 'flex', alignItems: 'center', gap: '8px', 
+                    marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)',
+                    fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600'
+                  }}>
+                    <ShieldCheck size={12} className="text-accent" />
+                    สรุปโดย AI อ้างอิงจากบทสนทนาและเงื่อนไขการกรองของคุณ
                   </div>
                 </div>
               )}
@@ -895,7 +948,65 @@ const App = () => {
                 </div>
                 {searchResults.length > 0 && (
                   <div className="search-results-container">
-                    {searchSummary && <div className="markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(searchSummary) }} />}
+                    {searchSummary && (
+                      <div className="search-summary-card animate-fade-in" style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        borderRadius: '24px',
+                        border: '1px solid var(--glass-border)',
+                        padding: '24px',
+                        marginBottom: '32px',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
+                      }}>
+                        {/* Shimmer effect behind icon */}
+                        <div style={{
+                          position: 'absolute', top: '-20px', left: '-20px', width: '120px', height: '120px',
+                          background: 'radial-gradient(circle, rgba(41, 151, 255, 0.15) 0%, transparent 70%)',
+                          zIndex: 0
+                        }}></div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div style={{ 
+                              background: 'var(--accent-gradient)', padding: '8px', borderRadius: '12px', 
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff'
+                            }}>
+                              <Sparkles size={18} fill="currentColor" />
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>AI EXECUTIVE SUMMARY</div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>ANALYZING TOP 10 RELEVANT SIGNALS</div>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => {
+                              navigator.clipboard.writeText(searchSummary);
+                              setStatus('คัดลอกบทสรุปแล้ว');
+                            }}
+                            className="btn-mini-ghost" 
+                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                          >
+                            <Copy size={14} /> ก๊อปปี้สรุป
+                          </button>
+                        </div>
+
+                        <div 
+                          className="markdown-body search-summary-content" 
+                          style={{ fontSize: '15px', lineHeight: '1.8', color: 'rgba(255,255,255,0.9)', position: 'relative', zIndex: 1 }}
+                          dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(searchSummary) }} 
+                        />
+                        
+                        <div style={{ 
+                          display: 'flex', alignItems: 'center', gap: '8px', 
+                          marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)',
+                          fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600'
+                        }}>
+                          <ShieldCheck size={12} className="text-accent" />
+                          สรุปโดย AI อ้างอิงจากข้อมูลล่าสุดใน 24-48 ชั่วโมงที่ผ่านมา
+                        </div>
+                      </div>
+                    )}
                     <div className="feed-grid">
                       {searchResults.map((item, idx) => <FeedCard key={item.id || idx} tweet={item} />)}
                     </div>

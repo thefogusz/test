@@ -66,6 +66,28 @@ const buildTweetUrl = (tweet) => {
   return `https://x.com/${username}/status/${tweet.id}`;
 };
 
+export const tavilySearch = async (query, isLatest = false) => {
+  try {
+    const response = await fetch('/api/tavily/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query,
+        search_depth: 'advanced',
+        include_answer: true,
+        max_results: 5,
+        time_range: isLatest ? 'day' : undefined,
+      }),
+    });
+
+    if (!response.ok) return { results: [], answer: '' };
+    return await response.json();
+  } catch (err) {
+    console.warn('[GrokService] Tavily fetch failed:', err);
+    return { results: [], answer: '' };
+  }
+};
+
 
 
 const extractSourcesFromTweets = (tweets, limit = 4) =>
@@ -422,7 +444,7 @@ export const generateGrokBatch = async (stories) => {
 
 export const agentFilterFeed = async (tweetsData, userPrompt, options = {}) => {
   if (!tweetsData?.length) return [];
-  const { preferCredibleSources = false } = options;
+  const { preferCredibleSources = false, webContext = '' } = options;
 
   const compressedInput = tweetsData.map((tweet) => ({
     id: tweet.id,
@@ -446,14 +468,15 @@ export const agentFilterFeed = async (tweetsData, userPrompt, options = {}) => {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
       system: `Select only the posts that match this user intent: "${userPrompt}".
+${webContext ? `Use this WEB CONTEXT as a source of truth to prioritize tweets that discuss confirmed events or high-quality topics:\n${webContext}\n` : ''}
 Return IDs only.
 Rules:
-- Keep only posts that clearly help answer the brief.
-- Remove spam, scams, engagement bait, duplicates, and off-topic posts.
-- Remove copycat headline posts from weak accounts when a stronger source says the same thing.
-- Be selective. Fewer high-signal posts are better than many weak posts.
-${preferCredibleSources ? '- Prioritize topic fit first, then prefer official accounts, reporters, researchers, founders, institutions, or accounts with clear credibility/real reach.' : ''}
-${preferCredibleSources ? '- Down-rank low-value aggregator accounts that only restate the headline without adding original reporting, analysis, or meaningful context.' : ''}`,
+- Keep all posts that are substantially relevant to the topic.
+- Remove high-noise spam, scam, and completely unrelated posts.
+- Aim for a high-quality selection but prioritize variety (capture different angles) to provide up to 15 relevant results.
+- For recreational/general topics (like gaming, humor, hobby), be more inclusive of community voices and reactions.
+${preferCredibleSources ? '- Prioritize topic fit first, then prefer credible sources while still allowing unique community perspectives.' : ''}
+${preferCredibleSources ? '- Filter out low-value bot-like aggregators but keep humans with real engagement.' : ''}`,
       prompt: JSON.stringify(compressedInput),
       schema: z.object({
         validIds: z.array(z.string()),
@@ -472,7 +495,7 @@ ${preferCredibleSources ? '- Down-rank low-value aggregator accounts that only r
   }
 };
 
-export const generateExecutiveSummary = async (validTweets, userQuery, onStreamChunk) => {
+export const generateExecutiveSummary = async (validTweets, userQuery, onStreamChunk, webContext = '') => {
   if (!validTweets?.length) return null;
 
   const contentToAnalyze = validTweets
@@ -483,15 +506,16 @@ export const generateExecutiveSummary = async (validTweets, userQuery, onStreamC
     })
     .join('\n---\n');
 
-  const summarySystem = `คุณคือนักวิเคราะห์ที่กำลังเขียนสรุปสั้นสำหรับผู้บริหารในหัวข้อ "${userQuery}" เป็นภาษาไทย
+  const summarySystem = `คุณคือนักวิเคราะห์แนวหน้า (Alpha Analyst) ที่กำลังเขียนสรุปเจาะลึกจากทวีตที่เป็นหัวกะทิ (Top 10) ในหัวข้อ "${userQuery}" เป็นภาษาไทย
+${webContext ? `ใช้ข้อมูลจากโลกอินเทอร์เน็ต (Web Context) เพื่อเพิ่มความแม่นยำและรายละเอียดที่ลึกขึ้นให้กับสรุปของคุณ:\n${webContext}\n` : ''}
 กฎ:
-- เขียน 2-3 ประโยคภาษาไทยแบบกระชับ
-- สรุปเฉพาะสิ่งที่มีอยู่ในโพสต์ที่ให้มาเท่านั้น ห้ามเดา ห้ามเติมบริบทเอง
-- ถ้าข้อมูลส่วนใหญ่พูดถึงเพียงบางมุมของคำถาม ให้บอกตามตรงว่ายังเห็นสัญญาณเด่นแค่ส่วนนั้น
-- ถ้ามีหลายเกมหรือหลายหัวข้อ ให้พูดแยกอย่างระมัดระวัง และห้ามเหมารวมว่าครบทุกหัวข้อหากหลักฐานยังไม่พอ
-- ใช้ markdown bold ได้เฉพาะวลีสำคัญที่มีหลักฐานรองรับชัด
-- ห้ามมีหัวข้อหรือ bullet
-- ห้ามระบุชื่อบัญชี (@handle) ของผู้ใช้ทั่วไปที่ไม่มีอิมแพค ยกเว้นบัญชีที่มีชื่อเสียง, มีผู้ติดตามสูง, มียอดเอนเกจเม้นท์สูง หรือมีความน่าเชื่อถือชัดเจน ให้เน้นสรุปภาพรวมของสัญญาณจากชุมชน`;
+- เขียนในสไตล์ "Executive Brief" ที่กระชับแต่ครอบคลุม
+- เริ่มด้วยประโยคสรุปภาพรวม 1 ประโยค (ดึงความจริงที่สำคัญที่สุดมาเริ่ม)
+- ใช้ "Bullet points" (สูงสุด 3-4 ข้อ) เพื่อสรุปสัญญาณสำคัญหรือเหตุการณ์ที่เกิดขึ้น
+- หากข้อมูลใน X และ Web สอดคล้องกัน ให้เน้นย้ำว่าเป็นเทรนด์ที่ได้รับการยืนยัน
+- หากทวีตเป็นเพียงข่าวลือแต่ Web มีข้อเท็จจริง ให้แก้ข้อมูลให้ถูกต้องในสรุป
+- ใช้ markdown bold สำหรับวลีสำคัญหรือชื่อเฉพาะที่มีอิมแพค
+- ห้ามระบุชื่อบัญชีของผู้ใช้ทั่วไปเว้นแต่จะเป็นตัวจริงหรือแหล่งข้อมูลหลักในหัวข้อนั้น`;
 
   if (onStreamChunk) {
     try {
@@ -574,21 +598,20 @@ export const buildSearchPlan = async (originalQuery, isLatest = false) => {
 - สำหรับหัวข้อกว้าง ให้แตกเป็นหลายมุมที่คนติดตามเรื่องนั้นใช้จริง
 
 กฎ:
-- ส่ง query หลัก 1 อัน และ query ย่อยที่เกี่ยวข้องอีก 2-3 อัน
-- แต่ละ query ต้องค้นหาคนละมุมของ topic เช่น scene, league, tournament, roster move, patch, ecosystem, company, product, regulation
-- ใช้ทั้งไทยและอังกฤษได้เมื่อช่วยให้ครอบคลุมขึ้น
-- ห้ามยิงแค่คำหลักเดี่ยว ๆ ถ้ายังแตกมุมได้
-- ห้ามบังคับแคบเกินไปจนผลลัพธ์หาย
+- ส่ง query หลัก 1 อัน และ query ย่อยที่เกี่ยวข้องอีก 3-4 อัน
+- แต่ละ query ต้องค้นหาคนละมุมของ topic เช่น scene, tournament, viral moments, fail clips, community reactions
+- ใช้ทั้งไทยและอังกฤษควบคู่กันเสมอในแผนการค้นหา (e.g., "gaming funny" OR "เกมฮาๆ")
+- สำหรับหัวข้อที่เป็นความบันเทิง/ฮา/ไวรัล ให้คำนึงถึงคำค้นประเภท: viral, highlight, funny moments, epic fail, meme, ตลก, ฮาๆ
 - Every query MUST have -filter:replies.
-- For high-impact results, you can strategically add min_faves:10 or min_retweets:3 as needed for broader topics unless it's too restrictive.
-- ${isLatest ? 'โหมดสายฟ้าถูกจำกัดเวลาในแอปอยู่แล้ว ให้เน้น recent developments ที่ยังกวาดได้หลายมุม โดยลดเกณฑ์ min_faves ลงหรือมุ่งประเด็นใหม่ล่าสุด' : 'เน้น query ที่ดึงโพสต์คุณภาพสูงจากหลายมุมของหัวข้อ โดยใส่เกณฑ์ความนิยมขั้นต่ำ (min_faves:15-20) หากหัวข้อกว้างมาก'}
-- topicLabels เป็นคำสั้น ๆ 3-6 คำที่สรุป intent หรือ subtopics
+- For high-impact results, you can strategically add min_faves:10 or min_retweets:3 as needed for broader topics.
+- ${isLatest ? 'โหมดสายฟ้า: เน้น recent developments และไวรัลล่าสุด โดยใช้เกณฑ์ยอดนิยมที่ยืดหยุ่นขึ้น' : 'โหมดปกติ: เน้นเจาะลึกจากหลายมุมมอง โดยใช้เกณฑ์ min_faves:10-15 เพื่อกรองโพสต์ไร้คุณภาพเบื้องต้น'}
+- topicLabels เป็นคำสั้น ๆ 4-8 คำที่ครอบคลุม subtopics ทั้งหมด
 - ตอบเป็น JSON เท่านั้น`,
       prompt: `Topic: ${originalQuery}`,
       schema: z.object({
         primaryQuery: z.string().min(3),
-        relatedQueries: z.array(z.string().min(3)).max(3),
-        topicLabels: z.array(z.string().min(2)).max(6),
+        relatedQueries: z.array(z.string().min(3)).max(4),
+        topicLabels: z.array(z.string().min(2)).max(8),
       }),
     });
 
@@ -680,23 +703,13 @@ export const researchAndPreventHallucination = async (input) => {
 
   try {
     console.log('[GrokService] Starting research with query:', researchQuery);
-    const [webResponse, xTopResponse, xLatestResponse] = await Promise.all([
-      fetch('/api/tavily/search', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: researchQuery,
-          search_depth: 'advanced',
-          include_answer: true,
-          max_results: 5,
-        }),
-      }).catch(err => { console.warn('[GrokService] Tavily fetch failed:', err); return { ok: false }; }),
+    const [data, xTopResponse, xLatestResponse] = await Promise.all([
+      tavilySearch(researchQuery, false), // Force false here as research flow is general
       searchEverything(researchQuery, '', false, 'Top').catch(() => ({ data: [] })),
       searchEverything(researchQuery, '', false, 'Latest').catch(() => ({ data: [] })),
     ]);
 
-    if (webResponse && webResponse.ok) {
-      const data = await webResponse.json();
+    if (data && (data.results?.length || data.answer)) {
       const webResults = Array.isArray(data.results) ? data.results : [];
 
       extractedSources.push(

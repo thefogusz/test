@@ -458,6 +458,7 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
   const newsIntent = isNewsIntent(rawQuery);
   const queryTerms = normalizeSearchTerms(rawQuery);
   const uniqueTweets = dedupeTweetsById(normalizeTweets(tweets));
+  const hasFunIntent = /ฮา|ตลก|ขำ|funny|meme|lol|haha/i.test(rawQuery);
 
   const scored = uniqueTweets
     .map((tweet, index, list) => {
@@ -468,7 +469,7 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
       const providerRankScore = getProviderRankScore(index, list.length, latestMode);
       const lowSignalPenalty = getLowSignalPenalty(tweet, queryTerms, rawQuery);
       const weakCredibilityPenalty =
-        preferCredibleSources && newsIntent && credibilityScore < 2.35 ? 1.35 : 0;
+        !hasFunIntent && preferCredibleSources && newsIntent && credibilityScore < 2.35 ? 1.35 : 0;
       const weakRelevancePenalty =
         preferCredibleSources && queryTerms.length > 0 && relevanceScore < 1.15 ? 1.15 : 0;
       const totalScore =
@@ -495,14 +496,22 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
   const hardThreshold = latestMode ? 1.8 : 2.5;
 
   // Filter out complete garbage (bots, 0-engagement) no matter what
-  const acceptable = scored.filter(tweet => tweet.search_score >= hardThreshold);
+  let acceptable = scored.filter(tweet => tweet.search_score >= hardThreshold);
 
-  const minimumKeep = Math.min(acceptable.length, latestMode ? 6 : 8);
+  // ADAPTIVITY: If we have very few high-quality results, lower the bar slightly to find the "best of the rest"
+  if (acceptable.length < 10) {
+    const backupThreshold = hardThreshold * 0.7;
+    acceptable = scored.filter(tweet => tweet.search_score >= backupThreshold);
+  }
+
+  const minimumKeep = Math.min(acceptable.length, latestMode ? 8 : 12);
   const filtered = acceptable.filter((tweet, index) => index < minimumKeep || tweet.search_score >= softThreshold);
-  const curated = filtered.length >= Math.min(6, acceptable.length) ? filtered : acceptable;
+  
+  // Ensure we at least try to get 10 if we have them
+  const curated = filtered.length >= Math.min(10, acceptable.length) ? filtered : acceptable.slice(0, 15);
   const covered = ensureQueryCoverage(curated, acceptable, queryTerms, latestMode);
 
-  return diversifyByAuthor(covered, latestMode ? 8 : 12);
+  return diversifyByAuthor(covered, latestMode ? 10 : 15);
 };
 
 /**
