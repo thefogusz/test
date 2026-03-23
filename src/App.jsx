@@ -49,6 +49,7 @@ import {
   sanitizeStoredSingle,
   sanitizeCollectionState,
   getEngagementTotal,
+  toNumber,
   mergePlanLabelsIntoQuery
 } from './utils/appUtils';
 import UserCard from './components/UserCard';
@@ -1013,8 +1014,8 @@ const App = () => {
                     if (!readFilters.view && !readFilters.engagement) {
                       return new Date(b.created_at || 0) - new Date(a.created_at || 0);
                     }
-                    const scoreA = (readFilters.view ? (parseInt(a.view_count) || 0) : 0) + (readFilters.engagement ? getEngagementTotal(a) : 0);
-                    const scoreB = (readFilters.view ? (parseInt(b.view_count) || 0) : 0) + (readFilters.engagement ? getEngagementTotal(b) : 0);
+                    const scoreA = (readFilters.view ? toNumber(a.view_count) : 0) + (readFilters.engagement ? getEngagementTotal(a) : 0);
+                    const scoreB = (readFilters.view ? toNumber(b.view_count) : 0) + (readFilters.engagement ? getEngagementTotal(b) : 0);
                     return scoreB - scoreA;
                   })
                   .map((item, idx) => (

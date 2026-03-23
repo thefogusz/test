@@ -73,11 +73,32 @@ export const sanitizeCollectionState = (items) => {
   return changed ? nextItems : items;
 };
 
+export const toNumber = (value) => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  if (!value) return 0;
+  
+  const str = String(value).toLowerCase().replace(/,/g, '').trim();
+  let multiplier = 1;
+  
+  if (str.endsWith('k')) {
+    multiplier = 1000;
+  } else if (str.endsWith('m')) {
+    multiplier = 1000000;
+  } else if (str.endsWith('b')) {
+    multiplier = 1000000000;
+  }
+  
+  const numericPart = str.replace(/[kmb]$/, '');
+  const parsed = parseFloat(numericPart);
+  
+  return Number.isFinite(parsed) ? parsed * multiplier : 0;
+};
+
 export const getEngagementTotal = (post) =>
-  (parseInt(post?.retweet_count) || 0) +
-  (parseInt(post?.reply_count) || 0) +
-  (parseInt(post?.like_count) || 0) +
-  (parseInt(post?.quote_count) || 0);
+  toNumber(post?.retweet_count) +
+  toNumber(post?.reply_count) +
+  toNumber(post?.like_count) +
+  toNumber(post?.quote_count);
 
 export const deriveVisibleFeed = ({
   activeFilters,
@@ -118,10 +139,10 @@ export const deriveVisibleFeed = ({
   if (activeFilters.view || activeFilters.engagement) {
     result = [...result].sort((left, right) => {
       const leftScore =
-        (activeFilters.view ? parseInt(left.view_count) || 0 : 0) +
+        (activeFilters.view ? toNumber(left.view_count) : 0) +
         (activeFilters.engagement ? getEngagementTotal(left) : 0);
       const rightScore =
-        (activeFilters.view ? parseInt(right.view_count) || 0 : 0) +
+        (activeFilters.view ? toNumber(right.view_count) : 0) +
         (activeFilters.engagement ? getEngagementTotal(right) : 0);
 
       return rightScore - leftScore;
