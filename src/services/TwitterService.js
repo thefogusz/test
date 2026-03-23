@@ -226,7 +226,24 @@ const getLowSignalPenalty = (tweet, queryTerms, rawQuery = '') => {
     if (relevanceScore === 0) penalty += 1.6;
   }
 
-  return Math.min(penalty, 5);
+  // 🔴 KILL LOW-ENGAGEMENT REPLIES (Random chatter filter)
+  const isReply = Boolean(tweet?.isReply || tweet?.inReplyToUsername || tweet?.inReplyToStatusId);
+  const likes = toNumber(tweet?.like_count || tweet?.likeCount);
+  const retweets = toNumber(tweet?.retweet_count || tweet?.retweetCount);
+  const totalEngagement = likes + retweets;
+  
+  if (isReply) {
+    if (totalEngagement < 5) penalty += 4.5; // Almost immediate rejection
+    else if (totalEngagement < 20) penalty += 2.0;
+  } else {
+    // Even for non-replies, if it's a broad gaming/hobby query, we need some baseline engagement
+    // so we don't pick up random 0-like screaming into the void.
+    if (totalEngagement === 0 && !author.isVerified && followers < 2000) {
+      penalty += 1.8;
+    }
+  }
+
+  return Math.min(penalty, 10);
 };
 
 const getProviderRankScore = (index, total, latestMode) => {

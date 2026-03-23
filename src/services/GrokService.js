@@ -624,9 +624,9 @@ ${webContext ? `Use this WEB CONTEXT as a source of truth to prioritize tweets t
 Return IDs only.
 Rules:
 - Keep all posts that are substantially relevant to the topic.
-- Remove high-noise spam, scam, and completely unrelated posts.
+- Remove high-noise spam, scam, completely unrelated posts, and boring 0-engagement replies to other people.
 - Aim for a high-quality selection but prioritize variety (capture different angles) to provide up to 15 relevant results.
-- For recreational/general topics (like gaming, humor, hobby), be more inclusive of community voices and reactions.
+- For recreational/general topics (like gaming, humor, hobby), be inclusive of community voices BUT DO NOT accept low-effort random game chatter that has zero likes/shares. Ensure the voice is actually interesting.
 ${preferCredibleSources ? '- Prioritize topic fit first, then prefer credible sources while still allowing unique community perspectives.' : ''}
 ${preferCredibleSources ? '- Filter out low-value bot-like aggregators but keep humans with real engagement.' : ''}`,
       prompt: JSON.stringify(compressedInput),
