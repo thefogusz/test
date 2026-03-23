@@ -369,18 +369,31 @@ const App = () => {
       const planQueries = !isMore && searchPlan?.queries?.length > 0 ? searchPlan.queries : [requestedQuery];
       const rankingQuery = mergePlanLabelsIntoQuery(requestedQuery, searchPlan?.topicLabels || []);
 
-      const finalQuery = planQueries[0];
+      const rawDataChunks = [];
+      let finalCursor = null;
+
+      setStatus(`[API] กำลังระดมพลและแสกนหาข้อมูลจากมุมมองที่หลากหลาย (${planQueries.length} แหล่ง...)...`);
       
-      let scopedQuery = finalQuery;
-      if (isLatestMode && !finalQuery.includes('since:')) {
-        const date = new Date();
-        date.setHours(date.getHours() - 24);
-        const sinceDate = date.toISOString().split('T')[0];
-        scopedQuery = `${finalQuery} since:${sinceDate}`;
+      for (const query of planQueries) {
+        let scopedQuery = query;
+        if (isLatestMode && !query.includes('since:')) {
+          const date = new Date();
+          date.setHours(date.getHours() - 24);
+          const sinceDate = date.toISOString().split('T')[0];
+          scopedQuery = `${query} since:${sinceDate}`;
+        }
+        
+        try {
+          const { data: chunk, meta } = await searchEverything(scopedQuery, isMore ? searchCursor : null, onlyNews, 'Top', !isMore);
+          if (chunk.length > 0) rawDataChunks.push(chunk);
+          if (!finalCursor) finalCursor = meta.next_cursor;
+        } catch (err) {
+          console.warn(`[Search] Failed to fetch query: ${scopedQuery}`, err);
+        }
       }
-      
-      setStatus(`[API] กำลังแสกนหาข้อมูลและกวาดล้างเนื้อหาดิบจาก X ทั่วโลก (Duo-Fetch)...`);
-      const { data, meta } = await searchEverything(scopedQuery, isMore ? searchCursor : null, onlyNews, 'Top', !isMore);
+
+      const data = mergeUniquePostsById(...rawDataChunks);
+      const meta = { next_cursor: finalCursor };
       
       if (data.length > 0) {
         setStatus(`[Quality Gate] คัดกรองและประเมิน Engagement...`);

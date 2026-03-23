@@ -472,11 +472,11 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
       const weakRelevancePenalty =
         preferCredibleSources && queryTerms.length > 0 && relevanceScore < 1.15 ? 1.15 : 0;
       const totalScore =
-        relevanceScore * (latestMode ? 2.4 : 2.1) +
-        credibilityScore * (preferCredibleSources ? (latestMode ? 1.7 : 1.45) : newsIntent ? 1.2 : 1) +
-        signalScore * (latestMode ? 0.7 : newsIntent ? 0.85 : 1) +
-        freshnessScore * (latestMode ? 0.7 : 1) +
-        providerRankScore * (latestMode ? 0.45 : 0.8) -
+        relevanceScore * (latestMode ? 2.5 : 2.2) +
+        credibilityScore * (preferCredibleSources ? (latestMode ? 2.1 : 1.95) : newsIntent ? 1.4 : 1.1) +
+        signalScore * (latestMode ? 0.9 : newsIntent ? 1.15 : 1.4) +
+        freshnessScore * (latestMode ? 0.75 : 0.6) +
+        providerRankScore * (latestMode ? 0.4 : 0.7) -
         lowSignalPenalty -
         weakCredibilityPenalty -
         weakRelevancePenalty;
@@ -491,8 +491,8 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
       return new Date(b.created_at) - new Date(a.created_at);
     });
 
-  const softThreshold = latestMode ? 2.6 : 2.9;
-  const hardThreshold = latestMode ? 1.5 : 2.0;
+  const softThreshold = latestMode ? 2.6 : 3.2;
+  const hardThreshold = latestMode ? 1.8 : 2.5;
 
   // Filter out complete garbage (bots, 0-engagement) no matter what
   const acceptable = scored.filter(tweet => tweet.search_score >= hardThreshold);

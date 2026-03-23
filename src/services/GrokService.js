@@ -564,8 +564,9 @@ export const buildSearchPlan = async (originalQuery, isLatest = false) => {
 - ใช้ทั้งไทยและอังกฤษได้เมื่อช่วยให้ครอบคลุมขึ้น
 - ห้ามยิงแค่คำหลักเดี่ยว ๆ ถ้ายังแตกมุมได้
 - ห้ามบังคับแคบเกินไปจนผลลัพธ์หาย
-- ทุก query ต้องมี -filter:replies
-- ${isLatest ? 'โหมดสายฟ้าถูกจำกัดเวลาในแอปอยู่แล้ว ให้เน้น recent developments ที่ยังกวาดได้หลายมุม' : 'เน้น query ที่ดึงโพสต์คุณภาพสูงจากหลายมุมของหัวข้อ'}
+- Every query MUST have -filter:replies.
+- For high-impact results, you can strategically add min_faves:10 or min_retweets:3 as needed for broader topics unless it's too restrictive.
+- ${isLatest ? 'โหมดสายฟ้าถูกจำกัดเวลาในแอปอยู่แล้ว ให้เน้น recent developments ที่ยังกวาดได้หลายมุม โดยลดเกณฑ์ min_faves ลงหรือมุ่งประเด็นใหม่ล่าสุด' : 'เน้น query ที่ดึงโพสต์คุณภาพสูงจากหลายมุมของหัวข้อ โดยใส่เกณฑ์ความนิยมขั้นต่ำ (min_faves:15-20) หากหัวข้อกว้างมาก'}
 - topicLabels เป็นคำสั้น ๆ 3-6 คำที่สรุป intent หรือ subtopics
 - ตอบเป็น JSON เท่านั้น`,
       prompt: `Topic: ${originalQuery}`,
