@@ -941,22 +941,6 @@ const App = () => {
                       <h1 className="hero-search-title">ค้นหาคอนเทนต์</h1>
                       <p className="hero-search-subtitle">สำรวจเทรนด์และเจาะลึกข้อมูลจากทั่วโลก</p>
                     </div>
-                    {searchResults.length > 0 && (
-                      <button 
-                        onClick={() => {
-                          setSearchQuery('');
-                          setSearchResults([]);
-                          setSearchSummary('');
-                          setSearchWebSources([]);
-                          setSearchCursor(null);
-                          setStatus('');
-                        }}
-                        className="btn-mini-ghost"
-                        style={{ marginTop: '8px', color: 'var(--text-dim)' }}
-                      >
-                        <RefreshCcw size={14} /> ล้างผลลัพธ์
-                      </button>
-                    )}
                   </div>
                   <div className="hero-search-wrapper">
                     <div className="hero-search-form" style={{ width: '100%' }}>
@@ -1002,6 +986,24 @@ const App = () => {
                         </button>
                       </div>
                     </div>
+                    {searchResults.length > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                        <button 
+                          onClick={() => {
+                            setSearchQuery('');
+                            setSearchResults([]);
+                            setSearchSummary('');
+                            setSearchWebSources([]);
+                            setSearchCursor(null);
+                            setStatus('');
+                          }}
+                          className="btn-mini-ghost"
+                          style={{ color: 'var(--text-dim)', background: 'transparent' }}
+                        >
+                          <RefreshCcw size={14} /> ล้างผลลัพธ์
+                        </button>
+                      </div>
+                    )}
                     {showSuggestions && suggestions.length > 0 && (
                       <div className="search-suggestions-dropdown">
                         {suggestions.map((item, idx) => (
