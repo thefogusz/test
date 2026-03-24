@@ -2,7 +2,7 @@ import { createXai } from '@ai-sdk/xai';
 import { generateObject, generateText, streamText } from 'ai';
 import { z } from 'zod';
 import { searchEverything } from './TwitterService';
-import { apiFetch } from '../utils/apiFetch';
+import { apiFetch, INTERNAL_TOKEN } from '../utils/apiFetch';
 
 const MODEL_NEWS_FAST = 'grok-4-1-fast-non-reasoning';
 const MODEL_REASONING_FAST = 'grok-4-1-fast-reasoning';
@@ -12,6 +12,9 @@ const MODEL_MULTI_AGENT = 'grok-4-1-fast-reasoning'; // Temporarily downgraded t
 const grok = createXai({
   apiKey: 'local-proxy',
   baseURL: '/api/xai/v1',
+  headers: {
+    'x-internal-token': INTERNAL_TOKEN,
+  },
 });
 
 const factCache = new Map();

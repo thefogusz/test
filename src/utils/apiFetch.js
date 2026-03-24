@@ -8,7 +8,7 @@
  * Real API keys (XAI, Twitter, Tavily) are NOT prefixed with VITE_.
  */
 
-const INTERNAL_TOKEN = import.meta.env.VITE_INTERNAL_API_SECRET ?? '';
+export const INTERNAL_TOKEN = import.meta.env.VITE_INTERNAL_API_SECRET ?? '';
 
 export const apiFetch = (url, options = {}) => {
   const headers = {
