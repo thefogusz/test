@@ -352,9 +352,31 @@ const App = () => {
     setStatus(`AI กำลังค้นหาข้อมูลสำหรับ "${requestedQuery}"...`);
 
     try {
+      let webContext = '';
       let searchPlan = activeSearchPlan;
+      
       if (!isMore) {
-        searchPlan = await buildSearchPlan(requestedQuery, isLatestMode);
+        setStatus(`[API] แสกนเวิลด์ไวด์เว็บหาความรู้พื้นฐานล่วงหน้า (Tavily)...`);
+        const isFunTopic = /ฮา|ตลก|ขำ|funny|meme|lol|haha/i.test(requestedQuery);
+        let webData = { results: [], answer: '' };
+        
+        // ความฉลาด (Adaptive Router): ถ้าเป็นคำถามตลกขำขัน ไม่ต้องเสียโควต้าหาข่าวเว็บ
+        if (!isFunTopic) {
+          webData = await tavilySearch(requestedQuery, isLatestMode);
+        }
+        
+        if (webData && (webData.results?.length || webData.answer)) {
+          webContext = [
+            webData.answer ? `[WEB NEWS ANSWER]\n${webData.answer}` : '',
+            (webData.results || []).map((r, i) => `${i+1}. ${r.title}: ${r.content?.slice(0, 200)}... (${r.url})`).join('\n')
+          ].filter(Boolean).join('\n\n');
+          setSearchWebSources(webData.results || []);
+        } else {
+          setSearchWebSources([]);
+        }
+
+        setStatus(`[API] กำลังออกแบบกลยุทธ์แสกนข้อมูล 2 ทิศทาง (Keyword Explosion)...`);
+        searchPlan = await buildSearchPlan(requestedQuery, isLatestMode, webContext);
         setActiveSearchPlan(searchPlan);
       }
       
@@ -364,17 +386,7 @@ const App = () => {
       const rawDataChunks = [];
       let finalCursor = null;
 
-      setStatus(`[API] กำลังระดมพลและแสกนหาข้อมูลจากมุมมองที่หลากหลาย (${planQueries.length} แหล่ง...)...`);
-      
-      // Parallel Web Context Fetch
-      let webContext = '';
-      let webQuery = requestedQuery;
-      if (searchPlan && searchPlan.topicLabels && searchPlan.topicLabels.length > 0) {
-        webQuery = searchPlan.topicLabels.slice(0, 3).join(' ').replace(/['"]/g, '');
-      } else if (searchPlan && searchPlan.primaryQuery) {
-        webQuery = searchPlan.primaryQuery.replace(/min_faves:\d+/ig, '').replace(/min_retweets:\d+/ig, '').replace(/-filter:\w+/ig, '').trim();
-      }
-      const webPromise = (!isMore ? tavilySearch(webQuery, isLatestMode) : Promise.resolve({ results: [], answer: '' }));
+      setStatus(`[API] ส่งชุดคำสั่งแสกนฐานข้อมูล X แบบ Parallel (${planQueries.length} ชุด)...`);
       
       for (const query of planQueries) {
         let scopedQuery = query;
@@ -392,21 +404,6 @@ const App = () => {
         } catch (err) {
           console.warn(`[Search] Failed to fetch query: ${scopedQuery}`, err);
         }
-      }
-
-      // Finalize Web Context
-      const webData = await webPromise;
-      if (webData && (webData.results?.length || webData.answer)) {
-        webContext = [
-          webData.answer ? `[WEB NEWS ANSWER]\n${webData.answer}` : '',
-          (webData.results || []).map((r, i) => `${i+1}. ${r.title}: ${r.content?.slice(0, 200)}... (${r.url})`).join('\n')
-        ].filter(Boolean).join('\n\n');
-        
-        if (!isMore) {
-          setSearchWebSources(webData.results || []);
-        }
-      } else if (!isMore) {
-        setSearchWebSources([]);
       }
 
 
@@ -1086,7 +1083,7 @@ const App = () => {
                                   <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                                     {src.title}
                                   </div>
-                                  <div style={{ fontSize: '11px', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <div style={{ fontSize: '11px', color: '#60A5FA', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                     <ExternalLink size={10} /> เปิดอ่านต้นฉบับเว็บไซต์
                                   </div>
                                 </a>

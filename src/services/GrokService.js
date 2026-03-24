@@ -790,9 +790,9 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
   }
 };
 
-export const buildSearchPlan = async (originalQuery, isLatest = false) => {
+export const buildSearchPlan = async (originalQuery, isLatest = false, webContext = '') => {
   const fallbackQuery = `${originalQuery} -filter:replies`.trim();
-  const cacheKey = buildCacheKey('search-plan', { originalQuery, isLatest });
+  const cacheKey = buildCacheKey('search-plan-v2', { originalQuery, isLatest, webContextLength: webContext.length });
 
   if (!originalQuery) {
     return {
@@ -809,20 +809,23 @@ export const buildSearchPlan = async (originalQuery, isLatest = false) => {
     const { object } = await generateObject({
       model: grok(MODEL_REASONING_FAST),
       system: `คุณคือสถาปนิกการค้นหาระดับพระกาฬ (Elite Search Architect)
-ภารกิจ: เฟ้นหาเฉพาะคอนเทนต์ที่เป็น "ที่สุด" (Masterpieces) ที่มีผู้คนสนใจมหาศาลเท่านั้น
+ภารกิจ: เฟ้นหาคอนเทนต์ที่เป็น "ที่สุด" (Masterpieces) โดยใช้เทคนิค "Keyword Explosion" ยัดคีย์เวิร์ดให้แน่นที่สุด
+ตอนนี้คุณกำลังทำ Adaptive RAG (News-Anchored Search)
+คุณมีโควต้าการค้นหาบนแพลตฟอร์ม X เพียง 2 ครั้งเท่านั้น:
+1. "primaryQuery": Broad Viral Net -> ยัดคำพ้องความหมาย (Synonyms) ไทย/อังกฤษ ให้ครอบคลุมความหมายกว้างๆ (ใช้ OR เยอะๆ)
+2. "relatedQuery": Precision Snipe -> ใช้ข้อมูลจากข่าวด้านล่าง (Web Context) มาดึงชื่อคน ชื่อบริษัท ชื่องาน หรือคีย์เวิร์ดที่กำลังเป็นกระแสเป๊ะๆ
 
 กฎเหล็กของคุณภาพ (Strict Quality Bar):
-- **High Impact Only**: ทุก Query ต้องมีระดับ Engagement สูงลิ่วเป็นตัวคัดกรอง
+- ความยาวสูงสุดต่อ Query คือ 512 ตัวอักษร (ยัดให้คุ้มค่าที่สุด)
 - ทุก Query ต้องจบด้วย -filter:replies 
-- ${isLatest ? 'โหมดสายฟ้า (Latest): ใช้ min_faves:20-50 เพื่อให้ได้ข่าวใหม่ที่เริ่มมีพลัง' : 'โหมดปกติ (Top): ***ต้องใช้ min_faves:100 ถึง 1000 เท่านั้น*** เพื่อดึงเฉพาะผลงานระดับโลกหรือไวรัลใหญ่'}
-- เน้นใช้ภาษาอังกฤษควบคู่กับไทยเพื่อให้เข้าถึงโพสต์ที่มี Reach สูงสุดระดับสากล
-- topicLabels: 5-8 คำสำคัญ
+- ${isLatest ? 'โหมดสายฟ้า (Latest): ใช้ min_faves:20-50 เพื่อให้ได้ข่าวใหม่ที่เริ่มมีพลัง' : 'โหมดปกติ (Top): ***ต้องใช้ min_faves:100 ถึง 1000 เท่านั้น*** เพื่อดึงเฉพาะผลงานระดับสงครามหรือไวรัลใหญ่'}
+- เน้นใช้ภาษาอังกฤษควบคู่กับไทย (lang:th OR lang:en)
 - ตอบเป็น JSON เท่านั้น`,
-      prompt: `Topic: ${originalQuery}`,
+      prompt: `Topic: ${originalQuery}\n\nWeb Context (Ground Truth from Tavily):\n${webContext.slice(0, 1500) || 'No web news available.'}`,
       schema: z.object({
-        primaryQuery: z.string().min(3),
-        relatedQueries: z.array(z.string().min(3)).max(3),
-        topicLabels: z.array(z.string().min(2)).max(8),
+        primaryQuery: z.string().min(3).max(512),
+        relatedQuery: z.string().min(3).max(512),
+        topicLabels: z.array(z.string().min(2)).max(5),
       }),
     });
 
@@ -833,8 +836,8 @@ export const buildSearchPlan = async (originalQuery, isLatest = false) => {
     };
 
     const queries = Array.from(
-      new Set([object.primaryQuery, ...(object.relatedQueries || [])].map(normalizeQuery).filter(Boolean)),
-    ).slice(0, 4);
+      new Set([object.primaryQuery, object.relatedQuery].map(normalizeQuery).filter(Boolean)),
+    ).slice(0, 2); // Exactly 2 queries max
 
     return setCachedValue(responseCache, cacheKey, {
       queries: queries.length ? queries : [fallbackQuery],
