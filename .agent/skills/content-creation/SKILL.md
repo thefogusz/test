@@ -31,10 +31,17 @@ Never jump straight to drafting. Use `buildContentBrief` to define:
 - **No Dictionary Pairs**: Never write "Artificial Intelligence (ปัญญาประดิษฐ์)". Choose one.
 - **Perspective**: Write as a knowledgeable expert (Original Creator), not a news aggregator.
 
-### 4. Polish & Quality Control
+### 4. Ethical Grounding (Source Integrity)
+- **Primary Lead Sovereignty**: The user-provided source [PRIMARY LEAD] is the priority. Never overwrite its core message with opposite facts from web research.
+- **Conflict Handling**: If research contradicts the lead, report the discrepancy (e.g., "มีกระแสข่าวที่ขัดแย้งกัน...") instead of choosing one side.
+- **No Positive Hallucination**: Never invent "good news" (e.g., more investment) to compensate for "bad news" (e.g., shutdown) provided by the user.
+- **Epistemic Humility**: Use phrases like "มีรายงานว่า..." or "แหล่งข่าวอ้างว่า..." when dealing with conflicting or high-stakes rumors.
+
+### 5. Polish & Quality Control
 - **Anti-Bait**: Strip engagement bait (e.g. "คุณคิดยังไง?").
-- **Hype Mitigation**: Soften words like "สะเทือนโลก" to "มีนัยสำคัญ".
+- **Hype Mitigation**: Soften words like "สะเทือนโลก" to "มีนัยสำคัญ" but **Never change the core fact** (e.g. don't change 'loss' to 'gain').
 - **Citation Check**: Ensure the [T1], [T2] citations align with the fact sheet.
+
 
 ## 📏 Linguistic Benchmarks (Thai)
 

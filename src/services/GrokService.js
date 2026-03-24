@@ -1034,7 +1034,9 @@ export const researchAndPreventHallucination = async (input, interactionData = '
 
 [CITATIONS RULE]
 - ห้ามระบุชื่อบัญชี (@handle) ของผู้ใช้ทั่วไปที่ไม่มีอิมแพค ให้ใช้คำว่า "กลุ่มผู้ใช้" แทน
-- หากแหล่งที่มาดูไม่น่าเชื่อถือ ให้คัดออกจากการเป็นข้อเท็จจริงยืนยัน (Verified Facts)`,
+- หากข้อมูลใน [PRIMARY LEAD] ขัดแย้งกับ [WEB SOURCES] อย่างรุนแรง (เช่น อันหนึ่งบอกปิด อีกอันบอกเปิด) **ห้ามตัดสินทิ้งข้อมูลอันใดอันหนึ่งแล้วมโนเรื่องใหม่ขึ้นมาเอง** ให้สรุปข้อคัดแย้งนั้นลงใน [OPEN QUESTIONS] อย่างชัดเจน
+- หากแหล่งที่มาดูไม่น่าเชื่อถือ ให้คัดออกจากการเป็นข้อเท็จจริงยืนยัน (Verified Facts) แต่ต้องระบุไว้ใน [COMMUNITY SIGNAL] ว่ามีกระแสข่าวนี้อยู่
+`,
       prompt: [
         interactionData ? `[PRIMARY LEAD / ORIGINAL SOURCE]\n${interactionData}` : '',
         `[ORIGINAL REQUEST]\n${input}`,
