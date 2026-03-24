@@ -369,10 +369,10 @@ const App = () => {
             sq = `${q} since:${date.toISOString().split('T')[0]}`;
           }
           // Avoid 0-engagement noise even in Latest mode
-          if (!q.includes('min_faves:')) sq = `${sq} min_faves:2`;
+          if (!q.includes('min_faves:')) sq = `${sq} min_faves:1`;
         } else {
           // For Top mode, ensure at least some baseline viral signal
-          if (!q.includes('min_faves:')) sq = `${sq} min_faves:8`;
+          if (!q.includes('min_faves:')) sq = `${sq} min_faves:2`;
         }
         return sq;
       };
@@ -486,8 +486,15 @@ const App = () => {
             return p;
           }));
         }
+        
+        if (cleanData.length === 0) {
+           setStatus(`ไม่พบเนื้อหาที่มีประโยชน์ หรือถูก AI ปฏิเสธทั้งหมด (จาก ${data.length} โพสต์ที่อ้างอิง)`);
+        } else {
+           setStatus(`ค้นพบ ${cleanData.length} รายการ (กลั่นกรองโดย AI จากทั้งหมด ${data.length} โพสต์)`);
+        }
+      } else {
+        setStatus('ไม่พบข้อมูลสำหรับคำค้นหานี้');
       }
-      setStatus(`ค้นพบ ${data.length} รายการ`);
     } catch (err) {
       console.error(err);
       setStatus('เกิดข้อผิดพลาดในการค้นหา');
