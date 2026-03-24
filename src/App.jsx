@@ -503,7 +503,17 @@ const App = () => {
       setActiveListId(newList.id);
     } else {
       try {
-        const decoded = JSON.parse(decodeURIComponent(escape(atob(listModal.value))));
+        const raw = JSON.parse(decodeURIComponent(escape(atob(listModal.value))));
+
+        // Validate decoded payload — reject or sanitize unexpected values
+        const safeName = String(raw.name || '').slice(0, 60).trim() || 'Imported List';
+        const safeColor = /^(var\(--[a-z-]+\)|#[0-9a-fA-F]{3,8}|rgba?\([^)]+\))$/.test(raw.color)
+          ? raw.color
+          : 'var(--accent-secondary)';
+        const safeMembers = (Array.isArray(raw.members) ? raw.members : [])
+          .filter((m) => typeof m === 'string' && /^[a-zA-Z0-9_]{1,50}$/.test(m.trim()));
+
+        const decoded = { name: safeName, color: safeColor, members: safeMembers };
         const newList = { ...decoded, id: Date.now().toString(), createdAt: new Date().toISOString() };
         
         // Sync members with watchlist

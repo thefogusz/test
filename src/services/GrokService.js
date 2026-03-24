@@ -2,6 +2,7 @@ import { createXai } from '@ai-sdk/xai';
 import { generateObject, generateText, streamText } from 'ai';
 import { z } from 'zod';
 import { searchEverything } from './TwitterService';
+import { apiFetch } from '../utils/apiFetch';
 
 const MODEL_NEWS_FAST = 'grok-4-1-fast-non-reasoning';
 const MODEL_REASONING_FAST = 'grok-4-1-fast-reasoning';
@@ -23,6 +24,18 @@ const EXECUTIVE_SUMMARY_CACHE_TTL_MS = 10 * 60 * 1000;
 const CONTENT_BRIEF_CACHE_TTL_MS = 30 * 60 * 1000;
 
 const normalizeCacheText = (value = '') => String(value || '').replace(/\s+/g, ' ').trim();
+
+// Strip characters commonly used for prompt injection from third-party content
+// before embedding into AI prompts (tweets, web search results, etc.)
+const sanitizeForPrompt = (text = '', maxLen = 500) =>
+  String(text || '')
+    .replace(/`/g, "'")          // backticks → single quote
+    .replace(/\[INST\]/gi, '')   // common injection markers
+    .replace(/<<SYS>>/gi, '')
+    .replace(/\[\/INST\]/gi, '')
+    .trim()
+    .slice(0, maxLen);
+
 
 const hashString = (value = '') => {
   let hash = 2166136261;
@@ -153,7 +166,7 @@ export const tavilySearch = async (query, isLatest = false) => {
   if (cached) return cached;
 
   try {
-    const response = await fetch('/api/tavily/search', {
+    const response = await apiFetch('/api/tavily/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -624,10 +637,12 @@ export const agentFilterFeed = async (tweetsData, userPrompt, options = {}) => {
   }));
 
   try {
+    const safePrompt = sanitizeForPrompt(userPrompt, 300);
+    const safeWebCtx = webContext ? sanitizeForPrompt(webContext, 2000) : '';
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
-      system: `Select the absolute BEST posts that match this user intent: "${userPrompt}".
-${webContext ? `Use this WEB CONTEXT as a source of truth to prioritize tweets that discuss confirmed events or high-quality topics:\n${webContext}\n` : ''}
+      system: `Select the absolute BEST posts that match this user intent: "${safePrompt}".
+${safeWebCtx ? `Use this WEB CONTEXT as a source of truth to prioritize tweets that discuss confirmed events or high-quality topics:\n${safeWebCtx}\n` : ''}
 Rules:
 - STRICT LIMIT: Select a maximum of 8 posts. Only the very best.
 - For each selected post, provide a 1-sentence 'reasoning' (in Thai) explaining exactly why it matches the query and is worth reading.
@@ -679,15 +694,18 @@ export const generateExecutiveSummary = async (validTweets, userQuery, onStreamC
     return cached;
   }
 
+  const safeQuery = sanitizeForPrompt(userQuery, 300);
+  const safeWebCtx = webContext ? sanitizeForPrompt(webContext, 2000) : '';
+
   const contentToAnalyze = tweetsForSummary
     .map((tweet, index) => {
       const authorLabel = tweet.author?.username ? `@${tweet.author.username}` : tweet.author?.name || 'unknown';
-      return `[${index + 1}] (${authorLabel}) ${tweet.text}`;
+      return `[${index + 1}] (${authorLabel}) ${sanitizeForPrompt(tweet.text, 400)}`;
     })
     .join('\n---\n');
 
-  const summarySystem = `คุณคือนักวิเคราะห์แนวหน้า (Alpha Analyst) ที่กำลังเขียนสรุปเจาะลึกจากทวีตที่เป็นหัวกะทิ (Top 10) ในหัวข้อ "${userQuery}" เป็นภาษาไทย
-${webContext ? `ใช้ข้อมูลจากโลกอินเทอร์เน็ต (Web Context) เพื่อเพิ่มความแม่นยำและรายละเอียดที่ลึกขึ้นให้กับสรุปของคุณ:\n${webContext}\n` : ''}
+  const summarySystem = `คุณคือนักวิเคราะห์แนวหน้า (Alpha Analyst) ที่กำลังเขียนสรุปเจาะลึกจากทวีตที่เป็นหัวกะทิ (Top 10) ในหัวข้อ "${safeQuery}" เป็นภาษาไทย
+${safeWebCtx ? `ใช้ข้อมูลจากโลกอินเทอร์เน็ต (Web Context) เพื่อเพิ่มความแม่นยำและรายละเอียดที่ลึกขึ้นให้กับสรุปของคุณ:\n${safeWebCtx}\n` : ''}
 กฎ:
 - เขียนในสไตล์ "Executive Brief" ที่กระชับแต่ครอบคลุม
 - เริ่มด้วยประโยคสรุปภาพรวม 1 ประโยค (ดึงความจริงที่สำคัญที่สุดมาเริ่ม)

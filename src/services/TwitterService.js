@@ -1,5 +1,8 @@
+import { apiFetch } from '../utils/apiFetch';
+
 const BASE_URL = '/api/twitter/twitter';
 export const RECENT_WINDOW_HOURS = 24;
+
 
 const SEARCH_STOPWORDS = new Set([
   'ข่าว',
@@ -380,7 +383,7 @@ const safeJson = async (response, fallback = {}) => {
 export const getUserInfo = async (username) => {
   try {
     const handle = username.startsWith('@') ? username.substring(1) : username;
-    const response = await fetch(`${BASE_URL}/user/info?userName=${handle}`, {
+    const response = await apiFetch(`${BASE_URL}/user/info?userName=${handle}`, {
       method: 'GET',
     });
 
@@ -442,7 +445,7 @@ export const fetchForoFeed = async (watchlistHandles, cursor = '', queryType = '
         currentCursor ? `&cursor=${currentCursor}` : ''
       }`;
 
-      const response = await fetch(url, { method: 'GET' });
+      const response = await apiFetch(url, { method: 'GET' });
       if (!response.ok) {
         if (pagesFetched > 0) break; // If we already got some results, just stop here
         throw new Error(`Feed fetch failed with status ${response.status}`);
@@ -549,7 +552,7 @@ export const searchEverything = async (
       cursor ? `&cursor=${cursor}` : ''
     }`;
 
-    const response = await fetch(url, { method: 'GET' });
+    const response = await apiFetch(url, { method: 'GET' });
     if (!response.ok) throw new Error('Search failed (1)');
 
     const data1 = await safeJson(response, { tweets: [], next_cursor: null });
@@ -560,7 +563,7 @@ export const searchEverything = async (
     if (duoFetch && nextCursor) {
       console.log('⚡ Duo-Fetch: Requesting second page of results...');
       const url2 = `${BASE_URL}/tweet/advanced_search?query=${encodeURIComponent(fullQuery)}&queryType=${queryType}&cursor=${nextCursor}`;
-      const resp2 = await fetch(url2, { method: 'GET' });
+      const resp2 = await apiFetch(url2, { method: 'GET' });
       if (resp2.ok) {
         const data2 = await safeJson(resp2, { tweets: [], next_cursor: null });
         allTweets = [...allTweets, ...normalizeTweets(data2.tweets)];
@@ -588,7 +591,7 @@ export const searchEverything = async (
  */
 export const getThreadContext = async (tweetId, authorId) => {
   try {
-    const response = await fetch(`${BASE_URL}/tweet/thread_context?tweetId=${tweetId}`, {
+    const response = await apiFetch(`${BASE_URL}/tweet/thread_context?tweetId=${tweetId}`, {
       method: 'GET',
     });
 

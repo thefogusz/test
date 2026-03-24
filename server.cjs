@@ -29,11 +29,20 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 const UPSTREAM_TIMEOUT_MS = Number(process.env.UPSTREAM_TIMEOUT_MS || 20000);
 const API_LOG_THRESHOLD_MS = Number(process.env.API_LOG_THRESHOLD_MS || 250);
-const TWITTER_API_KEY = process.env.TWITTER_API_KEY || process.env.VITE_TWITTER_API_KEY;
-const XAI_API_KEY = process.env.XAI_API_KEY || process.env.VITE_XAI_API_KEY;
-const TAVILY_API_KEY = process.env.TAVILY_API_KEY || process.env.VITE_TAVILY_API_KEY;
+const TWITTER_API_KEY = process.env.TWITTER_API_KEY;
+const XAI_API_KEY = process.env.XAI_API_KEY;
+const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
+const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
 
 app.use(express.json({ limit: '5mb' }));
+
+// Internal auth guard — blocks unauthorized access to all /api/* routes
+app.use('/api', (req, res, next) => {
+  if (INTERNAL_API_SECRET && req.headers['x-internal-token'] !== INTERNAL_API_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+});
 
 app.use('/api', (req, res, next) => {
   const startedAt = Date.now();
