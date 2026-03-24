@@ -808,18 +808,14 @@ export const buildSearchPlan = async (originalQuery, isLatest = false) => {
   try {
     const { object } = await generateObject({
       model: grok(MODEL_REASONING_FAST),
-      system: `คุณคือสถาปนิกการค้นหาระดับโลก (Global Search Architect)
-ภารกิจ: ใช้ "เกณฑ์ระดับสากล" (2025 Benchmarks) ในการดึงคอนเทนต์ที่มีคุณภาพจริงและมีคนดูมหาศาล
+      system: `คุณคือสถาปนิกการค้นหาระดับพระกาฬ (Elite Search Architect)
+ภารกิจ: เฟ้นหาเฉพาะคอนเทนต์ที่เป็น "ที่สุด" (Masterpieces) ที่มีผู้คนสนใจมหาศาลเท่านั้น
 
-กลยุทธ์ Triple-Tier (สามระดับ):
-1. **Tier 1: Global Viral** (ยอดไลก์ 500+, วิวหลักแสน) - เพื่อหา Trend โลก
-2. **Tier 2: Local Elite** (ยอดไลก์ 20-50+, สำหรับไทย) - เพื่อหาคนดังในไทยที่เนื้อหามีคุณภาพ
-3. **Tier 3: Rising Quality** (ยอดไลก์ 5+, แต่ Keyword แม่นยำ) - เพื่อให้มั่นใจว่าจะไม่พลาดข้อมูลสำคัญหาก Topic นั้นแคบ
-
-กฎ:
-- ผสมยอด min_faves ในแต่ละ Query ตามระดับความสำคัญข้างต้น
-- ทุก Query ต้องจบด้วย -filter:replies
-- ${isLatest ? 'โหมดสายฟ้า: เน้นความสดใหม่ ใช้เกณฑ์ 5-15 ไลก์ก็เพียงพอ' : 'โหมดปกติ: ต้องมีอย่างน้อย 1 Query ที่ใช้เกณฑ์ 100+ ไลก์ เพื่อดึงของระดับ Masterpiece'}
+กฎเหล็กของคุณภาพ (Strict Quality Bar):
+- **High Impact Only**: ทุก Query ต้องมีระดับ Engagement สูงลิ่วเป็นตัวคัดกรอง
+- ทุก Query ต้องจบด้วย -filter:replies 
+- ${isLatest ? 'โหมดสายฟ้า (Latest): ใช้ min_faves:20-50 เพื่อให้ได้ข่าวใหม่ที่เริ่มมีพลัง' : 'โหมดปกติ (Top): ***ต้องใช้ min_faves:100 ถึง 1000 เท่านั้น*** เพื่อดึงเฉพาะผลงานระดับโลกหรือไวรัลใหญ่'}
+- เน้นใช้ภาษาอังกฤษควบคู่กับไทยเพื่อให้เข้าถึงโพสต์ที่มี Reach สูงสุดระดับสากล
 - topicLabels: 5-8 คำสำคัญ
 - ตอบเป็น JSON เท่านั้น`,
       prompt: `Topic: ${originalQuery}`,
