@@ -3,6 +3,7 @@ import {
   Search,
   Sparkles,
   RefreshCw,
+  RefreshCcw,
   Trash2,
   Undo2,
   Eye,
@@ -928,10 +929,30 @@ const App = () => {
             <div style={{ display: contentTab === 'search' ? 'block' : 'none' }}>
               <div className="search-discovery-view animate-fade-in">
                 <div className="hero-search-container">
-                  <h1 className="hero-search-title">ค้นหาคอนเทนต์</h1>
-                  <p className="hero-search-subtitle">สำรวจเทรนด์และเจาะลึกข้อมูลจากทั่วโลก</p>
-                  <div className="hero-search-wrapper" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <div className="hero-search-form" style={{ display: 'flex', width: '100%' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <h1 className="hero-search-title">ค้นหาคอนเทนต์</h1>
+                      <p className="hero-search-subtitle">สำรวจเทรนด์และเจาะลึกข้อมูลจากทั่วโลก</p>
+                    </div>
+                    {searchResults.length > 0 && (
+                      <button 
+                        onClick={() => {
+                          setSearchQuery('');
+                          setSearchResults([]);
+                          setSearchSummary('');
+                          setSearchWebSources([]);
+                          setSearchCursor(null);
+                          setStatus('');
+                        }}
+                        className="btn-mini-ghost"
+                        style={{ marginTop: '8px', color: 'var(--text-dim)' }}
+                      >
+                        <RefreshCcw size={14} /> ล้างผลลัพธ์
+                      </button>
+                    )}
+                  </div>
+                  <div className="hero-search-wrapper">
+                    <div className="hero-search-form" style={{ width: '100%' }}>
                       <Search size={20} className="hero-search-icon" />
                       <input
                         type="text"
@@ -970,7 +991,7 @@ const App = () => {
                           onClick={(e) => { handleSearch(e); setShowSuggestions(false); }} 
                           disabled={isSearching}
                         >
-                          {isSearching ? <Loader2 size={18} className="animate-spin" /> : 'ค้นหา'}
+                          {isSearching ? <Loader2 size={18} className="animate-spin" /> : <span className="btn-text">ค้นหา</span>}
                         </button>
                       </div>
                     </div>
@@ -1055,10 +1076,11 @@ const App = () => {
                               navigator.clipboard.writeText(searchSummary);
                               setStatus('คัดลอกบทสรุปแล้ว');
                             }}
-                            className="btn-mini-ghost" 
-                            style={{ padding: '6px 12px', fontSize: '12px' }}
+                            className="icon-btn-large" 
+                            style={{ width: '32px', height: '32px' }}
+                            title="คัดลอกบทสรุป"
                           >
-                            <Copy size={14} /> ก๊อปปี้สรุป
+                            <Copy size={14} />
                           </button>
                         </div>
 
