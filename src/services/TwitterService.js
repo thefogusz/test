@@ -139,16 +139,16 @@ const getCredibilityScore = (tweet) => {
   let score = 0;
 
   if (author.isVerified) {
-    score += 3;
+    score += 3.5; // High boost for Gold/Official
   } else if (author.isBlueVerified) {
-    score += 1.1;
+    score += 1.4; // Solid boost for Premium
   }
 
-  if (author.verifiedType) score += 0.45;
+  if (author.verifiedType === 'Business' || author.verifiedType === 'Government') score += 1.2;
 
-  score += logScore(followers, 3.4, 1_000_000);
-  score += logScore(statuses, 0.9, 500_000);
-  score += clamp(accountAgeDays / 365, 0, 3) * 0.45;
+  score += logScore(followers, 5.0, 1_000_000); // Increased from 3.4
+  score += logScore(statuses, 1.2, 500_000); // Increased from 0.9
+  score += clamp(accountAgeDays / 365, 0, 5) * 0.5;
 
   if (getAuthorBio(author)) score += 0.2;
   if (author.location) score += 0.1;
@@ -166,9 +166,9 @@ const getSignalScore = (tweet) => {
   const engagementRate = views > 0 ? engagement / views : 0;
 
   return (
-    logScore(views, 1.4, 5_000_000) +
-    logScore(engagement, 2.1, 200_000) +
-    clamp(engagementRate / 0.04, 0, 1) * 0.9
+    logScore(views, 2.8, 5_000_000) + // Increased from 2.0
+    logScore(engagement, 4.5, 200_000) + // Increased from 3.5
+    clamp(engagementRate / 0.04, 0, 1) * 2.5 // Increased from 1.5
   );
 };
 
@@ -494,8 +494,8 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
         preferCredibleSources && queryTerms.length > 0 && relevanceScore < 1.15 ? 1.15 : 0;
       const totalScore =
         relevanceScore * (latestMode ? 2.5 : 2.2) +
-        credibilityScore * (preferCredibleSources ? (latestMode ? 2.1 : 1.95) : newsIntent ? 1.4 : 1.1) +
-        signalScore * (latestMode ? 0.9 : newsIntent ? 1.15 : 1.4) +
+        credibilityScore * (preferCredibleSources ? (latestMode ? 2.0 : 1.85) : newsIntent ? 1.4 : 1.1) +
+        signalScore * (latestMode ? 2.0 : newsIntent ? 2.2 : 2.6) + // Increased from 0.9 / 1.15 / 1.4
         freshnessScore * (latestMode ? 0.75 : 0.6) +
         providerRankScore * (latestMode ? 0.4 : 0.7) -
         lowSignalPenalty -
@@ -512,8 +512,8 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
       return new Date(b.created_at) - new Date(a.created_at);
     });
 
-  const softThreshold = latestMode ? 2.6 : 3.2;
-  const hardThreshold = latestMode ? 1.8 : 2.5;
+  const softThreshold = latestMode ? 3.5 : 4.5; // Raised from 2.6 / 3.2
+  const hardThreshold = latestMode ? 2.5 : 3.5; // Raised from 1.8 / 2.5
 
   // Filter out complete garbage (bots, 0-engagement) no matter what
   let acceptable = scored.filter(tweet => tweet.search_score >= hardThreshold);

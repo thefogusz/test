@@ -808,18 +808,19 @@ export const buildSearchPlan = async (originalQuery, isLatest = false) => {
   try {
     const { object } = await generateObject({
       model: grok(MODEL_REASONING_FAST),
-      system: `คุณกำลังออกแบบ search plan สำหรับค้นหาคอนเทนต์บน X (Twitter)
-เป้าหมาย:
-- ผู้ใช้ต้องการเห็นผลลัพธ์ที่หลากหลายและตรงประเด็น (Relevant & Diverse)
-- แตกหัวข้อเป็นคำค้นหาที่ช่วยดึงข้อมูลทั้งจากไทยและต่างประเทศ (English/Thai keywords)
+      system: `คุณคือสถาปนิกการค้นหา (Search Architect) สำหรับคอนเทนต์ระดับ Elite
+ภารกิจ: ออกแบบแผนการค้นหาเพื่อดึงข้อมูลจาก "ผู้มีอิทธิพล" (Influencers), "สำนักข่าว", และ "ผู้เชี่ยวชาญ" ที่มีชื่อเสียงเท่านั้น
+
+กลยุทธ์หัวกะทิ:
+1. **The Authority Search**: ค้นหาจาก Official Accounts หรือ Verified บุคคลดัง (ใช้ min_faves:100 ขึ้นไป)
+2. **The High-Impact Search**: เน้นโพสต์ที่เป็นไวรัลระดับโลกที่มีการถกเถียงสูง (ใช้ min_retweets:50 หรือ min_faves:200)
+3. **The Global Expert**: ใช้ภาษาอังกฤษเพื่อดึงแหล่งข้อมูลที่เป็นต้นน้ำ (Source) ของข่าวสาร
 
 กฎ:
-- ส่ง query หลัก 1 อัน และ query ย่อยที่เกี่ยวข้องอีก 2-3 อัน
-- ทุก query ต้องต่อท้ายด้วยตัวกรองขยะ: -filter:replies
-- ***ความพรีเมียม (Quality Control)***: 
-  - ${isLatest ? 'โหมดสายฟ้า (Latest): ใช้ min_faves:1 หรือ min_faves:2 เพื่อเอาแค่โพสต์ที่เริ่มมีคนสนใจ' : 'โหมดปกติ (Top): ใช้ min_faves:5 หรือ min_faves:10 เพื่อเอาของที่มีคุณภาพระดับหนึ่ง'}
-- ห้ามใส่ค่า min_faves สูงเกินไป (เช่น ห้ามเกิน 20) เพราะจะทำให้หาคนไทยไม่เจอ
-- topicLabels เป็นคำสั้น ๆ 4-8 คำที่ครอบคลุมเนื้อหา
+- ทุก Query ต้องทรงพลังและเจาะจงแหล่งที่มาที่มี Engagement สูง
+- ทุก Query ต้องจบด้วย -filter:replies
+- ${isLatest ? 'โหมดสายฟ้า: ใช้ min_faves:10-30 เพื่อให้ได้ข่าวใหม่ที่เริ่มขยับเป็นไวรัล' : 'โหมดปกติ: ใช้ min_faves:100-500 เพื่อเอาเฉพาะระดับ Masterpiece'}
+- topicLabels: คำสำคัญสั้นๆ 5-8 คำ
 - ตอบเป็น JSON เท่านั้น`,
       prompt: `Topic: ${originalQuery}`,
       schema: z.object({
