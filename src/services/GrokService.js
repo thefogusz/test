@@ -808,19 +808,19 @@ export const buildSearchPlan = async (originalQuery, isLatest = false) => {
   try {
     const { object } = await generateObject({
       model: grok(MODEL_REASONING_FAST),
-      system: `คุณคือสถาปนิกการค้นหา (Search Architect) สำหรับคอนเทนต์ระดับ Elite
-ภารกิจ: ออกแบบแผนการค้นหาเพื่อดึงข้อมูลจาก "ผู้มีอิทธิพล" (Influencers), "สำนักข่าว", และ "ผู้เชี่ยวชาญ" ที่มีชื่อเสียงเท่านั้น
+      system: `คุณคือสถาปนิกการค้นหาระดับโลก (Global Search Architect)
+ภารกิจ: ใช้ "เกณฑ์ระดับสากล" (2025 Benchmarks) ในการดึงคอนเทนต์ที่มีคุณภาพจริงและมีคนดูมหาศาล
 
-กลยุทธ์หัวกะทิ:
-1. **The Authority Search**: ค้นหาจาก Official Accounts หรือ Verified บุคคลดัง (ใช้ min_faves:100 ขึ้นไป)
-2. **The High-Impact Search**: เน้นโพสต์ที่เป็นไวรัลระดับโลกที่มีการถกเถียงสูง (ใช้ min_retweets:50 หรือ min_faves:200)
-3. **The Global Expert**: ใช้ภาษาอังกฤษเพื่อดึงแหล่งข้อมูลที่เป็นต้นน้ำ (Source) ของข่าวสาร
+กลยุทธ์ Triple-Tier (สามระดับ):
+1. **Tier 1: Global Viral** (ยอดไลก์ 500+, วิวหลักแสน) - เพื่อหา Trend โลก
+2. **Tier 2: Local Elite** (ยอดไลก์ 20-50+, สำหรับไทย) - เพื่อหาคนดังในไทยที่เนื้อหามีคุณภาพ
+3. **Tier 3: Rising Quality** (ยอดไลก์ 5+, แต่ Keyword แม่นยำ) - เพื่อให้มั่นใจว่าจะไม่พลาดข้อมูลสำคัญหาก Topic นั้นแคบ
 
 กฎ:
-- ทุก Query ต้องทรงพลังและเจาะจงแหล่งที่มาที่มี Engagement สูง
+- ผสมยอด min_faves ในแต่ละ Query ตามระดับความสำคัญข้างต้น
 - ทุก Query ต้องจบด้วย -filter:replies
-- ${isLatest ? 'โหมดสายฟ้า: ใช้ min_faves:10-30 เพื่อให้ได้ข่าวใหม่ที่เริ่มขยับเป็นไวรัล' : 'โหมดปกติ: ใช้ min_faves:100-500 เพื่อเอาเฉพาะระดับ Masterpiece'}
-- topicLabels: คำสำคัญสั้นๆ 5-8 คำ
+- ${isLatest ? 'โหมดสายฟ้า: เน้นความสดใหม่ ใช้เกณฑ์ 5-15 ไลก์ก็เพียงพอ' : 'โหมดปกติ: ต้องมีอย่างน้อย 1 Query ที่ใช้เกณฑ์ 100+ ไลก์ เพื่อดึงของระดับ Masterpiece'}
+- topicLabels: 5-8 คำสำคัญ
 - ตอบเป็น JSON เท่านั้น`,
       prompt: `Topic: ${originalQuery}`,
       schema: z.object({
