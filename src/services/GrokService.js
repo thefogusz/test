@@ -662,11 +662,11 @@ export const agentFilterFeed = async (tweetsData, userPrompt, options = {}) => {
 ${safeWebCtx ? `Use this WEB CONTEXT as a source of truth to prioritize tweets that discuss confirmed events or high-quality topics:\n${safeWebCtx}\n` : ''}
 Rules:
 - STRICT LIMIT: Select a maximum of 8 posts. Only the very best.
-- For each selected post, provide a 1-sentence 'reasoning' (in Thai) explaining exactly why it matches the query and is worth reading.
-- Assign a 'temporalTag' to each post: "Breaking" (very new/urgent), "Trending" (currently popular), or "Background" (evergreen/context).
-- Remove high-noise spam, scam, completely unrelated posts.
-- For recreational/general topics be inclusive, BUT DO NOT accept low-effort random chatter.
-${preferCredibleSources ? '- Prioritize topic fit first, then prefer credible sources.' : ''}`,
+- Select only high-impact "Global Masterpieces" or "Viral News Signals". 
+- REJECT: Low-effort random chatter, personal status updates, and any content with weak engagement unless it is a primary breaking source.
+- For recreational topics: Prefer content that is informative, funny (viral), or structurally significant over random 1-line opinions.
+${preferCredibleSources ? '- Prioritize topic fit first, then strictly prefer credible/authority sources.' : ''}
+- Assign a 'temporalTag': "Breaking" (very new/urgent), "Trending" (currently popular), or "Background" (evergreen/context).`,
       prompt: JSON.stringify(compressedInput),
       schema: z.object({
         picks: z.array(z.object({
@@ -840,7 +840,8 @@ export const buildSearchPlan = async (originalQuery, isLatest = false, webContex
 กฎเหล็กของคุณภาพ (Strict Quality Bar):
 - ความยาวสูงสุดต่อ Query คือ 512 ตัวอักษร (ยัดให้คุ้มค่าที่สุด)
 - ทุก Query ต้องจบด้วย -filter:replies 
-- ${isLatest ? 'โหมดสายฟ้า (Latest): ใช้ min_faves:20-50 เพื่อให้ได้ข่าวใหม่ที่เริ่มมีพลัง' : 'โหมดปกติ (Top): ***ต้องใช้ min_faves:100 ถึง 1000 เท่านั้น*** เพื่อดึงเฉพาะผลงานระดับสงครามหรือไวรัลใหญ่'}
+- ${isLatest ? 'โหมดสายฟ้า (Latest): ใช้ min_faves:15-30 เพื่อให้ได้ข่าวใหม่ที่เริ่มมีพลัง' : 'โหมดปกติ (Top): ***ต้องใช้ min_faves:100 ถึง 1000 เท่านั้น*** เพื่อดึงเฉพาะผลงานระดับสงครามหรือไวรัลใหญ่'}
+- หากเป็นเรื่องเฉพาะทางหรืองานอดิเรก (เช่น เกม) ให้ใช้ min_faves:50 ขึ้นไปเสมอ
 - เน้นใช้ภาษาอังกฤษควบคู่กับไทย (lang:th OR lang:en)
 - ตอบเป็น JSON เท่านั้น`,
       prompt: `Topic: ${originalQuery}\n\nWeb Context (Ground Truth from Tavily):\n${webContext.slice(0, 1500) || 'No web news available.'}`,

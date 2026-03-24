@@ -166,9 +166,9 @@ const getSignalScore = (tweet) => {
   const engagementRate = views > 0 ? engagement / views : 0;
 
   return (
-    logScore(views, 2.8, 5_000_000) + // Increased from 2.0
-    logScore(engagement, 4.5, 200_000) + // Increased from 3.5
-    clamp(engagementRate / 0.04, 0, 1) * 2.5 // Increased from 1.5
+    logScore(views, 3.5, 5_000_000) + 
+    logScore(engagement, 6.0, 200_000) + // Increased multiplier significantly
+    clamp(engagementRate / 0.04, 0, 1) * 3.5
   );
 };
 
@@ -208,41 +208,42 @@ const getLowSignalPenalty = (tweet, queryTerms, rawQuery = '') => {
   let penalty = 0;
 
   for (const pattern of LOW_SIGNAL_PATTERNS) {
-    if (pattern.test(compositeText)) penalty += 0.85;
+    if (pattern.test(compositeText)) penalty += 1.5; // Increased penalty
   }
 
   penalty += getHypePenalty(tweet?.text || '');
 
-  if (author.isAutomated) penalty += 2.5;
+  if (author.isAutomated) penalty += 5.0;
 
   if (!author.isVerified && !author.isBlueVerified && followers < 1000 && accountAgeDays < 180) {
-    penalty += 1.25;
+    penalty += 2.5;
   }
 
   if (newsIntent) {
-    if (!author.isVerified && !author.isBlueVerified && followers < 5000) penalty += 1.1;
-    if (getCredibilityScore(tweet) < 2.4) penalty += 0.9;
+    if (!author.isVerified && !author.isBlueVerified && followers < 10000) penalty += 2.0;
+    if (getCredibilityScore(tweet) < 3.0) penalty += 1.5;
   }
 
   if (queryTerms.length > 0) {
     const relevanceScore = getRelevanceScore(tweet, queryTerms);
-    if (relevanceScore === 0) penalty += 1.6;
+    if (relevanceScore === 0) penalty += 5.0; // Heavy penalty for no keyword match
   }
 
-  // 🔴 KILL LOW-ENGAGEMENT REPLIES (Random chatter filter)
+  // 🔴 KILL LOW-ENGAGEMENT CONTENT
   const isReply = Boolean(tweet?.isReply || tweet?.inReplyToUsername || tweet?.inReplyToStatusId);
   const likes = toNumber(tweet?.like_count || tweet?.likeCount);
   const retweets = toNumber(tweet?.retweet_count || tweet?.retweetCount);
   const totalEngagement = likes + retweets;
   
   if (isReply) {
-    if (totalEngagement < 5) return 99; // 🛑 INSTANT DEATH FOR GARBAGE REPLIES
-    else if (totalEngagement < 20) penalty += 4.0;
+    if (totalEngagement < 20) return 99; // 🛑 INSTANT DEATH FOR GARBAGE REPLIES
+    else if (totalEngagement < 100) penalty += 8.0;
   } else {
-    // Even for non-replies, if it's a broad gaming/hobby query, we need some baseline engagement
-    // so we don't pick up random 0-like screaming into the void.
-    if (totalEngagement === 0 && !author.isVerified && followers < 2000) {
-      penalty += 3.5;
+    // For non-replies, we still want some validation for top/search results
+    if (totalEngagement < 5 && !author.isVerified && followers < 10000) {
+      penalty += 15.0; // Almost certain removal for 0-4 like tweets from small accounts
+    } else if (totalEngagement < 50 && !author.isVerified) {
+      penalty += 3.0; // Discourage low-viral content for unverified users
     }
   }
 

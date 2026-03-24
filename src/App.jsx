@@ -361,10 +361,17 @@ const App = () => {
 
       const getScopedQuery = (q) => {
         let sq = q;
-        if (isLatestMode && !q.includes('since:')) {
-          const date = new Date();
-          date.setHours(date.getHours() - 24);
-          sq = `${q} since:${date.toISOString().split('T')[0]}`;
+        if (isLatestMode) {
+          if (!q.includes('since:')) {
+            const date = new Date();
+            date.setHours(date.getHours() - 24);
+            sq = `${q} since:${date.toISOString().split('T')[0]}`;
+          }
+          // Avoid 0-engagement noise even in Latest mode
+          if (!q.includes('min_faves:')) sq = `${sq} min_faves:2`;
+        } else {
+          // For Top mode, ensure at least some baseline viral signal
+          if (!q.includes('min_faves:')) sq = `${sq} min_faves:8`;
         }
         return sq;
       };
@@ -818,16 +825,7 @@ const App = () => {
               </div>
 
               {aiFilterSummary && (
-                <div className="search-summary-card animate-fade-in" style={{
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  borderRadius: '24px',
-                  border: '1px solid var(--glass-border)',
-                  padding: '24px',
-                  marginBottom: '32px',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
-                }}>
+                <div className="search-summary-card animate-fade-in">
                   <div style={{
                     position: 'absolute', top: '-20px', left: '-20px', width: '120px', height: '120px',
                     background: 'radial-gradient(circle, rgba(41, 151, 255, 0.15) 0%, transparent 70%)',
