@@ -808,26 +808,23 @@ export const buildSearchPlan = async (originalQuery, isLatest = false) => {
   try {
     const { object } = await generateObject({
       model: grok(MODEL_REASONING_FAST),
-      system: `คุณกำลังออกแบบ search plan สำหรับค้นหาคอนเทนต์บน X
+      system: `คุณกำลังออกแบบ search plan สำหรับค้นหาคอนเทนต์บน X (Twitter)
 เป้าหมาย:
-- ผู้ใช้ต้องการเห็นผลลัพธ์ที่ "ว๊าว" (Wow factor) โดดเด่น และตรงกับคำค้นหา
-- อย่าค้นแบบยิงคำตรงอย่างเดียว ให้แตกเป็นคำค้นที่ช่วยดึง "ที่สุดของวงการ" (Top tier/High-profile content) ออกมา
+- ผู้ใช้ต้องการเห็นผลลัพธ์ที่หลากหลายและตรงประเด็น (Relevant & Diverse)
+- แตกหัวข้อเป็นคำค้นหาที่ช่วยดึงข้อมูลทั้งจากไทยและต่างประเทศ (English/Thai keywords)
 
 กฎ:
-- ส่ง query หลัก 1 อัน และ query ย่อยที่เกี่ยวข้องอีก 3-4 อัน
-- ต้องใช้วิธีค้นหาแบบกวาดเฉพาะคอนเทนต์ระดับท็อป (เช่น ข่าวใหญ่, ดราม่าดัง, ไวรัล, ประกาศระดับโลก)
-- ใช้ทั้งไทยและอังกฤษควบคู่กันเสมอในแผนการค้นหา
-- ทุก query ต้องต่อท้ายด้วยตัวกรองขยะเสมอ เช่น: -filter:replies
-- ***บังคับ***: ทุก Query ต้องมีคำสั่ง min_faves:15 ขึ้นไปเพื่อให้มั่นใจว่าได้ของที่มีคุณภาพคนสนใจจริงๆ 
-  - ตัวอย่างโหมดปกติ: "game online" min_faves:50 -filter:replies
-  - ตัวอย่างโหมดสายฟ้า (Latest): "game online" min_faves:10 -filter:replies
-- ${isLatest ? 'โหมดสายฟ้า: บังคับใช้ min_faves:10 ถึง min_faves:30 เพื่อกรองโพสต์ไก่กาออกไป เน้นกระแสใหม่ๆ' : 'โหมดปกติ: บังคับใช้ min_faves:30 ถึง min_faves:100 เพื่อดึงเฉพาะระดับ Masterpiece ขึ้นมา'}
-- topicLabels เป็นคำสั้น ๆ 4-8 คำที่ครอบคลุม subtopics ทั้งหมด
+- ส่ง query หลัก 1 อัน และ query ย่อยที่เกี่ยวข้องอีก 2-3 อัน
+- ทุก query ต้องต่อท้ายด้วยตัวกรองขยะ: -filter:replies
+- ***ความพรีเมียม (Quality Control)***: 
+  - ${isLatest ? 'โหมดสายฟ้า (Latest): ใช้ min_faves:1 หรือ min_faves:2 เพื่อเอาแค่โพสต์ที่เริ่มมีคนสนใจ' : 'โหมดปกติ (Top): ใช้ min_faves:5 หรือ min_faves:10 เพื่อเอาของที่มีคุณภาพระดับหนึ่ง'}
+- ห้ามใส่ค่า min_faves สูงเกินไป (เช่น ห้ามเกิน 20) เพราะจะทำให้หาคนไทยไม่เจอ
+- topicLabels เป็นคำสั้น ๆ 4-8 คำที่ครอบคลุมเนื้อหา
 - ตอบเป็น JSON เท่านั้น`,
       prompt: `Topic: ${originalQuery}`,
       schema: z.object({
         primaryQuery: z.string().min(3),
-        relatedQueries: z.array(z.string().min(3)).max(4),
+        relatedQueries: z.array(z.string().min(3)).max(3),
         topicLabels: z.array(z.string().min(2)).max(8),
       }),
     });

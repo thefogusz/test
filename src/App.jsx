@@ -1024,7 +1024,7 @@ const App = () => {
                             </div>
                             <div>
                               <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>AI EXECUTIVE SUMMARY</div>
-                              <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>ANALYZING TOP 10 RELEVANT SIGNALS</div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>ANALYZING {Math.min(searchResults.length, 10)} KEY SIGNALS</div>
                             </div>
                           </div>
                           <button 
