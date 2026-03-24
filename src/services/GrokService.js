@@ -553,74 +553,80 @@ export const generateGrokSummary = async (fullStoryText) => {
 export const generateGrokBatch = async (stories) => {
   if (!stories || stories.length === 0) return [];
 
+  // 1. Identify unique stories and map them to their original positions
   const uniqueStories = [];
-  const storyIndexes = [];
-  const uniqueKeys = [];
+  const storyToUniqueIndex = [];
   const seenStories = new Map();
 
   for (const story of stories) {
-    const normalizedStory = normalizeCacheText(story);
-    const summaryKey = buildCacheKey('story-summary', normalizedStory);
-    let uniqueIndex = seenStories.get(summaryKey);
-
-    if (uniqueIndex === undefined) {
-      uniqueIndex = uniqueStories.length;
-      seenStories.set(summaryKey, uniqueIndex);
-      uniqueStories.push(story);
-      uniqueKeys.push(summaryKey);
+    const normalized = normalizeCacheText(story);
+    const cacheKey = buildCacheKey('story-summary-v3', normalized);
+    
+    if (seenStories.has(cacheKey)) {
+      storyToUniqueIndex.push(seenStories.get(cacheKey));
+    } else {
+      const index = uniqueStories.length;
+      seenStories.set(cacheKey, index);
+      uniqueStories.push({ text: story, key: cacheKey, index });
+      storyToUniqueIndex.push(index);
     }
-
-    storyIndexes.push(uniqueIndex);
   }
 
-  const uniqueSummaries = Array(uniqueStories.length);
-  const uncachedStories = [];
-  const uncachedIndexes = [];
+  // 2. Check cache for unique stories
+  const results = new Array(uniqueStories.length);
+  const uncached = [];
 
-  uniqueKeys.forEach((key, index) => {
-    const cachedSummary = getCachedValue(responseCache, key);
-    if (cachedSummary) {
-      uniqueSummaries[index] = cachedSummary;
-      return;
+  uniqueStories.forEach((item) => {
+    const cached = getCachedValue(responseCache, item.key);
+    if (cached) {
+      results[item.index] = cached;
+    } else {
+      uncached.push(item);
     }
-
-    uncachedStories.push(uniqueStories[index]);
-    uncachedIndexes.push(index);
   });
 
-  if (uncachedStories.length === 0) {
-    return storyIndexes.map((index, storyIndex) => uniqueSummaries[index] || stories[storyIndex]);
+  if (uncached.length === 0) {
+    return storyToUniqueIndex.map(i => results[i]);
   }
 
+  // 3. Process uncached in batch with STRICT mapping
   try {
     const { object } = await generateObject({
-      model: grok(MODEL_NEWS_FAST),
-      system: SUMMARY_RULES,
-      prompt: JSON.stringify({
-        count: uncachedStories.length,
-        stories: uncachedStories,
-        outputRule: 'แปลงเนื้อหาบทความ (stories) ทั้งหมดเป็นบทสรุปภาษาไทย (Translate and summarize to Thai) ให้คืนค่ากลับมา 1 บทสรุปภาษาไทย ต่อ 1 ต้นฉบับ ในลำดับเดิมอย่างเคร่งครัด',
-      }),
+      model: grok(MODEL_REASONING_FAST),
+      system: `คุณคือบรรณาธิการข่าวผู้เชี่ยวชาญ หน้าที่คือสรุปข่าวภาษาไทยสั้นๆ 1-2 ประโยคต่อเรื่อง
+กฎเหล็ก:
+- ห้ามระบุชื่อ X หรือ Twitter
+- ห้ามใส่ลิงก์
+- ห้ามมโนข้อมูลที่ไม่มีในต้นฉบับ
+- รักษาความแม่นยำ 100% และคงคำศัพท์เทคนิคภาษาอังกฤษไว้
+- คืนค่าผลลัพธ์เป็น JSON Object ที่ Map ระหว่าง "index" และ "summary" ให้ตรงตามลำดับต้นฉบับเป๊ะๆ`,
+      prompt: `สรุปข่าวเหล่านี้เป็นภาษาไทย (Translate & Summarize):\n${JSON.stringify(
+        uncached.map(u => ({ index: u.index, original: u.text })),
+        null,
+        2
+      )}`,
       schema: z.object({
-        summaries: z.array(z.string()).length(uncachedStories.length),
+        mapped_summaries: z.array(z.object({
+          index: z.number(),
+          summary: z.string()
+        })).length(uncached.length)
       }),
-      temperature: 0.2,
+      temperature: 0.1,
     });
 
-    object.summaries.forEach((summary, index) => {
-      const cleanedSummary = cleanGeneratedContent(summary);
-      const uniqueIndex = uncachedIndexes[index];
-      uniqueSummaries[uniqueIndex] = cleanedSummary;
-      setCachedValue(responseCache, uniqueKeys[uniqueIndex], cleanedSummary, SUMMARY_CACHE_TTL_MS);
+    // 4. Update results and cache
+    object.mapped_summaries.forEach((item) => {
+      const cleanSum = cleanGeneratedContent(item.summary);
+      results[item.index] = cleanSum;
+      const key = uniqueStories[item.index].key;
+      setCachedValue(responseCache, key, cleanSum, SUMMARY_CACHE_TTL_MS);
     });
 
-    return storyIndexes.map((index, storyIndex) => uniqueSummaries[index] || stories[storyIndex]);
+    // Final mapping back to original input order
+    return storyToUniqueIndex.map(i => results[i] || stories[i]);
   } catch (error) {
-    console.error('[GrokService] Batch summarization error:', error);
-    uncachedIndexes.forEach((index) => {
-      uniqueSummaries[index] = '(Grok API Error)';
-    });
-    return storyIndexes.map((index) => uniqueSummaries[index] || '(Grok API Error)');
+    console.error('[GrokService] Batch summarization error (V3):', error);
+    return stories.map((s, i) => results[storyToUniqueIndex[i]] || s);
   }
 };
 
