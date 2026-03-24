@@ -187,6 +187,11 @@ const App = () => {
   ]);
 
   useEffect(() => {
+    setNextCursor(null);
+    setPendingFeed([]);
+  }, [activeListId, activeView]);
+
+  useEffect(() => {
     if (activeView === 'search' || isFiltered) return; 
 
     setFeed(deriveVisibleFeed({
@@ -279,7 +284,11 @@ const App = () => {
       setStatus('อัปเดตข้อมูลเรียบร้อย');
     } catch (err) {
       console.error(err);
-      setStatus('เกิดข้อผิดพลาดในการซิงค์ข้อมูล');
+      if (err.message?.includes('401')) {
+        setStatus('❌ ผิดพลาด (401): กุญแจ API ไม่ถูกต้อง กรุณาเช็ค Railway Environment Variables');
+      } else {
+        setStatus('เกิดข้อผิดพลาดในการซิงค์ข้อมูล');
+      }
     } finally {
       setLoading(false);
     }
@@ -324,7 +333,11 @@ const App = () => {
       }
     } catch (err) {
       console.error(err);
-      setStatus('เกิดข้อผิดพลาดในการโหลดข้อมูลเพิ่มเติม');
+      if (err.message?.includes('401')) {
+        setStatus('❌ ผิดพลาด (401): กุญแจ API ไม่ถูกต้อง กรุณาเช็ค Railway Environment Variables');
+      } else {
+        setStatus('เกิดข้อผิดพลาดในการโหลดข้อมูลเพิ่มเติม');
+      }
     } finally {
       setLoading(false);
     }
