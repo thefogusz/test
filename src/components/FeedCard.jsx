@@ -69,8 +69,18 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
             />
           </div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: '800', fontSize: '13px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {tweet.author?.name}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {tweet.citation_id && (
+                <span style={{ 
+                  background: 'rgba(255,255,255,0.9)', color: '#000', padding: '1px 6px', 
+                  borderRadius: '4px', fontSize: '10px', fontWeight: '900', letterSpacing: '0.05em' 
+                }}>
+                  {tweet.citation_id.replace(/[\[\]]/g, '')}
+                </span>
+              )}
+              <div style={{ fontWeight: '800', fontSize: '13px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {tweet.author?.name}
+              </div>
             </div>
             <div style={{ color: 'var(--text-dim)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               <span>@{tweet.author?.username}</span>

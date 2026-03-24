@@ -356,16 +356,35 @@ const App = () => {
       let searchPlan = activeSearchPlan;
       
       const isComplexQuery = !/ฮา|ตลก|ขำ|funny|meme|lol|haha/i.test(requestedQuery);
+      const rawDataChunks = [];
+      let finalCursor = null;
+
+      const getScopedQuery = (q) => {
+        let sq = q;
+        if (isLatestMode && !q.includes('since:')) {
+          const date = new Date();
+          date.setHours(date.getHours() - 24);
+          sq = `${q} since:${date.toISOString().split('T')[0]}`;
+        }
+        return sq;
+      };
       
       if (!isMore) {
-        setStatus(`[API] แสกนเวิลด์ไวด์เว็บหาความรู้พื้นฐานล่วงหน้า (Tavily)...`);
-        let webData = { results: [], answer: '' };
+        setStatus(`[Phase 2] Async Parallel Fetch: Tavily + Broad X Search...`);
         
-        // ความฉลาด (Adaptive Router): ถ้าเป็นคำถามตลกขำขัน ไม่ต้องเสียโควต้าหาข่าวเว็บ
-        if (isComplexQuery) {
-          webData = await tavilySearch(requestedQuery, isLatestMode);
-        }
+        // 1. Fire Tavily AND X Search (Broad) concurrently!
+        const tavilyPromise = isComplexQuery ? tavilySearch(requestedQuery, isLatestMode) : Promise.resolve({ results: [], answer: '' });
+        const broadQuery = getScopedQuery(requestedQuery);
+        const broadSearchPromise = searchEverything(broadQuery, null, onlyNews, 'Top', true).catch(err => {
+          console.warn(`[Search] Failed broad query: ${broadQuery}`, err);
+          return { data: [], meta: {} };
+        });
+
+        const [webData, broadResult] = await Promise.all([tavilyPromise, broadSearchPromise]);
         
+        if (broadResult.data && broadResult.data.length > 0) rawDataChunks.push(broadResult.data);
+        if (!finalCursor && broadResult.meta?.next_cursor) finalCursor = broadResult.meta.next_cursor;
+
         if (webData && (webData.results?.length || webData.answer)) {
           webContext = [
             webData.answer ? `[WEB NEWS ANSWER]\n${webData.answer}` : '',
@@ -376,36 +395,39 @@ const App = () => {
           setSearchWebSources([]);
         }
 
-        setStatus(`[API] กำลังออกแบบกลยุทธ์แสกนข้อมูล 2 ทิศทาง (Keyword Explosion)...`);
+        setStatus(`[API] ออกแบบกลยุทธ์แสกนเชิงลึก (Precision Snipe) จาก Context...`);
         searchPlan = await buildSearchPlan(requestedQuery, isLatestMode, webContext, isComplexQuery);
         setActiveSearchPlan(searchPlan);
+
+        // 2. Fire Precision Snipe query from Planner
+        const snipeQueryRaw = searchPlan?.queries?.find(q => q !== requestedQuery && q !== `${requestedQuery} -filter:replies`);
+        if (snipeQueryRaw) {
+          setStatus(`[Phase 2] Async Parallel Fetch: X Search Precision Snipe...`);
+          const snipeQuery = getScopedQuery(snipeQueryRaw);
+          try {
+             const snipeResult = await searchEverything(snipeQuery, null, onlyNews, 'Top', true);
+             if (snipeResult.data && snipeResult.data.length > 0) rawDataChunks.push(snipeResult.data);
+             if (!finalCursor && snipeResult.meta?.next_cursor) finalCursor = snipeResult.meta.next_cursor;
+          } catch(err) {
+             console.warn(`[Search] Failed snipe query: ${snipeQuery}`, err);
+          }
+        }
+      } else {
+         setStatus(`[API] ดึงข้อมูล X Search เพิ่มเติม...`);
+         const planQueries = searchPlan?.queries?.length > 0 ? searchPlan.queries : [requestedQuery];
+         for (const query of planQueries) {
+            const scopedQuery = getScopedQuery(query);
+            try {
+              const { data: chunk, meta } = await searchEverything(scopedQuery, searchCursor, onlyNews, 'Top', false);
+              if (chunk.length > 0) rawDataChunks.push(chunk);
+              if (!finalCursor) finalCursor = meta.next_cursor;
+            } catch (err) {
+              console.warn(`[Search] Pagination failed: ${scopedQuery}`, err);
+            }
+         }
       }
       
-      const planQueries = !isMore && searchPlan?.queries?.length > 0 ? searchPlan.queries : [requestedQuery];
       const rankingQuery = mergePlanLabelsIntoQuery(requestedQuery, searchPlan?.topicLabels || []);
-
-      const rawDataChunks = [];
-      let finalCursor = null;
-
-      setStatus(`[API] ส่งชุดคำสั่งแสกนฐานข้อมูล X แบบ Parallel (${planQueries.length} ชุด)...`);
-      
-      for (const query of planQueries) {
-        let scopedQuery = query;
-        if (isLatestMode && !query.includes('since:')) {
-          const date = new Date();
-          date.setHours(date.getHours() - 24);
-          const sinceDate = date.toISOString().split('T')[0];
-          scopedQuery = `${query} since:${sinceDate}`;
-        }
-        
-        try {
-          const { data: chunk, meta } = await searchEverything(scopedQuery, isMore ? searchCursor : null, onlyNews, 'Top', !isMore);
-          if (chunk.length > 0) rawDataChunks.push(chunk);
-          if (!finalCursor) finalCursor = meta.next_cursor;
-        } catch (err) {
-          console.warn(`[Search] Failed to fetch query: ${scopedQuery}`, err);
-        }
-      }
 
 
       const data = mergeUniquePostsById(...rawDataChunks);
@@ -422,7 +444,12 @@ const App = () => {
           .filter(t => validPicks.some(pick => String(pick.id) === String(t.id)))
           .map(t => {
             const pick = validPicks.find(p => String(p.id) === String(t.id));
-            return { ...t, ai_reasoning: pick?.reasoning };
+            return { 
+              ...t, 
+              ai_reasoning: pick?.reasoning,
+              temporalTag: pick?.temporalTag,
+              citation_id: pick?.citation_id
+            };
           });
         
         if (!isMore) {
@@ -1116,7 +1143,7 @@ const App = () => {
                       </div>
                     )}
                     <div className="feed-grid">
-                      {searchResults.map((item, idx) => <FeedCard key={item.id || idx} tweet={item} />)}
+                      {searchResults.map((item, idx) => <FeedCard key={item.id || idx} tweet={item} onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }} />)}
                     </div>
                     {searchCursor && !isSearching && (
                       <div style={{ textAlign: 'center', marginTop: '32px', paddingBottom: '40px' }}>
@@ -1163,7 +1190,7 @@ const App = () => {
                     return scoreB - scoreA;
                   })
                   .map((item, idx) => (
-                    <FeedCard key={item.id || idx} tweet={item} isBookmarked={bookmarks.some(b => b.id === item.id)} onBookmark={handleBookmark} />
+                    <FeedCard key={item.id || idx} tweet={item} isBookmarked={bookmarks.some(b => b.id === item.id)} onBookmark={handleBookmark} onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }} />
                   ))
                 }
                 {readArchive.length === 0 && <div className="empty-state-card">ยังไม่มีบทความในห้องสมุด</div>}
@@ -1402,7 +1429,7 @@ const App = () => {
               <div className="feed-grid">
                 {bookmarks.filter(b => bookmarkTab === 'news' ? b.type !== 'article' : b.type === 'article').map((item, idx) => (
                    bookmarkTab === 'news' ? (
-                     <FeedCard key={item.id || idx} tweet={item} isBookmarked={true} onBookmark={handleBookmark} />
+                     <FeedCard key={item.id || idx} tweet={item} isBookmarked={true} onBookmark={handleBookmark} onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }} />
                    ) : (
                      <div key={item.id} className="article-card" onClick={() => setSelectedArticle(item)}>
                        <div className="article-card-header">

@@ -665,7 +665,8 @@ ${preferCredibleSources ? '- Prioritize topic fit first, then prefer credible so
     });
 
     const validIdSet = new Set(compressedInput.map((tweet) => tweet.id));
-    return object.picks.filter((pick) => validIdSet.has(pick.id));
+    const finalPicks = object.picks.filter((pick) => validIdSet.has(pick.id));
+    return finalPicks.map((pick, i) => ({ ...pick, citation_id: `[T${i + 1}]` }));
   } catch (error) {
     if (error.status === 400) {
       console.warn('[GrokService] 400 Bad Request in agentFilterFeed. Check parameters/model.');
@@ -703,24 +704,26 @@ export const generateExecutiveSummary = async (validTweets, userQuery, onStreamC
   const safeWebCtx = webContext ? sanitizeForPrompt(webContext, 2000) : '';
 
   const contentToAnalyze = tweetsForSummary
-    .map((tweet, index) => {
+    .map((tweet) => {
       const authorLabel = tweet.author?.username ? `@${tweet.author.username}` : tweet.author?.name || 'unknown';
-      return `[${index + 1}] (${authorLabel}) ${sanitizeForPrompt(tweet.text, 400)}`;
+      return `${tweet.citation_id || '[T?]'} (${authorLabel}) ${sanitizeForPrompt(tweet.text, 400)}`;
     })
     .join('\n---\n');
 
   const summarySystem = `คุณคือระบบสรุปข้อมูลอัจฉริยะที่เน้นความถูกต้องเป็นหลัก (Zero-Hallucination Summarizer)
-สรุปจากทวีตหัวกะทิ 10 อันดับแรก ในหัวข้อ "${safeQuery}" เป็นภาษาไทย
+สรุปจากทวีตหัวกะทิ ในหัวข้อ "${safeQuery}" เป็นภาษาไทย
 ${safeWebCtx ? `ใช้ Web Context ด้านล่างนี้เพื่อตรวจสอบความขัดแย้ง (Fact-Check) ห้ามเดาหรือเพิ่มตัวละครที่ไม่มีในเนื้อหา:\n${safeWebCtx}\n` : ''}
 
 กฎเหล็ก:
 - ห้ามเพิ่มข้อมูลภายนอก (ห้ามเดาชื่อดารา, ห้ามเดาชื่อเกมถ้าไม่มีในข้อความ)
 - สรุปเฉพาะ "ความจริง" ที่เกิดขึ้นใน X (Twitter) และ Web Context เท่านั้น
-- รูปแบบ: 1 ประโยคเปิดที่เป็นภาพรวม + 3 Bullet Points สั้นๆ ที่สรุปประเด็นหลัก
+- **การอ้างอิงแหล่งที่มา (Citation Enforcement):** ทุกประโยคหรือข้ออ้างอิง (Claim) สำคัญในบทสรุป **ต้องบังคับ** ห้อยท้ายด้วย Source ID ของโพสต์นั้นเสมอ เช่น [T1], [T2], [T1][T3] 
+- หากเจอข้ออ้างอิงที่หาแหล่งที่มาจาก T1-T10 ไม่ได้ ห้ามอ้างอิงแหล่งที่มาแบบมั่วๆ เด็ดขาด
+- รูปแบบ: 1 ประโยคเปิดที่เป็นภาพรวม + 3 Bullet Points สั้นๆ ที่สรุปประเด็นหลัก 
 - สไตล์: กระชับ จริงจัง ไม่เน้นคำโปรย (No Fluff)
 - หากข้อมูลใน X และ Web ขัดกัน ให้ระบุสิ่งที่คนใน X กำลังพูดถึงเป็นหลัก
 - ใช้ markdown bold สำหรับคำสำคัญที่สอดคล้องกับหัวข้อค้นหา
-- **บังคับทำสิ่งนี้**: บรรทัดสุดท้ายสุดของบอท ให้เขียนคะแนนความมั่นใจและระดับความน่าเชื่อถือ โดยประเมินจากการครอสเช็คข้อมูล X กับ Web Context รูปแบบต้องเป็นแท็กเท่านั้น เช่น:
+- บรรทัดสุดท้ายสุด ให้ประเมินระดับความน่าเชื่อถือโดยอิงจากการยืนยันข้อความกับ Web Context แล้วเขียนแท็กดังนี้ (ตัวอย่าง):
 [CONFIDENCE_SCORE: 85%]`;
 
   if (onStreamChunk) {
