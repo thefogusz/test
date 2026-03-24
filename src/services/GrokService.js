@@ -374,9 +374,10 @@ const polishThaiContent = (text = '', { format, customInstructions = '', allowEm
   if (!allowHighEnergyLanguage) {
     nextText = softenHypeLanguage(nextText);
   } else {
-    nextText = nextText.replace(/ครองครึ่งโลกการเงิน/gi, 'มีบทบาทใหญ่มากในระบบการเงิน');
-    nextText = nextText.replace(/โลกจะไม่เหมือนเดิมอีกต่อไป/gi, 'อาจเปลี่ยนภาพการแข่งขันในตลาดได้มาก');
+    // For Viral/Enthusiastic tones, allow more impact while still avoiding non-fact-based global scales
+    nextText = nextText.replace(/ครองโลก/gi, 'มีบทบาทสำคัญระดับโลก');
     nextText = nextText.replace(/!!+/g, '!');
+    // Don't over-soften everything. Keep the hook-driven energy.
   }
   return normalizeThaiSpacing(nextText);
 };
