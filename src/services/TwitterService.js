@@ -524,14 +524,15 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
     acceptable = scored.filter(tweet => tweet.search_score >= backupThreshold);
   }
 
-  const minimumKeep = Math.min(acceptable.length, latestMode ? 8 : 12);
+  const minimumKeep = Math.min(acceptable.length, latestMode ? 15 : 30);
   const filtered = acceptable.filter((tweet, index) => index < minimumKeep || tweet.search_score >= softThreshold);
   
-  // Ensure we at least try to get 10 if we have them
-  const curated = filtered.length >= Math.min(10, acceptable.length) ? filtered : acceptable.slice(0, 15);
+  // Ensure we at least try to get 15-30 if we have them
+  const curated = filtered.length >= Math.min(15, acceptable.length) ? filtered : acceptable.slice(0, 30);
   const covered = ensureQueryCoverage(curated, acceptable, queryTerms, latestMode);
 
-  return diversifyByAuthor(covered, latestMode ? 10 : 15);
+  // Return the absolute best 30 items max to protect Grok's context window
+  return diversifyByAuthor(covered, 30).slice(0, 30);
 };
 
 /**

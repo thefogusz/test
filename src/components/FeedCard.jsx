@@ -79,6 +79,24 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {tweet.temporalTag && (
+            <div style={{
+              background: tweet.temporalTag === 'Breaking' ? 'rgba(239, 68, 68, 0.15)' : tweet.temporalTag === 'Trending' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+              color: tweet.temporalTag === 'Breaking' ? '#ef4444' : tweet.temporalTag === 'Trending' ? '#f59e0b' : '#3b82f6',
+              padding: '0 10px',
+              borderRadius: '100px',
+              fontSize: '10px',
+              fontWeight: '900',
+              border: `1px solid ${tweet.temporalTag === 'Breaking' ? 'rgba(239, 68, 68, 0.3)' : tweet.temporalTag === 'Trending' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(59, 130, 246, 0.3)'}`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '26px',
+              textTransform: 'uppercase'
+            }}>
+              {tweet.temporalTag === 'Breaking' ? '🚨' : tweet.temporalTag === 'Trending' ? '🔥' : '📌'} {tweet.temporalTag}
+            </div>
+          )}
           {/* Time Badge - Standardized Height for Alignment */}
           <div style={{
             background: 'rgba(255,255,255,0.06)', 

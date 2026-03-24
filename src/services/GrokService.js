@@ -649,6 +649,7 @@ ${safeWebCtx ? `Use this WEB CONTEXT as a source of truth to prioritize tweets t
 Rules:
 - STRICT LIMIT: Select a maximum of 8 posts. Only the very best.
 - For each selected post, provide a 1-sentence 'reasoning' (in Thai) explaining exactly why it matches the query and is worth reading.
+- Assign a 'temporalTag' to each post: "Breaking" (very new/urgent), "Trending" (currently popular), or "Background" (evergreen/context).
 - Remove high-noise spam, scam, completely unrelated posts.
 - For recreational/general topics be inclusive, BUT DO NOT accept low-effort random chatter.
 ${preferCredibleSources ? '- Prioritize topic fit first, then prefer credible sources.' : ''}`,
@@ -656,7 +657,8 @@ ${preferCredibleSources ? '- Prioritize topic fit first, then prefer credible so
       schema: z.object({
         picks: z.array(z.object({
           id: z.string(),
-          reasoning: z.string()
+          reasoning: z.string(),
+          temporalTag: z.enum(['Breaking', 'Trending', 'Background']).describe('The temporal context of the post'),
         })),
       }),
       temperature: 0,
@@ -709,22 +711,25 @@ export const generateExecutiveSummary = async (validTweets, userQuery, onStreamC
 
   const summarySystem = `คุณคือระบบสรุปข้อมูลอัจฉริยะที่เน้นความถูกต้องเป็นหลัก (Zero-Hallucination Summarizer)
 สรุปจากทวีตหัวกะทิ 10 อันดับแรก ในหัวข้อ "${safeQuery}" เป็นภาษาไทย
-${safeWebCtx ? `ใช้ Web Context ด้านล่างนี้เพื่อประกอบความเข้าใจเท่านั้น ห้ามเดาหรือเพิ่มตัวละคร/ข้อมูลที่ไม่มีในเนื้อหา:\n${safeWebCtx}\n` : ''}
+${safeWebCtx ? `ใช้ Web Context ด้านล่างนี้เพื่อตรวจสอบความขัดแย้ง (Fact-Check) ห้ามเดาหรือเพิ่มตัวละครที่ไม่มีในเนื้อหา:\n${safeWebCtx}\n` : ''}
 
 กฎเหล็ก:
-- ห้ามเพิ่มข้อมูลภายนอก (ห้ามเดาชื่อดารา, ห้ามเดาชื่อเกมเวอร์ชันเก่า/ใหม่ ถ้าไม่มีในข้อความ)
-- สรุปเฉพาะ "ความจริง" ที่เกิดขึ้นใน X (Twitter) และ Web Context ที่ระบุเท่านั้น
+- ห้ามเพิ่มข้อมูลภายนอก (ห้ามเดาชื่อดารา, ห้ามเดาชื่อเกมถ้าไม่มีในข้อความ)
+- สรุปเฉพาะ "ความจริง" ที่เกิดขึ้นใน X (Twitter) และ Web Context เท่านั้น
 - รูปแบบ: 1 ประโยคเปิดที่เป็นภาพรวม + 3 Bullet Points สั้นๆ ที่สรุปประเด็นหลัก
 - สไตล์: กระชับ จริงจัง ไม่เน้นคำโปรย (No Fluff)
 - หากข้อมูลใน X และ Web ขัดกัน ให้ระบุสิ่งที่คนใน X กำลังพูดถึงเป็นหลัก
-- ใช้ markdown bold สำหรับคำสำคัญที่สอดคล้องกับหัวข้อค้นหา`;
+- ใช้ markdown bold สำหรับคำสำคัญที่สอดคล้องกับหัวข้อค้นหา
+- **บังคับทำสิ่งนี้**: บรรทัดสุดท้ายสุดของบอท ให้เขียนคะแนนความมั่นใจและระดับความน่าเชื่อถือ โดยประเมินจากการครอสเช็คข้อมูล X กับ Web Context รูปแบบต้องเป็นแท็กเท่านั้น เช่น:
+[CONFIDENCE_SCORE: 85%]`;
 
   if (onStreamChunk) {
     try {
       const { textStream } = await streamText({
-        model: grok(MODEL_NEWS_FAST),
+        model: grok(MODEL_REASONING_FAST),
         system: summarySystem,
         prompt: contentToAnalyze,
+        maxTokens: 600,
       });
 
       let fullText = '';
@@ -790,9 +795,9 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
   }
 };
 
-export const buildSearchPlan = async (originalQuery, isLatest = false, webContext = '') => {
+export const buildSearchPlan = async (originalQuery, isLatest = false, webContext = '', isComplexQuery = true) => {
   const fallbackQuery = `${originalQuery} -filter:replies`.trim();
-  const cacheKey = buildCacheKey('search-plan-v2', { originalQuery, isLatest, webContextLength: webContext.length });
+  const cacheKey = buildCacheKey('search-plan-v2', { originalQuery, isLatest, webContextLength: webContext.length, isComplexQuery });
 
   if (!originalQuery) {
     return {
@@ -807,7 +812,7 @@ export const buildSearchPlan = async (originalQuery, isLatest = false, webContex
 
   try {
     const { object } = await generateObject({
-      model: grok(MODEL_REASONING_FAST),
+      model: grok(isComplexQuery ? MODEL_REASONING_FAST : MODEL_NEWS_FAST),
       system: `คุณคือสถาปนิกการค้นหาระดับพระกาฬ (Elite Search Architect)
 ภารกิจ: เฟ้นหาคอนเทนต์ที่เป็น "ที่สุด" (Masterpieces) โดยใช้เทคนิค "Keyword Explosion" ยัดคีย์เวิร์ดให้แน่นที่สุด
 ตอนนี้คุณกำลังทำ Adaptive RAG (News-Anchored Search)

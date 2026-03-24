@@ -355,13 +355,14 @@ const App = () => {
       let webContext = '';
       let searchPlan = activeSearchPlan;
       
+      const isComplexQuery = !/ฮา|ตลก|ขำ|funny|meme|lol|haha/i.test(requestedQuery);
+      
       if (!isMore) {
         setStatus(`[API] แสกนเวิลด์ไวด์เว็บหาความรู้พื้นฐานล่วงหน้า (Tavily)...`);
-        const isFunTopic = /ฮา|ตลก|ขำ|funny|meme|lol|haha/i.test(requestedQuery);
         let webData = { results: [], answer: '' };
         
         // ความฉลาด (Adaptive Router): ถ้าเป็นคำถามตลกขำขัน ไม่ต้องเสียโควต้าหาข่าวเว็บ
-        if (!isFunTopic) {
+        if (isComplexQuery) {
           webData = await tavilySearch(requestedQuery, isLatestMode);
         }
         
@@ -376,7 +377,7 @@ const App = () => {
         }
 
         setStatus(`[API] กำลังออกแบบกลยุทธ์แสกนข้อมูล 2 ทิศทาง (Keyword Explosion)...`);
-        searchPlan = await buildSearchPlan(requestedQuery, isLatestMode, webContext);
+        searchPlan = await buildSearchPlan(requestedQuery, isLatestMode, webContext, isComplexQuery);
         setActiveSearchPlan(searchPlan);
       }
       
@@ -412,11 +413,11 @@ const App = () => {
       
       if (data.length > 0) {
         setStatus(`[Quality Gate] คัดกรองและประเมิน Engagement...`);
-        const isFunTopic = /ฮา|ตลก|ขำ|funny|meme|lol|haha/i.test(requestedQuery);
-        const curated = curateSearchResults(data, rankingQuery, { latestMode: isLatestMode, preferCredibleSources: !isFunTopic });
+        const isComplexQuery = !/ฮา|ตลก|ขำ|funny|meme|lol|haha/i.test(requestedQuery);
+        const curated = curateSearchResults(data, rankingQuery, { latestMode: isLatestMode, preferCredibleSources: isComplexQuery });
         
-        setStatus(`[Agent 2/3] กำลังกรองสแปมและคัดเลือกโพสต์ระดับคุณภาพจากฐานข้อมูล 40 ชุด...`);
-        const validPicks = await agentFilterFeed(curated, rankingQuery, { preferCredibleSources: !isFunTopic, webContext });
+        setStatus(`[Agent 2/3] กำลังกรองสแปมและคัดเลือกโพสต์ระดับคุณภาพจากฐานข้อมูล...`);
+        const validPicks = await agentFilterFeed(curated, rankingQuery, { preferCredibleSources: isComplexQuery, webContext, isComplexQuery });
         const cleanData = curated
           .filter(t => validPicks.some(pick => String(pick.id) === String(t.id)))
           .map(t => {
@@ -1036,35 +1037,56 @@ const App = () => {
                           </button>
                         </div>
 
-                        <div 
-                          className="markdown-body search-summary-content" 
-                          style={{ fontSize: '15px', lineHeight: '1.8', color: 'rgba(255,255,255,0.9)', position: 'relative', zIndex: 1 }}
-                          dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(searchSummary) }} 
-                        />
-                        
-                        <div style={{ 
-                          display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-                          marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)',
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>
-                            <ShieldCheck size={12} className="text-accent" />
-                            สรุปโดย AI อ้างอิงจากข้อมูลล่าสุดใน 24-48 ชั่วโมงที่ผ่านมา
-                          </div>
+                        {(() => {
+                          const confMatch = searchSummary.match(/\[CONFIDENCE_SCORE:\s*([^\]]+)\]/i);
+                          const confidenceScore = confMatch ? confMatch[1] : null;
+                          const cleanSummary = searchSummary.replace(/\[CONFIDENCE_SCORE:\s*([^\]]+)\]/gi, '').trim();
                           
-                          {searchWebSources.length > 0 && (
-                            <button 
-                              onClick={() => setIsSourcesExpanded(!isSourcesExpanded)}
-                              style={{ 
-                                background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', 
-                                color: 'var(--text-dim)', fontSize: '11px', padding: '4px 10px', 
-                                borderRadius: '100px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' 
-                              }}
-                              className="action-hover-btn"
-                            >
-                              <Link size={12} /> {isSourcesExpanded ? 'ซ่อนแหล่งอ้างอิง' : `อ้างอิงจาก ${searchWebSources.length} เว็บไซต์`}
-                            </button>
-                          )}
-                        </div>
+                          return (
+                            <>
+                              <div 
+                                className="markdown-body search-summary-content" 
+                                style={{ fontSize: '15px', lineHeight: '1.8', color: 'rgba(255,255,255,0.9)', position: 'relative', zIndex: 1 }}
+                                dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(cleanSummary) }} 
+                              />
+                              
+                              <div style={{ 
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
+                                marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)',
+                                flexWrap: 'wrap', gap: '12px'
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', flexWrap: 'wrap' }}>
+                                  <ShieldCheck size={12} className="text-accent" />
+                                  สรุปโดย AI อ้างอิงจากข้อมูลล่าสุดใน 24-48 ชั่วโมงที่ผ่านมา
+                                  {confidenceScore && (
+                                    <span style={{ 
+                                      marginLeft: '4px', padding: '2px 8px', borderRadius: '100px', 
+                                      background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', 
+                                      border: '1px solid rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                      letterSpacing: '0.02em'
+                                    }}>
+                                      <Activity size={10} /> อัตราความแม่นยำ (Confidence) {confidenceScore}
+                                    </span>
+                                  )}
+                                </div>
+                          
+                                {searchWebSources.length > 0 && (
+                                  <button 
+                                    onClick={() => setIsSourcesExpanded(!isSourcesExpanded)}
+                                    style={{ 
+                                      background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', 
+                                      color: 'var(--text-dim)', fontSize: '11px', padding: '4px 10px', 
+                                      borderRadius: '100px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' 
+                                    }}
+                                    className="action-hover-btn"
+                                  >
+                                    <Link size={12} /> {isSourcesExpanded ? 'ซ่อนแหล่งอ้างอิง' : `อ้างอิงจาก ${searchWebSources.length} เว็บไซต์`}
+                                  </button>
+                                )}
+                              </div>
+                            </>
+                          );
+                        })()}
 
                         {/* Collapsible Source List */}
                         {isSourcesExpanded && searchWebSources.length > 0 && (
