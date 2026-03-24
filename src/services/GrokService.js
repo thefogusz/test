@@ -504,6 +504,13 @@ const callGrok = async ({
 
 const deriveResearchQuery = async (input) => {
   const fallback = (input || '').replace(/\s+/g, ' ').trim().slice(0, 160) || 'latest news';
+  
+  // 1. Heuristic-first bypass for simple queries (saves LLM cost)
+  const wordCount = fallback.split(/\s+/).length;
+  if (wordCount < 10 && fallback.length < 80) {
+    return fallback;
+  }
+
   const cacheKey = buildCacheKey('research-query', fallback);
   const cached = getCachedValue(responseCache, cacheKey);
   if (cached) return cached;
@@ -940,16 +947,15 @@ ${activeContext}
 };
 
 export const researchContext = async (query, interactionData = '') => {
-  const { factSheet } = await researchAndPreventHallucination(
-    [query, interactionData].filter(Boolean).join('\n\n'),
-  );
+  const { factSheet } = await researchAndPreventHallucination(query, interactionData);
   return factSheet;
 };
 
 // --- [CONTENT FLOW FUNCTIONS] ---
 
-export const researchAndPreventHallucination = async (input) => {
-  if (factCache.has(input)) return factCache.get(input);
+export const researchAndPreventHallucination = async (input, interactionData = '') => {
+  const cacheKey = input + (interactionData || '');
+  if (factCache.has(cacheKey)) return factCache.get(cacheKey);
 
   const researchQuery = await deriveResearchQuery(input);
   let webContext = '';
@@ -958,10 +964,14 @@ export const researchAndPreventHallucination = async (input) => {
 
   try {
     console.log('[GrokService] Starting research with query:', researchQuery);
+    
+    // Query Gating: Only fetch X Latest if query seems time-sensitive
+    const isLatestNeeded = /ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update/i.test(input) || /ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update/i.test(interactionData);
+    
     const [data, xTopResponse, xLatestResponse] = await Promise.all([
       tavilySearch(researchQuery, false), // Force false here as research flow is general
       searchEverything(researchQuery, '', false, 'Top').catch(() => ({ data: [] })),
-      searchEverything(researchQuery, '', false, 'Latest').catch(() => ({ data: [] })),
+      isLatestNeeded ? searchEverything(researchQuery, '', false, 'Latest').catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
     ]);
 
     if (data && (data.results?.length || data.answer)) {
@@ -1006,21 +1016,21 @@ export const researchAndPreventHallucination = async (input) => {
   }
 
   try {
-    const factSheet = await callGrok({
-      modelName: MODEL_REASONING_FAST,
+    const { object: factSheetObj } = await generateObject({
+      model: grok(MODEL_REASONING_FAST),
       system: `คุณคือหัวหน้าทีมนักวิจัย (Lead Investigator) ที่รับผิดชอบความถูกต้องของข้อมูล (Fact-Check) 100%
-เป้าหมาย: สร้าง Fact Sheet ภาษาไทยที่แม่นยำที่สุด โดยห้ามมั่วและห้ามมี Hallucination เด็ดขาด
+เป้าหมาย: สร้าง Fact Sheet ฉบับสมบูรณ์ที่แม่นยำที่สุด โดยห้ามมี Hallucination เด็ดขาด ส่งออกเป็น JSON ตามโครงสร้างที่กำหนดเท่านั้น
 
 [การใช้แหล่งข้อมูล]
-- ให้ลำดับความสำคัญสูงสุดกับ [WEB SOURCES] (แหล่งข่าวทางการ/บทความเว็บ) เป็นหลัก
-- ใช้ [X EVIDENCE] เพื่อสรุป "ความเคลื่อนไหว" หรือ "รายละเอียดเชิงลึก" เท่านั้น ห้ามยกเอาความเห็นมั่วๆ มาเป็นข้อเท็จจริง
+- หากมี [PRIMARY LEAD / ORIGINAL SOURCE] ให้ถือว่านี่คือแกนกลางของเรื่องที่ต้องตรวจสอบและยืนยันเป็นอันดับแรก
+- ให้ลำดับความสำคัญอ้างอิงกับ [WEB SOURCES] (แหล่งข่าวทางการ) เป็นหลัก
+- ใช้ [X EVIDENCE] เพื่อสรุป "ความเคลื่อนไหว" หรือมิติทางสังคม
 
 [CITATIONS RULE]
-- **ห้ามระบุชื่อบัญชี (@handle)** ของผู้ใช้ทั่วไปที่ไม่มีอิมแพคเด็ดขาด
-- ระบุชื่อได้เฉพาะ: 1. ต้นทางข้อมูลหลัก 2. บัญชีองค์กร/สำนักข่าว 3. บัญชีที่มีผู้ติดตามมหาศาลหรือเป็น Verified ตัวจริงในวงการ
-- หากข้อมูลมาจากหลายบัญชีที่ไม่มีอิมแพค ให้ใช้คำว่า "ชุมชนชาว X" หรือ "กลุ่มผู้ใช้" แทน
-- หากแหล่งที่มา (Source) ดูไม่น่าเชื่อถือ (เช่น บัญชีหลุม/บอท) ให้คัดออกจากการอ้างอิงทันที`,
+- ห้ามระบุชื่อบัญชี (@handle) ของผู้ใช้ทั่วไปที่ไม่มีอิมแพค ให้ใช้คำว่า "กลุ่มผู้ใช้" แทน
+- หากแหล่งที่มาดูไม่น่าเชื่อถือ ให้คัดออกจากการเป็นข้อเท็จจริงยืนยัน (Verified Facts)`,
       prompt: [
+        interactionData ? `[PRIMARY LEAD / ORIGINAL SOURCE]\n${interactionData}` : '',
         `[ORIGINAL REQUEST]\n${input}`,
         `[SEARCH QUERY]\n${researchQuery}`,
         webContext || '[No web context available]',
@@ -1028,16 +1038,26 @@ export const researchAndPreventHallucination = async (input) => {
       ]
         .filter(Boolean)
         .join('\n\n'),
+      schema: z.object({
+        verified_facts: z.array(z.string()).describe("ข้อเท็จจริงที่ได้รับการยืนยันจากแหล่งข้อมูล ถ่ายทอดเป็นประโยคชัดเจน"),
+        open_questions: z.array(z.string()).describe("ประเด็นที่ยังไม่แน่ชัด ขัดแย้งกัน หรือรอการยืนยัน"),
+        community_signal: z.string().describe("กระแสตอบรับหรือมุมมองจากชุมชนชาว X สั้นๆ"),
+        must_not_claim: z.array(z.string()).describe("สิ่งที่ห้ามเคลมหรือห้ามเขียนเด็ดขาดเนื่องจากไม่มีข้อมูลยืนยัน"),
+        named_entities: z.array(z.string()).describe("ชื่อบุคคล/องค์กร/สถานที่ ที่เกี่ยวข้องตัองพิมพ์ให้ถูกต้อง")
+      }),
     });
+
+    const factSheet = JSON.parse(JSON.stringify(factSheetObj));
+    const factSheetText = `[VERIFIED FACTS]\n${factSheet.verified_facts.map(f => `- ${f}`).join('\n')}\n\n[OPEN QUESTIONS]\n${factSheet.open_questions.map(f => `- ${f}`).join('\n')}\n\n[COMMUNITY SIGNAL]\n${factSheet.community_signal}\n\n[MUST NOT CLAIM]\n${factSheet.must_not_claim.map(f => `- ${f}`).join('\n')}\n\n[KEY ENTITIES]\n${factSheet.named_entities.join(', ')}`;
 
     const finalSources = dedupeSources([...extractedSources]).slice(0, 8);
 
     const resultPayload = {
-      factSheet,
+      factSheet: factSheetText,
       sources: finalSources,
     };
 
-    factCache.set(input, resultPayload);
+    factCache.set(cacheKey, resultPayload);
     return resultPayload;
   } catch (error) {
     console.error('[GrokService] FactSheet generation error:', error);
