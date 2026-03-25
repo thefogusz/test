@@ -240,10 +240,10 @@ const getLowSignalPenalty = (tweet, queryTerms, rawQuery = '') => {
     else if (totalEngagement < 100) penalty += 8.0;
   } else {
     // For non-replies, we still want some validation for top/search results
-    if (totalEngagement < 5 && !author.isVerified && followers < 10000) {
-      penalty += 15.0; // Almost certain removal for 0-4 like tweets from small accounts
-    } else if (totalEngagement < 50 && !author.isVerified) {
-      penalty += 3.0; // Discourage low-viral content for unverified users
+    if (totalEngagement < 3 && !author.isVerified && followers < 5000) {
+      penalty += 12.0; // Almost certain removal for 0-2 like tweets from small accounts
+    } else if (totalEngagement < 20 && !author.isVerified) {
+      penalty += 2.0; // Discourage low-viral content for unverified users
     }
   }
 
@@ -513,8 +513,8 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
       return new Date(b.created_at) - new Date(a.created_at);
     });
 
-  const softThreshold = latestMode ? 3.5 : 4.5; // Raised from 2.6 / 3.2
-  const hardThreshold = latestMode ? 2.5 : 3.5; // Raised from 1.8 / 2.5
+  const softThreshold = latestMode ? 2.5 : 3.5; // Raised from 2.6 / 3.2
+  const hardThreshold = latestMode ? 1.5 : 2.5; // Raised from 1.8 / 2.5
 
   // Filter out complete garbage (bots, 0-engagement) no matter what
   let acceptable = scored.filter(tweet => tweet.search_score >= hardThreshold);

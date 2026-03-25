@@ -1033,6 +1033,16 @@ const App = () => {
                       </div>
                     )}
 
+                    {searchQuery && searchResults.length === 0 && !isSearching && (
+                      <div className="search-idea-tags animate-fade-in" style={{ textAlign: 'center', padding: '40px 20px' }}>
+                        <div style={{ marginBottom: '16px', opacity: 0.5 }}>
+                          <Search size={48} style={{ margin: '0 auto' }} />
+                        </div>
+                        <h3 style={{ fontSize: '18px', marginBottom: '8px', color: 'var(--text-dim)' }}>ไม่พบข้อมูลสำหรับ "{searchQuery}"</h3>
+                        <p style={{ color: 'var(--text-muted)' }}>ลองปรับคำค้นหา หรือใช้คำที่กว้างขึ้น เช่น ภาษาอังกฤษ</p>
+                      </div>
+                    )}
+
                     {!searchQuery && searchResults.length === 0 && !isSearching && (
                       <div className="search-idea-tags animate-fade-in">
                         <p>ลองค้นหาคีย์เวิร์ดเหล่านี้...</p>
