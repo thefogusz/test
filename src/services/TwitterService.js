@@ -591,6 +591,26 @@ export const searchEverything = async (
 /**
  * FEATURE 4: Thread Reconstruction
  */
+export const fetchTweetById = async (tweetId) => {
+  try {
+    const response = await apiFetch(`${BASE_URL}/tweet/detail?tweet_id=${tweetId}`, {
+      method: 'GET',
+    });
+
+    if (!response.ok) throw new Error(`Tweet detail fetch failed: ${response.status}`);
+
+    const data = await safeJson(response, {});
+    const tweet = data.tweet || data.data || data;
+
+    if (!tweet?.text && !tweet?.full_text) return null;
+
+    return normalizeTweets([tweet])[0] || null;
+  } catch (error) {
+    console.warn('[TwitterService] fetchTweetById failed:', error.message);
+    return null;
+  }
+};
+
 export const getThreadContext = async (tweetId, authorId) => {
   try {
     const response = await apiFetch(`${BASE_URL}/tweet/thread_context?tweetId=${tweetId}`, {

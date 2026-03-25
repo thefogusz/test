@@ -1,7 +1,7 @@
 import { createXai } from '@ai-sdk/xai';
 import { generateObject, generateText, streamText } from 'ai';
 import { z } from 'zod';
-import { searchEverything } from './TwitterService';
+import { searchEverything, fetchTweetById } from './TwitterService';
 import { apiFetch, INTERNAL_TOKEN } from '../utils/apiFetch';
 
 const MODEL_NEWS_FAST = 'grok-4-1-fast-non-reasoning';
@@ -965,11 +965,36 @@ export const researchContext = async (query, interactionData = '') => {
 
 // --- [CONTENT FLOW FUNCTIONS] ---
 
+const TWEET_URL_PATTERN = /(?:twitter|x)\.com\/(?:#!\/)?(\w+)\/status(?:es)?\/(\d+)/i;
+
+const extractTweetIdFromInput = (input = '') => {
+  const match = input.match(TWEET_URL_PATTERN);
+  if (!match) return null;
+  return { username: match[1], tweetId: match[2] };
+};
+
 export const researchAndPreventHallucination = async (input, interactionData = '') => {
   const cacheKey = input + (interactionData || '');
   if (factCache.has(cacheKey)) return factCache.get(cacheKey);
 
-  const researchQuery = await deriveResearchQuery(input);
+  // Detect and fetch tweet when input contains a tweet URL
+  const tweetRef = extractTweetIdFromInput(input);
+  if (tweetRef && !interactionData) {
+    try {
+      const tweet = await fetchTweetById(tweetRef.tweetId);
+      if (tweet?.text) {
+        const tweetText = tweet.text.replace(/https?:\/\/\S+/g, '').trim();
+        const author = tweet.author?.name || tweet.author?.username || tweetRef.username;
+        interactionData = `[ORIGINAL TWEET SOURCE]\nAuthor: @${tweet.author?.username || tweetRef.username} (${author})\nContent: ${tweetText}\nLikes: ${tweet.like_count || 0} | Retweets: ${tweet.retweet_count || 0}`;
+      }
+    } catch {
+      // silently continue without tweet data
+    }
+  }
+
+  const researchQuery = await deriveResearchQuery(
+    tweetRef ? `${tweetRef.username} ${input.replace(TWEET_URL_PATTERN, '').trim()}`.trim() : input
+  );
   let webContext = '';
   let xContext = '';
   let extractedSources = [];
