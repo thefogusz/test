@@ -231,8 +231,8 @@ const CreateContent = ({
       setPhase('generating');
 
       // 2. Generation Phase (Streaming)
-      const appliedTone = customInstructions ? `${tone} (คำสั่งพิเศษ: ${customInstructions})` : tone;
-      
+      const appliedTone = tone;
+
       const allowEmoji = EMOJI_REQUEST_PATTERN.test(customInstructions);
       const lengthIndex = LENGTH_OPTIONS.indexOf(length);
       const normalizedLength = lengthIndex === 0 ? 'short' : lengthIndex === 2 ? 'long' : 'medium';

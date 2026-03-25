@@ -281,7 +281,7 @@ const CONTENT_FORMAT_PROFILES = {
 
 const TONE_GUIDES = {
   'ให้ข้อมูล/ปกติ': 'Calm, informed, editorial. Use professional but accessible Thai. Use particles like ครับ/ค่ะ appropriately. Avoid robotic transitions.',
-  'กระตือรือร้น/ไวรัล': 'Energetic, sharp, and trend-focused. Use genuine insight as the hook. Use particles like นะ/น้า or สิ/ซะ to drive engagement without being overly formal. NEVER use clichéd openings like "สาย... ห้ามพลาด".',
+  'กระตือรือร้น/ไวรัล': 'เขียนแบบ Energetic และดึงดูด — ใช้ insight ที่แหลมคมเป็น hook บรรทัดแรกต้องดึงคนหยุดอ่านทันที ใช้คำลงท้าย นะ/น้า/สิ/ซะ/เลย ได้ตามธรรมชาติ ประโยคสั้น กระชับ มีจังหวะ ใช้ตัวเลขหรือข้อเท็จจริงที่น่าตกใจเป็น anchor เขียนแบบ "เพื่อนที่รู้จริงเล่าให้ฟัง" ไม่ใช่นักข่าว อนุญาตให้ใช้ภาษาแรงกว่าปกติได้ (เช่น "สั่นสะเทือน" "พลิกเกม" "ต้องรู้เลย") ตราบใดที่มีข้อเท็จจริงรองรับ ห้ามขึ้นต้นด้วย "สาย... ห้ามพลาด" หรือ "อัปเดตด่วน" — ให้ hook ด้วยสาระแทน',
   'ทางการ/วิชาการ': 'Precise, objective, and well-structured. No slang. Use ครับ/ค่ะ for standard politeness.',
   'เป็นกันเอง/เพื่อนเล่าให้ฟัง': 'Warm, conversational, dropping formal pronouns where implied. Flow like a natural speech. Use particles like เถอะ/หน่อย, นะ/น้า for closeness.',
   'ตลก/มีอารมณ์ขัน': 'Lightly playful, witty observations. No forced jokes.',
@@ -460,7 +460,11 @@ const buildContentBrief = async ({ factSheet, length, tone, format, customInstru
     return setCachedValue(responseCache, cacheKey, {
       mainAngle: 'สรุปประเด็นสำคัญจากข้อมูลที่มีอย่างชัดเจนและน่าเชื่อถือ',
       audience: 'ผู้อ่านทั่วไปที่ต้องการความเข้าใจเร็ว',
-      voiceNotes: ['กระชับ', 'น่าเชื่อถือ', 'ไม่โอเวอร์'],
+      voiceNotes: tone === 'กระตือรือร้น/ไวรัล'
+        ? ['กระชับ', 'น่าเชื่อถือ', 'มีพลังงาน', 'ดึงดูดตั้งแต่บรรทัดแรก']
+        : tone === 'เป็นกันเอง/เพื่อนเล่าให้ฟัง'
+          ? ['กระชับ', 'น่าเชื่อถือ', 'ใกล้ชิด', 'เป็นธรรมชาติ']
+          : ['กระชับ', 'น่าเชื่อถือ', 'ไม่โอเวอร์'],
       mustIncludeFacts: ['ยึดตาม fact sheet', 'แยกข้อเท็จจริงออกจากความเห็น'],
       caveats: ['ระบุข้อจำกัดของข้อมูลเมื่อยังไม่ชัดเจน'],
       structure: ['เปิดด้วยประเด็นหลัก', 'ขยายบริบทสำคัญ', 'ปิดด้วยข้อสรุปที่พอดี'],
@@ -1182,6 +1186,9 @@ export const generateStructuredContentV2 = async (
   options = {},
 ) => {
   const { allowEmoji = false, customInstructions = '' } = options;
+  const isViralTone = tone === 'กระตือรือร้น/ไวรัล';
+  const writerTemperature = isViralTone ? 0.85 : 0.7;
+  const writerFrequencyPenalty = isViralTone ? 0.15 : 0.35;
   const lengthInstruction = getLengthInstruction(length);
   const profile = buildFormatProfile(format);
   const brief = await buildContentBrief({ factSheet, length, tone, format, customInstructions });
@@ -1192,7 +1199,9 @@ export const generateStructuredContentV2 = async (
 
 <tone_of_voice>
 - ${TONE_GUIDES[tone] || tone}
-- เป็นมืออาชีพแต่ไม่ก้าวร้าว มั่นใจแต่ไม่โอ้อวด (Professional but not aggressive, confident but not boastful).
+${tone === 'กระตือรือร้น/ไวรัล'
+  ? '- โทนนี้อนุญาตให้มีพลังงานสูง สร้าง FOMO และความตื่นเต้นได้ ตราบใดที่มีข้อเท็จจริงรองรับ ไม่จำเป็นต้อง "สุภาพ" หรือ "ระมัดระวัง" มากเกินไป'
+  : '- เป็นมืออาชีพแต่ไม่ก้าวร้าว มั่นใจแต่ไม่โอ้อวด (Professional but not aggressive, confident but not boastful).'}
 - ห้ามใช้คำศัพท์ที่เป็นทางการเกินไป (Corporate jargon) หรือสำนวนที่แปลตรงตัวจากภาษาอังกฤษ
 </tone_of_voice>
 
@@ -1202,9 +1211,11 @@ export const generateStructuredContentV2 = async (
 3. ความกระชับ: ตัดคำฟุ่มเฟือยทิ้งให้หมด สื่อสารตรงประเด็น
 4. การใช้ Emoji: ใช้ประกอบพองาม (ไม่เกิน 3-4 ตัวต่อโพสต์)
 5. การสลับรหัสภาษา (Code-Switching): คงคำศัพท์ทางเทคนิคไว้ (เช่น แคมเปญ, ฟีเจอร์) แต่ใช้ไวยากรณ์และโครงสร้างประโยคแบบภาษาไทยธรรมชาติ
-${format === 'สคริปต์วิดีโอสั้น' 
+${format === 'สคริปต์วิดีโอสั้น'
   ? '6. คำลงท้าย (Sentence Particles): วิดีโอสคริปต์ต้องใช้คำลงท้ายพูด (เช่น ครับ/ค่ะ, นะ/น้า, สิ/ซะ) เพื่อให้เหมือนคนพูดจริงๆ และมีจังหวะหายใจ'
-  : '6. คำลงท้าย (Sentence Particles): งานเขียนเพจทั่วไปให้หลีกเลี่ยงคำลงท้าย (เช่น ครับ/ค่ะ, นะ) เพื่อความเป็นมืออาชีพและกระชับ ยกเว้นโทนเพื่อนเล่าให้ฟัง'}
+  : tone === 'กระตือรือร้น/ไวรัล' || tone === 'เป็นกันเอง/เพื่อนเล่าให้ฟัง'
+    ? '6. คำลงท้าย (Sentence Particles): โทนนี้ให้ใช้คำลงท้ายได้ตามธรรมชาติ (เช่น นะ/น้า/สิ/ซะ/เลย) เพื่อสร้าง energy และความใกล้ชิดกับผู้อ่าน'
+    : '6. คำลงท้าย (Sentence Particles): งานเขียนเพจทั่วไปให้หลีกเลี่ยงคำลงท้าย (เช่น ครับ/ค่ะ, นะ) เพื่อความเป็นมืออาชีพและกระชับ'}
 7. NO DICTIONARY PAIRS. Choose either English or Thai for a term. Never write "Artificial Intelligence (ปัญญาประดิษฐ์)".
 8. STRICT LANGUAGE RULE: ระวังการหลอนภาษาต่างประเทศ (Hallucination) ให้ใช้เฉพาะภาษา "ไทย" (Thai) และตัวอักษร "ภาษาอังกฤษ" (English) สำหรับคำทับศัพท์เท่านั้น ห้ามพิมพ์ภาษาจีน, ญี่ปุ่น, เกาหลี หรือ รัสเซีย เด็ดขาด (หากเจอใน Fact Sheet ให้สกัดเอาเฉพาะความหมายมาเขียนเป็นภาษาไทย)
 9. PERSPECTIVE RULE: คุณคือ "ผู้สร้างคอนเทนต์ต้นทาง" (Original Creator) ห้ามเขียนในเชิงรายงานข่าวว่า "โพสต์ของ X บอกว่า..." หรือ "X รายงานว่า..." ให้นำข้อมูลมาเล่าด้วยมุมมองที่มั่นใจ รู้จริง และเล่าเรื่องโดยตรงไปที่ผู้อ่านแทน
@@ -1239,9 +1250,9 @@ Example of GOOD Native Thai:
         model: grok(MODEL_WRITER),
         system: draftSystemPrompt,
         prompt: draftUserPrompt,
-        temperature: 0.7,
+        temperature: writerTemperature,
         topP: 0.85,
-        frequencyPenalty: 0.35,
+        frequencyPenalty: writerFrequencyPenalty,
         presencePenalty: 0.1,
       });
 
@@ -1262,9 +1273,9 @@ Example of GOOD Native Thai:
     modelName: MODEL_WRITER,
     system: draftSystemPrompt,
     prompt: draftUserPrompt,
-    temperature: 0.7,
+    temperature: writerTemperature,
     topP: 0.85,
-    frequencyPenalty: 0.35,
+    frequencyPenalty: writerFrequencyPenalty,
     presencePenalty: 0.1,
     allowEmoji,
   });
@@ -1275,7 +1286,7 @@ Example of GOOD Native Thai:
       system: `Evaluate whether the Thai draft is grounded, natural, and appropriate for the requested format.
 Set passed=true only if:
 - it stays faithful to the fact sheet
-- it matches the requested tone without overclaiming
+- it matches the requested tone${tone === 'กระตือรือร้น/ไวรัล' ? ' (high energy and impactful language is EXPECTED and correct for this tone — do NOT penalize for strong language if facts support it)' : ' without overclaiming'}
 - it does not read like generic AI copy
 - it respects heading and CTA expectations for the format
 - it names people only when their identity or influence materially matters`,
