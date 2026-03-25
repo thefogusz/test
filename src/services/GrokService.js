@@ -784,7 +784,8 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
       model: grok(MODEL_REASONING_FAST),
       system: `เปลี่ยนหัวข้อของผู้ใช้ให้เป็นคำค้นหาขั้นสูง (Advanced Search) บน X เพื่อหาข้อมูลระดับสากล
 กฎ:
-- ขยายคำค้นหาโดยใช้ทั้งภาษาไทยและ "ภาษาอังกฤษ" (English Keywords) เพื่อให้ครอบคลุมข้อมูลทั้งระดับโลกและท้องถิ่น
+- รักษาเจตนาเดิมของหัวข้อที่ต้องการค้นหา
+- ขยายคำค้นหาโดยใช้ทั้งภาษาไทยและ "ภาษาอังกฤษ" (English keywords) เพื่อให้ครอบคลุมข้อมูลระดับโลก
 - ใช้ OR เชื่อมระหว่างคำค้นหาไทยและอังกฤษ เช่น (คริปโต OR crypto)
 - ต้องใส่ -filter:replies เสมอ 1 ครั้ง
 - ${isLatest ? 'โหมดสายฟ้าจะถูกคัดในแอปให้เหลือเฉพาะ 24 ชั่วโมงล่าสุดอยู่แล้ว ดังนั้นห้ามบังคับ since:today หรือคำค้นที่แคบเกินไป ให้โฟกัส recent developments แบบยังได้โพสต์คุณภาพ' : 'เน้นโพสต์ที่มีสัญญาณสำคัญสูง เหมาะสำหรับผลลัพธ์แบบยอดนิยม (Top)'}
@@ -839,15 +840,15 @@ export const buildSearchPlan = async (originalQuery, isLatest = false, webContex
 กฎเหล็กของคุณภาพ (Strict Quality Bar):
 - ความยาวสูงสุดต่อ Query คือ 512 ตัวอักษร (ยัดให้คุ้มค่าที่สุด)
 - ทุก Query ต้องจบด้วย -filter:replies 
-- ${isLatest ? 'โหมดสายฟ้า (Latest): ใช้ min_faves:15-40 เพื่อให้ได้ข่าวใหม่ที่เริ่มมีพลัง' : 'โหมดปกติ (Top): ***ต้องใช้ min_faves:50 ถึง 1000 เท่านั้น*** เพื่อดึงเฉพาะผลงานระดับคุณภาพหรือไวรัลใหญ่'}
-- **Multi-Language Strategy**: ใช้ทั้งคำค้นภาษาไทยและอังกฤษควบคู่กัน (Thai & English Keywords) เพื่อให้ครอบคลุมทั้งกระแสในประเทศและระดับสากล
-- topicLabels: 5-8 คำสำคัญ
+- ${isLatest ? 'โหมดสายฟ้า (Latest): ใช้ min_faves:15-30 เพื่อให้ได้ข่าวใหม่ที่เริ่มมีพลัง' : 'โหมดปกติ (Top): ***ต้องใช้ min_faves:100 ถึง 1000 เท่านั้น*** เพื่อดึงเฉพาะผลงานระดับสงครามหรือไวรัลใหญ่'}
+- หากเป็นเรื่องเฉพาะทางหรืองานอดิเรก (เช่น เกม) ให้ใช้ min_faves:50 ขึ้นไปเสมอ
+- เน้นใช้ภาษาอังกฤษควบคู่กับไทย (lang:th OR lang:en)
 - ตอบเป็น JSON เท่านั้น`,
       prompt: `Topic: ${originalQuery}\n\nWeb Context (Ground Truth from Tavily):\n${webContext.slice(0, 1500) || 'No web news available.'}`,
       schema: z.object({
         primaryQuery: z.string().min(3).max(512),
-        relatedQueries: z.array(z.string().min(3)).max(2),
-        topicLabels: z.array(z.string().min(2)).max(8),
+        relatedQuery: z.string().min(3).max(512),
+        topicLabels: z.array(z.string().min(2)).max(5),
       }),
     });
 
@@ -858,8 +859,8 @@ export const buildSearchPlan = async (originalQuery, isLatest = false, webContex
     };
 
     const queries = Array.from(
-      new Set([object.primaryQuery, ...(object.relatedQueries || [])].map(normalizeQuery).filter(Boolean)),
-    ).slice(0, 3);
+      new Set([object.primaryQuery, object.relatedQuery].map(normalizeQuery).filter(Boolean)),
+    ).slice(0, 2); // Exactly 2 queries max
 
     return setCachedValue(responseCache, cacheKey, {
       queries: queries.length ? queries : [fallbackQuery],
