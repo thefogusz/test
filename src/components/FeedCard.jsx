@@ -190,7 +190,7 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
       </div>
 
       {/* ── FOOTER: Stats & Sublte Actions ── */}
-      <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+      <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
         {/* Minimalist Stats */}
         <div style={{ display: 'flex', gap: '12px' }}>
           {stats.map((s, i) => (
