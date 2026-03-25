@@ -99,7 +99,7 @@ const App = () => {
   const [searchWebSources, setSearchWebSources] = usePersistentState(STORAGE_KEYS.searchWebSources, [], {
     deserialize: deserializeStoredCollection,
   });
-  const [isSearching, setIsSearching] = usePersistentState(STORAGE_KEYS.isSearching, false);
+  const [isSearching, setIsSearching] = useState(false);
   const [isSourcesExpanded, setIsSourcesExpanded] = useState(false);
   const [searchCursor, setSearchCursor] = useState(null);
   const [activeSearchPlan, setActiveSearchPlan] = useState(null);
@@ -124,6 +124,12 @@ const App = () => {
   const [selectedArticle, setSelectedArticle] = useState(null);
   
   const [isMobilePostListOpen, setIsMobilePostListOpen] = useState(false);
+
+  // Lock body scroll when mobile bottom sheet is open (prevents tap→scroll bug)
+  useEffect(() => {
+    document.body.style.overflow = isMobilePostListOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobilePostListOpen]);
   const [readArchive, setReadArchive] = usePersistentState(STORAGE_KEYS.readArchive, [], {
     deserialize: deserializeStoredCollection,
   });
