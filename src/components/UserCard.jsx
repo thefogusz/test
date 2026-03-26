@@ -83,7 +83,7 @@ const UserCard = ({ user, postLists = [], onToggleList, onRemove }) => {
                     return (
                         <div 
                           key={list.id} 
-                          onClick={() => { onToggleList(user.username, list.id); setShowMenu(false); }}
+                          onClick={() => { onToggleList(list.id, user.username); setShowMenu(false); }}
                           className={`discovery-menu-item ${isMember ? 'active' : ''}`}
                         >
                           <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '8px' }}>{list.name}</span>

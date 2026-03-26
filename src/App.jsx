@@ -20,7 +20,6 @@ import {
   ShieldCheck,
   List,
   LayoutGrid,
-  Activity,
   BookOpen,
   ExternalLink,
   Link,
@@ -1036,13 +1035,14 @@ const App = () => {
     }
 
     // 2. Toggle in list
-    setPostLists(prev => prev.map(l => {
+    setPostLists(prev => (prev || []).map(l => {
       if (l.id !== listId) return l;
-      const alreadyIn = l.members.some(m => m.toLowerCase() === cleanHandle);
+      const members = Array.isArray(l.members) ? l.members : [];
+      const alreadyIn = members.some(m => m.toLowerCase() === cleanHandle);
       if (alreadyIn) {
-        return { ...l, members: l.members.filter(m => m.toLowerCase() !== cleanHandle) };
+        return { ...l, members: members.filter(m => m.toLowerCase() !== cleanHandle) };
       } else {
-        return { ...l, members: [...l.members, cleanHandle] };
+        return { ...l, members: [...members, cleanHandle] };
       }
     }));
   };
@@ -1700,12 +1700,13 @@ const App = () => {
               <div className="animate-fade-in">
                 <header className="dashboard-header audience-hero-header" style={{ marginBottom: '28px', paddingTop: '0' }}>
                   <div className="audience-hero-copy">
-                    <div className="audience-hero-mark">
-                      <Activity size={16} strokeWidth={2.2} />
-                    </div>
                     <div className="audience-hero-text">
-                      <div className="audience-hero-eyebrow">Smart Discovery System</div>
-                      <h1 className="audience-hero-title">Smart Target Discovery</h1>
+                      <h1 className="audience-hero-title">
+                        <span className="audience-hero-title-mark">
+                          <Zap size={18} fill="currentColor" />
+                        </span>
+                        <span>Smart Target Discovery</span>
+                      </h1>
                     </div>
                   </div>
                   <p className="audience-hero-subtitle">ค้นหาและเพิ่มแหล่งข้อมูลที่ตรงกับความสนใจของคุณ</p>
@@ -1767,7 +1768,7 @@ const App = () => {
                                         return (
                                           <button
                                             key={list.id}
-                                            onClick={() => { handleToggleMemberInList(list.id, expert.username); }}
+                                            onClick={(e) => { handleToggleMemberInList(list.id, expert.username); e.currentTarget.closest('.discovery-menu').style.display = 'none'; }}
                                             className={`discovery-menu-item ${isMember ? 'active' : ''}`}
                                           >
                                             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '8px' }}>{list.name}</span>
