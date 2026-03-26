@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import RightSidebar from './components/RightSidebar';
+import HomeCanvas from './components/HomeCanvas';
 import FeedCard from './components/FeedCard';
 import CreateContent from './components/CreateContent';
 import {
@@ -1218,25 +1219,19 @@ const App = () => {
               <div className="feed-grid">
                 {feed.length === 0 && (
                   <div className="home-splash">
-                    <div className="home-splash-bg" aria-hidden="true" />
+                    <HomeCanvas />
                     <div className="home-splash-inner">
-                      <div className="home-splash-icon-wrap" aria-hidden="true">
-                        <div className="home-splash-icon-ring" />
-                        <div className="home-splash-icon-core">
-                          {loading ? <RefreshCw size={18} className="animate-spin" /> : <Activity size={18} strokeWidth={2.2} />}
-                        </div>
-                      </div>
                       <div className="home-splash-label">
                         {watchlist.length === 0 ? 'READY TO START' : `${watchlist.length} SOURCES CONNECTED`}
                       </div>
                       <h2 className="home-splash-title">
                         {watchlist.length === 0
-                          ? (<>เริ่มสร้าง<span className="home-splash-title-accent">ฟีดของคุณ</span></>)
+                          ? (<>Monitor the signals<br /><span className="home-splash-title-accent">that matter</span></>)
                           : (<>พร้อม<span className="home-splash-title-accent">ดึงสัญญาณ</span>แล้ว</>)}
                       </h2>
                       <p className="home-splash-copy">
                         {watchlist.length === 0
-                          ? 'เพิ่มบัญชีที่อยากติดตามก่อน แล้วระบบจะรวมฟีดให้พร้อมในหน้าเดียว'
+                          ? 'ติดตามทุกการเคลื่อนไหวจากแหล่งที่คุณสนใจ รวมฟีดในที่เดียว วิเคราะห์ด้วย AI'
                           : `ดึงโพสต์ล่าสุดจาก ${watchlist.length} บัญชีที่คุณติดตาม วิเคราะห์และกรองด้วย AI ได้ทันที`}
                       </p>
                       <div className="home-splash-actions">
@@ -1254,6 +1249,7 @@ const App = () => {
                           </button>
                         )}
                       </div>
+                      <p className="home-splash-hint">เลื่อน cursor มาเล่นได้ · คลิกเพื่อระเบิดกราฟ</p>
                     </div>
                   </div>
                 )}
