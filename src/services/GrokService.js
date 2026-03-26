@@ -6,8 +6,8 @@ import { apiFetch, INTERNAL_TOKEN } from '../utils/apiFetch';
 
 const MODEL_NEWS_FAST = 'grok-4-1-fast-non-reasoning';
 const MODEL_REASONING_FAST = 'grok-4-1-fast-reasoning';
-const MODEL_WRITER = 'grok-4-1-fast-reasoning';
-const MODEL_MULTI_AGENT = 'grok-4-1-fast-reasoning'; // Temporarily downgraded to save costs
+const MODEL_WRITER = 'grok-4-1-fast-non-reasoning'; // Switched to non-reasoning for reliable streaming
+const MODEL_MULTI_AGENT = 'grok-4-1-fast-non-reasoning'; // Use fast model for multi-agent tasks
 
 const grok = createXai({
   apiKey: 'local-proxy',
