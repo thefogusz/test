@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git pull:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(grep -n \"port\\\\|server\" /d/TEST/vite.config.*)",
+      "Bash(grep -n \"port\\\\|host\" /d/TEST/vite.config.*)",
+      "Bash(xargs grep:*)",
+      "Bash(find D:/TEST/src -type f \\\\\\(-name *.js -o -name *.ts \\\\\\))",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}
