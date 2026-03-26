@@ -1302,8 +1302,20 @@ Example of GOOD Native Thai:
 
       return polishThaiContent(fullContent, { format, customInstructions, allowEmoji, tone });
     } catch (error) {
-      console.error('[GrokService] Streaming error (v2):', error);
-      throw error;
+      console.error('[GrokService] Streaming error (v2), falling back to non-streaming:', error);
+      const fallbackDraft = await callGrok({
+        modelName: MODEL_WRITER,
+        system: draftSystemPrompt,
+        prompt: draftUserPrompt,
+        temperature: writerTemperature,
+        topP: 0.85,
+        frequencyPenalty: writerFrequencyPenalty,
+        presencePenalty: 0.1,
+        allowEmoji,
+      });
+      const fallbackResult = polishThaiContent(fallbackDraft, { format, customInstructions, allowEmoji, tone });
+      onStreamChunk(fallbackResult);
+      return fallbackResult;
     }
   }
 
