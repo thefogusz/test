@@ -151,7 +151,7 @@ const App = () => {
 
   const [audienceTab, setAudienceTab] = usePersistentState(STORAGE_KEYS.audienceTab, 'manual'); 
   const [aiQuery, setAiQuery] = useState('');
-  const [aiSearchLoading, setAiSearchLoading] = usePersistentState(STORAGE_KEYS.aiSearchLoading, false);
+  const [aiSearchLoading, setAiSearchLoading] = useState(false);
   const [aiSearchResults, setAiSearchResults] = usePersistentState(STORAGE_KEYS.aiSearchResults, [], {
     deserialize: deserializeStoredCollection,
   });
@@ -162,7 +162,7 @@ const App = () => {
   const [aiFilterSummary, setAiFilterSummary] = useState('');
 
   // Global Background Tasks Persistence
-  const [isGeneratingContent, setIsGeneratingContent] = usePersistentState(STORAGE_KEYS.isGeneratingContent, false);
+  const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [genPhase, setGenPhase] = useState('idle');
 
   useEffect(() => {

@@ -507,46 +507,48 @@ const callGrok = async ({
   }
 };
 
-const deriveResearchQuery = async (input) => {
-  const fallback = (input || '').replace(/\s+/g, ' ').trim().slice(0, 160) || 'latest news';
+const deriveResearchQuery = async (input, context = '') => {
+  const baseInput = (input || '').replace(/\s+/g, ' ').trim().slice(0, 160) || 'latest news';
+  const combinedInput = context ? `${context}\n\n[USER INPUT]: ${baseInput}` : baseInput;
   
-  // 1. Heuristic-first bypass for simple queries (saves significant time/cost)
-  // Skip LLM extraction if it looks like a URL or a very short focused query
-  const hasUrl = /https?:\/\//i.test(fallback);
-  const wordCount = fallback.split(/\s+/).length;
+  // 1. Heuristic-first bypass for simple/raw queries
+  const hasUrl = /https?:\/\//i.test(baseInput);
+  const wordCount = baseInput.split(/\s+/).length;
   
-  if (hasUrl || (wordCount < 12 && fallback.length < 100)) {
-    // If it has a URL, clean up common URL noise but keep the substance
-    return fallback.replace(/https?:\/\/\S+/g, '').trim() || fallback;
+  // If it's just a URL and WE HAVE NO CONTEXT, we are forced to use the URL/fallback
+  // But if we have CONTEXT, we should use the LLM to get the BEST keywords
+  if (!context && (hasUrl || (wordCount < 12 && baseInput.length < 100))) {
+    return baseInput.replace(/https?:\/\/\S+/g, '').trim() || baseInput;
   }
 
-  const cacheKey = buildCacheKey('research-query', fallback);
+  const cacheKey = buildCacheKey('research-query', combinedInput);
   const cached = getCachedValue(responseCache, cacheKey);
   if (cached) return cached;
+
+  console.log('[GrokService] Deriving research query for:', baseInput.slice(0, 50) + '...');
 
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
       system:
-        'สกัดหนึ่งหัวข้อค้นหาที่กระชับจากคำขอที่ได้รับ โดยรักษาชื่อสำคัญ, ผลิตภัณฑ์, บริษัท และหัวข้อหลักไว้ ส่งผลลัพธ์เป็น JSON เท่านั้น',
-      prompt: input,
+        'สกัดหนึ่งหัวข้อค้นหาที่กระชับจากคำขอและบริบทพยายามรักษาชื่อสำคัญ, ผลิตภัณฑ์, บริษัท และหัวข้อหลักไว้ หากบริบทมีเนื้อหาเยอะ ให้เลือกจุดที่สำคัญที่สุดเพื่อใช้ค้นหาข่าวที่เกี่ยวข้อง ห้ามใช้ URL เป็นคำค้นหา ส่งผลลัพธ์เป็น JSON เท่านั้น',
+      prompt: combinedInput.slice(0, 1500),
       schema: z.object({
         searchQuery: z.string().min(1).max(160),
       }),
     });
 
+    const result = (object.searchQuery || baseInput).trim();
+    console.log('[GrokService] Derived research query:', result);
     return setCachedValue(
       responseCache,
       cacheKey,
-      (object.searchQuery || fallback).trim(),
+      result,
       QUERY_CACHE_TTL_MS,
     );
   } catch (error) {
-    if (error.status === 400) {
-      console.warn('[GrokService] 400 Bad Request in deriveResearchQuery. Check parameters/model.');
-    }
-    console.warn('[GrokService] Falling back to raw research query:', error.message);
-    return setCachedValue(responseCache, cacheKey, fallback, QUERY_CACHE_TTL_MS);
+    console.warn('[GrokService] Falling back in deriveResearchQuery:', error.message);
+    return setCachedValue(responseCache, cacheKey, baseInput, QUERY_CACHE_TTL_MS);
   }
 };
 
@@ -997,9 +999,14 @@ export const researchAndPreventHallucination = async (input, interactionData = '
     }
   }
 
-  const researchQuery = await deriveResearchQuery(
-    tweetRef ? `${tweetRef.username} ${input.replace(TWEET_URL_PATTERN, '').trim()}`.trim() : input
-  );
+  let researchQuery = '';
+  try {
+    const queryInput = tweetRef ? `${tweetRef.username} ${input.replace(TWEET_URL_PATTERN, '').trim()}`.trim() : input;
+    researchQuery = await deriveResearchQuery(queryInput, interactionData);
+  } catch (err) {
+    console.warn('[GrokService] Query derivation failed, using raw input:', err.message);
+    researchQuery = input.slice(0, 100);
+  }
   let webContext = '';
   let xContext = '';
   let extractedSources = [];
@@ -1053,6 +1060,7 @@ export const researchAndPreventHallucination = async (input, interactionData = '
     if (xTweets.length) {
       xContext = `[X EVIDENCE]\n${toTweetEvidence(xTweets, 6)}`;
     }
+    console.log('[GrokService] Evidence gathering complete:', { web: !!webContext, x: xTweets.length });
   } catch (error) {
     console.error('[GrokService] Search aggregation error:', error);
   }

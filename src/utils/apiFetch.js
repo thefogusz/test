@@ -10,11 +10,22 @@
 
 export const INTERNAL_TOKEN = import.meta.env.VITE_INTERNAL_API_SECRET ?? '';
 
+const DEFAULT_TIMEOUT_MS = 90000; // 90 seconds
+
 export const apiFetch = (url, options = {}) => {
+  const { timeout = DEFAULT_TIMEOUT_MS, ...fetchOptions } = options;
+  
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
   const headers = {
-    ...(options.headers || {}),
+    ...(fetchOptions.headers || {}),
     ...(INTERNAL_TOKEN ? { 'x-internal-token': INTERNAL_TOKEN } : {}),
   };
 
-  return fetch(url, { ...options, headers });
+  return fetch(url, { 
+    ...fetchOptions, 
+    headers,
+    signal: fetchOptions.signal || controller.signal 
+  }).finally(() => clearTimeout(id));
 };
