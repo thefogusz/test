@@ -258,12 +258,11 @@ const App = () => {
   const [filterModal, setFilterModal] = useState({ show: false, prompt: '' });
   const [readFilters, setReadFilters] = useState({ view: false, engagement: false });
 
-  const [audienceTab, setAudienceTab] = usePersistentState(STORAGE_KEYS.audienceTab, 'manual'); 
+  const [audienceTab, setAudienceTab] = usePersistentState(STORAGE_KEYS.audienceTab, 'ai');
+  const [audienceKey, setAudienceKey] = useState(0);
   const [aiQuery, setAiQuery] = useState('');
   const [aiSearchLoading, setAiSearchLoading] = useState(false);
-  const [aiSearchResults, setAiSearchResults] = usePersistentState(STORAGE_KEYS.aiSearchResults, [], {
-    deserialize: deserializeStoredCollection,
-  });
+  const [aiSearchResults, setAiSearchResults] = useState([]);
   const [manualQuery, setManualQuery] = useState('');
   const [manualPreview, setManualPreview] = useState(null);
 
@@ -305,6 +304,10 @@ const App = () => {
   useEffect(() => {
     setNextCursor(null);
     setPendingFeed([]);
+    if (activeView === 'audience') {
+      setAudienceKey(k => k + 1);
+      setAiSearchResults([]);
+    }
   }, [activeListId, activeView]);
 
   useEffect(() => {
@@ -1671,7 +1674,7 @@ const App = () => {
             </div>
 
           {/* ===== AUDIENCE VIEW: SMART TARGET DISCOVERY ===== */}
-          <div className="animate-fade-in" style={{ display: activeView === 'audience' ? 'block' : 'none' }}>
+          <div style={{ display: activeView === 'audience' ? 'block' : 'none' }}>
             {(() => {
               const CATEGORIES = [
                 { icon: '⚙️', label: 'เทคโนโลยี' }, { icon: '🤖', label: 'AI' },
@@ -1698,7 +1701,7 @@ const App = () => {
               );
 
             return (
-              <div className="animate-fade-in">
+              <div key={audienceKey} className="animate-fade-in">
                 <header className="dashboard-header audience-hero-header" style={{ marginBottom: '28px', paddingTop: '0' }}>
                   <div className="audience-hero-copy">
                     <div className="audience-hero-text">
