@@ -8,6 +8,7 @@ import {
   Undo2,
   Eye,
   Heart,
+  Activity,
   Zap,
   X,
   Plus,
@@ -1703,7 +1704,7 @@ const App = () => {
                     <div className="audience-hero-text">
                       <h1 className="audience-hero-title">
                         <span className="audience-hero-title-mark">
-                          <Zap size={18} fill="currentColor" />
+                          <Activity size={17} strokeWidth={2.2} />
                         </span>
                         <span>Smart Target Discovery</span>
                       </h1>
