@@ -1218,11 +1218,18 @@ const App = () => {
               )}
               <div className="feed-grid">
                 {feed.length === 0 && (
-                  <div className="home-splash">
+                  <div
+                    className="home-splash"
+                    onMouseMove={(e) => {
+                      const r = e.currentTarget.getBoundingClientRect();
+                      e.currentTarget.style.setProperty('--mx', `${((e.clientX - r.left) / r.width) * 100}%`);
+                      e.currentTarget.style.setProperty('--my', `${((e.clientY - r.top) / r.height) * 100}%`);
+                    }}
+                  >
                     <HomeCanvas />
                     <div className="home-splash-inner">
                       <h2 className="home-splash-title">
-                        ติดตามทุกเรื่อง<span className="home-splash-title-accent">ที่คุณสนใจ</span>
+                        FORO ติดตามทุกเรื่องที่คุณสนใจ
                       </h2>
                     </div>
                   </div>
