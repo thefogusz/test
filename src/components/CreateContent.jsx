@@ -425,7 +425,7 @@ const CreateContent = ({
         )}
 
         {/* Powerful Compact Toolbar */}
-        <div style={{ 
+        <div className="create-content-toolbar" style={{ 
           background: 'var(--bg-900)', 
           borderTop: '1px solid var(--glass-border)', 
           borderRadius: '0 0 20px 20px',
@@ -437,8 +437,8 @@ const CreateContent = ({
           gap: '16px'
         }}>
           {/* Left: Settings Group & Actions */}
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ 
+          <div className="create-content-toolbar-left" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <div className="create-content-toolbar-controls" style={{ 
               display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center',
               background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '100px',
               border: '1px solid rgba(255,255,255,0.03)'
@@ -471,6 +471,7 @@ const CreateContent = ({
           
           {/* Right: Premium Generate Button */}
           <button 
+            className="create-content-generate-btn"
             onClick={handleGenerate}
             disabled={isGenerating || (!input.trim() && !sourceNode)}
             style={{
@@ -586,15 +587,15 @@ const CreateContent = ({
       {/* Result Display - only parse markdown AFTER generation is fully done to prevent streaming crash */}
       {generatedMarkdown && !isGenerating && (
         <div id="content-result" className="animate-fade-in" style={{ marginTop: '32px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px', margin: 0, fontWeight: '800' }}>
+          <div className="content-result-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 className="content-result-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px', margin: 0, fontWeight: '800' }}>
               <ShieldCheck className="text-accent" size={24} />
               ผลลัพธ์พร้อมใช้งาน
             </h2>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div className="content-result-actions" style={{ display: 'flex', gap: '8px' }}>
               <button
                 onClick={() => setIsEditing(!isEditing)}
-                className="btn-pill"
+                className="btn-pill content-result-action-btn"
                 style={{ background: isEditing ? 'var(--accent-secondary)' : 'var(--bg-800)', height: '36px', padding: '0 16px', fontSize: '13px', color: isEditing ? '#fff' : 'inherit', transition: 'all 0.2s' }}
               >
                 <PenTool size={14} />
@@ -606,7 +607,7 @@ const CreateContent = ({
                   setIsSaved(true);
                   setTimeout(() => setIsSaved(false), 2000);
                 }}
-                className="btn-pill"
+                className="btn-pill content-result-action-btn"
                 style={{ background: 'var(--bg-800)', height: '36px', padding: '0 16px', fontSize: '13px', color: isSaved ? '#10b981' : 'inherit', transition: 'all 0.2s' }}
               >
                 {isSaved ? <CheckCircle2 size={14} color="#10b981" /> : <Bookmark size={14} />}
@@ -614,7 +615,7 @@ const CreateContent = ({
               </button>
               <button
                 onClick={copyToClipboard}
-                className="btn-pill"
+                className="btn-pill content-result-action-btn"
                 style={{ background: 'var(--bg-800)', height: '36px', padding: '0 16px', fontSize: '13px' }}
                 onMouseOver={(e) => e.currentTarget.style.background = 'var(--bg-700)'}
                 onMouseOut={(e) => e.currentTarget.style.background = 'var(--bg-800)'}

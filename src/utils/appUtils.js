@@ -154,3 +154,103 @@ export const deriveVisibleFeed = ({
 
 export const mergePlanLabelsIntoQuery = (requestedQuery, topicLabels = []) =>
   [requestedQuery, ...topicLabels].filter(Boolean).join(' ');
+
+const stripDiacritics = (value) =>
+  (value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+export const normalizeSearchText = (value) =>
+  stripDiacritics(String(value || ''))
+    .toLowerCase()
+    .replace(/[_-]+/g, ' ')
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const tokenizeSearchText = (value) =>
+  normalizeSearchText(value)
+    .split(' ')
+    .filter(Boolean);
+
+const levenshteinDistance = (source, target) => {
+  if (source === target) return 0;
+  if (!source.length) return target.length;
+  if (!target.length) return source.length;
+
+  const previous = new Array(target.length + 1);
+  const current = new Array(target.length + 1);
+
+  for (let j = 0; j <= target.length; j += 1) {
+    previous[j] = j;
+  }
+
+  for (let i = 1; i <= source.length; i += 1) {
+    current[0] = i;
+    for (let j = 1; j <= target.length; j += 1) {
+      const cost = source[i - 1] === target[j - 1] ? 0 : 1;
+      current[j] = Math.min(
+        current[j - 1] + 1,
+        previous[j] + 1,
+        previous[j - 1] + cost,
+      );
+    }
+
+    for (let j = 0; j <= target.length; j += 1) {
+      previous[j] = current[j];
+    }
+  }
+
+  return previous[target.length];
+};
+
+const tokenSimilarityScore = (queryToken, candidateToken) => {
+  if (!queryToken || !candidateToken) return 0;
+  if (candidateToken === queryToken) return 1;
+  if (candidateToken.startsWith(queryToken) || queryToken.startsWith(candidateToken)) return 0.92;
+  if (candidateToken.includes(queryToken)) return 0.82;
+
+  const distance = levenshteinDistance(queryToken, candidateToken);
+  const maxLength = Math.max(queryToken.length, candidateToken.length);
+  if (!maxLength) return 0;
+
+  const similarity = 1 - distance / maxLength;
+  return similarity >= 0.58 ? similarity * 0.78 : 0;
+};
+
+export const scoreFuzzyTextMatch = (query, ...fields) => {
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) return 1;
+
+  const queryTokens = tokenizeSearchText(normalizedQuery);
+  const normalizedFields = fields
+    .flat()
+    .map((field) => normalizeSearchText(field))
+    .filter(Boolean);
+
+  if (normalizedFields.length === 0) return 0;
+
+  const joinedText = normalizedFields.join(' ');
+  const fieldTokens = normalizedFields.flatMap(tokenizeSearchText);
+
+  let score = 0;
+
+  if (joinedText.includes(normalizedQuery)) {
+    score += 2.6;
+  }
+
+  queryTokens.forEach((queryToken) => {
+    let bestTokenScore = 0;
+
+    for (const fieldToken of fieldTokens) {
+      const candidateScore = tokenSimilarityScore(queryToken, fieldToken);
+      if (candidateScore > bestTokenScore) bestTokenScore = candidateScore;
+      if (bestTokenScore >= 1) break;
+    }
+
+    score += bestTokenScore;
+  });
+
+  const averageTokenScore = queryTokens.length ? score / queryTokens.length : score;
+  return averageTokenScore >= 0.62 ? score : 0;
+};

@@ -24,7 +24,19 @@ import {
   BookOpen,
   ExternalLink,
   Link,
-  Users
+  Users,
+  Cpu,
+  Bot,
+  BriefcaseBusiness,
+  TrendingUp,
+  BadgeDollarSign,
+  ChartColumn,
+  Bitcoin,
+  HeartPulse,
+  Leaf,
+  Globe2,
+  Landmark,
+  BrainCircuit
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import RightSidebar from './components/RightSidebar';
@@ -52,6 +64,8 @@ import {
   sanitizeStoredSingle,
   sanitizeCollectionState,
   getEngagementTotal,
+  normalizeSearchText,
+  scoreFuzzyTextMatch,
   toNumber,
   mergePlanLabelsIntoQuery
 } from './utils/appUtils';
@@ -70,6 +84,93 @@ const deserializeAttachedSource = (saved) =>
   sanitizeStoredSingle(safeParse(saved, null));
 
 const deserializePostLists = (saved) => safeParse(saved, []);
+
+const MAX_SEARCH_PRESETS = 4;
+
+const normalizeSearchLabel = (value) => (value || '').trim().replace(/\s+/g, ' ');
+
+const deserializeSearchPresets = (saved) => {
+  const parsed = safeParse(saved, []);
+  if (!Array.isArray(parsed)) return [];
+
+  return Array.from(
+    new Set(
+      parsed
+        .map((item) => normalizeSearchLabel(typeof item === 'string' ? item : item?.label))
+        .filter(Boolean),
+    ),
+  ).slice(0, MAX_SEARCH_PRESETS);
+};
+
+const deserializeSearchHistory = (saved) => {
+  const parsed = safeParse(saved, []);
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed
+    .map((item) => ({
+      query: normalizeSearchLabel(item?.query),
+      count: Math.max(1, Number(item?.count) || 1),
+      lastUsedAt: typeof item?.lastUsedAt === 'string' ? item.lastUsedAt : new Date(0).toISOString(),
+    }))
+    .filter((item) => item.query)
+    .slice(0, 12);
+};
+
+const TOPIC_STOPWORDS = new Set([
+  'the', 'and', 'for', 'with', 'from', 'that', 'this', 'your', 'about', 'into', 'over', 'after',
+  'have', 'has', 'will', 'just', 'more', 'than', 'what', 'when', 'where', 'their', 'they', 'them',
+  'ข่าว', 'โพสต์', 'สรุป', 'ข้อมูล', 'ล่าสุด', 'ตอนนี้', 'ระบบ', 'ของ', 'และ', 'หรือ', 'ที่', 'ใน', 'จาก',
+  'ให้', 'แล้ว', 'กับ', 'แบบ', 'มาก', 'ขึ้น', 'ตาม', 'ผ่าน', 'เพื่อ', 'ยัง', 'ไม่มี', 'อยู่',
+]);
+
+const TOPIC_ALLOWLIST = new Set([
+  'AI', 'Web3', 'Crypto', 'Esport', 'Esports', 'Gaming', 'Marketing', 'Startup', 'Netflix', 'YouTube',
+  'Epic Games', 'Epic Games Store', 'Dune', 'Steam', 'Xbox', 'PS5', 'OpenAI', 'Bitcoin', 'Ethereum',
+]);
+
+const extractInterestTopics = (items = []) => {
+  const topicScores = new Map();
+
+  const pushTopic = (rawLabel, weight = 1) => {
+    const label = normalizeSearchLabel(rawLabel);
+    if (!label) return;
+    const normalized = normalizeSearchText(label);
+    if (!normalized || TOPIC_STOPWORDS.has(normalized)) return;
+
+    if (!TOPIC_ALLOWLIST.has(label)) {
+      if (label.startsWith('@')) return;
+      if (label.length < 3 || label.length > 32) return;
+      if (/^[a-z0-9_]+$/i.test(label) && !/[A-Z]/.test(label) && !/[ก-ฮ]/.test(label)) return;
+      if (label.split(' ').length > 3) return;
+    }
+
+    topicScores.set(label, (topicScores.get(label) || 0) + weight);
+  };
+
+  items.forEach((item) => {
+    const text = [item?.summary, item?.text].filter(Boolean).join(' ');
+    const authorName = normalizeSearchText(item?.author?.name);
+    const authorUsername = normalizeSearchText(item?.author?.username);
+
+    const hashtags = text.match(/#([\p{L}\p{N}_]{3,30})/gu) || [];
+    hashtags.forEach((hashtag) => pushTopic(hashtag.replace(/^#/, ''), 3));
+
+    const uppercasePhrases = text.match(/\b(?:AI|Web3|Crypto|Gaming|Esports?|Netflix|YouTube|Steam|Xbox|PS5|OpenAI|Bitcoin|Ethereum|Dune|Epic Games(?: Store)?)\b/gi) || [];
+    uppercasePhrases.forEach((phrase) => pushTopic(phrase, 3));
+
+    const properNouns = text.match(/\b[A-Z][a-zA-Z0-9+.-]{2,}(?:\s+[A-Z][a-zA-Z0-9+.-]{2,}){0,2}\b/g) || [];
+    properNouns.forEach((phrase) => {
+      const normalizedPhrase = normalizeSearchText(phrase);
+      if (normalizedPhrase === authorName || normalizedPhrase === authorUsername) return;
+      pushTopic(phrase, 2);
+    });
+  });
+
+  return Array.from(topicScores.entries())
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+    .map(([label]) => label)
+    .slice(0, 6);
+};
 
 const shouldRemoveWhenFalsy = (value) => !value;
 
@@ -96,6 +197,12 @@ const App = () => {
     deserialize: deserializeStoredCollection,
   });
   const [searchSummary, setSearchSummary] = usePersistentState(STORAGE_KEYS.searchSummary, '');
+  const [searchPresets, setSearchPresets] = usePersistentState(STORAGE_KEYS.searchPresets, [], {
+    deserialize: deserializeSearchPresets,
+  });
+  const [searchHistory, setSearchHistory] = usePersistentState(STORAGE_KEYS.searchHistory, [], {
+    deserialize: deserializeSearchHistory,
+  });
   const [searchWebSources, setSearchWebSources] = usePersistentState(STORAGE_KEYS.searchWebSources, [], {
     deserialize: deserializeStoredCollection,
   });
@@ -124,6 +231,7 @@ const App = () => {
   const [selectedArticle, setSelectedArticle] = useState(null);
   
   const [isMobilePostListOpen, setIsMobilePostListOpen] = useState(false);
+  const [reopenMobilePostListAfterModal, setReopenMobilePostListAfterModal] = useState(false);
 
   // Lock body scroll when mobile bottom sheet is open (prevents tap→scroll bug)
   useEffect(() => {
@@ -133,6 +241,7 @@ const App = () => {
   const [readArchive, setReadArchive] = usePersistentState(STORAGE_KEYS.readArchive, [], {
     deserialize: deserializeStoredCollection,
   });
+  const [readSearchQuery, setReadSearchQuery] = usePersistentState(STORAGE_KEYS.readSearchQuery, '');
 
   const [createContentSource, setCreateContentSource] = usePersistentState(STORAGE_KEYS.attachedSource, null, {
     deserialize: deserializeAttachedSource,
@@ -350,10 +459,62 @@ const App = () => {
     }
   };
 
+  const recordSearchInterest = (rawQuery) => {
+    const normalizedQuery = normalizeSearchLabel(rawQuery);
+    if (!normalizedQuery) return;
+
+    setSearchHistory((prev) => {
+      const now = new Date().toISOString();
+      const next = Array.isArray(prev) ? [...prev] : [];
+      const existingIndex = next.findIndex(
+        (item) => item.query.toLowerCase() === normalizedQuery.toLowerCase(),
+      );
+
+      if (existingIndex >= 0) {
+        const existing = next[existingIndex];
+        next[existingIndex] = {
+          ...existing,
+          query: existing.query,
+          count: (existing.count || 0) + 1,
+          lastUsedAt: now,
+        };
+      } else {
+        next.unshift({ query: normalizedQuery, count: 1, lastUsedAt: now });
+      }
+
+      return next
+        .sort((left, right) => {
+          if ((right.count || 0) !== (left.count || 0)) return (right.count || 0) - (left.count || 0);
+          return new Date(right.lastUsedAt).getTime() - new Date(left.lastUsedAt).getTime();
+        })
+        .slice(0, 12);
+    });
+  };
+
+  const addSearchPreset = (rawQuery) => {
+    const normalizedQuery = normalizeSearchLabel(rawQuery);
+    if (!normalizedQuery) return;
+
+    setSearchPresets((prev) => {
+      const next = Array.isArray(prev) ? [...prev] : [];
+      if (next.some((item) => item.toLowerCase() === normalizedQuery.toLowerCase())) return next;
+      return [normalizedQuery, ...next].slice(0, MAX_SEARCH_PRESETS);
+    });
+  };
+
+  const removeSearchPreset = (labelToRemove) => {
+    setSearchPresets((prev) =>
+      (Array.isArray(prev) ? prev : []).filter(
+        (item) => item.toLowerCase() !== labelToRemove.toLowerCase(),
+      ),
+    );
+  };
+
   const handleSearch = async (e, isMore = false, overrideQuery = '') => {
     if (e) e.preventDefault();
     const requestedQuery = overrideQuery || searchQuery;
     if (!requestedQuery && !isMore) return;
+    if (!isMore) recordSearchInterest(requestedQuery);
     setIsSearching(true);
     if (!isMore) setSearchSummary('');
     setStatus(`AI กำลังค้นหาข้อมูลสำหรับ "${requestedQuery}"...`);
@@ -510,6 +671,110 @@ const App = () => {
     }
   };
 
+  const searchHistoryLabels = searchHistory.map((item) => item.query).filter(Boolean);
+  const feedInterestLabels = extractInterestTopics([
+    ...originalFeed.slice(0, 12),
+    ...readArchive.slice(0, 12),
+  ]);
+  const interestSeedLabels = [
+    ...postLists.map((list) => normalizeSearchLabel(list?.name)),
+    ...feedInterestLabels,
+  ].filter(Boolean);
+  const dynamicSearchTags = [
+    ...searchPresets.map((label) => ({ label, source: 'preset' })),
+    ...searchHistoryLabels
+      .filter((label) => !searchPresets.some((preset) => preset.toLowerCase() === label.toLowerCase()))
+      .map((label) => ({ label, source: 'history' })),
+    ...interestSeedLabels
+      .filter(
+        (label) =>
+          !searchPresets.some((preset) => preset.toLowerCase() === label.toLowerCase()) &&
+          !searchHistoryLabels.some((historyItem) => historyItem.toLowerCase() === label.toLowerCase()),
+      )
+      .map((label) => ({ label, source: 'interest' })),
+    ...commonKeywords
+      .filter(
+        (label) =>
+          !searchPresets.some((preset) => preset.toLowerCase() === label.toLowerCase()) &&
+          !searchHistoryLabels.some((historyItem) => historyItem.toLowerCase() === label.toLowerCase()) &&
+          !interestSeedLabels.some((interestItem) => interestItem.toLowerCase() === label.toLowerCase()),
+      )
+      .map((label) => ({ label, source: 'fallback' })),
+  ].slice(0, MAX_SEARCH_PRESETS);
+
+  const canSaveCurrentSearchAsPreset =
+    !!normalizeSearchLabel(searchQuery) &&
+    !searchPresets.some((item) => item.toLowerCase() === normalizeSearchLabel(searchQuery).toLowerCase()) &&
+    searchPresets.length < MAX_SEARCH_PRESETS;
+
+  const normalizedReadSearchQuery = normalizeSearchText(readSearchQuery);
+  const readSearchSuggestions = Array.from(
+    new Set(
+      readArchive
+        .flatMap((item) => [
+          item?.author?.name,
+          item?.author?.username ? `@${item.author.username}` : '',
+          item?.summary,
+          item?.text,
+        ])
+        .filter(Boolean)
+        .flatMap((value) =>
+          String(value)
+            .split(/[\n,]/)
+            .map((part) => part.trim()),
+        )
+        .filter((value) => {
+          const normalizedValue = normalizeSearchText(value);
+          return (
+            normalizedReadSearchQuery &&
+            normalizedValue &&
+            normalizedValue !== normalizedReadSearchQuery &&
+            normalizedValue.includes(normalizedReadSearchQuery)
+          );
+        }),
+    ),
+  ).slice(0, 4);
+
+  const filteredReadArchive = readArchive
+    .filter((item) => {
+      if (!activeListId) return true;
+      const activeList = postLists.find((list) => list.id === activeListId);
+      if (!activeList) return true;
+      return item && item.author && activeList.members.some((member) => member.toLowerCase() === item.author.username?.toLowerCase());
+    })
+    .map((item) => ({
+      item,
+      searchScore: normalizedReadSearchQuery
+        ? scoreFuzzyTextMatch(
+            normalizedReadSearchQuery,
+            item?.author?.name,
+            item?.author?.username,
+            item?.summary,
+            item?.text,
+          )
+        : 1,
+    }))
+    .filter(({ searchScore }) => searchScore > 0)
+    .sort((left, right) => {
+      if (normalizedReadSearchQuery && right.searchScore !== left.searchScore) {
+        return right.searchScore - left.searchScore;
+      }
+
+      if (!readFilters.view && !readFilters.engagement) {
+        return new Date(right.item.created_at || 0) - new Date(left.item.created_at || 0);
+      }
+
+      const scoreA =
+        (readFilters.view ? toNumber(left.item.view_count) : 0) +
+        (readFilters.engagement ? getEngagementTotal(left.item) : 0);
+      const scoreB =
+        (readFilters.view ? toNumber(right.item.view_count) : 0) +
+        (readFilters.engagement ? getEngagementTotal(right.item) : 0);
+
+      return scoreB - scoreA;
+    })
+    .map(({ item }) => item);
+
   useEffect(() => {
     const isAudienceManual = activeView === 'audience' && audienceTab === 'manual';
     const query = isAudienceManual ? manualQuery : searchQuery;
@@ -519,9 +784,13 @@ const App = () => {
       return;
     }
 
-    const filteredSuggestions = commonKeywords.filter(kw => 
-      kw.toLowerCase().includes(query.toLowerCase()) && kw.toLowerCase() !== query.toLowerCase()
-    ).slice(0, 5);
+    const suggestionPool = Array.from(
+      new Set([...searchPresets, ...searchHistoryLabels, ...interestSeedLabels, ...commonKeywords]),
+    );
+
+    const filteredSuggestions = suggestionPool
+      .filter((kw) => kw.toLowerCase().includes(query.toLowerCase()) && kw.toLowerCase() !== query.toLowerCase())
+      .slice(0, 5);
     setSuggestions(filteredSuggestions);
 
     // Removed automatic debounced search as requested by user (Bug fix)
@@ -537,7 +806,7 @@ const App = () => {
     }
     */
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, manualQuery, activeView, audienceTab, contentTab]);
+  }, [searchQuery, manualQuery, activeView, audienceTab, contentTab, searchPresets, searchHistory, postLists, watchlist]);
 
   const resolvePlaceholders = async (nodes) => {
     for (const placeholder of nodes) {
@@ -556,6 +825,7 @@ const App = () => {
 
   const finalizeListAction = async () => {
     if (!listModal.value) return;
+    let shouldReopenMobileSheet = reopenMobilePostListAfterModal;
     if (listModal.mode === 'create') {
       const newList = { id: Date.now().toString(), name: listModal.value, color: 'var(--accent-secondary)', members: [], createdAt: new Date().toISOString() };
       setPostLists([...postLists, newList]);
@@ -593,13 +863,19 @@ const App = () => {
         }
 
         setPostLists([...postLists, newList]);
+        setActiveListId(newList.id);
         setStatus(`นำเข้า Post List "${newList.name}" สำเร็จ (${newMembers.length} บัญชี)`);
       } catch (err) { 
         console.error(err); 
         setStatus('นำเข้าล้มเหลว: รหัสไม่ถูกต้อง');
+        shouldReopenMobileSheet = false;
       }
     }
     setListModal({ show: false, mode: 'create', value: '' });
+    if (shouldReopenMobileSheet) {
+      setIsMobilePostListOpen(true);
+    }
+    setReopenMobilePostListAfterModal(false);
   };
 
   const handleRemoveAccountGlobal = (id) => {
@@ -650,6 +926,8 @@ const App = () => {
     setActiveFilters(prev => ({ ...prev, [type]: !prev[type] }));
   };
 
+  const aiFilterPresets = ['สรุปทั้งหมด', 'หาโพสต์เด่น', 'หาโพสต์ฮาๆ', 'หาโพสต์ที่คนพูดถึงมาก'];
+
 
 
   const handleAiFilter = async () => {
@@ -658,8 +936,23 @@ const App = () => {
     setStatus('AI กำลังวิเคราะห์และคัดกรองเนื้อหา...');
     
     try {
-      const validPicks = await agentFilterFeed(feed, filterModal.prompt);
-      const filteredResult = feed
+      const sourceFeed = deriveVisibleFeed({
+        activeFilters,
+        activeListId,
+        activeView: 'home',
+        originalFeed,
+        postLists,
+        watchlist,
+      });
+
+      if (sourceFeed.length === 0) {
+        setFilterModal(prev => ({ ...prev, show: false, isFiltering: false }));
+        setStatus('à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µà¹‚à¸žà¸ªà¸•à¹Œà¹ƒà¸™ Watchlist Feed à¹ƒà¸«à¹‰ AI à¸à¸£à¸­à¸‡');
+        return;
+      }
+
+      const validPicks = await agentFilterFeed(sourceFeed, filterModal.prompt);
+      const filteredResult = sourceFeed
         .filter(t => validPicks.some(pick => String(pick.id) === String(t.id)))
         .map(t => {
           const matchingPick = validPicks.find(pick => String(pick.id) === String(t.id));
@@ -697,6 +990,9 @@ const App = () => {
     setOriginalFeed([...originalFeed]);
     setStatus('ล้างตัวกรองแล้ว');
   };
+
+  const hasHomeSecondaryActions = originalFeed.length > 0 || deletedFeed.length > 0;
+  const showHomeFeedToolbar = feed.length > 0 || isFiltered;
 
   const handleAiSearchAudience = async (q, isMore = false) => {
     const query = q || aiQuery;
@@ -792,11 +1088,11 @@ const App = () => {
           {/* ===== HOME VIEW ===== */}
           <div className="animate-fade-in" style={{ display: activeView === 'home' ? 'block' : 'none' }}>
             <header className="dashboard-header dashboard-header-home" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '32px' }}>
-                <div className="mobile-only-flex" style={{ justifyContent: 'center', width: '100%', marginBottom: '-8px', minHeight: '32px' }}>
-                  <img src="logo.png" alt="FO" style={{ height: '24px', width: '48px', display: 'block' }} loading="eager" />
-                </div>
                 <div className="dashboard-header-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
+                  <div className="mobile-only-flex home-mobile-logo" style={{ justifyContent: 'center', width: 'auto', minHeight: '32px' }}>
+                    <img src="logo.png" alt="FO" className="home-mobile-logo-img" style={{ height: '24px', width: 'auto', display: 'block' }} loading="eager" />
+                  </div>
+                  <div className="dashboard-header-title-block" style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
                     <div style={{ color: 'var(--text-dim)', fontSize: '13px', fontWeight: '500' }}>WATCHLIST FEED</div>
                     <h1 style={{ margin: 0, fontSize: '32px', fontWeight: '800', color: activeListId ? (postLists.find(l => l.id === activeListId)?.color || 'inherit') : 'inherit' }}>
                       {activeListId ? postLists.find(l => l.id === activeListId)?.name : 'หน้าหลัก'}
@@ -805,21 +1101,48 @@ const App = () => {
                   <button className="mobile-only-flex icon-btn-large" onClick={() => setIsMobilePostListOpen(true)}><List size={20} /></button>
                 </div>
                 
-                <div className="dashboard-header-actions" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '12px' }}>
+                <div className={`dashboard-header-actions home-control-panel ${hasHomeSecondaryActions ? '' : 'home-control-panel-compact'}`} style={{ display: 'flex', alignItems: 'center', justifyContent: hasHomeSecondaryActions ? 'space-between' : 'flex-end', width: '100%', gap: '12px' }}>
                   <div className="dashboard-header-actions-group" style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={handleDeleteAll} className="icon-btn-large"><Trash2 size={18} /></button>
-                    <button onClick={handleUndo} className="icon-btn-large"><Undo2 size={18} /></button>
+                    {originalFeed.length > 0 && (
+                      <button onClick={handleDeleteAll} className="icon-btn-large header-secondary-action"><Trash2 size={16} /></button>
+                    )}
+                    {deletedFeed.length > 0 && (
+                      <button onClick={handleUndo} className="icon-btn-large header-secondary-action undo-reveal"><Undo2 size={16} /></button>
+                    )}
+                  </div>
+                  <div className="mobile-only-flex home-mobile-feed-inline" style={{ alignItems: 'center', justifyContent: 'space-between', gap: '12px', width: '100%' }}>
+                    <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div className="section-title">à¹‚à¸žà¸ªà¸•à¹Œà¸¥à¹ˆà¸²à¸ªà¸¸à¸”</div>
+                      {isFiltered && (
+                        <div className="ai-filtered-badge">
+                          <Sparkles size={12} className="text-accent" />
+                          <span>AI FILTERED</span>
+                          <button onClick={clearAiFilter} className="ai-filtered-clear-btn" title="à¸¥à¹‰à¸²à¸‡à¸•à¸±à¸§à¸à¸£à¸­à¸‡">
+                            <X size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="feed-section-filters" style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => handleSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`}>à¸¢à¸­à¸”à¸§à¸´à¸§</button>
+                      <button onClick={() => handleSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`}>à¹€à¸­à¸™à¹€à¸à¸ˆà¹€à¸¡à¸™à¸•à¹Œ</button>
+                    </div>
                   </div>
                   <div className="dashboard-header-actions-group dashboard-header-actions-group-primary" style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => setFilterModal({ show: true, prompt: '' })} className="btn-pill">AI Filter</button>
+                    <button
+                      onClick={() => setFilterModal({ show: true, prompt: '' })}
+                      className={`btn-pill ${activeView === 'home' && feed.length > 0 ? 'home-ai-filter-ready' : ''}`}
+                    >
+                      AI Filter
+                    </button>
                     <button onClick={handleSync} disabled={loading} className="btn-pill primary">
-                      {loading ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} ซิงค์ข้อมูล
+                      {loading ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} ฟีดข้อมูล
                     </button>
                   </div>
                 </div>
               </header>
 
-              <div className="feed-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              {showHomeFeedToolbar && <div className="feed-section-header home-desktop-feed-header home-feed-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div className="section-title">โพสต์ล่าสุด</div>
                   {isFiltered && (
@@ -836,14 +1159,15 @@ const App = () => {
                   <button onClick={() => handleSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`}>ยอดวิว</button>
                   <button onClick={() => handleSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`}>เอนเกจเมนต์</button>
                 </div>
-              </div>
+              </div>}
 
               {aiFilterSummary && (
                 <div className="search-summary-card animate-fade-in">
                   <div style={{
                     position: 'absolute', top: '-20px', left: '-20px', width: '120px', height: '120px',
                     background: 'radial-gradient(circle, rgba(41, 151, 255, 0.15) 0%, transparent 70%)',
-                    zIndex: 0
+                    zIndex: 0,
+                    pointerEvents: 'none'
                   }}></div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
@@ -888,7 +1212,43 @@ const App = () => {
                 </div>
               )}
               <div className="feed-grid">
-                {feed.length === 0 ? (
+                {feed.length === 0 && false && (
+                  <div className="home-empty-state animate-fade-in">
+                    <div className="home-empty-state-inner">
+                      <div className="home-empty-orb" aria-hidden="true">
+                        <div className="home-empty-orb-ring home-empty-orb-ring-primary" />
+                        <div className="home-empty-orb-ring home-empty-orb-ring-secondary" />
+                        <div className="home-empty-orb-core">
+                          {watchlist.length === 0 ? <Users size={18} /> : <Sparkles size={18} />}
+                        </div>
+                      </div>
+                      <div className="home-empty-badge">
+                        {watchlist.length === 0 ? 'READY TO START' : 'WAITING FOR FRESH SIGNALS'}
+                      </div>
+                      <div className="home-empty-title">
+                        {watchlist.length === 0 ? 'เริ่มสร้างฟีดของคุณ' : 'ยังไม่มีโพสต์ในฟีดตอนนี้'}
+                      </div>
+                      <div className="home-empty-copy">
+                        {watchlist.length === 0
+                          ? 'เพิ่มบัญชีที่อยากติดตามก่อน แล้วระบบจะช่วยรวมฟีดให้พร้อมใช้งานในหน้าเดียว'
+                          : 'ซิงค์ข้อมูลเพื่อดึงโพสต์ล่าสุดจากบัญชีที่คุณติดตาม แล้วค่อยใช้ AI Filter หรือฟิลเตอร์แบบง่ายต่อได้ทันที'}
+                      </div>
+                      <div className="home-empty-actions">
+                        {watchlist.length === 0 ? (
+                          <button className="btn-pill primary" onClick={() => setActiveView('audience')}>
+                            <Users size={16} /> เพิ่มแหล่งที่ติดตาม
+                          </button>
+                        ) : (
+                          <button className="btn-pill primary" onClick={handleSync} disabled={loading}>
+                            {loading ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+                            ซิงค์ข้อมูลตอนนี้
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {feed.length === 0 && false ? (
                   <div className="empty-state-card">
                     {watchlist.length === 0 ? 'เริ่มโดยการเพิ่มบัญชีที่ต้องการติดตาม' : 'กดปุ่มซิงค์ข้อมูลเพื่อสรุปข่าว'}
                   </div>
@@ -1010,6 +1370,22 @@ const App = () => {
                         </button>
                       </div>
                     )}
+                    {(canSaveCurrentSearchAsPreset || searchPresets.length > 0) && (
+                      <div className="search-preset-toolbar">
+                        <div className="search-preset-toolbar-copy">
+                          {searchPresets.length > 0 ? `Preset ของคุณ ${searchPresets.length}/${MAX_SEARCH_PRESETS}` : 'บันทึกคำค้นไว้ใช้ซ้ำได้สูงสุด 4 ปุ่ม'}
+                        </div>
+                        {canSaveCurrentSearchAsPreset && (
+                          <button
+                            type="button"
+                            className="search-preset-save-btn"
+                            onClick={() => addSearchPreset(searchQuery)}
+                          >
+                            <Plus size={14} /> บันทึกเป็น Preset
+                          </button>
+                        )}
+                      </div>
+                    )}
                     {showSuggestions && suggestions.length > 0 && (
                       <div className="search-suggestions-dropdown">
                         {suggestions.map((item, idx) => (
@@ -1050,13 +1426,32 @@ const App = () => {
                     )}
 
                     {!searchQuery && searchResults.length === 0 && !isSearching && (
-                      <div className="search-idea-tags animate-fade-in">
-                        <p>ลองค้นหาคีย์เวิร์ดเหล่านี้...</p>
+                      <div className="search-idea-tags search-preset-hub animate-fade-in">
+                        <div className="search-preset-hub-header">
+                          <p>{searchPresets.length > 0 ? 'Preset ของคุณ' : searchHistory.length > 0 ? 'ต่อจากสิ่งที่คุณสนใจ' : interestSeedLabels.length > 0 ? 'ตามสิ่งที่คุณกำลังติดตาม' : 'เริ่มจากหัวข้อยอดนิยม'}</p>
+                          <span>{searchPresets.length > 0 ? 'กดเพื่อค้นหาทันที หรือลบปุ่มที่ไม่ใช้แล้ว' : searchHistory.length > 0 ? 'ระบบจะดันคำค้นที่คุณใช้จริงขึ้นมาก่อน แล้วค่อยเติมหัวข้อที่เกี่ยวข้องให้' : interestSeedLabels.length > 0 ? 'ระบบหยิบจากลิสต์และบัญชีที่คุณติดตามมาเป็นจุดเริ่มต้นให้' : 'เมื่อคุณเริ่มค้นหา ระบบจะเรียนรู้และเปลี่ยนปุ่มชุดนี้ให้เหมาะกับคุณมากขึ้น'}</span>
+                        </div>
                         <div className="tags-row">
-                          {['AI Trends 2026', 'สรุปข่าว AI', 'เทคโนโลยี', 'Web3 & Crypto', 'Social Media', 'Marketing', 'Startup Funding'].map(tag => (
-                            <button key={tag} className="idea-tag" type="button" onClick={() => { setSearchQuery(tag); handleSearch(null, false, tag); }}>
-                              {tag}
-                            </button>
+                          {dynamicSearchTags.map((tag) => (
+                            <div key={`${tag.source}-${tag.label}`} className={`idea-tag search-preset-pill ${tag.source === 'preset' ? 'is-preset' : ''}`}>
+                              <button
+                                type="button"
+                                className="search-preset-pill-button"
+                                onClick={() => { setSearchQuery(tag.label); handleSearch(null, false, tag.label); }}
+                              >
+                                {tag.label}
+                              </button>
+                              {tag.source === 'preset' && (
+                                <button
+                                  type="button"
+                                  className="search-preset-remove-btn"
+                                  aria-label={`ลบ preset ${tag.label}`}
+                                  onClick={() => removeSearchPreset(tag.label)}
+                                >
+                                  <X size={12} />
+                                </button>
+                              )}
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -1077,11 +1472,12 @@ const App = () => {
                         boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
                       }}>
                         {/* Shimmer effect behind icon */}
-                        <div style={{
-                          position: 'absolute', top: '-20px', left: '-20px', width: '120px', height: '120px',
-                          background: 'radial-gradient(circle, rgba(41, 151, 255, 0.15) 0%, transparent 70%)',
-                          zIndex: 0
-                        }}></div>
+                  <div style={{
+                    position: 'absolute', top: '-20px', left: '-20px', width: '120px', height: '120px',
+                    background: 'radial-gradient(circle, rgba(41, 151, 255, 0.15) 0%, transparent 70%)',
+                    zIndex: 0,
+                    pointerEvents: 'none'
+                  }}></div>
 
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1209,36 +1605,67 @@ const App = () => {
                 {activeListId && <div className="active-list-pills">กำลังกรองตาม: {postLists.find(l => l.id === activeListId)?.name}</div>}
               </header>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '24px' }}>
-                {readArchive.length > 0 && (
-                  <div style={{ display: 'flex', gap: '8px' }}>
+              {readArchive.length > 0 && (
+                <div className="reader-toolbar">
+                  <div className="reader-search-shell">
+                    <div className="reader-search-input-wrap">
+                      <Search size={18} className="reader-search-icon" />
+                      <input
+                        type="text"
+                        className="reader-search-input"
+                        placeholder="ค้นหาจากชื่อบัญชี เนื้อหา หรือคำใกล้เคียง..."
+                        value={readSearchQuery}
+                        onChange={(e) => setReadSearchQuery(e.target.value)}
+                      />
+                      {readSearchQuery && (
+                        <button
+                          type="button"
+                          className="reader-search-clear"
+                          onClick={() => setReadSearchQuery('')}
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                    {readSearchSuggestions.length > 0 && (
+                      <div className="reader-search-suggestions">
+                        {readSearchSuggestions.map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            type="button"
+                            className="reader-search-suggestion-pill"
+                            onClick={() => setReadSearchQuery(suggestion)}
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="reader-toolbar-actions">
+                    <span className="reader-toolbar-count">{filteredReadArchive.length} รายการ</span>
                     <button onClick={() => setReadFilters(p => ({ ...p, view: !p.view }))} className={`btn-pill ${readFilters.view ? 'active' : ''}`}>ยอดวิว</button>
                     <button onClick={() => setReadFilters(p => ({ ...p, engagement: !p.engagement }))} className={`btn-pill ${readFilters.engagement ? 'active' : ''}`}>เอนเกจเมนต์</button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
               
               <div className="feed-grid">
-                {readArchive
-                  .filter(item => {
-                    if (!activeListId) return true;
-                    const activeList = postLists.find(l => l.id === activeListId);
-                    if (!activeList) return true;
-                    return item && item.author && activeList.members.some(m => m.toLowerCase() === item.author.username?.toLowerCase());
-                  })
-                  .sort((a, b) => {
-                    if (!readFilters.view && !readFilters.engagement) {
-                      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-                    }
-                    const scoreA = (readFilters.view ? toNumber(a.view_count) : 0) + (readFilters.engagement ? getEngagementTotal(a) : 0);
-                    const scoreB = (readFilters.view ? toNumber(b.view_count) : 0) + (readFilters.engagement ? getEngagementTotal(b) : 0);
-                    return scoreB - scoreA;
-                  })
+                {filteredReadArchive
                   .map((item, idx) => (
                     <FeedCard key={item.id || idx} tweet={item} isBookmarked={bookmarks.some(b => b.id === item.id)} onBookmark={handleBookmark} onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }} />
                   ))
                 }
                 {readArchive.length === 0 && <div className="empty-state-card">ยังไม่มีบทความในห้องสมุด</div>}
+                {readArchive.length > 0 && filteredReadArchive.length === 0 && (
+                  <div className="reader-empty-search-state">
+                    <div className="reader-empty-search-icon"><Search size={20} /></div>
+                    <div className="reader-empty-search-title">ไม่พบข่าวที่ใกล้เคียงกับ "{readSearchQuery}"</div>
+                    <div className="reader-empty-search-copy">ลองใช้คำที่กว้างขึ้น ชื่อบัญชี หรือคำสำคัญที่สะกดใกล้เคียงกัน ระบบจะจับคู่แบบ dynamic ให้เอง</div>
+                    <button type="button" className="btn-pill" onClick={() => setReadSearchQuery('')}>ล้างคำค้น</button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1254,26 +1681,51 @@ const App = () => {
               { icon: '🏛️', label: 'การเมือง' }, { icon: '🧠', label: 'การพัฒนาตัวเอง' },
             ];
 
+              CATEGORIES.splice(0, CATEGORIES.length,
+                { icon: Cpu, label: 'เทคโนโลยี', tone: 'blue' },
+                { icon: Bot, label: 'AI', tone: 'violet' },
+                { icon: BriefcaseBusiness, label: 'ธุรกิจ', tone: 'amber' },
+                { icon: TrendingUp, label: 'การตลาด', tone: 'rose' },
+                { icon: BadgeDollarSign, label: 'การเงิน', tone: 'emerald' },
+                { icon: ChartColumn, label: 'การลงทุน', tone: 'cyan' },
+                { icon: Bitcoin, label: 'คริปโต', tone: 'orange' },
+                { icon: HeartPulse, label: 'สุขภาพ', tone: 'red' },
+                { icon: Leaf, label: 'ไลฟ์สไตล์', tone: 'green' },
+                { icon: Globe2, label: 'เศรษฐกิจ', tone: 'sky' },
+                { icon: Landmark, label: 'การเมือง', tone: 'slate' },
+                { icon: BrainCircuit, label: 'การพัฒนาตัวเอง', tone: 'pink' },
+              );
+
             return (
               <div className="animate-fade-in">
-                <header className="dashboard-header" style={{ marginBottom: '28px', paddingTop: '0' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '22px' }}>⚡</span>
-                    <h1 style={{ fontSize: '28px', fontWeight: '800', letterSpacing: '-0.03em', margin: 0 }}>Smart Target Discovery</h1>
+                <header className="dashboard-header audience-hero-header" style={{ marginBottom: '28px', paddingTop: '0' }}>
+                  <div className="audience-hero-copy">
+                    <div className="audience-hero-mark">
+                      <Activity size={16} strokeWidth={2.2} />
+                    </div>
+                    <div className="audience-hero-text">
+                      <div className="audience-hero-eyebrow">Smart Discovery System</div>
+                      <h1 className="audience-hero-title">Smart Target Discovery</h1>
+                    </div>
                   </div>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginLeft: '32px', margin: 0 }}>ค้นหาและเพิ่มแหล่งข้อมูลที่ตรงกับความสนใจของคุณ</p>
+                  <p className="audience-hero-subtitle">ค้นหาและเพิ่มแหล่งข้อมูลที่ตรงกับความสนใจของคุณ</p>
                 </header>
 
-                <div style={{ display: 'flex', gap: '8px', marginBottom: '28px', padding: '4px', background: 'var(--bg-800)', borderRadius: '10px', width: 'fit-content' }}>
-                  <button onClick={() => setAudienceTab('ai')} style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s', background: audienceTab === 'ai' ? 'var(--accent-gradient)' : 'transparent', color: audienceTab === 'ai' ? '#fff' : 'var(--text-dim)' }}>✨ แนะนำโดย AI</button>
-                  <button onClick={() => setAudienceTab('manual')} style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', fontWeight: '700', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s', background: audienceTab === 'manual' ? 'var(--bg-700)' : 'transparent', color: audienceTab === 'manual' ? '#fff' : 'var(--text-dim)' }}>🔍 ค้นหาชื่อ</button>
+                <div className="audience-tabs">
+                  <button onClick={() => setAudienceTab('ai')} className={`audience-tab-btn ${audienceTab === 'ai' ? 'active-ai' : ''}`}>
+                    <Sparkles size={14} strokeWidth={2.1} />
+                    แนะนำโดย AI
+                  </button>
+                  <button onClick={() => setAudienceTab('manual')} className={`audience-tab-btn ${audienceTab === 'manual' ? 'active-manual' : ''}`}>
+                    <Search size={14} strokeWidth={2.1} />
+                    ค้นหาชื่อ
+                  </button>
                 </div>
 
                 {audienceTab === 'ai' && (
                   <div className="animate-fade-in">
-                    <div style={{ display: 'flex', gap: '12px', marginBottom: '32px', maxWidth: '680px' }}>
-                      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', background: 'var(--bg-800)', border: '1px solid var(--glass-border)', borderRadius: '12px', padding: '12px 16px' }}>
-                        <span style={{ fontSize: '16px' }}>🎯</span>
+                    <div className="audience-ai-searchbar audience-command-row" style={{ display: 'flex', gap: '12px', marginBottom: '32px', maxWidth: '680px' }}>
+                      <div className="audience-ai-search-input">
                         <input type="text" placeholder="ฉันอยากติดตามเรื่องเทคโนโลยี AI..." value={aiQuery} onChange={e => setAiQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAiSearchAudience()} style={{ background: 'transparent', border: 'none', color: '#fff', flex: 1, fontSize: '14px', outline: 'none' }} />
                       </div>
                       <button onClick={() => handleAiSearchAudience()} disabled={aiSearchLoading} className="btn-sync-premium" style={{ height: '48px', padding: '0 24px' }}>
@@ -1370,15 +1822,20 @@ const App = () => {
                       </div>
                     )}
 
-                    <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '28px' }}>
-                      <div style={{ fontSize: '13px', fontWeight: '800', textAlign: 'center', marginBottom: '20px', color: 'var(--text-muted)' }}>▌ DISCOVER BY CATEGORY ▌</div>
+                    <div className="audience-category-section" style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '28px' }}>
+                      <div className="audience-category-heading">Discover By Category</div>
                       <div className="audience-category-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
-                        {CATEGORIES.map(cat => (
-                          <button key={cat.label} onClick={() => { setAiQuery(cat.label); handleAiSearchAudience(cat.label); }} className="category-btn">
-                            <span style={{ fontSize: '22px' }}>{cat.icon}</span>
-                            <span>{cat.label}</span>
-                          </button>
-                        ))}
+                        {CATEGORIES.map(cat => {
+                          const Icon = cat.icon;
+                          return (
+                            <button key={cat.label} onClick={() => { setAiQuery(cat.label); handleAiSearchAudience(cat.label); }} className={`category-btn category-btn-${cat.tone}`}>
+                              <span className="category-btn-icon-wrap">
+                                <Icon size={18} strokeWidth={2.1} />
+                              </span>
+                              <span className="category-btn-label">{cat.label}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -1388,7 +1845,7 @@ const App = () => {
                   <div className="animate-fade-in">
                     <div style={{ maxWidth: '640px', marginBottom: '40px' }}>
                       <div style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: '700', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ค้นหาด้วย X Username โดยตรง</div>
-                      <form onSubmit={handleManualSearch} className="manual-search-form" style={{ display: 'flex', gap: '12px', position: 'relative' }}>
+                      <form onSubmit={handleManualSearch} className="manual-search-form audience-command-row" style={{ display: 'flex', gap: '12px', position: 'relative' }}>
                         <div className="custom-input-wrapper">
                           <Search size={16} />
                           <input 
@@ -1466,9 +1923,9 @@ const App = () => {
                 <p style={{ color: 'var(--text-muted)' }}>คลังข้อมูลที่คุณบันทึกไว้แยกตามประเภท</p>
               </header>
 
-              <div className="bookmark-tabs" style={{ display: 'flex', gap: '8px', margin: '24px 0', padding: '4px', background: 'var(--bg-800)', borderRadius: '10px', width: 'fit-content' }}>
-                <button onClick={() => setBookmarkTab('news')} className={`btn-pill ${bookmarkTab === 'news' ? 'active' : ''}`}>📰 ข่าว</button>
-                <button onClick={() => setBookmarkTab('article')} className={`btn-pill ${bookmarkTab === 'article' ? 'active' : ''}`}>📝 บทความ</button>
+              <div className="bookmark-tabs">
+                <button onClick={() => setBookmarkTab('news')} className={`bookmark-tab-btn ${bookmarkTab === 'news' ? 'active' : ''}`}>📰 ข่าว</button>
+                <button onClick={() => setBookmarkTab('article')} className={`bookmark-tab-btn ${bookmarkTab === 'article' ? 'active' : ''}`}>📝 บทความ</button>
               </div>
               
               <div className="feed-grid">
@@ -1520,7 +1977,13 @@ const App = () => {
         </main>
 
       {listModal.show && (
-        <div className="modal-overlay" onClick={() => setListModal({ ...listModal, show: false })}>
+        <div className="modal-overlay" onClick={() => {
+          setListModal({ ...listModal, show: false });
+          if (reopenMobilePostListAfterModal) {
+            setIsMobilePostListOpen(true);
+            setReopenMobilePostListAfterModal(false);
+          }
+        }}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-title">
               {listModal.mode === 'create' ? 'สร้าง Post List ใหม่' : 
@@ -1539,7 +2002,13 @@ const App = () => {
               onKeyDown={e => e.key === 'Enter' && finalizeListAction()}
             />
             <div className="modal-actions">
-              <button className="modal-btn modal-btn-secondary" onClick={() => setListModal({ ...listModal, show: false })}>ยกเลิก</button>
+              <button className="modal-btn modal-btn-secondary" onClick={() => {
+                setListModal({ ...listModal, show: false });
+                if (reopenMobilePostListAfterModal) {
+                  setIsMobilePostListOpen(true);
+                  setReopenMobilePostListAfterModal(false);
+                }
+              }}>ยกเลิก</button>
               <button className="modal-btn modal-btn-primary" onClick={finalizeListAction}>ยืนยัน</button>
             </div>
           </div>
@@ -1549,8 +2018,21 @@ const App = () => {
       {filterModal.show && (
         <div className="modal-overlay" onClick={() => !filterModal.isFiltering && setFilterModal({ ...filterModal, show: false })}>
           <div className="modal-content animate-fade-in" style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
-            <div className="modal-title">🪄 AI Smart Filter</div>
+            <div className="modal-title">AI Smart Filter</div>
             <div className="modal-subtitle">กรองเนื้อหาที่ต้องการโดยระบุเป็นภาษามนุษย์ (เช่น "หาเฉพาะเรื่องระดมทุนของส้มหยุด" หรือ "ข่าวที่เกี่ยวกับ Apple")</div>
+            <div className="ai-filter-presets">
+              {aiFilterPresets.map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  className={`ai-filter-preset-btn ${filterModal.prompt === preset ? 'active' : ''}`}
+                  disabled={filterModal.isFiltering}
+                  onClick={() => setFilterModal((prev) => ({ ...prev, prompt: preset }))}
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
             <textarea 
               className="modal-input"
               style={{ minHeight: '120px', resize: 'none', padding: '16px' }}
@@ -1617,11 +2099,17 @@ const App = () => {
         watchlist={watchlist} postLists={postLists} activeListId={activeListId}
         onSelectList={setActiveListId}
         onCreateList={() => {
-          setIsMobilePostListOpen(false);
+          if (isMobilePostListOpen) {
+            setReopenMobilePostListAfterModal(true);
+            setIsMobilePostListOpen(false);
+          }
           setListModal({ show: true, mode: 'create', value: '' });
         }}
         onImportList={() => {
-          setIsMobilePostListOpen(false);
+          if (isMobilePostListOpen) {
+            setReopenMobilePostListAfterModal(true);
+            setIsMobilePostListOpen(false);
+          }
           setListModal({ show: true, mode: 'import', value: '' });
         }}
         onRemoveList={handleRemoveList} onAddMember={handleAddMember} onRemoveMember={handleRemoveMember}

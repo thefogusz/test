@@ -668,13 +668,15 @@ export const agentFilterFeed = async (tweetsData, userPrompt, options = {}) => {
     const safeWebCtx = webContext ? sanitizeForPrompt(webContext, 2000) : '';
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
-      system: `Select the absolute BEST posts that match this user intent: "${safePrompt}".
+      system: `You are filtering a private watchlist feed for the user's intent: "${safePrompt}".
 ${safeWebCtx ? `Use this WEB CONTEXT as a source of truth to prioritize tweets that discuss confirmed events or high-quality topics:\n${safeWebCtx}\n` : ''}
 Rules:
-- STRICT LIMIT: Select a maximum of 8 posts. Only the very best.
-- Select only high-impact "Global Masterpieces" or "Viral News Signals". 
-- REJECT: Low-effort random chatter, personal status updates, and any content with weak engagement unless it is a primary breaking source.
-- For recreational topics: Prefer content that is informative, funny (viral), or structurally significant over random 1-line opinions.
+- The job is INTENT MATCHING first, not virality ranking.
+- Select every post that genuinely matches what the user asked for, up to 12 posts.
+- If the user asks for mood/style-based content such as funny posts, memes, sarcasm, reactions, drama, helpful threads, bullish takes, or niche opinions, prioritize semantic fit over engagement.
+- REJECT posts that do not clearly match the user intent, even if they are viral or from large accounts.
+- Do not default to "important news" unless the prompt explicitly asks for that.
+- For recreational topics: prefer posts that are actually funny, entertaining, interesting, or stylistically relevant to the request.
 ${preferCredibleSources ? '- Prioritize topic fit first, then strictly prefer credible/authority sources.' : ''}
 - Assign a 'temporalTag': "Breaking" (very new/urgent), "Trending" (currently popular), or "Background" (evergreen/context).
 - **Reasoning Language:** เขียน 'reasoning' เป็นภาษาไทยเท่านั้น โดยสรุปสั้นๆ (1 ประโยค) ว่าทำไมโพสต์นี้ถึงสำคัญหรือตรงกับความต้องการ สื่อสารให้เข้าใจง่ายเหมือนเพื่อนเล่าให้ฟัง`,
@@ -697,7 +699,7 @@ ${preferCredibleSources ? '- Prioritize topic fit first, then strictly prefer cr
       console.warn('[GrokService] 400 Bad Request in agentFilterFeed. Check parameters/model.');
     }
     console.error('[GrokService] Filter error:', error);
-    return tweetsData.map((tweet) => ({ id: tweet.id, reasoning: 'Error filtering' }));
+    return [];
   }
 };
 

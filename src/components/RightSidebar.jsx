@@ -135,11 +135,28 @@ const RightSidebar = ({
     setShowAllAvailableByList({});
   }, [expandedId, addHandle]);
 
+  useEffect(() => {
+    const hasExpandedList = expandedId
+      ? (Array.isArray(postLists) ? postLists : []).some((list) => list?.id === expandedId)
+      : false;
+
+    if (expandedId && !hasExpandedList) {
+      setExpandedId(null);
+      setAddHandle('');
+    }
+  }, [expandedId, postLists]);
+
   const handleListClick = (id) => {
     if (activeListId === id) {
       onSelectList(null);
-    } else {
-      onSelectList(id);
+      return;
+    }
+
+    onSelectList(id);
+
+    if (expandedId && expandedId !== id) {
+      setExpandedId(null);
+      setAddHandle('');
     }
   };
 
@@ -464,7 +481,7 @@ const RightSidebar = ({
 
               {/* Color Swatches - shown ONLY when expanded */}
               {expandedId === list.id && (
-                <div style={{ display: 'flex', gap: '6px', padding: '4px 12px 12px 60px' }}>
+                <div className="post-list-expand-swatches" style={{ display: 'flex', gap: '6px', padding: '4px 12px 12px 60px' }}>
                   {COLORS.map(c => (
                     <button 
                       key={c}
@@ -485,7 +502,7 @@ const RightSidebar = ({
 
               {/* Spotify-Style Expanded Members View */}
               {expandedId === list.id && (
-                <div className="list-members-container" style={{ padding: '0 8px 16px 12px' }}>
+                <div className="list-members-container post-list-expand-panel" style={{ padding: '0 8px 16px 12px' }}>
                   
                   {/* Search/Add Input - Spotify Style */}
                   <div ref={addInputAreaRef} style={{ position: 'relative', marginBottom: '16px', padding: '0 4px' }}>
