@@ -54,6 +54,7 @@ export default defineConfig(({ mode }) => {
               const upstreamResponse = await fetch('https://api.tavily.com/search', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                signal: AbortSignal.timeout(60000),
                 body: JSON.stringify({
                   ...parsedBody,
                   api_key: tavilyApiKey,
@@ -78,6 +79,8 @@ export default defineConfig(({ mode }) => {
         '/api/twitter': {
           target: 'https://api.twitterapi.io',
           changeOrigin: true,
+          timeout: 120000,
+          proxyTimeout: 120000,
           rewrite: (path) => path.replace(/^\/api\/twitter/, ''),
           configure: (proxyServer) => {
             proxyServer.on('proxyReq', (proxyReq) => {
@@ -90,6 +93,8 @@ export default defineConfig(({ mode }) => {
         '/api/xai': {
           target: 'https://api.x.ai',
           changeOrigin: true,
+          timeout: 120000,
+          proxyTimeout: 120000,
           rewrite: (path) => path.replace(/^\/api\/xai/, ''),
           configure: (proxyServer) => {
             proxyServer.on('proxyReq', (proxyReq) => {

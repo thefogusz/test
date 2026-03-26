@@ -27,7 +27,7 @@ loadEnvFile();
 
 const app = express();
 const PORT = process.env.PORT || 8000;
-const UPSTREAM_TIMEOUT_MS = Number(process.env.UPSTREAM_TIMEOUT_MS || 20000);
+const UPSTREAM_TIMEOUT_MS = Number(process.env.UPSTREAM_TIMEOUT_MS || 60000);
 const API_LOG_THRESHOLD_MS = Number(process.env.API_LOG_THRESHOLD_MS || 250);
 const TWITTER_API_KEY = process.env.TWITTER_API_KEY;
 const XAI_API_KEY = process.env.XAI_API_KEY;

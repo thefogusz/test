@@ -189,7 +189,7 @@ const CreateContent = ({
     const steps = THINKING_PHASES[phase] || THINKING_PHASES.researching;
     const interval = setInterval(() => {
       setThinkingStep(s => (s + 1) % steps.length);
-    }, 2200);
+    }, 1000);
     return () => clearInterval(interval);
   }, [isGenerating, phase]);
 

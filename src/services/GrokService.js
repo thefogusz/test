@@ -510,10 +510,14 @@ const callGrok = async ({
 const deriveResearchQuery = async (input) => {
   const fallback = (input || '').replace(/\s+/g, ' ').trim().slice(0, 160) || 'latest news';
   
-  // 1. Heuristic-first bypass for simple queries (saves LLM cost)
+  // 1. Heuristic-first bypass for simple queries (saves significant time/cost)
+  // Skip LLM extraction if it looks like a URL or a very short focused query
+  const hasUrl = /https?:\/\//i.test(fallback);
   const wordCount = fallback.split(/\s+/).length;
-  if (wordCount < 10 && fallback.length < 80) {
-    return fallback;
+  
+  if (hasUrl || (wordCount < 12 && fallback.length < 100)) {
+    // If it has a URL, clean up common URL noise but keep the substance
+    return fallback.replace(/https?:\/\/\S+/g, '').trim() || fallback;
   }
 
   const cacheKey = buildCacheKey('research-query', fallback);
