@@ -236,14 +236,14 @@ const getLowSignalPenalty = (tweet, queryTerms, rawQuery = '') => {
   const totalEngagement = likes + retweets;
   
   if (isReply) {
-    if (totalEngagement < 20) return 99; // 🛑 INSTANT DEATH FOR GARBAGE REPLIES
-    else if (totalEngagement < 100) penalty += 8.0;
+    if (totalEngagement < 5) return 80; // Penalize garbage replies but don't insta-kill if they might be relevant
+    else if (totalEngagement < 30) penalty += 5.0;
   } else {
     // For non-replies, we still want some validation for top/search results
-    if (totalEngagement < 3 && !author.isVerified && followers < 5000) {
-      penalty += 12.0; // Almost certain removal for 0-2 like tweets from small accounts
-    } else if (totalEngagement < 20 && !author.isVerified) {
-      penalty += 2.0; // Discourage low-viral content for unverified users
+    if (totalEngagement < 2 && !author.isVerified && followers < 500) {
+      penalty += 8.0; // Significant but not fatal penalty for tiny 0-1 like accounts
+    } else if (totalEngagement < 10 && !author.isVerified) {
+      penalty += 1.5; // Mild penalty for low engagement
     }
   }
 
@@ -513,8 +513,8 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
       return new Date(b.created_at) - new Date(a.created_at);
     });
 
-  const softThreshold = latestMode ? 2.5 : 3.5; // Raised from 2.6 / 3.2
-  const hardThreshold = latestMode ? 1.5 : 2.5; // Raised from 1.8 / 2.5
+  const softThreshold = latestMode ? 2.0 : 3.0; // Lowered from 2.5 / 3.5
+  const hardThreshold = latestMode ? 1.0 : 2.0; // Lowered from 1.5 / 2.5
 
   // Filter out complete garbage (bots, 0-engagement) no matter what
   let acceptable = scored.filter(tweet => tweet.search_score >= hardThreshold);

@@ -844,9 +844,9 @@ export const buildSearchPlan = async (originalQuery, isLatest = false, webContex
 กฎเหล็กของคุณภาพ (Strict Quality Bar):
 - ความยาวสูงสุดต่อ Query คือ 512 ตัวอักษร (ยัดให้คุ้มค่าที่สุด)
 - ทุก Query ต้องจบด้วย -filter:replies 
-- ${isLatest ? 'โหมดสายฟ้า (Latest): ใช้ min_faves:10-20 เพื่อให้ได้ข่าวใหม่ที่เริ่มมีพลัง' : 'โหมดปกติ (Top): ***ต้องใช้ min_faves:50 ถึง 300 เท่านั้น*** เพื่อดึงเฉพาะผลงานระดับไวรัล'}
-- หากเป็นเรื่องเฉพาะทางหรืองานอดิเรก (เช่น เกม) ให้ใช้ min_faves:10 ขึ้นไปเสมอ
-- เน้นใช้ภาษาอังกฤษควบคู่กับไทย (lang:th OR lang:en)
+- ${isLatest ? 'โหมดสายฟ้า (Latest): ใช้ min_faves:1-5 เพื่อให้ได้ข่าวใหม่ที่เริ่มมีพลัง' : 'โหมดปกติ (Top): ใช้ min_faves:10-50 สำหรับหัวข้อทั่วไป แต่หัวข้อเฉพาะทางหรือภาษาไทยให้ใช้ min_faves:2-5 เพื่อป้องกันผลลัพธ์ว่างแดปล่า'}
+- ปรับแต่งคีย์เวิร์ดให้ครอบคลุมทั้งไทยและอังกฤษ (เช่น เกม OR gaming)
+- เน้นคอนเทนต์คุณภาพสูงที่มีสาระ ไม่เอาสแปมหรือบทสนทนาไร้สาระ
 - ตอบเป็น JSON เท่านั้น`,
       prompt: `Topic: ${originalQuery}\n\nWeb Context (Ground Truth from Tavily):\n${webContext.slice(0, 1500) || 'No web news available.'}`,
       schema: z.object({
