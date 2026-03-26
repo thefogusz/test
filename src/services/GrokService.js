@@ -448,7 +448,7 @@ const buildContentBrief = async ({ factSheet, length, tone, format, customInstru
   if (cached) return cached;
   try {
     const { object } = await generateObject({
-      model: grok(MODEL_REASONING_FAST),
+      model: grok(MODEL_NEWS_FAST),
       system: 'Return a concise Thai content brief as JSON only. Stay grounded in the fact sheet.',
       prompt: buildContentBriefPrompt({ factSheet, length, tone, format, customInstructions }),
       schema: CONTENT_BRIEF_SCHEMA,
@@ -1055,7 +1055,7 @@ export const researchAndPreventHallucination = async (input, interactionData = '
 
   try {
     const { object: factSheetObj } = await generateObject({
-      model: grok(MODEL_REASONING_FAST),
+      model: grok(MODEL_NEWS_FAST),
       system: `คุณคือหัวหน้าทีมนักวิจัย (Lead Investigator) ที่รับผิดชอบความถูกต้องของข้อมูล (Fact-Check) 100%
 เป้าหมาย: สร้าง Fact Sheet ฉบับสมบูรณ์ที่แม่นยำที่สุด โดยห้ามมี Hallucination เด็ดขาด ส่งออกเป็น JSON ตามโครงสร้างที่กำหนดเท่านั้น
 
@@ -1308,7 +1308,7 @@ Example of GOOD Native Thai:
 
   try {
     const { object: evalResult } = await generateObject({
-      model: grok(MODEL_REASONING_FAST),
+      model: grok(MODEL_NEWS_FAST),
       system: `Evaluate whether the Thai draft is grounded, natural, and appropriate for the requested format.
 Set passed=true only if:
 - it stays faithful to the fact sheet
