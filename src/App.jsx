@@ -1221,35 +1221,23 @@ const App = () => {
                   <div className="home-splash">
                     <HomeCanvas />
                     <div className="home-splash-inner">
-                      <div className="home-splash-label">
-                        {watchlist.length === 0 ? 'READY TO START' : `${watchlist.length} SOURCES CONNECTED`}
-                      </div>
                       <h2 className="home-splash-title">
                         {watchlist.length === 0
-                          ? (<>Monitor the signals<br /><span className="home-splash-title-accent">that matter</span></>)
-                          : (<>พร้อม<span className="home-splash-title-accent">ดึงสัญญาณ</span>แล้ว</>)}
+                          ? <span className="home-splash-title-accent">Monitor the signals.</span>
+                          : <span className="home-splash-title-accent">{watchlist.length} sources ready.</span>}
                       </h2>
-                      <p className="home-splash-copy">
-                        {watchlist.length === 0
-                          ? 'ติดตามทุกการเคลื่อนไหวจากแหล่งที่คุณสนใจ รวมฟีดในที่เดียว วิเคราะห์ด้วย AI'
-                          : `ดึงโพสต์ล่าสุดจาก ${watchlist.length} บัญชีที่คุณติดตาม วิเคราะห์และกรองด้วย AI ได้ทันที`}
-                      </p>
                       <div className="home-splash-actions">
                         {watchlist.length === 0 ? (
                           <button className="home-splash-btn" onClick={() => setActiveView('audience')}>
-                            <Users size={14} />
-                            <span>เพิ่มแหล่งที่ติดตาม</span>
-                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            <Users size={14} /> <span>เพิ่มแหล่งที่ติดตาม</span>
                           </button>
                         ) : (
                           <button className="home-splash-btn" onClick={handleSync} disabled={loading}>
                             {loading ? <RefreshCw size={14} className="animate-spin" /> : <RefreshCw size={14} />}
                             <span>ฟีดข้อมูล</span>
-                            {!loading && <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                           </button>
                         )}
                       </div>
-                      <p className="home-splash-hint">เลื่อน cursor มาเล่นได้ · คลิกเพื่อระเบิดกราฟ</p>
                     </div>
                   </div>
                 )}
