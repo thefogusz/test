@@ -791,11 +791,11 @@ const App = () => {
 
           {/* ===== HOME VIEW ===== */}
           <div className="animate-fade-in" style={{ display: activeView === 'home' ? 'block' : 'none' }}>
-            <header className="dashboard-header" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '32px' }}>
+            <header className="dashboard-header dashboard-header-home" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '32px' }}>
                 <div className="mobile-only-flex" style={{ justifyContent: 'center', width: '100%', marginBottom: '-8px', minHeight: '32px' }}>
                   <img src="logo.png" alt="FO" style={{ height: '24px', width: '48px', display: 'block' }} loading="eager" />
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px' }}>
+                <div className="dashboard-header-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
                     <div style={{ color: 'var(--text-dim)', fontSize: '13px', fontWeight: '500' }}>WATCHLIST FEED</div>
                     <h1 style={{ margin: 0, fontSize: '32px', fontWeight: '800', color: activeListId ? (postLists.find(l => l.id === activeListId)?.color || 'inherit') : 'inherit' }}>
@@ -805,12 +805,12 @@ const App = () => {
                   <button className="mobile-only-flex icon-btn-large" onClick={() => setIsMobilePostListOpen(true)}><List size={20} /></button>
                 </div>
                 
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '12px' }}>
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="dashboard-header-actions" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '12px' }}>
+                  <div className="dashboard-header-actions-group" style={{ display: 'flex', gap: '8px' }}>
                     <button onClick={handleDeleteAll} className="icon-btn-large"><Trash2 size={18} /></button>
                     <button onClick={handleUndo} className="icon-btn-large"><Undo2 size={18} /></button>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div className="dashboard-header-actions-group dashboard-header-actions-group-primary" style={{ display: 'flex', gap: '8px' }}>
                     <button onClick={() => setFilterModal({ show: true, prompt: '' })} className="btn-pill">AI Filter</button>
                     <button onClick={handleSync} disabled={loading} className="btn-pill primary">
                       {loading ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} ซิงค์ข้อมูล
@@ -819,8 +819,8 @@ const App = () => {
                 </div>
               </header>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div className="feed-section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div className="section-title">โพสต์ล่าสุด</div>
                   {isFiltered && (
                     <div className="ai-filtered-badge">
@@ -832,7 +832,7 @@ const App = () => {
                     </div>
                   )}
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div className="feed-section-filters" style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => handleSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`}>ยอดวิว</button>
                   <button onClick={() => handleSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`}>เอนเกจเมนต์</button>
                 </div>
@@ -1372,7 +1372,7 @@ const App = () => {
 
                     <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '28px' }}>
                       <div style={{ fontSize: '13px', fontWeight: '800', textAlign: 'center', marginBottom: '20px', color: 'var(--text-muted)' }}>▌ DISCOVER BY CATEGORY ▌</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
+                      <div className="audience-category-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
                         {CATEGORIES.map(cat => (
                           <button key={cat.label} onClick={() => { setAiQuery(cat.label); handleAiSearchAudience(cat.label); }} className="category-btn">
                             <span style={{ fontSize: '22px' }}>{cat.icon}</span>
@@ -1388,7 +1388,7 @@ const App = () => {
                   <div className="animate-fade-in">
                     <div style={{ maxWidth: '640px', marginBottom: '40px' }}>
                       <div style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: '700', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ค้นหาด้วย X Username โดยตรง</div>
-                      <form onSubmit={handleManualSearch} style={{ display: 'flex', gap: '12px', position: 'relative' }}>
+                      <form onSubmit={handleManualSearch} className="manual-search-form" style={{ display: 'flex', gap: '12px', position: 'relative' }}>
                         <div className="custom-input-wrapper">
                           <Search size={16} />
                           <input 
@@ -1466,7 +1466,7 @@ const App = () => {
                 <p style={{ color: 'var(--text-muted)' }}>คลังข้อมูลที่คุณบันทึกไว้แยกตามประเภท</p>
               </header>
 
-              <div style={{ display: 'flex', gap: '8px', margin: '24px 0', padding: '4px', background: 'var(--bg-800)', borderRadius: '10px', width: 'fit-content' }}>
+              <div className="bookmark-tabs" style={{ display: 'flex', gap: '8px', margin: '24px 0', padding: '4px', background: 'var(--bg-800)', borderRadius: '10px', width: 'fit-content' }}>
                 <button onClick={() => setBookmarkTab('news')} className={`btn-pill ${bookmarkTab === 'news' ? 'active' : ''}`}>📰 ข่าว</button>
                 <button onClick={() => setBookmarkTab('article')} className={`btn-pill ${bookmarkTab === 'article' ? 'active' : ''}`}>📝 บทความ</button>
               </div>

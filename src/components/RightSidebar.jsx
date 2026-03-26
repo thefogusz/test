@@ -158,8 +158,9 @@ const RightSidebar = ({
 
   return (
     <aside className={`right-sidebar ${isMobileOpen ? 'mobile-visible' : ''}`}>
+      {isMobileOpen && <div className="sheet-handle" aria-hidden="true" />}
       {/* Header */}
-      <header className="right-sidebar-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '24px', paddingBottom: '20px' }}>
+      <header className="right-sidebar-header right-sidebar-mobile-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '24px', paddingBottom: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', transition: 'color 0.2s', cursor: 'pointer' }} onMouseOver={e=>e.currentTarget.style.color='#fff'} onMouseOut={e=>e.currentTarget.style.color='var(--text-muted)'}>
           <Library size={24} />
           <h2 className="right-sidebar-title">Post list</h2>
@@ -423,7 +424,7 @@ const RightSidebar = ({
                 </div>
 
                 {/* Actions */}
-                <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <div className="post-list-actions" style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                   {confirmDeleteId === list.id ? (
                     <div style={{ display: 'flex', gap: '4px' }} onClick={e => e.stopPropagation()}>
                       <button 

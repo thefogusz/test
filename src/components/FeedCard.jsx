@@ -53,8 +53,8 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
   return (
     <div className="feed-card animate-fade-in">
       {/* ── HEADER: Avatar, Author & Time ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+      <div className="feed-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div className="feed-card-author" style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
           <div style={{ 
             width: '42px', height: '42px', borderRadius: '50%', overflow: 'hidden', 
             border: '2px solid rgba(255,255,255,0.08)', flexShrink: 0 
@@ -88,7 +88,7 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="feed-card-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           {tweet.temporalTag && (
             <div style={{
               background: tweet.temporalTag === 'Breaking' ? 'rgba(239, 68, 68, 0.15)' : tweet.temporalTag === 'Trending' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(59, 130, 246, 0.15)',
@@ -190,9 +190,9 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
       </div>
 
       {/* ── FOOTER: Stats & Sublte Actions ── */}
-      <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+      <div className="feed-card-footer" style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
         {/* Minimalist Stats */}
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div className="feed-card-stats" style={{ display: 'flex', gap: '12px' }}>
           {stats.map((s, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-dim)', fontSize: '11px' }}>
               <s.icon size={12} strokeWidth={2.5} opacity={0.5} />
@@ -202,7 +202,7 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
         </div>
 
         {/* Mini-Ghost Actions */}
-        <div style={{ display: 'flex', gap: '4px' }}>
+        <div className="feed-card-actions" style={{ display: 'flex', gap: '4px' }}>
 
           {onArticleGen && (
             <button 
