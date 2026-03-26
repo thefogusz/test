@@ -2312,7 +2312,7 @@ h1, h2, h3, h4, h5, h6 {
   justify-content: center;
   overflow: hidden;
   border-radius: 16px;
-  background: radial-gradient(ellipse 70% 55% at 50% 50%, rgba(30,27,75,0.45) 0%, transparent 70%);
+  background: radial-gradient(ellipse 70% 55% at 50% 45%, rgba(30,27,75,0.3) 0%, transparent 70%);
 }
 
 
@@ -2324,9 +2324,9 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   gap: 24px;
   text-align: center;
-  max-width: 440px;
   width: 100%;
   padding: 0 24px;
+  margin-top: -40px;
   animation: splashIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
   pointer-events: none;
 }
@@ -2350,17 +2350,18 @@ h1, h2, h3, h4, h5, h6 {
 /* Heading — cursor-lit gradient */
 .home-splash-title {
   margin: 0;
-  font-size: clamp(22px, 2.4vw, 32px);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.3;
+  font-size: clamp(20px, 2.2vw, 30px);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  white-space: nowrap;
+  font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   background: radial-gradient(
-    500px 500px at var(--mx, 50%) var(--my, 50%),
-    #ffffff     0%,
-    #bfdbfe    25%,
-    #818cf8    50%,
-    #6366f1    70%,
-    rgba(99,102,241,0.4) 100%
+    600px 600px at var(--mx, 50%) var(--my, 50%),
+    rgba(255,255,255,0.95)  0%,
+    rgba(220,225,240,0.7)  35%,
+    rgba(180,190,215,0.45) 60%,
+    rgba(155,165,195,0.25) 100%
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
