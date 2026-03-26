@@ -1222,22 +1222,8 @@ const App = () => {
                     <HomeCanvas />
                     <div className="home-splash-inner">
                       <h2 className="home-splash-title">
-                        {watchlist.length === 0
-                          ? <span className="home-splash-title-accent">Monitor the signals.</span>
-                          : <span className="home-splash-title-accent">{watchlist.length} sources ready.</span>}
+                        ติดตามทุกเรื่อง<span className="home-splash-title-accent">ที่คุณสนใจ</span>
                       </h2>
-                      <div className="home-splash-actions">
-                        {watchlist.length === 0 ? (
-                          <button className="home-splash-btn" onClick={() => setActiveView('audience')}>
-                            <Users size={14} /> <span>เพิ่มแหล่งที่ติดตาม</span>
-                          </button>
-                        ) : (
-                          <button className="home-splash-btn" onClick={handleSync} disabled={loading}>
-                            {loading ? <RefreshCw size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                            <span>ฟีดข้อมูล</span>
-                          </button>
-                        )}
-                      </div>
                     </div>
                   </div>
                 )}

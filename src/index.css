@@ -2350,10 +2350,10 @@ h1, h2, h3, h4, h5, h6 {
 /* Heading */
 .home-splash-title {
   margin: 0;
-  font-size: clamp(34px, 3.2vw, 48px);
+  font-size: clamp(36px, 4vw, 58px);
   font-weight: 800;
   letter-spacing: -0.04em;
-  color: #fff;
+  color: rgba(255,255,255,0.92);
   line-height: 1.1;
 }
 
