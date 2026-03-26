@@ -1216,55 +1216,54 @@ const App = () => {
                 </div>
               )}
               <div className="feed-grid">
-                {feed.length === 0 && false && (
-                  <div className="home-empty-state animate-fade-in">
-                    <div className="home-empty-state-inner">
-                      <div className="home-empty-orb" aria-hidden="true">
-                        <div className="home-empty-orb-ring home-empty-orb-ring-primary" />
-                        <div className="home-empty-orb-ring home-empty-orb-ring-secondary" />
-                        <div className="home-empty-orb-core">
-                          {watchlist.length === 0 ? <Users size={18} /> : <Sparkles size={18} />}
+                {feed.length === 0 && (
+                  <div className="home-splash">
+                    <div className="home-splash-bg" aria-hidden="true" />
+                    <div className="home-splash-inner">
+                      <div className="home-splash-icon-wrap" aria-hidden="true">
+                        <div className="home-splash-icon-ring" />
+                        <div className="home-splash-icon-core">
+                          {loading ? <RefreshCw size={18} className="animate-spin" /> : <Activity size={18} strokeWidth={2.2} />}
                         </div>
                       </div>
-                      <div className="home-empty-badge">
-                        {watchlist.length === 0 ? 'READY TO START' : 'WAITING FOR FRESH SIGNALS'}
+                      <div className="home-splash-label">
+                        {watchlist.length === 0 ? 'READY TO START' : `${watchlist.length} SOURCES CONNECTED`}
                       </div>
-                      <div className="home-empty-title">
-                        {watchlist.length === 0 ? 'เริ่มสร้างฟีดของคุณ' : 'ยังไม่มีโพสต์ในฟีดตอนนี้'}
-                      </div>
-                      <div className="home-empty-copy">
+                      <h2 className="home-splash-title">
                         {watchlist.length === 0
-                          ? 'เพิ่มบัญชีที่อยากติดตามก่อน แล้วระบบจะช่วยรวมฟีดให้พร้อมใช้งานในหน้าเดียว'
-                          : 'ซิงค์ข้อมูลเพื่อดึงโพสต์ล่าสุดจากบัญชีที่คุณติดตาม แล้วค่อยใช้ AI Filter หรือฟิลเตอร์แบบง่ายต่อได้ทันที'}
-                      </div>
-                      <div className="home-empty-actions">
+                          ? (<>เริ่มสร้าง<span className="home-splash-title-accent">ฟีดของคุณ</span></>)
+                          : (<>พร้อม<span className="home-splash-title-accent">ดึงสัญญาณ</span>แล้ว</>)}
+                      </h2>
+                      <p className="home-splash-copy">
+                        {watchlist.length === 0
+                          ? 'เพิ่มบัญชีที่อยากติดตามก่อน แล้วระบบจะรวมฟีดให้พร้อมในหน้าเดียว'
+                          : `ดึงโพสต์ล่าสุดจาก ${watchlist.length} บัญชีที่คุณติดตาม วิเคราะห์และกรองด้วย AI ได้ทันที`}
+                      </p>
+                      <div className="home-splash-actions">
                         {watchlist.length === 0 ? (
-                          <button className="btn-pill primary" onClick={() => setActiveView('audience')}>
-                            <Users size={16} /> เพิ่มแหล่งที่ติดตาม
+                          <button className="home-splash-btn" onClick={() => setActiveView('audience')}>
+                            <Users size={14} />
+                            <span>เพิ่มแหล่งที่ติดตาม</span>
+                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                           </button>
                         ) : (
-                          <button className="btn-pill primary" onClick={handleSync} disabled={loading}>
-                            {loading ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-                            ซิงค์ข้อมูลตอนนี้
+                          <button className="home-splash-btn" onClick={handleSync} disabled={loading}>
+                            {loading ? <RefreshCw size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                            <span>ฟีดข้อมูล</span>
+                            {!loading && <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                           </button>
                         )}
                       </div>
                     </div>
                   </div>
                 )}
-                {feed.length === 0 && false ? (
-                  <div className="empty-state-card">
-                    {watchlist.length === 0 ? 'เริ่มโดยการเพิ่มบัญชีที่ต้องการติดตาม' : 'กดปุ่มซิงค์ข้อมูลเพื่อสรุปข่าว'}
-                  </div>
-                ) : (
-                  feed.map((item, idx) => (
-                    <FeedCard key={item.id || idx} tweet={item} 
-                      isBookmarked={bookmarks.some(b => b.id === item.id)}
-                      onBookmark={handleBookmark}
-                      onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }} 
-                    />
-                  ))
-                )}
+                {feed.length > 0 && feed.map((item, idx) => (
+                  <FeedCard key={item.id || idx} tweet={item}
+                    isBookmarked={bookmarks.some(b => b.id === item.id)}
+                    onBookmark={handleBookmark}
+                    onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }}
+                  />
+                ))}
               </div>
               {nextCursor && !loading && (
                 <div style={{ textAlign: 'center', padding: '40px' }}>
