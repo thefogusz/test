@@ -1171,7 +1171,7 @@ h1, h2, h3, h4, h5, h6 {
     bottom: 0 !important;
     width: 100% !important;
     height: 80vh !important; /* Popup height */
-    z-index: 10001 !important;
+    z-index: 9800 !important;
     background: var(--bg-900) !important;
     border-radius: 24px 24px 0 0 !important;
     padding: 12px 16px 90px 16px !important;
@@ -1189,7 +1189,7 @@ h1, h2, h3, h4, h5, h6 {
     bottom: 0 !important;
     background: rgba(0, 0, 0, 0.7) !important;
     backdrop-filter: blur(4px) !important;
-    z-index: 10000 !important;
+    z-index: 9700 !important;
     animation: fadeIn 0.3s ease !important;
   }
 

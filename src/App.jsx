@@ -1615,8 +1615,15 @@ const App = () => {
 
       <RightSidebar 
         watchlist={watchlist} postLists={postLists} activeListId={activeListId}
-        onSelectList={setActiveListId} onCreateList={() => setListModal({ show: true, mode: 'create', value: '' })}
-        onImportList={() => setListModal({ show: true, mode: 'import', value: '' })}
+        onSelectList={setActiveListId}
+        onCreateList={() => {
+          setIsMobilePostListOpen(false);
+          setListModal({ show: true, mode: 'create', value: '' });
+        }}
+        onImportList={() => {
+          setIsMobilePostListOpen(false);
+          setListModal({ show: true, mode: 'import', value: '' });
+        }}
         onRemoveList={handleRemoveList} onAddMember={handleAddMember} onRemoveMember={handleRemoveMember}
         onUpdateList={handleUpdateList} onShareList={handleShareList} onRemoveAccount={handleRemoveAccountGlobal}
         isMobileOpen={isMobilePostListOpen} onCloseMobile={() => setIsMobilePostListOpen(false)}
