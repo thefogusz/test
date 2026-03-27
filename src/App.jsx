@@ -1124,7 +1124,7 @@ const App = () => {
                   </div>
                   <div className="dashboard-header-title-block" style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
                     <div style={{ color: 'var(--text-dim)', fontSize: '13px', fontWeight: '500' }}>WATCHLIST FEED</div>
-                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: '800', color: activeListId ? (postLists.find(l => l.id === activeListId)?.color || 'inherit') : 'inherit' }}>
+                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: '800', lineHeight: '1.4', color: activeListId ? (postLists.find(l => l.id === activeListId)?.color || 'inherit') : 'inherit' }}>
                       {activeListId ? postLists.find(l => l.id === activeListId)?.name : 'หน้าหลัก'}
                     </h1>
                   </div>
@@ -1425,7 +1425,7 @@ const App = () => {
                         <div style={{ marginBottom: '16px', opacity: 0.5 }}>
                           <Search size={48} style={{ margin: '0 auto' }} />
                         </div>
-                        <h3 style={{ fontSize: '18px', marginBottom: '8px', color: 'var(--text-dim)' }}>ไม่พบข้อมูลสำหรับ "{searchQuery}"</h3>
+                        <h3 style={{ fontSize: '18px', marginBottom: '8px', color: 'var(--text-dim)', lineHeight: '1.4' }}>ไม่พบข้อมูลสำหรับ "{searchQuery}"</h3>
                         <p style={{ color: 'var(--text-muted)' }}>ลองปรับคำค้นหา หรือใช้คำที่กว้างขึ้น เช่น ภาษาอังกฤษ</p>
                       </div>
                     )}
@@ -1927,7 +1927,7 @@ const App = () => {
           {/* ===== BOOKMARKS VIEW ===== */}
           <div className="animate-fade-in" style={{ display: activeView === 'bookmarks' ? 'block' : 'none' }}>
             <header className="dashboard-header">
-                <h1 style={{ fontSize: '32px', fontWeight: '800' }}>Bookmarks</h1>
+                <h1 style={{ fontSize: '32px', fontWeight: '800', lineHeight: '1.4' }}>Bookmarks</h1>
                 <p style={{ color: 'var(--text-muted)' }}>คลังข้อมูลที่คุณบันทึกไว้แยกตามประเภท</p>
               </header>
 

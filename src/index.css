@@ -114,6 +114,7 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-muted);
   font-size: 15px;
   font-weight: 600;
+  line-height: 1.4;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
@@ -566,7 +567,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 800;
   margin-bottom: 8px;
   letter-spacing: -0.03em;
-  line-height: 1.2;
+  line-height: 1.4;
   padding: 18px 0;
   background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
   -webkit-background-clip: text;
@@ -2037,7 +2038,7 @@ h1, h2, h3, h4, h5, h6 {
     justify-content: center;
     text-align: center;
     white-space: normal;
-    line-height: 1.2;
+    line-height: 1.4;
   }
 
   .audience-category-grid {
@@ -2253,7 +2254,7 @@ h1, h2, h3, h4, h5, h6 {
   z-index: 1;
   max-width: 560px;
   font-size: clamp(28px, 3.1vw, 40px);
-  line-height: 1.08;
+  line-height: 1.4;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: #fff;
@@ -2359,8 +2360,8 @@ h1, h2, h3, h4, h5, h6 {
   font-size: clamp(20px, 2.2vw, 30px);
   font-weight: 600;
   letter-spacing: 0.04em;
-  line-height: 1;
-  white-space: nowrap;
+  line-height: 1.5;
+  padding: 10px 0;
   font-family: "Kanit", "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
   background: radial-gradient(
     600px 600px at var(--mx, 50%) var(--my, 50%),
