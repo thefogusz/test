@@ -9,7 +9,10 @@
       "Bash(grep -n \"port\\\\|host\" /d/TEST/vite.config.*)",
       "Bash(xargs grep:*)",
       "Bash(find D:/TEST/src -type f \\\\\\(-name *.js -o -name *.ts \\\\\\))",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "Bash(rm -f package-lock.json)",
+      "Bash(npm install:*)",
+      "Bash(npx vite:*)"
     ]
   }
 }
