@@ -529,8 +529,18 @@ const App = () => {
       const searchQueryType = isLatestMode ? 'Latest' : 'Top';
       
       const isComplexQuery = !/ฮา|ตลก|ขำ|funny|meme|lol|haha/i.test(requestedQuery);
+      const normalizedRequestedQuery = normalizeSearchText(requestedQuery);
+      const queryTokenCount = normalizedRequestedQuery ? normalizedRequestedQuery.split(' ').length : 0;
+      const isBroadDiscoveryQuery =
+        queryTokenCount > 0 &&
+        queryTokenCount <= 3 &&
+        !/ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update|news|ข่าว|รีวิว|เทียบ|vs|หลุด/i.test(requestedQuery) &&
+        !/from:|since:|until:|@|"/i.test(requestedQuery);
+      const shouldUseAdaptivePlan = isComplexQuery && !isBroadDiscoveryQuery;
+      const preferStrictSources = isComplexQuery && !isBroadDiscoveryQuery;
       const rawDataChunks = [];
       let finalCursor = null;
+      let expandedBroadQueryForRanking = requestedQuery;
 
       const getScopedQuery = (q) => {
         let sq = q;
@@ -553,12 +563,13 @@ const App = () => {
         setStatus(`[Phase 2] Async Parallel Fetch: Tavily + Broad X Search...`);
         
         // 1. Fire Tavily AND X Search (Broad) concurrently!
-        const tavilyPromise = isComplexQuery ? tavilySearch(requestedQuery, isLatestMode) : Promise.resolve({ results: [], answer: '' });
+        const tavilyPromise = shouldUseAdaptivePlan ? tavilySearch(requestedQuery, isLatestMode) : Promise.resolve({ results: [], answer: '' });
         const expandedBroadQueryPromise = expandSearchQuery(requestedQuery, isLatestMode).catch((err) => {
           console.warn(`[Search] Failed to expand query: ${requestedQuery}`, err);
           return requestedQuery;
         });
         const broadSearchPromise = expandedBroadQueryPromise.then((expandedBroadQuery) => {
+          expandedBroadQueryForRanking = expandedBroadQuery || requestedQuery;
           const broadQuery = getScopedQuery(expandedBroadQuery || requestedQuery);
           return searchEverything(broadQuery, null, onlyNews, searchQueryType, true).catch(err => {
             console.warn(`[Search] Failed broad query: ${broadQuery}`, err);
@@ -581,22 +592,26 @@ const App = () => {
           setSearchWebSources([]);
         }
 
-        setStatus(`[API] ออกแบบกลยุทธ์แสกนเชิงลึก (Precision Snipe) จาก Context...`);
-        searchPlan = await buildSearchPlan(requestedQuery, isLatestMode, webContext, isComplexQuery);
-        setActiveSearchPlan(searchPlan);
+        if (shouldUseAdaptivePlan) {
+          setStatus(`[API] ออกแบบกลยุทธ์แสกนเชิงลึก (Precision Snipe) จาก Context...`);
+          searchPlan = await buildSearchPlan(requestedQuery, isLatestMode, webContext, isComplexQuery);
+          setActiveSearchPlan(searchPlan);
 
-        // 2. Fire Precision Snipe query from Planner
-        const snipeQueryRaw = searchPlan?.queries?.find(q => q !== requestedQuery && q !== `${requestedQuery} -filter:replies`);
-        if (snipeQueryRaw) {
-          setStatus(`[Phase 2] Async Parallel Fetch: X Search Precision Snipe...`);
-          const snipeQuery = getScopedQuery(snipeQueryRaw);
-          try {
-             const snipeResult = await searchEverything(snipeQuery, null, onlyNews, searchQueryType, true);
-             if (snipeResult.data && snipeResult.data.length > 0) rawDataChunks.push(snipeResult.data);
-             if (!finalCursor && snipeResult.meta?.next_cursor) finalCursor = snipeResult.meta.next_cursor;
-          } catch(err) {
-             console.warn(`[Search] Failed snipe query: ${snipeQuery}`, err);
+          // 2. Fire Precision Snipe query from Planner
+          const snipeQueryRaw = searchPlan?.queries?.find(q => q !== requestedQuery && q !== `${requestedQuery} -filter:replies`);
+          if (snipeQueryRaw) {
+            setStatus(`[Phase 2] Async Parallel Fetch: X Search Precision Snipe...`);
+            const snipeQuery = getScopedQuery(snipeQueryRaw);
+            try {
+               const snipeResult = await searchEverything(snipeQuery, null, onlyNews, searchQueryType, true);
+               if (snipeResult.data && snipeResult.data.length > 0) rawDataChunks.push(snipeResult.data);
+               if (!finalCursor && snipeResult.meta?.next_cursor) finalCursor = snipeResult.meta.next_cursor;
+            } catch(err) {
+               console.warn(`[Search] Failed snipe query: ${snipeQuery}`, err);
+            }
           }
+        } else {
+          setActiveSearchPlan(null);
         }
       } else {
          setStatus(`[API] ดึงข้อมูล X Search เพิ่มเติม...`);
@@ -613,7 +628,9 @@ const App = () => {
          }
       }
       
-      const rankingQuery = mergePlanLabelsIntoQuery(requestedQuery, searchPlan?.topicLabels || []);
+      const rankingQuery = shouldUseAdaptivePlan
+        ? mergePlanLabelsIntoQuery(requestedQuery, searchPlan?.topicLabels || [])
+        : expandedBroadQueryForRanking;
 
 
       const data = mergeUniquePostsById(...rawDataChunks);
@@ -622,10 +639,10 @@ const App = () => {
       if (data.length > 0) {
         setStatus(`[Quality Gate] คัดกรองและประเมิน Engagement...`);
         const isComplexQuery = !/ฮา|ตลก|ขำ|funny|meme|lol|haha/i.test(requestedQuery);
-        const curated = curateSearchResults(data, rankingQuery, { latestMode: isLatestMode, preferCredibleSources: isComplexQuery });
+        const curated = curateSearchResults(data, rankingQuery, { latestMode: isLatestMode, preferCredibleSources: preferStrictSources });
         
         setStatus(`[Agent 2/3] กำลังกรองสแปมและคัดเลือกโพสต์ระดับคุณภาพจากฐานข้อมูล...`);
-        const validPicks = await agentFilterFeed(curated, rankingQuery, { preferCredibleSources: isComplexQuery, webContext, isComplexQuery });
+        const validPicks = await agentFilterFeed(curated, rankingQuery, { preferCredibleSources: preferStrictSources, webContext, isComplexQuery });
         const pickedData = curated
           .filter(t => validPicks.some(pick => String(pick.id) === String(t.id)))
           .map(t => {
