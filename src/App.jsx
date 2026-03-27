@@ -50,7 +50,7 @@ import {
   searchEverything,
   curateSearchResults
 } from './services/TwitterService';
-import { agentFilterFeed, buildSearchPlan, discoverTopExperts, generateExecutiveSummary, generateGrokBatch, tavilySearch } from './services/GrokService';
+import { agentFilterFeed, buildSearchPlan, discoverTopExperts, expandSearchQuery, generateExecutiveSummary, generateGrokBatch, tavilySearch } from './services/GrokService';
 import { renderMarkdownToHtml } from './utils/markdown';
 import './index.css';
 import { STORAGE_KEYS } from './constants/storageKeys';
@@ -309,7 +309,7 @@ const App = () => {
       setAudienceKey(k => k + 1);
       setAiSearchResults([]);
     }
-  }, [activeListId, activeView]);
+  }, [activeListId, activeView, setPendingFeed]);
 
   useEffect(() => {
     if (activeView === 'search' || isFiltered) return; 
@@ -526,6 +526,7 @@ const App = () => {
     try {
       let webContext = '';
       let searchPlan = activeSearchPlan;
+      const searchQueryType = isLatestMode ? 'Latest' : 'Top';
       
       const isComplexQuery = !/ฮา|ตลก|ขำ|funny|meme|lol|haha/i.test(requestedQuery);
       const rawDataChunks = [];
@@ -553,10 +554,16 @@ const App = () => {
         
         // 1. Fire Tavily AND X Search (Broad) concurrently!
         const tavilyPromise = isComplexQuery ? tavilySearch(requestedQuery, isLatestMode) : Promise.resolve({ results: [], answer: '' });
-        const broadQuery = getScopedQuery(requestedQuery);
-        const broadSearchPromise = searchEverything(broadQuery, null, onlyNews, 'Top', true).catch(err => {
-          console.warn(`[Search] Failed broad query: ${broadQuery}`, err);
-          return { data: [], meta: {} };
+        const expandedBroadQueryPromise = expandSearchQuery(requestedQuery, isLatestMode).catch((err) => {
+          console.warn(`[Search] Failed to expand query: ${requestedQuery}`, err);
+          return requestedQuery;
+        });
+        const broadSearchPromise = expandedBroadQueryPromise.then((expandedBroadQuery) => {
+          const broadQuery = getScopedQuery(expandedBroadQuery || requestedQuery);
+          return searchEverything(broadQuery, null, onlyNews, searchQueryType, true).catch(err => {
+            console.warn(`[Search] Failed broad query: ${broadQuery}`, err);
+            return { data: [], meta: {} };
+          });
         });
 
         const [webData, broadResult] = await Promise.all([tavilyPromise, broadSearchPromise]);
@@ -584,7 +591,7 @@ const App = () => {
           setStatus(`[Phase 2] Async Parallel Fetch: X Search Precision Snipe...`);
           const snipeQuery = getScopedQuery(snipeQueryRaw);
           try {
-             const snipeResult = await searchEverything(snipeQuery, null, onlyNews, 'Top', true);
+             const snipeResult = await searchEverything(snipeQuery, null, onlyNews, searchQueryType, true);
              if (snipeResult.data && snipeResult.data.length > 0) rawDataChunks.push(snipeResult.data);
              if (!finalCursor && snipeResult.meta?.next_cursor) finalCursor = snipeResult.meta.next_cursor;
           } catch(err) {
@@ -597,7 +604,7 @@ const App = () => {
          for (const query of planQueries) {
             const scopedQuery = getScopedQuery(query);
             try {
-              const { data: chunk, meta } = await searchEverything(scopedQuery, searchCursor, onlyNews, 'Top', false);
+              const { data: chunk, meta } = await searchEverything(scopedQuery, searchCursor, onlyNews, searchQueryType, false);
               if (chunk.length > 0) rawDataChunks.push(chunk);
               if (!finalCursor) finalCursor = meta.next_cursor;
             } catch (err) {

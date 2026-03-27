@@ -57,28 +57,31 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-app.use('/api/twitter', createProxyMiddleware({
-  target: 'https://api.twitterapi.io',
-  changeOrigin: true,
-  proxyTimeout: UPSTREAM_TIMEOUT_MS,
-  timeout: UPSTREAM_TIMEOUT_MS,
-  pathRewrite: {
-    '^/api/twitter': '',
-  },
-  on: {
-    proxyReq: (proxyReq) => {
-      if (TWITTER_API_KEY) {
-        proxyReq.setHeader('X-API-Key', TWITTER_API_KEY);
-      }
-    },
-    error: (err, req, res) => {
-      console.error('[server] Twitter proxy error:', err);
-      if (!res.headersSent) {
-        res.status(502).json({ error: 'Twitter proxy timeout or connection lost' });
-      }
-    },
-  },
-}));
+app.use('/api/twitter', async (req, res) => {
+  const upstreamUrl = `https://api.twitterapi.io/twitter${req.originalUrl.replace(/^\/api\/twitter/, '')}`;
+
+  try {
+    const upstreamResponse = await fetch(upstreamUrl, {
+      method: req.method,
+      headers: {
+        ...(TWITTER_API_KEY ? { 'X-API-Key': TWITTER_API_KEY } : {}),
+        ...(req.headers['content-type'] ? { 'Content-Type': req.headers['content-type'] } : {}),
+      },
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+      body: req.method === 'GET' || req.method === 'HEAD'
+        ? undefined
+        : JSON.stringify(req.body ?? {}),
+    });
+
+    const responseText = await upstreamResponse.text();
+    res.status(upstreamResponse.status);
+    res.type(upstreamResponse.headers.get('content-type') || 'application/json');
+    res.send(responseText);
+  } catch (error) {
+    console.error('[server] Twitter proxy error:', error);
+    res.status(502).json({ error: 'Twitter proxy timeout or connection lost' });
+  }
+});
 
 app.use('/api/xai', createProxyMiddleware({
   target: 'https://api.x.ai',

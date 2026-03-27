@@ -81,7 +81,7 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           timeout: 120000,
           proxyTimeout: 120000,
-          rewrite: (path) => path.replace(/^\/api\/twitter/, ''),
+          rewrite: (path) => path.replace(/^\/api\/twitter/, '/twitter'),
           configure: (proxyServer) => {
             proxyServer.on('proxyReq', (proxyReq) => {
               if (twitterApiKey) {
