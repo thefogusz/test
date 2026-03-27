@@ -1,6 +1,6 @@
 import { apiFetch } from '../utils/apiFetch';
 
-const BASE_URL = '/api/twitter/twitter';
+const BASE_URL = '/api/twitter';
 export const RECENT_WINDOW_HOURS = 24;
 
 
@@ -241,9 +241,9 @@ const getLowSignalPenalty = (tweet, queryTerms, rawQuery = '') => {
   } else {
     // For non-replies, we still want some validation for top/search results
     if (totalEngagement < 2 && !author.isVerified && followers < 500) {
-      penalty += 8.0; // Significant but not fatal penalty for tiny 0-1 like accounts
-    } else if (totalEngagement < 10 && !author.isVerified) {
-      penalty += 1.5; // Mild penalty for low engagement
+      penalty += 4.0; // Reduced from 8.0 — Significant but not fatal penalty for tiny 0-1 like accounts
+    } else if (totalEngagement < 5 && !author.isVerified) {
+      penalty += 1.0; // Reduced from 1.5 — Very mild penalty for low engagement
     }
   }
 
@@ -513,8 +513,8 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
       return new Date(b.created_at) - new Date(a.created_at);
     });
 
-  const softThreshold = latestMode ? 2.0 : 3.0; // Lowered from 2.5 / 3.5
-  const hardThreshold = latestMode ? 1.0 : 2.0; // Lowered from 1.5 / 2.5
+  const softThreshold = latestMode ? 1.5 : 2.5; // Lowered from 2.0 / 3.0
+  const hardThreshold = latestMode ? 0.5 : 1.5; // Lowered from 1.0 / 2.0
 
   // Filter out complete garbage (bots, 0-engagement) no matter what
   let acceptable = scored.filter(tweet => tweet.search_score >= hardThreshold);
