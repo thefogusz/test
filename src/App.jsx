@@ -1253,9 +1253,20 @@ const App = () => {
                   >
                     <HomeCanvas />
                     <div className="home-splash-inner">
-                      <h2 className="home-splash-title">
-                        FORO ติดตามทุกเรื่องที่คุณสนใจ
+                      <div className="home-splash-brand-lockup" aria-hidden="true">
+                        <div className="home-splash-kicker">INTELLIGENCE DESK</div>
+                        <div className="home-splash-wordmark">FORO</div>
+                      </div>
+                      <h2 className="home-splash-title no-select-ui">
+                        <span className="home-splash-title-main">ติดตามทุกเรื่อง</span>
+                        <span className="home-splash-title-accent">ที่คุณสนใจ</span>
                       </h2>
+                      <p className="home-splash-copy no-select-ui">
+                        คัดสัญญาณข่าวสำคัญจากแหล่งที่คุณติดตาม ให้กลายเป็นฟีดที่คม อ่านง่าย และพร้อมต่อยอดเป็นคอนเทนต์ได้ทันที
+                      </p>
+                      <div className="home-splash-microline no-select-ui">
+                        Real-time signal curation · Thai-ready summaries · Content workflow
+                      </div>
                     </div>
                   </div>
                 )}
