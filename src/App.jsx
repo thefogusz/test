@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Search,
   Sparkles,
@@ -711,73 +711,98 @@ const App = () => {
     !searchPresets.some((item) => item.toLowerCase() === normalizeSearchLabel(searchQuery).toLowerCase()) &&
     searchPresets.length < MAX_SEARCH_PRESETS;
 
-  const normalizedReadSearchQuery = normalizeSearchText(readSearchQuery);
-  const readSearchSuggestions = Array.from(
-    new Set(
-      readArchive
-        .flatMap((item) => [
-          item?.author?.name,
-          item?.author?.username ? `@${item.author.username}` : '',
-          item?.summary,
-          item?.text,
-        ])
-        .filter(Boolean)
-        .flatMap((value) =>
-          String(value)
-            .split(/[\n,]/)
-            .map((part) => part.trim()),
-        )
-        .filter((value) => {
-          const normalizedValue = normalizeSearchText(value);
-          return (
-            normalizedReadSearchQuery &&
-            normalizedValue &&
-            normalizedValue !== normalizedReadSearchQuery &&
-            normalizedValue.includes(normalizedReadSearchQuery)
-          );
-        }),
-    ),
-  ).slice(0, 4);
+  const activeReadListMemberSet = useMemo(() => {
+    if (!activeListId) return null;
+    const activeList = postLists.find((list) => list.id === activeListId);
+    if (!activeList) return null;
+    return new Set(
+      (Array.isArray(activeList.members) ? activeList.members : [])
+        .map((member) => member?.toLowerCase())
+        .filter(Boolean),
+    );
+  }, [activeListId, postLists]);
 
-  const filteredReadArchive = readArchive
-    .filter((item) => {
-      if (!activeListId) return true;
-      const activeList = postLists.find((list) => list.id === activeListId);
-      if (!activeList) return true;
-      return item && item.author && activeList.members.some((member) => member.toLowerCase() === item.author.username?.toLowerCase());
-    })
-    .map((item) => ({
-      item,
-      searchScore: normalizedReadSearchQuery
-        ? scoreFuzzyTextMatch(
-            normalizedReadSearchQuery,
+  const bookmarkIds = useMemo(
+    () => new Set(bookmarks.map((item) => item?.id).filter(Boolean)),
+    [bookmarks],
+  );
+
+  const normalizedReadSearchQuery = useMemo(
+    () => normalizeSearchText(readSearchQuery),
+    [readSearchQuery],
+  );
+
+  const { readSearchSuggestions, filteredReadArchive } = useMemo(() => {
+    const suggestions = Array.from(
+      new Set(
+        readArchive
+          .flatMap((item) => [
             item?.author?.name,
-            item?.author?.username,
+            item?.author?.username ? `@${item.author.username}` : '',
             item?.summary,
             item?.text,
+          ])
+          .filter(Boolean)
+          .flatMap((value) =>
+            String(value)
+              .split(/[\n,]/)
+              .map((part) => part.trim()),
           )
-        : 1,
-    }))
-    .filter(({ searchScore }) => searchScore > 0)
-    .sort((left, right) => {
-      if (normalizedReadSearchQuery && right.searchScore !== left.searchScore) {
-        return right.searchScore - left.searchScore;
-      }
+          .filter((value) => {
+            const normalizedValue = normalizeSearchText(value);
+            return (
+              normalizedReadSearchQuery &&
+              normalizedValue &&
+              normalizedValue !== normalizedReadSearchQuery &&
+              normalizedValue.includes(normalizedReadSearchQuery)
+            );
+          }),
+      ),
+    ).slice(0, 4);
 
-      if (!readFilters.view && !readFilters.engagement) {
-        return new Date(right.item.created_at || 0) - new Date(left.item.created_at || 0);
-      }
+    const filtered = readArchive
+      .filter((item) => {
+        if (!activeReadListMemberSet) return true;
+        return item?.author?.username && activeReadListMemberSet.has(item.author.username.toLowerCase());
+      })
+      .map((item) => ({
+        item,
+        searchScore: normalizedReadSearchQuery
+          ? scoreFuzzyTextMatch(
+              normalizedReadSearchQuery,
+              item?.author?.name,
+              item?.author?.username,
+              item?.summary,
+              item?.text,
+            )
+          : 1,
+      }))
+      .filter(({ searchScore }) => searchScore > 0)
+      .sort((left, right) => {
+        if (normalizedReadSearchQuery && right.searchScore !== left.searchScore) {
+          return right.searchScore - left.searchScore;
+        }
 
-      const scoreA =
-        (readFilters.view ? toNumber(left.item.view_count) : 0) +
-        (readFilters.engagement ? getEngagementTotal(left.item) : 0);
-      const scoreB =
-        (readFilters.view ? toNumber(right.item.view_count) : 0) +
-        (readFilters.engagement ? getEngagementTotal(right.item) : 0);
+        if (!readFilters.view && !readFilters.engagement) {
+          return new Date(right.item.created_at || 0) - new Date(left.item.created_at || 0);
+        }
 
-      return scoreB - scoreA;
-    })
-    .map(({ item }) => item);
+        const scoreA =
+          (readFilters.view ? toNumber(left.item.view_count) : 0) +
+          (readFilters.engagement ? getEngagementTotal(left.item) : 0);
+        const scoreB =
+          (readFilters.view ? toNumber(right.item.view_count) : 0) +
+          (readFilters.engagement ? getEngagementTotal(right.item) : 0);
+
+        return scoreB - scoreA;
+      })
+      .map(({ item }) => item);
+
+    return {
+      readSearchSuggestions: suggestions,
+      filteredReadArchive: filtered,
+    };
+  }, [activeReadListMemberSet, normalizedReadSearchQuery, readArchive, readFilters]);
 
   useEffect(() => {
     const isAudienceManual = activeView === 'audience' && audienceTab === 'manual';
@@ -1578,7 +1603,8 @@ const App = () => {
           </div>
 
           {/* ===== READ VIEW ===== */}
-          <div className="reader-library-view animate-fade-in" style={{ display: activeView === 'read' ? 'block' : 'none' }}>
+          {activeView === 'read' && (
+          <div className="reader-library-view animate-fade-in">
             <header className="reader-header">
                 <h1 className="reader-title">อ่านข่าว</h1>
                 <p className="reader-subtitle">บทความและข่าวสารที่คุณบันทึกไว้อ่านแบบ Deep Read</p>
@@ -1634,7 +1660,7 @@ const App = () => {
               <div className="feed-grid">
                 {filteredReadArchive
                   .map((item, idx) => (
-                    <FeedCard key={item.id || idx} tweet={item} isBookmarked={bookmarks.some(b => b.id === item.id)} onBookmark={handleBookmark} onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }} />
+                    <FeedCard key={item.id || idx} tweet={item} isBookmarked={bookmarkIds.has(item.id)} onBookmark={handleBookmark} onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }} />
                   ))
                 }
                 {readArchive.length === 0 && <div className="empty-state-card">ยังไม่มีบทความในห้องสมุด</div>}
@@ -1648,6 +1674,7 @@ const App = () => {
                 )}
               </div>
             </div>
+          )}
 
           {/* ===== AUDIENCE VIEW: SMART TARGET DISCOVERY ===== */}
           <div style={{ display: activeView === 'audience' ? 'block' : 'none' }}>
