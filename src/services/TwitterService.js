@@ -28,6 +28,25 @@ const SEARCH_STOPWORDS = new Set([
   'with',
 ]);
 
+const BROAD_TOPIC_HINTS = [
+  {
+    triggers: ['วงการเกม', 'เกม', 'gaming', 'videogame', 'video game', 'games'],
+    hints: [
+      'nintendo', 'switch', 'switch 2', 'playstation', 'ps5', 'xbox', 'steam', 'pc gaming',
+      'esports', 'game awards', 'gta', 'minecraft', 'fortnite', 'monster hunter', 'pokemon',
+      'zelda', 'mario', 'capcom', 'square enix', 'bandai namco', 'fromsoftware',
+    ],
+  },
+  {
+    triggers: ['ฟุตบอล', 'บอล', 'soccer', 'football'],
+    hints: ['premier league', 'champions league', 'fifa', 'uefa', 'goal', 'matchday', 'liverpool', 'man utd'],
+  },
+  {
+    triggers: ['คริปโต', 'crypto', 'bitcoin', 'btc', 'ethereum', 'eth'],
+    hints: ['solana', 'binance', 'altcoin', 'defi', 'web3', 'token', 'coinbase', 'blockchain'],
+  },
+];
+
 const LOW_SIGNAL_PATTERNS = [
   /\bairdrop\b/i,
   /\bgiveaway\b/i,
@@ -76,6 +95,67 @@ const getAuthorBio = (author) =>
   author?.description || author?.profile_bio?.description || '';
 
 const isNewsIntent = (query = '') => /ข่าว|news|latest|update|updates|breaking/i.test(query);
+
+const isBroadDiscoveryIntent = (query = '') => {
+  const normalized = String(query || '').toLowerCase().trim();
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+
+  if (!normalized || tokens.length > 3) return false;
+  if (/latest|update|updates|breaking|news|review|vs|leak|rumor|from:|since:|until:|@|"/i.test(normalized)) {
+    return false;
+  }
+
+  return true;
+};
+
+const getBroadTopicHints = (query = '') => {
+  const normalized = String(query || '').toLowerCase();
+  const hints = BROAD_TOPIC_HINTS
+    .filter((group) => group.triggers.some((trigger) => normalized.includes(trigger)))
+    .flatMap((group) => group.hints);
+
+  return Array.from(new Set(hints));
+};
+
+const getCompositeSearchText = (tweet) =>
+  [
+    tweet?.text,
+    tweet?.author?.name,
+    tweet?.author?.username,
+    getAuthorBio(tweet?.author),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+const buildQueryProfile = (rawQuery = '') => {
+  const normalizedQuery = String(rawQuery || '').toLowerCase().trim();
+  const broadIntent = isBroadDiscoveryIntent(rawQuery);
+  const queryTerms = normalizeSearchTerms(rawQuery);
+  const broadHints = getBroadTopicHints(rawQuery);
+
+  if (normalizedQuery.includes('เกม') || normalizedQuery.includes('gaming') || normalizedQuery.includes('games')) {
+    return {
+      key: 'gaming',
+      broadIntent,
+      queryTerms,
+      exactTerms: ['เกม', 'วงการเกม', 'gaming', 'games', 'videogames', 'game'],
+      primaryHints: ['nintendo', 'switch', 'switch 2', 'playstation', 'ps5', 'xbox', 'steam', 'gta', 'pokemon', 'zelda', 'mario', 'monster hunter', 'game awards', 'gamedev', 'game dev', 'studio'],
+      secondaryHints: broadHints,
+      softNegativeHints: ['esports', 'valorant', 'league of legends', 'lolesports', 'faze', 'cblol', 'faker', 'counter-strike', 'tournament', 'scrim', 'coach', 'giveaway', 'gaming pc', 'rtx', 'steam deck'],
+    };
+  }
+
+  return {
+    key: 'generic',
+    broadIntent,
+    queryTerms,
+    exactTerms: queryTerms,
+    primaryHints: broadHints,
+    secondaryHints: broadHints,
+    softNegativeHints: [],
+  };
+};
 
 const normalizeSearchTerms = (query = '') => {
   const normalized = String(query || '').toLowerCase().trim();
@@ -128,6 +208,63 @@ const getRelevanceScore = (tweet, queryTerms, rawQuery = '') => {
   }
 
   return score;
+};
+
+const getBroadSemanticScore = (tweet, queryProfile) => {
+  if (!queryProfile?.broadIntent) return 0;
+
+  const compositeText = getCompositeSearchText(tweet);
+  if (!compositeText) return 0;
+
+  let score = 0;
+  const exactMatches = queryProfile.exactTerms.filter((term) => compositeText.includes(term)).length;
+  const primaryMatches = queryProfile.primaryHints.filter((hint) => compositeText.includes(hint)).length;
+  const secondaryMatches = queryProfile.secondaryHints.filter((hint) => compositeText.includes(hint)).length;
+
+  score += exactMatches * 1.2;
+  score += primaryMatches * 0.95;
+  score += Math.min(1.2, secondaryMatches * 0.2);
+
+  return Math.min(5, score);
+};
+
+const getBroadTopicPenalty = (tweet, queryProfile) => {
+  if (!queryProfile?.broadIntent) return 0;
+
+  const compositeText = getCompositeSearchText(tweet);
+  const primaryMatches = queryProfile.primaryHints.filter((hint) => compositeText.includes(hint)).length;
+  const exactMatches = queryProfile.exactTerms.filter((term) => compositeText.includes(term)).length;
+  const softNegativeMatches = queryProfile.softNegativeHints.filter((hint) => compositeText.includes(hint)).length;
+
+  if (softNegativeMatches === 0) return 0;
+  if (primaryMatches > 0 || exactMatches > 0) return Math.max(0, softNegativeMatches - 1) * 0.35;
+
+  return Math.min(2.6, 0.8 + softNegativeMatches * 0.45);
+};
+
+const getBroadTopicFocusPenalty = (tweet, queryProfile) => {
+  if (!queryProfile?.broadIntent) return 0;
+
+  const text = String(tweet?.text || '').toLowerCase();
+  if (!text) return 0;
+
+  const exactTextMatches = queryProfile.exactTerms.filter((term) => text.includes(term)).length;
+  const primaryTextMatches = queryProfile.primaryHints.filter((hint) => text.includes(hint)).length;
+  const secondaryTextMatches = queryProfile.secondaryHints.filter((hint) => text.includes(hint)).length;
+
+  if (queryProfile.key !== 'gaming') return 0;
+
+  const listLikeText = (text.match(/[,:|/]/g) || []).length >= 4 || text.split(/\s+/).length > 45;
+
+  if (exactTextMatches > 0 && primaryTextMatches === 0 && secondaryTextMatches === 0) {
+    return listLikeText ? 2.4 : 1.1;
+  }
+
+  if (exactTextMatches === 0 && primaryTextMatches === 0 && secondaryTextMatches > 0) {
+    return 0.35;
+  }
+
+  return 0;
 };
 
 const getCredibilityScore = (tweet) => {
@@ -206,6 +343,7 @@ const getLowSignalPenalty = (tweet, queryTerms, rawQuery = '') => {
     .toLowerCase();
 
   let penalty = 0;
+  const broadDiscoveryIntent = isBroadDiscoveryIntent(rawQuery);
 
   for (const pattern of LOW_SIGNAL_PATTERNS) {
     if (pattern.test(compositeText)) penalty += 1.5; // Increased penalty
@@ -224,7 +362,7 @@ const getLowSignalPenalty = (tweet, queryTerms, rawQuery = '') => {
     if (getCredibilityScore(tweet) < 3.0) penalty += 1.5;
   }
 
-  if (queryTerms.length > 0) {
+  if (queryTerms.length > 0 && !broadDiscoveryIntent) {
     const relevanceScore = getRelevanceScore(tweet, queryTerms);
     if (relevanceScore === 0) penalty += 5.0; // Heavy penalty for no keyword match
   }
@@ -305,6 +443,64 @@ const diversifyByAuthor = (tweets, protectedWindow = 12) => {
   }
 
   return [...prioritized, ...overflow];
+};
+
+const getTopicBucket = (tweet, queryProfile) => {
+  if (!queryProfile?.broadIntent) return 'general';
+
+  const text = getCompositeSearchText(tweet);
+  if (queryProfile.key === 'gaming') {
+    if (/(giveaway|gaming pc|rtx|steam deck)/i.test(text)) return 'promo';
+    if (/(esports|valorant|league of legends|lolesports|faze|cblol|faker|counter-strike|tournament)/i.test(text)) return 'esports';
+    if (/(nintendo|switch|switch 2|playstation|ps5|xbox|steam|gta|pokemon|zelda|mario|monster hunter|studio|gamedev|game dev)/i.test(text)) return 'gaming-main';
+    if (/(game|gaming|videogame|เกม)/i.test(text)) return 'gaming-general';
+  }
+
+  return 'general';
+};
+
+const diversifyBroadResults = (tweets, queryProfile, limit = 30) => {
+  if (!queryProfile?.broadIntent) return tweets.slice(0, limit);
+
+  const buckets = new Map();
+  for (const tweet of tweets) {
+    const bucket = getTopicBucket(tweet, queryProfile);
+    if (!buckets.has(bucket)) buckets.set(bucket, []);
+    buckets.get(bucket).push(tweet);
+  }
+
+  const bucketOrder = queryProfile.key === 'gaming'
+    ? ['gaming-main', 'gaming-general', 'general', 'esports', 'promo']
+    : ['general'];
+
+  const result = [];
+  const seenIds = new Set();
+  let madeProgress = true;
+
+  while (result.length < limit && madeProgress) {
+    madeProgress = false;
+    for (const bucket of bucketOrder) {
+      const items = buckets.get(bucket) || [];
+      while (items.length > 0 && seenIds.has(items[0].id)) items.shift();
+      if (items.length === 0) continue;
+      const tweet = items.shift();
+      seenIds.add(tweet.id);
+      result.push(tweet);
+      madeProgress = true;
+      if (result.length >= limit) break;
+    }
+  }
+
+  if (result.length < limit) {
+    for (const tweet of tweets) {
+      if (seenIds.has(tweet.id)) continue;
+      result.push(tweet);
+      seenIds.add(tweet.id);
+      if (result.length >= limit) break;
+    }
+  }
+
+  return result;
 };
 
 const ensureQueryCoverage = (curatedTweets, scoredTweets, queryTerms, latestMode) => {
@@ -477,29 +673,38 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
   const latestMode = Boolean(options.latestMode);
   const preferCredibleSources = options.preferCredibleSources !== false;
   const newsIntent = isNewsIntent(rawQuery);
-  const queryTerms = normalizeSearchTerms(rawQuery);
+  const queryProfile = buildQueryProfile(rawQuery);
+  const broadDiscoveryIntent = queryProfile.broadIntent;
+  const queryTerms = queryProfile.queryTerms;
   const uniqueTweets = dedupeTweetsById(normalizeTweets(tweets));
   const hasFunIntent = /ฮา|ตลก|ขำ|funny|meme|lol|haha/i.test(rawQuery);
 
   const scored = uniqueTweets
     .map((tweet, index, list) => {
       const relevanceScore = getRelevanceScore(tweet, queryTerms, rawQuery);
+      const broadSemanticScore = getBroadSemanticScore(tweet, queryProfile);
       const credibilityScore = getCredibilityScore(tweet);
       const signalScore = getSignalScore(tweet);
       const freshnessScore = getFreshnessScore(tweet, latestMode);
       const providerRankScore = getProviderRankScore(index, list.length, latestMode);
       const lowSignalPenalty = getLowSignalPenalty(tweet, queryTerms, rawQuery);
+      const broadTopicPenalty = getBroadTopicPenalty(tweet, queryProfile);
+      const broadTopicFocusPenalty = getBroadTopicFocusPenalty(tweet, queryProfile);
       const weakCredibilityPenalty =
         !hasFunIntent && preferCredibleSources && newsIntent && credibilityScore < 2.35 ? 1.35 : 0;
       const weakRelevancePenalty =
-        preferCredibleSources && queryTerms.length > 0 && relevanceScore < 1.15 ? 1.15 : 0;
+        !broadDiscoveryIntent && preferCredibleSources && queryTerms.length > 0 && relevanceScore < 1.15 ? 1.15 : 0;
       const totalScore =
-        relevanceScore * (latestMode ? 2.5 : 2.2) +
-        credibilityScore * (preferCredibleSources ? (latestMode ? 2.0 : 1.85) : newsIntent ? 1.4 : 1.1) +
-        signalScore * (latestMode ? 2.0 : newsIntent ? 2.2 : 2.6) + // Increased from 0.9 / 1.15 / 1.4
+        (broadDiscoveryIntent
+          ? relevanceScore * 1.35 + broadSemanticScore * 1.7 + credibilityScore * 1.8 + signalScore * 3.2
+          : relevanceScore * (latestMode ? 2.5 : 2.2) +
+            credibilityScore * (preferCredibleSources ? (latestMode ? 2.0 : 1.85) : newsIntent ? 1.4 : 1.1) +
+            signalScore * (latestMode ? 2.0 : newsIntent ? 2.2 : 2.6)) + // Increased from 0.9 / 1.15 / 1.4
         freshnessScore * (latestMode ? 0.75 : 0.6) +
         providerRankScore * (latestMode ? 0.4 : 0.7) -
         lowSignalPenalty -
+        broadTopicPenalty -
+        broadTopicFocusPenalty -
         weakCredibilityPenalty -
         weakRelevancePenalty;
 
@@ -513,8 +718,8 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
       return new Date(b.created_at) - new Date(a.created_at);
     });
 
-  const softThreshold = latestMode ? 1.5 : 2.5; // Lowered from 2.0 / 3.0
-  const hardThreshold = latestMode ? 0.5 : 1.5; // Lowered from 1.0 / 2.0
+  const softThreshold = broadDiscoveryIntent ? 4.5 : latestMode ? 1.5 : 2.5; // Lowered from 2.0 / 3.0
+  const hardThreshold = broadDiscoveryIntent ? 2.2 : latestMode ? 0.5 : 1.5; // Lowered from 1.0 / 2.0
 
   // Filter out complete garbage (bots, 0-engagement) no matter what
   let acceptable = scored.filter(tweet => tweet.search_score >= hardThreshold);
@@ -525,15 +730,15 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
     acceptable = scored.filter(tweet => tweet.search_score >= backupThreshold);
   }
 
-  const minimumKeep = Math.min(acceptable.length, latestMode ? 15 : 30);
+  const minimumKeep = Math.min(acceptable.length, broadDiscoveryIntent ? 18 : latestMode ? 15 : 30);
   const filtered = acceptable.filter((tweet, index) => index < minimumKeep || tweet.search_score >= softThreshold);
   
   // Ensure we at least try to get 15-30 if we have them
-  const curated = filtered.length >= Math.min(15, acceptable.length) ? filtered : acceptable.slice(0, 30);
+  const curated = filtered.length >= Math.min(broadDiscoveryIntent ? 10 : 15, acceptable.length) ? filtered : acceptable.slice(0, 30);
   const covered = ensureQueryCoverage(curated, acceptable, queryTerms, latestMode);
 
   // Return the absolute best 30 items max to protect Grok's context window
-  return diversifyByAuthor(covered, 30).slice(0, 30);
+  return diversifyBroadResults(diversifyByAuthor(covered, 30), queryProfile, 30).slice(0, 30);
 };
 
 /**

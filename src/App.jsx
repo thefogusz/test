@@ -540,7 +540,6 @@ const App = () => {
       const preferStrictSources = isComplexQuery && !isBroadDiscoveryQuery;
       const rawDataChunks = [];
       let finalCursor = null;
-      let expandedBroadQueryForRanking = requestedQuery;
 
       const getScopedQuery = (q) => {
         let sq = q;
@@ -568,8 +567,13 @@ const App = () => {
           console.warn(`[Search] Failed to expand query: ${requestedQuery}`, err);
           return requestedQuery;
         });
+        const exactSearchPromise = isBroadDiscoveryQuery
+          ? searchEverything(getScopedQuery(requestedQuery), null, onlyNews, searchQueryType, true).catch((err) => {
+              console.warn(`[Search] Failed exact query: ${requestedQuery}`, err);
+              return { data: [], meta: {} };
+            })
+          : Promise.resolve({ data: [], meta: {} });
         const broadSearchPromise = expandedBroadQueryPromise.then((expandedBroadQuery) => {
-          expandedBroadQueryForRanking = expandedBroadQuery || requestedQuery;
           const broadQuery = getScopedQuery(expandedBroadQuery || requestedQuery);
           return searchEverything(broadQuery, null, onlyNews, searchQueryType, true).catch(err => {
             console.warn(`[Search] Failed broad query: ${broadQuery}`, err);
@@ -577,10 +581,12 @@ const App = () => {
           });
         });
 
-        const [webData, broadResult] = await Promise.all([tavilyPromise, broadSearchPromise]);
+        const [webData, exactResult, broadResult] = await Promise.all([tavilyPromise, exactSearchPromise, broadSearchPromise]);
         
+        if (exactResult.data && exactResult.data.length > 0) rawDataChunks.push(exactResult.data);
         if (broadResult.data && broadResult.data.length > 0) rawDataChunks.push(broadResult.data);
         if (!finalCursor && broadResult.meta?.next_cursor) finalCursor = broadResult.meta.next_cursor;
+        if (!finalCursor && exactResult.meta?.next_cursor) finalCursor = exactResult.meta.next_cursor;
 
         if (webData && (webData.results?.length || webData.answer)) {
           webContext = [
@@ -630,7 +636,7 @@ const App = () => {
       
       const rankingQuery = shouldUseAdaptivePlan
         ? mergePlanLabelsIntoQuery(requestedQuery, searchPlan?.topicLabels || [])
-        : expandedBroadQueryForRanking;
+        : requestedQuery;
 
 
       const data = mergeUniquePostsById(...rawDataChunks);
@@ -654,7 +660,9 @@ const App = () => {
               citation_id: pick?.citation_id
             };
           });
-        const cleanData = pickedData.length > 0
+        const minimumBroadResultFloor = isBroadDiscoveryQuery ? Math.min(curated.length, 10) : 1;
+        const shouldFallbackToCurated = pickedData.length < minimumBroadResultFloor;
+        const cleanData = !shouldFallbackToCurated && pickedData.length > 0
           ? pickedData
           : curated.slice(0, Math.min(curated.length, 12)).map((tweet, index) => ({
               ...tweet,
@@ -663,38 +671,49 @@ const App = () => {
               citation_id: tweet.citation_id || `[F${index + 1}]`,
             }));
         
-        if (!isMore) {
-          setStatus(`[Agent 3/3] กำลังสังเคราะห์ข้อมูลและเขียน Executive Summary...`);
-          setSearchSummary('');
-          const summaryText = await generateExecutiveSummary(cleanData.slice(0, 10), requestedQuery, (chunk, fullText) => {
-            setSearchSummary(fullText);
-          }, webContext);
-          setSearchSummary(summaryText);
-        }
-
         const nextResults = isMore ? mergeUniquePostsById(searchResults, cleanData) : cleanData;
         setSearchResults(nextResults);
         setSearchCursor(meta.next_cursor);
-        
-        // Progressive Translation for results...
-        const CHUNK_SIZE = 5;
-        for (let i = 0; i < cleanData.length; i += CHUNK_SIZE) {
-          const chunk = cleanData.slice(i, i + CHUNK_SIZE);
-          const batchTexts = chunk.map(t => t.text);
-          const summaries = await generateGrokBatch(batchTexts);
-          
-          setSearchResults(prev => prev.map(p => {
-            const idx = chunk.findIndex(c => c.id === p.id);
-            if (idx !== -1) return { ...p, summary: summaries[idx] || p.text };
-            return p;
-          }));
-        }
         
         if (cleanData.length === 0) {
            setStatus(`ไม่พบเนื้อหาที่มีประโยชน์ หรือถูก AI ปฏิเสธทั้งหมด (จาก ${data.length} โพสต์ที่อ้างอิง)`);
         } else {
            setStatus(`ค้นพบ ${cleanData.length} รายการ (กลั่นกรองโดย AI จากทั้งหมด ${data.length} โพสต์)`);
         }
+
+        if (!isMore) {
+          setStatus(`[Agent 3/3] กำลังสังเคราะห์ข้อมูลและเขียน Executive Summary...`);
+          setSearchSummary('');
+          generateExecutiveSummary(cleanData.slice(0, 10), requestedQuery, (chunk, fullText) => {
+            setSearchSummary(fullText);
+          }, webContext)
+            .then((summaryText) => {
+              if (summaryText) setSearchSummary(summaryText);
+            })
+            .catch((summaryError) => {
+              console.warn('[Search] Executive summary failed:', summaryError);
+            });
+        }
+
+        // Progressive Translation for results...
+        const CHUNK_SIZE = 5;
+        (async () => {
+          try {
+            for (let i = 0; i < cleanData.length; i += CHUNK_SIZE) {
+              const chunk = cleanData.slice(i, i + CHUNK_SIZE);
+              const batchTexts = chunk.map(t => t.text);
+              const summaries = await generateGrokBatch(batchTexts);
+              
+              setSearchResults(prev => prev.map(p => {
+                const idx = chunk.findIndex(c => c.id === p.id);
+                if (idx !== -1) return { ...p, summary: summaries[idx] || p.text };
+                return p;
+              }));
+            }
+          } catch (batchError) {
+            console.warn('[Search] Progressive translation failed:', batchError);
+          }
+        })();
       } else {
         setStatus('ไม่พบข้อมูลสำหรับคำค้นหานี้');
       }
