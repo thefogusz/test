@@ -175,6 +175,33 @@ const extractInterestTopics = (items = []) => {
 
 const shouldRemoveWhenFalsy = (value) => !value;
 
+const BROAD_QUERY_BLUEPRINTS = [
+  {
+    triggers: ['วงการเกม', 'เกม', 'gaming', 'games', 'videogames'],
+    entityQuery: '(Nintendo OR PlayStation OR Xbox OR Steam OR "Switch 2" OR GTA OR Pokemon OR Zelda OR Mario OR "Monster Hunter" OR "Game Awards")',
+    viralQuery: '(gaming OR videogames OR Nintendo OR PlayStation OR Xbox OR Steam OR "Switch 2" OR GTA) min_faves:500',
+  },
+  {
+    triggers: ['ฟุตบอล', 'บอล', 'soccer', 'football'],
+    entityQuery: '(Premier League OR Champions League OR FIFA OR UEFA OR Arsenal OR Liverpool OR Real Madrid OR Barcelona)',
+    viralQuery: '(football OR soccer OR Premier League OR Champions League OR FIFA OR UEFA) min_faves:500',
+  },
+  {
+    triggers: ['คริปโต', 'crypto', 'bitcoin', 'btc', 'ethereum', 'eth'],
+    entityQuery: '(Bitcoin OR BTC OR Ethereum OR ETH OR Solana OR Binance OR Coinbase OR ETF)',
+    viralQuery: '(crypto OR bitcoin OR btc OR ethereum OR eth OR solana) min_faves:500',
+  },
+];
+
+const getBroadQueryBlueprint = (query = '') => {
+  const normalized = normalizeSearchText(query);
+  if (!normalized) return null;
+
+  return BROAD_QUERY_BLUEPRINTS.find((blueprint) =>
+    blueprint.triggers.some((trigger) => normalized.includes(normalizeSearchText(trigger))),
+  ) || null;
+};
+
 const App = () => {
   const [watchlist, setWatchlist] = usePersistentState(STORAGE_KEYS.watchlist, [], {
     deserialize: deserializeWatchlist,
@@ -536,12 +563,13 @@ const App = () => {
         queryTokenCount <= 3 &&
         !/ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update|news|ข่าว|รีวิว|เทียบ|vs|หลุด/i.test(requestedQuery) &&
         !/from:|since:|until:|@|"/i.test(requestedQuery);
+      const broadBlueprint = isBroadDiscoveryQuery ? getBroadQueryBlueprint(requestedQuery) : null;
       const shouldUseAdaptivePlan = isComplexQuery && !isBroadDiscoveryQuery;
       const preferStrictSources = isComplexQuery && !isBroadDiscoveryQuery;
       const rawDataChunks = [];
       let finalCursor = null;
 
-      const getScopedQuery = (q) => {
+      const getScopedQuery = (q, lane = 'default') => {
         let sq = q;
         if (isLatestMode) {
           if (!q.includes('since:')) {
@@ -550,10 +578,20 @@ const App = () => {
             sq = `${q} since:${date.toISOString().split('T')[0]}`;
           }
           // Avoid 0-engagement noise even in Latest mode
-          if (!q.includes('min_faves:')) sq = `${sq} min_faves:1`;
+          if (!q.includes('min_faves:')) {
+            const latestMinFaves = isBroadDiscoveryQuery
+              ? (lane === 'exact' ? 20 : 100)
+              : 1;
+            sq = `${sq} min_faves:${latestMinFaves}`;
+          }
         } else {
           // For Top mode, ensure at least some baseline viral signal
-          if (!q.includes('min_faves:')) sq = `${sq} min_faves:2`;
+          if (!q.includes('min_faves:')) {
+            const topMinFaves = isBroadDiscoveryQuery
+              ? (lane === 'exact' ? 30 : 150)
+              : 2;
+            sq = `${sq} min_faves:${topMinFaves}`;
+          }
         }
         return sq;
       };
@@ -562,31 +600,56 @@ const App = () => {
         setStatus(`[Phase 2] Async Parallel Fetch: Tavily + Broad X Search...`);
         
         // 1. Fire Tavily AND X Search (Broad) concurrently!
-        const tavilyPromise = shouldUseAdaptivePlan ? tavilySearch(requestedQuery, isLatestMode) : Promise.resolve({ results: [], answer: '' });
+        const tavilyPromise =
+          shouldUseAdaptivePlan || isBroadDiscoveryQuery
+            ? tavilySearch(requestedQuery, isLatestMode)
+            : Promise.resolve({ results: [], answer: '' });
         const expandedBroadQueryPromise = expandSearchQuery(requestedQuery, isLatestMode).catch((err) => {
           console.warn(`[Search] Failed to expand query: ${requestedQuery}`, err);
           return requestedQuery;
         });
         const exactSearchPromise = isBroadDiscoveryQuery
-          ? searchEverything(getScopedQuery(requestedQuery), null, onlyNews, searchQueryType, true).catch((err) => {
+          ? searchEverything(getScopedQuery(requestedQuery, 'exact'), null, onlyNews, searchQueryType, false).catch((err) => {
               console.warn(`[Search] Failed exact query: ${requestedQuery}`, err);
               return { data: [], meta: {} };
             })
           : Promise.resolve({ data: [], meta: {} });
         const broadSearchPromise = expandedBroadQueryPromise.then((expandedBroadQuery) => {
-          const broadQuery = getScopedQuery(expandedBroadQuery || requestedQuery);
-          return searchEverything(broadQuery, null, onlyNews, searchQueryType, true).catch(err => {
+          const broadQuery = getScopedQuery(expandedBroadQuery || requestedQuery, 'broad');
+          return searchEverything(broadQuery, null, onlyNews, searchQueryType, false).catch(err => {
             console.warn(`[Search] Failed broad query: ${broadQuery}`, err);
             return { data: [], meta: {} };
           });
         });
+        const entitySearchPromise = isBroadDiscoveryQuery && broadBlueprint?.entityQuery
+          ? searchEverything(getScopedQuery(broadBlueprint.entityQuery, 'entity'), null, onlyNews, searchQueryType, false).catch((err) => {
+              console.warn(`[Search] Failed entity query: ${broadBlueprint.entityQuery}`, err);
+              return { data: [], meta: {} };
+            })
+          : Promise.resolve({ data: [], meta: {} });
+        const viralSearchPromise = isBroadDiscoveryQuery && broadBlueprint?.viralQuery
+          ? searchEverything(getScopedQuery(broadBlueprint.viralQuery, 'viral'), null, onlyNews, searchQueryType, false).catch((err) => {
+              console.warn(`[Search] Failed viral query: ${broadBlueprint.viralQuery}`, err);
+              return { data: [], meta: {} };
+            })
+          : Promise.resolve({ data: [], meta: {} });
 
-        const [webData, exactResult, broadResult] = await Promise.all([tavilyPromise, exactSearchPromise, broadSearchPromise]);
+        const [webData, exactResult, broadResult, entityResult, viralResult] = await Promise.all([
+          tavilyPromise,
+          exactSearchPromise,
+          broadSearchPromise,
+          entitySearchPromise,
+          viralSearchPromise,
+        ]);
         
         if (exactResult.data && exactResult.data.length > 0) rawDataChunks.push(exactResult.data);
         if (broadResult.data && broadResult.data.length > 0) rawDataChunks.push(broadResult.data);
+        if (entityResult.data && entityResult.data.length > 0) rawDataChunks.push(entityResult.data);
+        if (viralResult.data && viralResult.data.length > 0) rawDataChunks.push(viralResult.data);
         if (!finalCursor && broadResult.meta?.next_cursor) finalCursor = broadResult.meta.next_cursor;
         if (!finalCursor && exactResult.meta?.next_cursor) finalCursor = exactResult.meta.next_cursor;
+        if (!finalCursor && entityResult.meta?.next_cursor) finalCursor = entityResult.meta.next_cursor;
+        if (!finalCursor && viralResult.meta?.next_cursor) finalCursor = viralResult.meta.next_cursor;
 
         if (webData && (webData.results?.length || webData.answer)) {
           webContext = [
@@ -648,29 +711,39 @@ const App = () => {
         const curated = curateSearchResults(data, rankingQuery, { latestMode: isLatestMode, preferCredibleSources: preferStrictSources });
         
         setStatus(`[Agent 2/3] กำลังกรองสแปมและคัดเลือกโพสต์ระดับคุณภาพจากฐานข้อมูล...`);
-        const validPicks = await agentFilterFeed(curated, rankingQuery, { preferCredibleSources: preferStrictSources, webContext, isComplexQuery });
-        const pickedData = curated
-          .filter(t => validPicks.some(pick => String(pick.id) === String(t.id)))
-          .map(t => {
-            const pick = validPicks.find(p => String(p.id) === String(t.id));
-            return { 
-              ...t, 
-              ai_reasoning: pick?.reasoning,
-              temporalTag: pick?.temporalTag,
-              citation_id: pick?.citation_id
-            };
-          });
-        const minimumBroadResultFloor = isBroadDiscoveryQuery ? Math.min(curated.length, 10) : 1;
-        const shouldFallbackToCurated = pickedData.length < minimumBroadResultFloor;
-        const cleanData = !shouldFallbackToCurated && pickedData.length > 0
-          ? pickedData
-          : curated.slice(0, Math.min(curated.length, 12)).map((tweet, index) => ({
-              ...tweet,
-              ai_reasoning: tweet.ai_reasoning || 'คงโพสต์นี้ไว้เป็นผลลัพธ์สำรอง เพราะตรงคำค้นและผ่านการคัดกรองเบื้องต้นแล้ว',
-              temporalTag: tweet.temporalTag || (isLatestMode ? 'Breaking' : 'Background'),
-              citation_id: tweet.citation_id || `[F${index + 1}]`,
-            }));
-        
+        let cleanData = [];
+
+        if (isBroadDiscoveryQuery) {
+          cleanData = curated.slice(0, Math.min(curated.length, 12)).map((tweet, index) => ({
+            ...tweet,
+            ai_reasoning: tweet.ai_reasoning || 'Kept from the global-first ranked result set for this broad query.',
+            temporalTag: tweet.temporalTag || (isLatestMode ? 'Breaking' : 'Background'),
+            citation_id: tweet.citation_id || `[F${index + 1}]`,
+          }));
+        } else {
+          setStatus(`[Agent 2/3] Selecting the highest-quality posts from the search pool...`);
+          const validPicks = await agentFilterFeed(curated, rankingQuery, { preferCredibleSources: preferStrictSources, webContext, isComplexQuery });
+          const pickedData = curated
+            .filter(t => validPicks.some(pick => String(pick.id) === String(t.id)))
+            .map(t => {
+              const pick = validPicks.find(p => String(p.id) === String(t.id));
+              return { 
+                ...t, 
+                ai_reasoning: pick?.reasoning,
+                temporalTag: pick?.temporalTag,
+                citation_id: pick?.citation_id
+              };
+            });
+          const shouldFallbackToCurated = pickedData.length === 0;
+          cleanData = !shouldFallbackToCurated && pickedData.length > 0
+            ? pickedData
+            : curated.slice(0, Math.min(curated.length, 12)).map((tweet, index) => ({
+                ...tweet,
+                ai_reasoning: tweet.ai_reasoning || 'Kept as a fallback result after passing the local quality checks.',
+                temporalTag: tweet.temporalTag || (isLatestMode ? 'Breaking' : 'Background'),
+                citation_id: tweet.citation_id || `[F${index + 1}]`,
+              }));
+        }
         const nextResults = isMore ? mergeUniquePostsById(searchResults, cleanData) : cleanData;
         setSearchResults(nextResults);
         setSearchCursor(meta.next_cursor);
