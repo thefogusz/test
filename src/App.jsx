@@ -626,7 +626,7 @@ const App = () => {
         
         setStatus(`[Agent 2/3] กำลังกรองสแปมและคัดเลือกโพสต์ระดับคุณภาพจากฐานข้อมูล...`);
         const validPicks = await agentFilterFeed(curated, rankingQuery, { preferCredibleSources: isComplexQuery, webContext, isComplexQuery });
-        const cleanData = curated
+        const pickedData = curated
           .filter(t => validPicks.some(pick => String(pick.id) === String(t.id)))
           .map(t => {
             const pick = validPicks.find(p => String(p.id) === String(t.id));
@@ -637,6 +637,14 @@ const App = () => {
               citation_id: pick?.citation_id
             };
           });
+        const cleanData = pickedData.length > 0
+          ? pickedData
+          : curated.slice(0, Math.min(curated.length, 12)).map((tweet, index) => ({
+              ...tweet,
+              ai_reasoning: tweet.ai_reasoning || 'คงโพสต์นี้ไว้เป็นผลลัพธ์สำรอง เพราะตรงคำค้นและผ่านการคัดกรองเบื้องต้นแล้ว',
+              temporalTag: tweet.temporalTag || (isLatestMode ? 'Breaking' : 'Background'),
+              citation_id: tweet.citation_id || `[F${index + 1}]`,
+            }));
         
         if (!isMore) {
           setStatus(`[Agent 3/3] กำลังสังเคราะห์ข้อมูลและเขียน Executive Summary...`);
