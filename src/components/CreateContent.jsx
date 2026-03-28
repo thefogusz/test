@@ -42,6 +42,12 @@ const safeMarkdown = (text) => {
   }
 };
 
+const buildAttachedTweetUrl = (sourceNode) => {
+  if (!sourceNode?.id) return '';
+  const username = sourceNode.author?.username || 'i';
+  return `https://x.com/${username}/status/${sourceNode.id}`;
+};
+
 const FORMAT_OPTIONS = [
   { id: 'โพสต์โซเชียล', title: 'โพสต์โซเชียล', icon: MessageSquare },
   { id: 'สคริปต์วิดีโอสั้น', title: 'วิดีโอสั้น / Reels', icon: ListVideo },
@@ -216,16 +222,30 @@ const CreateContent = ({
     setPhase('researching');
     
     try {
-      // If we have an attached source from Feed
+      let researchPrompt = input.trim();
       let factIntel = '';
       if (sourceNode) {
-        factIntel = `[ATTACHED INTEL - ข้อมูลตั้งต้นที่แนบมา]\nหัวข้อ: ${sourceNode.title || 'ไม่มีหัวข้อ'}\nเนื้อหา: ${sourceNode.summary || sourceNode.text}\nแหล่งที่มา: @${sourceNode.author?.username || 'Unknown'}\n\n`;
+        const sourceUrl = buildAttachedTweetUrl(sourceNode);
+        const originalText = (sourceNode.text || '').trim();
+        const translatedSummary = (sourceNode.summary || '').trim();
+        const sourceLabel = sourceNode.title || originalText || 'Untitled source';
+
+        factIntel = [
+          '[ATTACHED INTEL - ORIGINAL SOURCE]',
+          `Title: ${sourceLabel}`,
+          `Author: @${sourceNode.author?.username || 'Unknown'}`,
+          sourceUrl ? `URL: ${sourceUrl}` : '',
+          originalText ? `Original Content: ${originalText}` : '',
+          translatedSummary ? `Thai Summary (reference only, do not use as source of truth): ${translatedSummary}` : '',
+        ].filter(Boolean).join('\n') + '\n\n';
+
+        if (!researchPrompt) {
+          researchPrompt = sourceUrl || originalText || sourceLabel;
+        }
       }
-      
-      const combinedInputForResearch = `${factIntel}คำสั่ง/ประเด็นหลักที่ต้องการ: ${input}`;
 
       // 1. Research Phase
-      const { factSheet: facts, sources: rawSources } = await researchAndPreventHallucination(combinedInputForResearch);
+      const { factSheet: facts, sources: rawSources } = await researchAndPreventHallucination(researchPrompt, factIntel);
       setFactSheet(facts);
       setArticleSources(rawSources || []);
       setPhase('generating');
