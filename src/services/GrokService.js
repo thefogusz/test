@@ -281,7 +281,7 @@ const CONTENT_FORMAT_PROFILES = {
 
 const TONE_GUIDES = {
   'ให้ข้อมูล/ปกติ': 'Calm, informed, editorial. Use professional but accessible Thai. Use particles like ครับ/ค่ะ appropriately. Avoid robotic transitions.',
-  'กระตือรือร้น/ไวรัล': 'เขียนแบบ Energetic และดึงดูด — ใช้ insight ที่แหลมคมเป็น hook บรรทัดแรกต้องดึงคนหยุดอ่านทันที ใช้คำลงท้าย นะ/น้า/สิ/ซะ/เลย ได้ตามธรรมชาติ ประโยคสั้น กระชับ มีจังหวะ ใช้ตัวเลขหรือข้อเท็จจริงที่น่าตกใจเป็น anchor เขียนแบบ "เพื่อนที่รู้จริงเล่าให้ฟัง" ไม่ใช่นักข่าว อนุญาตให้ใช้ภาษาแรงกว่าปกติได้ (เช่น "สั่นสะเทือน" "พลิกเกม" "ต้องรู้เลย") ตราบใดที่มีข้อเท็จจริงรองรับ ห้ามขึ้นต้นด้วย "สาย... ห้ามพลาด" หรือ "อัปเดตด่วน" — ให้ hook ด้วยสาระแทน',
+  'กระตือรือร้น/ไวรัล': 'เขียนแบบ Energetic และดึงดูด — ใช้ insight ที่แหลมคมเป็น hook บรรทัดแรกต้องดึงคนหยุดอ่านทันที ใช้คำลงท้าย นะ/น้า/สิ/ซะ/เลย ได้ตามธรรมชาติ ประโยคสั้น กระชับ มีจังหวะ ใช้ตัวเลขหรือข้อเท็จจริงที่น่าตกใจเป็น anchor เขียนแบบ "เพื่อนที่รู้จริงเล่าให้ฟัง" ไม่ใช่นักข่าว อนุญาตให้ใช้ภาษาแรงกว่าปกติได้ (เช่น "สั่นสะเทือน" "พลิกเกม" "ต้องรู้เลย") ตราบใดที่มีข้อเท็จจริงรองรับ ถ้าร่างยังฟังเหมือนรายงานข่าวหรือเรียงข้อมูลแข็งเกินไป ให้เรียบเรียงใหม่ให้เป็นภาษาคนมากขึ้นโดยคงประเด็นสำคัญไว้ ห้ามขึ้นต้นด้วย "สาย... ห้ามพลาด" หรือ "อัปเดตด่วน" — ให้ hook ด้วยสาระแทน',
   'ทางการ/วิชาการ': 'Precise, objective, and well-structured. No slang. Use ครับ/ค่ะ for standard politeness.',
   'เป็นกันเอง/เพื่อนเล่าให้ฟัง': 'Warm, conversational, dropping formal pronouns where implied. Flow like a natural speech. Use particles like เถอะ/หน่อย, นะ/น้า for closeness.',
   'ตลก/มีอารมณ์ขัน': 'Lightly playful, witty observations. No forced jokes.',
@@ -312,6 +312,9 @@ const HYPE_PHRASES = [
 
 const buildFormatProfile = (format) =>
   CONTENT_FORMAT_PROFILES[format] || CONTENT_FORMAT_PROFILES['โพสต์โซเชียล'];
+
+const shouldPreferConversationalViralFlow = (tone = '', format = '') =>
+  tone === 'กระตือรือร้น/ไวรัล' && ['โพสต์โซเชียล', 'โพสต์ให้ความรู้ (Thread)'].includes(format);
 
 const normalizeThaiSpacing = (text = '') =>
   text
@@ -396,6 +399,7 @@ const CONTENT_BRIEF_SCHEMA = z.object({
 const buildContentBriefPrompt = ({ factSheet, length, tone, format, customInstructions = '' }) => {
   const profile = buildFormatProfile(format);
   const toneGuide = TONE_GUIDES[tone] || tone;
+  const prefersConversationalViralFlow = shouldPreferConversationalViralFlow(tone, format);
 
   return `
 [TASK]
@@ -417,6 +421,7 @@ ${profile.goals}
 [STYLE RULES & NATIVE THAI FLOW]
 - You are a Senior Thai Content Creator. Your writing must feel 100% human, rhythmic, and culturally native.
 - PERSPECTIVE RULE: Write as the ORIGINAL CREATOR. Do not write like a news aggregator saying "According to account X...". Internalize the facts and tell the story directly from your own authoritative perspective. You can credit sources casually if it builds immense credibility, but do not make them the subject of the sentence unnecessarily.
+${prefersConversationalViralFlow ? '- For this format and tone, prioritize natural Thai flow, emotional momentum, and a human-sounding voice over a report-like cadence. If the draft feels like a news recap, rewrite it to sound more like a real person telling the story.' : ''}
 - STRICT LANGUAGE RULE: ONLY THAI and ENGLISH are allowed. STRICTLY DO NOT output Chinese, Japanese, Korean, Russian/Cyrillic or any other languages under any circumstances.
 - ANTI-ROBOT RULE 1: NO PASSIVE VOICE translated from English. Do not use "ถูก..." unless describing a negative/punishing action.
 - ANTI-ROBOT RULE 2: DROP UNNECESSARY PRONOUNS. Native Thai drops "มัน" (it) and "พวกเขา" (they) when context is clear.
@@ -1227,6 +1232,7 @@ export const generateStructuredContentV2 = async (
 ) => {
   const { allowEmoji = false, customInstructions = '' } = options;
   const isViralTone = tone === 'กระตือรือร้น/ไวรัล';
+  const prefersConversationalViralFlow = shouldPreferConversationalViralFlow(tone, format);
   const writerTemperature = isViralTone ? 0.85 : 0.7;
   const writerFrequencyPenalty = isViralTone ? 0.15 : 0.35;
   const lengthInstruction = getLengthInstruction(length);
@@ -1240,7 +1246,7 @@ export const generateStructuredContentV2 = async (
 <tone_of_voice>
 - ${TONE_GUIDES[tone] || tone}
 ${tone === 'กระตือรือร้น/ไวรัล'
-  ? '- โทนนี้อนุญาตให้มีพลังงานสูง สร้าง FOMO และความตื่นเต้นได้ ตราบใดที่มีข้อเท็จจริงรองรับ ไม่จำเป็นต้อง "สุภาพ" หรือ "ระมัดระวัง" มากเกินไป'
+  ? `- โทนนี้อนุญาตให้มีพลังงานสูง สร้าง FOMO และความตื่นเต้นได้ ตราบใดที่มีข้อเท็จจริงรองรับ ไม่จำเป็นต้อง "สุภาพ" หรือ "ระมัดระวัง" มากเกินไป${prefersConversationalViralFlow ? ' และควรให้น้ำหนักกับความเป็นธรรมชาติ จังหวะภาษา และอารมณ์ของโพสต์มากกว่าน้ำเสียงแบบรายงาน' : ''}`
   : '- เป็นมืออาชีพแต่ไม่ก้าวร้าว มั่นใจแต่ไม่โอ้อวด (Professional but not aggressive, confident but not boastful).'}
 - ห้ามใช้คำศัพท์ที่เป็นทางการเกินไป (Corporate jargon) หรือสำนวนที่แปลตรงตัวจากภาษาอังกฤษ
 </tone_of_voice>
@@ -1259,6 +1265,7 @@ ${format === 'สคริปต์วิดีโอสั้น'
 7. NO DICTIONARY PAIRS. Choose either English or Thai for a term. Never write "Artificial Intelligence (ปัญญาประดิษฐ์)".
 8. STRICT LANGUAGE RULE: ระวังการหลอนภาษาต่างประเทศ (Hallucination) ให้ใช้เฉพาะภาษา "ไทย" (Thai) และตัวอักษร "ภาษาอังกฤษ" (English) สำหรับคำทับศัพท์เท่านั้น ห้ามพิมพ์ภาษาจีน, ญี่ปุ่น, เกาหลี หรือ รัสเซีย เด็ดขาด (หากเจอใน Fact Sheet ให้สกัดเอาเฉพาะความหมายมาเขียนเป็นภาษาไทย)
 9. PERSPECTIVE RULE: คุณคือ "ผู้สร้างคอนเทนต์ต้นทาง" (Original Creator) ห้ามเขียนในเชิงรายงานข่าวว่า "โพสต์ของ X บอกว่า..." หรือ "X รายงานว่า..." ให้นำข้อมูลมาเล่าด้วยมุมมองที่มั่นใจ รู้จริง และเล่าเรื่องโดยตรงไปที่ผู้อ่านแทน
+${prefersConversationalViralFlow ? '10. TONE REWRITE RULE: ถ้าผู้ใช้เลือกโทนกระตือรือร้นหรือไวรัลในรูปแบบโพสต์ แต่ร่างยังฟังเหมือนรายงานข่าวเกินไป ให้เรียบเรียงใหม่ให้เหมือนคนเล่าจริงโดยคงประเด็นสำคัญไว้' : ''}
 </rules_and_constraints>
 
 <tasks>
@@ -1338,7 +1345,7 @@ Example of GOOD Native Thai:
       system: `Evaluate whether the Thai draft is grounded, natural, and appropriate for the requested format.
 Set passed=true only if:
 - it stays faithful to the fact sheet
-- it matches the requested tone${tone === 'กระตือรือร้น/ไวรัล' ? ' (high energy and impactful language is EXPECTED and correct for this tone — do NOT penalize for strong language if facts support it)' : ' without overclaiming'}
+- it matches the requested tone${tone === 'กระตือรือร้น/ไวรัล' ? ` (high energy and impactful language is EXPECTED and correct for this tone — do NOT penalize for strong language if facts support it${prefersConversationalViralFlow ? ', but fail the draft if it still reads like a stiff news recap instead of a natural human post' : ''})` : ' without overclaiming'}
 - it does not read like generic AI copy
 - it respects heading and CTA expectations for the format
 - it names people only when their identity or influence materially matters`,
@@ -1355,7 +1362,7 @@ Set passed=true only if:
         system: draftSystemPrompt,
         prompt: `[FACT SHEET]\n${factSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[CURRENT DRAFT]\n${contentDraft}\n\n[EDITOR FEEDBACK]\n${
           evalResult.reason || 'Improve accuracy, tone, and natural Thai flow.'
-        }\n\nRewrite the content now.`,
+        }\n\nRewrite the content now.${prefersConversationalViralFlow ? '\nFor this tone and format, keep the energy but make the writing feel more human and less like a news report.' : ''}`,
         temperature: 0.4,
         allowEmoji,
       });
