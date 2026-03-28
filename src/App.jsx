@@ -305,6 +305,8 @@ const App = () => {
   const [contentTab, setContentTab] = usePersistentState(STORAGE_KEYS.contentTab, 'search');
   const [listModal, setListModal] = useState({ show: false, mode: 'create', value: '' });
   const [filterModal, setFilterModal] = useState({ show: false, prompt: '' });
+  const DEFAULT_QUICK_PRESETS = ['สรุป', 'หาโพสต์เด่น', 'โพสต์ไหนน่าทำคอนเทนต์'];
+  const [quickFilterPresets, setQuickFilterPresets] = usePersistentState(STORAGE_KEYS.quickFilterPresets, DEFAULT_QUICK_PRESETS);
   const [readFilters, setReadFilters] = useState({ view: false, engagement: false });
 
   const [audienceTab, setAudienceTab] = usePersistentState(STORAGE_KEYS.audienceTab, 'ai');
@@ -1131,9 +1133,10 @@ const App = () => {
 
 
 
-  const handleAiFilter = async () => {
-    if (!filterModal.prompt || filterModal.isFiltering) return;
-    setFilterModal(prev => ({ ...prev, isFiltering: true }));
+  const handleAiFilter = async (promptOverride) => {
+    const prompt = promptOverride ?? filterModal.prompt;
+    if (!prompt || filterModal.isFiltering) return;
+    setFilterModal(prev => ({ ...prev, isFiltering: true, show: false }));
     setStatus('AI กำลังวิเคราะห์และคัดกรองเนื้อหา...');
     
     try {
@@ -1152,7 +1155,7 @@ const App = () => {
         return;
       }
 
-      const validPicks = await agentFilterFeed(sourceFeed, filterModal.prompt);
+      const validPicks = await agentFilterFeed(sourceFeed, prompt);
       const filteredResult = sourceFeed
         .filter(t => validPicks.some(pick => String(pick.id) === String(t.id)))
         .map(t => {
@@ -1165,7 +1168,7 @@ const App = () => {
       
       if (filteredResult.length > 0) {
         setStatus('กำลังวิเคราะห์บทสรุปสำหรับคุณ...');
-        const summary = await generateExecutiveSummary(filteredResult.slice(0, 8), filterModal.prompt);
+        const summary = await generateExecutiveSummary(filteredResult.slice(0, 8), prompt);
         setAiFilterSummary(summary);
       }
       
@@ -1181,6 +1184,10 @@ const App = () => {
       setStatus('การกรองข้อมูลล้มเหลว กรุณาลองใหม่อีกครั้ง');
       setFilterModal(prev => ({ ...prev, isFiltering: false }));
     }
+  };
+
+  const removeQuickPreset = (preset) => {
+    setQuickFilterPresets(prev => prev.filter(p => p !== preset));
   };
 
   const clearAiFilter = () => {
@@ -1303,7 +1310,7 @@ const App = () => {
                   <button className="mobile-only-flex icon-btn-large" onClick={() => setIsMobilePostListOpen(true)}><List size={20} /></button>
                 </div>
                 
-                <div className={`dashboard-header-actions home-control-panel ${hasHomeSecondaryActions ? '' : 'home-control-panel-compact'}`} style={{ display: 'flex', alignItems: 'center', justifyContent: hasHomeSecondaryActions ? 'space-between' : 'flex-end', width: '100%', gap: '12px' }}>
+                <div className={`dashboard-header-actions home-control-panel ${hasHomeSecondaryActions ? '' : 'home-control-panel-compact'}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '12px' }}>
                   <div className="dashboard-header-actions-group" style={{ display: 'flex', gap: '8px' }}>
                     {originalFeed.length > 0 && (
                       <button onClick={handleDeleteAll} className="icon-btn-large header-secondary-action"><Trash2 size={16} /></button>
@@ -1330,14 +1337,47 @@ const App = () => {
                       <button onClick={() => handleSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`}>à¹€à¸­à¸™à¹€à¸à¸ˆà¹€à¸¡à¸™à¸•à¹Œ</button>
                     </div>
                   </div>
-                  <div className="dashboard-header-actions-group dashboard-header-actions-group-primary" style={{ display: 'flex', gap: '8px' }}>
+                  <div className="home-ai-filter-cluster">
+                    {feed.length > 0 && !isFiltered && quickFilterPresets.length > 0 && (
+                      <div className="home-ai-quick-presets">
+                        {quickFilterPresets.map(preset => (
+                          <div key={preset} className="home-ai-quick-chip">
+                            <button
+                              onClick={() => handleAiFilter(preset)}
+                              disabled={filterModal.isFiltering}
+                              className="home-ai-quick-preset-btn"
+                            >
+                              {preset}
+                            </button>
+                            <button
+                              onClick={() => removeQuickPreset(preset)}
+                              className="home-ai-quick-remove-btn"
+                              title="ลบ preset"
+                            >
+                              <X size={9} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {feed.length > 0 && !isFiltered && quickFilterPresets.length > 0 && (
+                      <div className="home-ai-connector">
+                        <div className="home-ai-connector-line" />
+                        <Sparkles size={9} className="home-ai-connector-icon" />
+                      </div>
+                    )}
                     <button
                       onClick={() => setFilterModal({ show: true, prompt: '' })}
                       className={`btn-pill ${activeView === 'home' && feed.length > 0 ? 'home-ai-filter-ready' : ''}`}
                     >
                       AI Filter
                     </button>
-                    <button onClick={handleSync} disabled={loading} className="btn-pill primary">
+                    <button
+                      onClick={handleSync}
+                      disabled={loading || originalFeed.length > 0}
+                      className="btn-pill primary"
+                      title={originalFeed.length > 0 ? 'ล้างฟีดทั้งหมดก่อนแล้วค่อยหาฟีดใหม่' : undefined}
+                    >
                       {loading ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} ฟีดข้อมูล
                     </button>
                   </div>

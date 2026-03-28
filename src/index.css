@@ -2116,6 +2116,91 @@ h1, h2, h3, h4, h5, h6 {
   padding-left: 16px;
 }
 
+.home-ai-filter-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.home-ai-quick-presets {
+  display: flex;
+  gap: 5px;
+  overflow: hidden;
+}
+
+.home-ai-quick-chip {
+  display: flex;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 999px;
+  overflow: hidden;
+  transition: border-color 0.18s ease;
+}
+
+.home-ai-quick-chip:hover {
+  border-color: rgba(41, 151, 255, 0.2);
+}
+
+.home-ai-quick-preset-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 10px 5px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: color 0.18s ease;
+}
+
+.home-ai-quick-chip:hover .home-ai-quick-preset-btn {
+  color: #fff;
+}
+
+.home-ai-quick-preset-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.home-ai-quick-remove-btn {
+  background: transparent;
+  border: none;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  color: var(--text-dim);
+  padding: 5px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s ease, background 0.15s ease;
+  line-height: 1;
+}
+
+.home-ai-quick-remove-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.home-ai-connector {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.home-ai-connector-line {
+  width: 28px;
+  height: 1px;
+  background: linear-gradient(to right, rgba(255,255,255,0.04), rgba(41,151,255,0.3));
+}
+
+.home-ai-connector-icon {
+  color: rgba(41, 151, 255, 0.45);
+  flex-shrink: 0;
+}
+
 .desktop-only {
   display: inline-flex;
 }
