@@ -98,14 +98,21 @@ const isNewsIntent = (query = '') => /ข่าว|news|latest|update|updates|br
 
 const isBroadDiscoveryIntent = (query = '') => {
   const normalized = String(query || '').toLowerCase().trim();
-  const tokens = normalized.split(/\s+/).filter(Boolean);
+  const stripped = normalized
+    .replace(/\b(latest|update|updates|breaking|news|review|vs|leak|rumor)\b/g, ' ')
+    .replace(/ข่าว|ล่าสุด|วันนี้|ด่วน|อัปเดต|อัพเดต|รีวิว|เทียบ|หลุด/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const tokens = stripped ? stripped.split(/\s+/).filter(Boolean) : [];
 
-  if (!normalized || tokens.length > 3) return false;
-  if (/latest|update|updates|breaking|news|review|vs|leak|rumor|from:|since:|until:|@|"/i.test(normalized)) {
+  if (!normalized || tokens.length === 0 || tokens.length > 6) return false;
+  if (/from:|since:|until:|@|"/i.test(normalized)) {
     return false;
   }
 
-  return true;
+  return BROAD_TOPIC_HINTS.some((group) =>
+    group.triggers.some((trigger) => normalized.includes(trigger)),
+  );
 };
 
 const getBroadTopicHints = (query = '') => {
@@ -835,7 +842,7 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
     if (acceptable.length < 8) {
       acceptable = scored
         .filter((tweet) => tweet.search_score >= hardThreshold * 0.7 && tweet.broad_semantic_score >= 0.2)
-        .slice(0, 30);
+        .slice(0, 80);
     }
   }
 
@@ -845,15 +852,16 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
     acceptable = scored.filter(tweet => tweet.search_score >= backupThreshold);
   }
 
-  const minimumKeep = Math.min(acceptable.length, broadDiscoveryIntent ? 18 : latestMode ? 15 : 30);
+  const minimumKeep = Math.min(acceptable.length, broadDiscoveryIntent ? 36 : latestMode ? 15 : 30);
   const filtered = acceptable.filter((tweet, index) => index < minimumKeep || tweet.search_score >= softThreshold);
   
   // Ensure we at least try to get 15-30 if we have them
-  const curated = filtered.length >= Math.min(broadDiscoveryIntent ? 10 : 15, acceptable.length) ? filtered : acceptable.slice(0, 30);
+  const curated = filtered.length >= Math.min(broadDiscoveryIntent ? 18 : 15, acceptable.length) ? filtered : acceptable.slice(0, broadDiscoveryIntent ? 60 : 30);
   const covered = ensureQueryCoverage(curated, acceptable, queryTerms, latestMode);
 
   // Return the absolute best 30 items max to protect Grok's context window
-  return diversifyBroadResults(diversifyByAuthor(covered, 30), queryProfile, 30).slice(0, 30);
+  return diversifyBroadResults(diversifyByAuthor(covered, broadDiscoveryIntent ? 60 : 30), queryProfile, broadDiscoveryIntent ? 60 : 30)
+    .slice(0, broadDiscoveryIntent ? 60 : 30);
 };
 
 /**
@@ -865,6 +873,7 @@ export const searchEverything = async (
   onlyNews = true,
   queryType = 'Latest',
   duoFetch = false,
+  maxPages = 1,
 ) => {
   try {
     const fullQuery = appendNewsFilter(query, onlyNews);
@@ -906,6 +915,48 @@ export const searchEverything = async (
     console.error('searchEverything failed:', error);
     return { data: [], meta: {} };
   }
+};
+
+export const searchEverythingDeep = async (
+  query,
+  cursor = '',
+  onlyNews = true,
+  queryType = 'Latest',
+  maxPages = 3,
+) => {
+  let currentCursor = cursor || '';
+  let nextCursor = null;
+  let pagesFetched = 0;
+  let allTweets = [];
+
+  while (pagesFetched < Math.max(1, maxPages)) {
+    const result = await searchEverything(query, currentCursor, onlyNews, queryType, false);
+    const chunk = Array.isArray(result?.data) ? result.data : [];
+    const chunkCursor = result?.meta?.next_cursor || null;
+
+    allTweets = [...allTweets, ...chunk];
+    nextCursor = chunkCursor;
+    pagesFetched += 1;
+
+    if (!chunkCursor || chunk.length < 5) break;
+    currentCursor = chunkCursor;
+  }
+
+  return {
+    data: dedupeTweetsById(allTweets),
+    meta: { next_cursor: nextCursor },
+  };
+};
+
+export const analyzeSearchQueryIntent = (rawQuery = '') => {
+  const queryProfile = buildQueryProfile(rawQuery);
+
+  return {
+    broadDiscoveryIntent: Boolean(queryProfile.broadIntent),
+    preferGlobal: Boolean(queryProfile.preferGlobal),
+    queryKey: queryProfile.key,
+    queryTerms: [...(queryProfile.queryTerms || [])],
+  };
 };
 
 /**

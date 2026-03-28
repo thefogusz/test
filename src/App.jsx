@@ -48,7 +48,9 @@ import {
   fetchWatchlistFeed,
   RECENT_WINDOW_HOURS,
   searchEverything,
-  curateSearchResults
+  searchEverythingDeep,
+  curateSearchResults,
+  analyzeSearchQueryIntent
 } from './services/TwitterService';
 import { agentFilterFeed, buildSearchPlan, discoverTopExperts, expandSearchQuery, generateExecutiveSummary, generateGrokBatch, tavilySearch } from './services/GrokService';
 import { renderMarkdownToHtml } from './utils/markdown';
@@ -202,6 +204,23 @@ const getBroadQueryBlueprint = (query = '') => {
   ) || null;
 };
 
+const isBroadTopicSearchQuery = (query = '') => {
+  const normalized = normalizeSearchText(query);
+  if (!normalized) return false;
+
+  const stripped = normalized
+    .replace(/\b(latest|breaking|today|now|update|news)\b/g, ' ')
+    .replace(/ข่าว|ล่าสุด|วันนี้|ด่วน|อัปเดต|อัพเดต/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const tokenCount = stripped ? stripped.split(' ').length : 0;
+
+  if (tokenCount === 0 || tokenCount > 4) return false;
+  if (/from:|since:|until:|@|"/i.test(query)) return false;
+
+  return Boolean(getBroadQueryBlueprint(query));
+};
+
 const App = () => {
   const [watchlist, setWatchlist] = usePersistentState(STORAGE_KEYS.watchlist, [], {
     deserialize: deserializeWatchlist,
@@ -235,6 +254,7 @@ const App = () => {
     deserialize: deserializeStoredCollection,
   });
   const [isSearching, setIsSearching] = useState(false);
+  const [searchOverflowResults, setSearchOverflowResults] = useState([]);
   const [isSourcesExpanded, setIsSourcesExpanded] = useState(false);
   const [searchCursor, setSearchCursor] = useState(null);
   const [activeSearchPlan, setActiveSearchPlan] = useState(null);
@@ -545,6 +565,12 @@ const App = () => {
     if (e) e.preventDefault();
     const requestedQuery = overrideQuery || searchQuery;
     if (!requestedQuery && !isMore) return;
+    if (isMore && searchOverflowResults.length > 0) {
+      const nextChunk = searchOverflowResults.slice(0, 10);
+      setSearchResults((prev) => [...prev, ...nextChunk]);
+      setSearchOverflowResults((prev) => prev.slice(10));
+      return;
+    }
     if (!isMore) recordSearchInterest(requestedQuery);
     setIsSearching(true);
     if (!isMore) setSearchSummary('');
@@ -558,14 +584,16 @@ const App = () => {
       const isComplexQuery = !/ฮา|ตลก|ขำ|funny|meme|lol|haha/i.test(requestedQuery);
       const normalizedRequestedQuery = normalizeSearchText(requestedQuery);
       const queryTokenCount = normalizedRequestedQuery ? normalizedRequestedQuery.split(' ').length : 0;
-      const isBroadDiscoveryQuery =
+      const legacyBroadDiscoveryQuery =
         queryTokenCount > 0 &&
         queryTokenCount <= 3 &&
         !/ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update|news|ข่าว|รีวิว|เทียบ|vs|หลุด/i.test(requestedQuery) &&
         !/from:|since:|until:|@|"/i.test(requestedQuery);
-      const broadBlueprint = isBroadDiscoveryQuery ? getBroadQueryBlueprint(requestedQuery) : null;
-      const shouldUseAdaptivePlan = isComplexQuery && !isBroadDiscoveryQuery;
-      const preferStrictSources = isComplexQuery && !isBroadDiscoveryQuery;
+      const queryIntent = analyzeSearchQueryIntent(requestedQuery);
+      const effectiveBroadDiscoveryQuery = queryIntent.broadDiscoveryIntent || legacyBroadDiscoveryQuery;
+      const broadBlueprint = effectiveBroadDiscoveryQuery ? getBroadQueryBlueprint(requestedQuery) : null;
+      const shouldUseAdaptivePlan = isComplexQuery && !effectiveBroadDiscoveryQuery;
+      const preferStrictSources = isComplexQuery && !effectiveBroadDiscoveryQuery;
       const rawDataChunks = [];
       let finalCursor = null;
 
@@ -579,16 +607,16 @@ const App = () => {
           }
           // Avoid 0-engagement noise even in Latest mode
           if (!q.includes('min_faves:')) {
-            const latestMinFaves = isBroadDiscoveryQuery
-              ? (lane === 'exact' ? 20 : 100)
+            const latestMinFaves = effectiveBroadDiscoveryQuery
+              ? (lane === 'exact' ? 10 : lane === 'broad' ? 25 : 40)
               : 1;
             sq = `${sq} min_faves:${latestMinFaves}`;
           }
         } else {
           // For Top mode, ensure at least some baseline viral signal
           if (!q.includes('min_faves:')) {
-            const topMinFaves = isBroadDiscoveryQuery
-              ? (lane === 'exact' ? 30 : 150)
+            const topMinFaves = effectiveBroadDiscoveryQuery
+              ? (lane === 'exact' ? 15 : lane === 'broad' ? 40 : 75)
               : 2;
             sq = `${sq} min_faves:${topMinFaves}`;
           }
@@ -601,34 +629,34 @@ const App = () => {
         
         // 1. Fire Tavily AND X Search (Broad) concurrently!
         const tavilyPromise =
-          shouldUseAdaptivePlan || isBroadDiscoveryQuery
+          shouldUseAdaptivePlan || effectiveBroadDiscoveryQuery
             ? tavilySearch(requestedQuery, isLatestMode)
             : Promise.resolve({ results: [], answer: '' });
         const expandedBroadQueryPromise = expandSearchQuery(requestedQuery, isLatestMode).catch((err) => {
           console.warn(`[Search] Failed to expand query: ${requestedQuery}`, err);
           return requestedQuery;
         });
-        const exactSearchPromise = isBroadDiscoveryQuery
-          ? searchEverything(getScopedQuery(requestedQuery, 'exact'), null, onlyNews, searchQueryType, false).catch((err) => {
+        const exactSearchPromise = effectiveBroadDiscoveryQuery
+          ? searchEverythingDeep(getScopedQuery(requestedQuery, 'exact'), null, onlyNews, searchQueryType, 2).catch((err) => {
               console.warn(`[Search] Failed exact query: ${requestedQuery}`, err);
               return { data: [], meta: {} };
             })
           : Promise.resolve({ data: [], meta: {} });
         const broadSearchPromise = expandedBroadQueryPromise.then((expandedBroadQuery) => {
           const broadQuery = getScopedQuery(expandedBroadQuery || requestedQuery, 'broad');
-          return searchEverything(broadQuery, null, onlyNews, searchQueryType, false).catch(err => {
+          return searchEverythingDeep(broadQuery, null, onlyNews, searchQueryType, 4).catch(err => {
             console.warn(`[Search] Failed broad query: ${broadQuery}`, err);
             return { data: [], meta: {} };
           });
         });
-        const entitySearchPromise = isBroadDiscoveryQuery && broadBlueprint?.entityQuery
-          ? searchEverything(getScopedQuery(broadBlueprint.entityQuery, 'entity'), null, onlyNews, searchQueryType, false).catch((err) => {
+        const entitySearchPromise = effectiveBroadDiscoveryQuery && broadBlueprint?.entityQuery
+          ? searchEverythingDeep(getScopedQuery(broadBlueprint.entityQuery, 'entity'), null, onlyNews, searchQueryType, 3).catch((err) => {
               console.warn(`[Search] Failed entity query: ${broadBlueprint.entityQuery}`, err);
               return { data: [], meta: {} };
             })
           : Promise.resolve({ data: [], meta: {} });
-        const viralSearchPromise = isBroadDiscoveryQuery && broadBlueprint?.viralQuery
-          ? searchEverything(getScopedQuery(broadBlueprint.viralQuery, 'viral'), null, onlyNews, searchQueryType, false).catch((err) => {
+        const viralSearchPromise = effectiveBroadDiscoveryQuery && broadBlueprint?.viralQuery
+          ? searchEverythingDeep(getScopedQuery(broadBlueprint.viralQuery, 'viral'), null, onlyNews, searchQueryType, 3).catch((err) => {
               console.warn(`[Search] Failed viral query: ${broadBlueprint.viralQuery}`, err);
               return { data: [], meta: {} };
             })
@@ -688,7 +716,10 @@ const App = () => {
          for (const query of planQueries) {
             const scopedQuery = getScopedQuery(query);
             try {
-              const { data: chunk, meta } = await searchEverything(scopedQuery, searchCursor, onlyNews, searchQueryType, false);
+              const searchResponse = effectiveBroadDiscoveryQuery
+                ? await searchEverythingDeep(scopedQuery, searchCursor, onlyNews, searchQueryType, 2)
+                : await searchEverything(scopedQuery, searchCursor, onlyNews, searchQueryType, false);
+              const { data: chunk, meta } = searchResponse;
               if (chunk.length > 0) rawDataChunks.push(chunk);
               if (!finalCursor) finalCursor = meta.next_cursor;
             } catch (err) {
@@ -712,14 +743,24 @@ const App = () => {
         
         setStatus(`[Agent 2/3] กำลังกรองสแปมและคัดเลือกโพสต์ระดับคุณภาพจากฐานข้อมูล...`);
         let cleanData = [];
+        let nextOverflowResults = [];
 
-        if (isBroadDiscoveryQuery) {
-          cleanData = curated.slice(0, Math.min(curated.length, 12)).map((tweet, index) => ({
+        if (effectiveBroadDiscoveryQuery) {
+          const rankedBroadResults = curated.slice(0, Math.min(curated.length, 30)).map((tweet, index) => ({
             ...tweet,
             ai_reasoning: tweet.ai_reasoning || 'Kept from the global-first ranked result set for this broad query.',
             temporalTag: tweet.temporalTag || (isLatestMode ? 'Breaking' : 'Background'),
             citation_id: tweet.citation_id || `[F${index + 1}]`,
           }));
+
+          if (isMore) {
+            const mergedBroadResults = mergeUniquePostsById(searchResults, searchOverflowResults, rankedBroadResults);
+            cleanData = mergedBroadResults.slice(0, Math.min(mergedBroadResults.length, searchResults.length + 10));
+            nextOverflowResults = mergedBroadResults.slice(cleanData.length);
+          } else {
+            cleanData = rankedBroadResults.slice(0, Math.min(rankedBroadResults.length, 10));
+            nextOverflowResults = rankedBroadResults.slice(cleanData.length);
+          }
         } else {
           setStatus(`[Agent 2/3] Selecting the highest-quality posts from the search pool...`);
           const validPicks = await agentFilterFeed(curated, rankingQuery, { preferCredibleSources: preferStrictSources, webContext, isComplexQuery });
@@ -744,8 +785,13 @@ const App = () => {
                 citation_id: tweet.citation_id || `[F${index + 1}]`,
               }));
         }
-        const nextResults = isMore ? mergeUniquePostsById(searchResults, cleanData) : cleanData;
+        const nextResults = effectiveBroadDiscoveryQuery
+          ? cleanData
+          : isMore
+            ? mergeUniquePostsById(searchResults, cleanData)
+            : cleanData;
         setSearchResults(nextResults);
+        setSearchOverflowResults(effectiveBroadDiscoveryQuery ? nextOverflowResults : []);
         setSearchCursor(meta.next_cursor);
         
         if (cleanData.length === 0) {
@@ -1487,6 +1533,7 @@ const App = () => {
                           onClick={() => {
                             setSearchQuery('');
                             setSearchResults([]);
+                            setSearchOverflowResults([]);
                             setSearchSummary('');
                             setSearchWebSources([]);
                             setSearchCursor(null);
@@ -1528,14 +1575,15 @@ const App = () => {
                     
                     {isSearching && (
                       <div className="search-loading-state animate-fade-in" style={{ padding: '40px 0', width: '100%' }}>
-                        <div className="neural-nexus">
-                          <div className="nexus-ring"></div>
-                          <div className="nexus-ring-inner"></div>
-                          <div className="nexus-core">
-                            <Sparkles size={32} />
+                        <div className="search-minimal-loader">
+                          <div className="search-minimal-loader-bar"></div>
+                          <div className="search-minimal-loader-grid">
+                            <div className="search-minimal-loader-line search-minimal-loader-line-wide"></div>
+                            <div className="search-minimal-loader-line"></div>
+                            <div className="search-minimal-loader-line search-minimal-loader-line-short"></div>
                           </div>
                         </div>
-                        <div className="nexus-text">Intelligence Engine Active</div>
+                        <div className="search-loading-label">Searching Signal Sources</div>
                         <div className="search-narrative">
                           <div className="narrative-item" key={status} style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '500' }}>
                             {status.replace(/\[.*?\]/g, '⚡')}
@@ -1715,7 +1763,7 @@ const App = () => {
                     <div className="feed-grid">
                       {searchResults.map((item, idx) => <FeedCard key={item.id || idx} tweet={item} onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }} />)}
                     </div>
-                    {searchCursor && !isSearching && (
+                    {(searchOverflowResults.length > 0 || searchCursor) && !isSearching && (
                       <div style={{ textAlign: 'center', marginTop: '32px', paddingBottom: '40px' }}>
                         <button onClick={(e) => handleSearch(e, true)} className="btn-pill">โหลดเพิ่มเติม</button>
                       </div>
