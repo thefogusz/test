@@ -3170,13 +3170,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .modal-title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
-  margin-bottom: 8px;
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  margin: 0;
+  color: #fff;
 }
 
 .modal-subtitle {
@@ -3185,40 +3182,81 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 24px;
 }
 
+/* AI Filter Modal specific */
+.ai-filter-modal {
+  max-width: 460px;
+  padding: 28px;
+}
+
+.ai-filter-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.ai-filter-modal-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(41, 151, 255, 0.1);
+  border: 1px solid rgba(41, 151, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(41, 151, 255, 0.9);
+  flex-shrink: 0;
+}
+
+.ai-filter-modal-hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
 .ai-filter-presets {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: -4px 0 16px;
+  gap: 6px;
+  margin-bottom: 16px;
 }
 
 .ai-filter-preset-btn {
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
-  color: #fff;
-  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  color: var(--text-dim);
+  padding: 7px 13px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   font-family: inherit;
+  text-align: left;
 }
 
 .ai-filter-preset-btn:hover:not(:disabled) {
-  background: rgba(41, 151, 255, 0.08);
-  border-color: rgba(41, 151, 255, 0.22);
+  background: rgba(41, 151, 255, 0.07);
+  border-color: rgba(41, 151, 255, 0.2);
+  color: #fff;
 }
 
 .ai-filter-preset-btn.active {
-  background: rgba(41, 151, 255, 0.12);
-  border-color: rgba(41, 151, 255, 0.32);
+  background: rgba(41, 151, 255, 0.1);
+  border-color: rgba(41, 151, 255, 0.3);
   color: #fff;
 }
 
 .ai-filter-preset-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
+}
+
+.ai-filter-input {
+  min-height: 90px !important;
+  resize: none !important;
+  padding: 14px 16px !important;
+  font-size: 13px !important;
 }
 
 .modal-input {

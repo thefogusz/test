@@ -1129,7 +1129,7 @@ const App = () => {
     setActiveFilters(prev => ({ ...prev, [type]: !prev[type] }));
   };
 
-  const aiFilterPresets = ['สรุปทั้งหมด', 'หาโพสต์เด่น', 'หาโพสต์ฮาๆ', 'หาโพสต์ที่คนพูดถึงมาก'];
+  const aiFilterPresets = ['โพสต์ไหนน่าทำคอนเทนต์ต่อ', 'กำลัง viral อยู่ตอนนี้', 'เรื่องที่คนถกเถียงมากที่สุด', 'ข่าวสำคัญที่ควรติดตาม'];
 
 
 
@@ -2247,41 +2247,32 @@ const App = () => {
 
       {filterModal.show && (
         <div className="modal-overlay" onClick={() => !filterModal.isFiltering && setFilterModal({ ...filterModal, show: false })}>
-          <div className="modal-content animate-fade-in" style={{ maxWidth: '500px' }} onClick={e => e.stopPropagation()}>
-            <div className="modal-title">AI Smart Filter</div>
-            <div className="modal-subtitle">กรองเนื้อหาที่ต้องการโดยระบุเป็นภาษามนุษย์ (เช่น "หาเฉพาะเรื่องระดมทุนของส้มหยุด" หรือ "ข่าวที่เกี่ยวกับ Apple")</div>
-            <div className="ai-filter-presets">
-              {aiFilterPresets.map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  className={`ai-filter-preset-btn ${filterModal.prompt === preset ? 'active' : ''}`}
-                  disabled={filterModal.isFiltering}
-                  onClick={() => setFilterModal((prev) => ({ ...prev, prompt: preset }))}
-                >
-                  {preset}
-                </button>
-              ))}
+          <div className="modal-content ai-filter-modal animate-fade-in" onClick={e => e.stopPropagation()}>
+            <div className="ai-filter-modal-header">
+              <div className="ai-filter-modal-icon"><Sparkles size={16} /></div>
+              <div>
+                <div className="modal-title">AI Smart Filter</div>
+                <div className="ai-filter-modal-hint">บอก AI ว่าอยากหาอะไรในฟีดนี้</div>
+              </div>
             </div>
-            <textarea 
-              className="modal-input"
-              style={{ minHeight: '120px', resize: 'none', padding: '16px' }}
+            <textarea
+              className="modal-input ai-filter-input"
               autoFocus
               disabled={filterModal.isFiltering}
-              placeholder="ระบุสิ่งที่ต้องการกรองที่นี่..."
+              placeholder="หรือพิมพ์เองได้เลย เช่น “หาโพสต์ที่เกี่ยวกับ AI และมี engagement สูง”"
               value={filterModal.prompt}
               onChange={e => setFilterModal({ ...filterModal, prompt: e.target.value })}
             />
             <div className="modal-actions">
-              <button 
-                className="modal-btn modal-btn-secondary" 
+              <button
+                className="modal-btn modal-btn-secondary"
                 disabled={filterModal.isFiltering}
                 onClick={() => setFilterModal({ ...filterModal, show: false })}
               >
                 ยกเลิก
               </button>
-              <button 
-                className="modal-btn modal-btn-primary" 
+              <button
+                className="modal-btn modal-btn-primary"
                 onClick={handleAiFilter}
                 disabled={filterModal.isFiltering || !filterModal.prompt.trim()}
                 style={{ position: 'relative', overflow: 'hidden' }}
@@ -2289,10 +2280,10 @@ const App = () => {
                 {filterModal.isFiltering ? (
                   <>
                     <RefreshCw size={16} className="animate-spin" />
-                    <span>กำลังประมวลผล...</span>
+                    <span>กำลังวิเคราะห์...</span>
                   </>
                 ) : (
-                  'กรองข้อมูล'
+                  <>กรองฟีด</>
                 )}
               </button>
             </div>
