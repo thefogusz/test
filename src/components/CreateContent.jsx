@@ -141,8 +141,9 @@ const CustomDropdown = ({ icon, value, onChange, options, isObject }) => {
   const selectedTitle = isObject ? options.find(o => o.id === value)?.title : value;
 
   return (
-    <div ref={dropdownRef} style={{ position: 'relative', display: 'inline-block' }}>
+    <div ref={dropdownRef} className="custom-dropdown" style={{ position: 'relative', display: 'inline-block' }}>
       <button
+        className="custom-dropdown-trigger"
         onClick={() => setIsOpen(!isOpen)}
         style={{
           display: 'flex', alignItems: 'center', gap: '8px',
@@ -173,7 +174,7 @@ const CustomDropdown = ({ icon, value, onChange, options, isObject }) => {
       </button>
 
       {isOpen && (
-        <div style={{
+        <div className="custom-dropdown-menu" style={{
           position: 'absolute', top: 'calc(100% + 8px)', left: 0,
           background: 'var(--bg-800)', border: '1px solid var(--glass-border)',
           borderRadius: '16px', padding: '8px', minWidth: '220px',
@@ -609,7 +610,7 @@ const CreateContent = ({
           </div>
           
           {/* Right: Stop + Generate Buttons */}
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="create-content-toolbar-right" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
             {isGenerating && (
               <button
                 onClick={handleStop}

@@ -1494,7 +1494,7 @@ const App = () => {
                   />
                 ))}
               </div>
-              {nextCursor && !loading && (
+              {(pendingFeed.length > 0 || nextCursor) && !loading && (
                 <div style={{ textAlign: 'center', padding: '40px' }}>
                   <button onClick={handleLoadMore} className="btn-pill">โหลดเพิ่มเติม</button>
                 </div>
@@ -1503,11 +1503,11 @@ const App = () => {
 
           {/* ===== UNIFIED CONTENT VIEW ===== */}
           <div className="unified-content-view animate-fade-in" style={{ display: activeView === 'content' ? 'block' : 'none' }}>
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '1px solid var(--glass-border)', paddingBottom: '16px' }}>
-              <button className={`btn-pill ${contentTab === 'search' ? 'primary' : ''}`} onClick={() => setContentTab('search')}>
+            <div className="content-view-tabs">
+              <button className={`btn-pill content-view-tab-btn ${contentTab === 'search' ? 'primary' : ''}`} onClick={() => setContentTab('search')}>
                 <Search size={16} /> ค้นหา
               </button>
-              <button className={`btn-pill ${contentTab === 'create' ? 'primary' : ''}`} onClick={() => setContentTab('create')}>
+              <button className={`btn-pill content-view-tab-btn ${contentTab === 'create' ? 'primary' : ''}`} onClick={() => setContentTab('create')}>
                 <Sparkles size={16} /> สร้างคอนเทนต์
               </button>
             </div>

@@ -560,6 +560,9 @@ h1, h2, h3, h4, h5, h6 {
   padding: 0 20px 40px;
   text-align: center;
   margin-bottom: 40px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .hero-search-title {
@@ -638,6 +641,7 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 .zap-toggle-btn {
@@ -673,6 +677,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .hero-search-input {
   flex: 1;
+  min-width: 0;
   background: transparent;
   border: none;
   color: #fff;
@@ -1101,6 +1106,30 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-dim);
+}
+
+.content-view-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.content-view-tab-btn {
+  min-width: 0;
+}
+
+.custom-dropdown {
+  min-width: 0;
+}
+
+.custom-dropdown-trigger {
+  width: 100%;
+}
+
+.custom-dropdown-menu {
+  max-width: min(92vw, 320px);
 }
 
 .reader-empty-search-state {
@@ -1756,6 +1785,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .feed-card-header {
+    flex-direction: column;
     align-items: flex-start !important;
     gap: 12px !important;
   }
@@ -1766,10 +1796,11 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .feed-card-meta {
-    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+    flex: 1 1 auto;
     flex-wrap: wrap;
-    justify-content: flex-end;
-    max-width: 42%;
+    justify-content: flex-start;
   }
 
   .feed-card-footer {
@@ -1926,14 +1957,38 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 13px;
   }
 
+  .reader-search-suggestions {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .reader-search-suggestions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .reader-search-suggestion-pill {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
   .reader-toolbar-actions {
     justify-content: flex-start;
     flex-wrap: wrap;
+    width: 100%;
+    gap: 8px;
   }
 
   .reader-toolbar-count {
     width: 100%;
     padding-right: 0;
+  }
+
+  .reader-toolbar-actions .btn-pill {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+    justify-content: center;
   }
 
   .reader-load-more-shell {
@@ -2023,12 +2078,16 @@ h1, h2, h3, h4, h5, h6 {
 
   .create-content-toolbar-left {
     width: 100%;
+    flex-direction: column !important;
+    align-items: stretch !important;
   }
 
   .create-content-toolbar-controls {
     width: 100%;
     border-radius: 18px !important;
     justify-content: flex-start;
+    flex-direction: column !important;
+    align-items: stretch !important;
   }
 
   .create-content-generate-btn {
@@ -2036,6 +2095,87 @@ h1, h2, h3, h4, h5, h6 {
     margin-left: 0 !important;
     justify-content: center;
     padding: 12px 18px !important;
+  }
+
+  .create-content-toolbar-right {
+    width: 100%;
+    margin-left: 0 !important;
+    flex-direction: column-reverse;
+    align-items: stretch !important;
+  }
+
+  .custom-dropdown {
+    display: block !important;
+    width: 100%;
+  }
+
+  .custom-dropdown-menu {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .content-view-tabs {
+    gap: 10px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .content-view-tab-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .hero-search-wrapper {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  .unified-content-view,
+  .search-discovery-view,
+  .search-results-container {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  .hero-search-container {
+    padding-inline: 0;
+    margin-bottom: 24px;
+  }
+
+  .hero-search-form {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .hero-search-actions {
+    gap: 6px !important;
+    flex-shrink: 0;
+  }
+
+  .hero-clear-btn {
+    margin-right: 0;
+  }
+
+  .search-summary-card,
+  .search-results-container .feed-grid,
+  .search-results-container > * {
+    min-width: 0;
+  }
+
+  .search-suggestions-dropdown {
+    position: static;
+    margin-top: 12px;
+    border-radius: 16px;
+    max-height: 240px;
   }
 
   .content-result-header {
