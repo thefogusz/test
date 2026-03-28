@@ -285,7 +285,6 @@ const CreateContent = ({
 
     setIsGenerating(true);
     setFactSheet(null);
-    setTitleIdea('');
     setArticleSources([]);
     setGeneratedMarkdown('');
     setError(null);
@@ -378,7 +377,6 @@ const CreateContent = ({
     setPhase('idle');
     setGeneratedMarkdown('');
     setFactSheet(null);
-    setTitleIdea('');
     setArticleSources([]);
     setError(null);
     setIsEditing(false);
@@ -401,7 +399,6 @@ const CreateContent = ({
 
     setIsGenerating(true);
     setGeneratedMarkdown('');
-    setTitleIdea('');
     setError(null);
     setPhase('generating');
 
