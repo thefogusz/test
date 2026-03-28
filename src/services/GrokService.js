@@ -705,7 +705,7 @@ export const agentFilterFeed = async (tweetsData, userPrompt, options = {}) => {
   const { preferCredibleSources = false, webContext = '' } = options;
 
   const compressedInput = tweetsData.map((tweet) => ({
-    id: tweet.id,
+    id: String(tweet.id),
     text: tweet.text,
     createdAt: tweet.created_at || tweet.createdAt || null,
     username: tweet.author?.username || null,
@@ -750,8 +750,8 @@ ${preferCredibleSources ? '- Prioritize topic fit first, then strictly prefer cr
       temperature: 0,
     });
 
-    const validIdSet = new Set(compressedInput.map((tweet) => tweet.id));
-    const finalPicks = object.picks.filter((pick) => validIdSet.has(pick.id));
+    const validIdSet = new Set(compressedInput.map((tweet) => String(tweet.id)));
+    const finalPicks = object.picks.filter((pick) => validIdSet.has(String(pick.id)));
     return finalPicks.map((pick, i) => ({ ...pick, citation_id: `[T${i + 1}]` }));
   } catch (error) {
     if (error.status === 400) {
