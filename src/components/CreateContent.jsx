@@ -48,6 +48,64 @@ const buildAttachedTweetUrl = (sourceNode) => {
   return `https://x.com/${username}/status/${sourceNode.id}`;
 };
 
+const sanitizeBookmarkSources = (sources = []) =>
+  sources
+    .filter((source) => source && source.url)
+    .filter((source, idx, self) => idx === self.findIndex((item) => item.url === source.url))
+    .map((source) => ({
+      title: source.title || source.url,
+      url: source.url,
+    }));
+
+const serializeAttachedSource = (sourceNode) => {
+  if (!sourceNode) return null;
+
+  return {
+    id: sourceNode.id || null,
+    title: sourceNode.title || '',
+    text: sourceNode.text || '',
+    summary: sourceNode.summary || '',
+    url: buildAttachedTweetUrl(sourceNode),
+    author: sourceNode.author
+      ? {
+          name: sourceNode.author.name || '',
+          username: sourceNode.author.username || '',
+          profile_image_url: sourceNode.author.profile_image_url || '',
+        }
+      : null,
+  };
+};
+
+const buildBookmarkReferenceMarkdown = (attachedSource, sources = []) => {
+  const sections = [];
+
+  if (attachedSource?.url) {
+    const attachedLabel =
+      attachedSource.title ||
+      attachedSource.text ||
+      (attachedSource.author?.username ? `@${attachedSource.author.username}` : 'Attached source');
+
+    sections.push([
+      '---',
+      '',
+      '## Sources',
+      '',
+      `- Attached source: [${attachedLabel}](${attachedSource.url})`,
+    ].join('\n'));
+  }
+
+  if (sources.length > 0) {
+    const sourceLines = sources.map((source) => `- [${source.title || source.url}](${source.url})`);
+    if (sections.length === 0) {
+      sections.push(['---', '', '## Sources', '', ...sourceLines].join('\n'));
+    } else {
+      sections.push(sourceLines.join('\n'));
+    }
+  }
+
+  return sections.filter(Boolean).join('\n');
+};
+
 const FORMAT_OPTIONS = [
   { id: 'โพสต์โซเชียล', title: 'โพสต์โซเชียล', icon: MessageSquare },
   { id: 'สคริปต์วิดีโอสั้น', title: 'วิดีโอสั้น / Reels', icon: ListVideo },
@@ -623,7 +681,17 @@ const CreateContent = ({
               </button>
               <button
                 onClick={() => {
-                  if (onSaveArticle) onSaveArticle(input.substring(0, 40) + '...', generatedMarkdown);
+                  const attachedSource = serializeAttachedSource(sourceNode);
+                  const sources = sanitizeBookmarkSources(articleSources);
+                  const referenceMarkdown = buildBookmarkReferenceMarkdown(attachedSource, sources);
+                  const contentToSave = [generatedMarkdown, referenceMarkdown].filter(Boolean).join('\n\n');
+
+                  if (onSaveArticle) {
+                    onSaveArticle(input.substring(0, 40) + '...', contentToSave, {
+                      attachedSource,
+                      sources,
+                    });
+                  }
                   setIsSaved(true);
                   setTimeout(() => setIsSaved(false), 2000);
                 }}

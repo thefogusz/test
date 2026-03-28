@@ -127,7 +127,7 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
           <button onClick={handleBookmark} className="icon-hover" style={{ 
             background: 'transparent', border: 'none', cursor: 'pointer', 
             width: '26px', height: '26px', borderRadius: '6px',
-            color: bookmarked ? '#fff' : 'rgba(255,255,255,0.25)',
+            color: bookmarked ? '#facc15' : 'rgba(255,255,255,0.25)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             padding: 0
           }}>
