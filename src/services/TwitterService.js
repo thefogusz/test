@@ -1,4 +1,5 @@
 import { apiFetch } from '../utils/apiFetch';
+import { toNumber } from '../utils/appUtils';
 
 const BASE_URL = '/api/twitter';
 export const RECENT_WINDOW_HOURS = 24;
@@ -72,13 +73,6 @@ const HYPE_PATTERNS = [
 ];
 
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
-
-const toNumber = (value) => {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
-
-  const parsed = Number(String(value ?? '0').replace(/,/g, ''));
-  return Number.isFinite(parsed) ? parsed : 0;
-};
 
 const logScore = (value, multiplier, maxInput = 1) => {
   if (value <= 0 || maxInput <= 1) return 0;
@@ -397,10 +391,23 @@ const getSignalScore = (tweet) => {
   const engagementRate = views > 0 ? engagement / views : 0;
 
   return (
-    logScore(views, 3.5, 5_000_000) + 
+    logScore(views, 3.5, 5_000_000) +
     logScore(engagement, 6.0, 200_000) + // Increased multiplier significantly
     clamp(engagementRate / 0.04, 0, 1) * 3.5
   );
+};
+
+const getVelocityTag = (tweet) => {
+  const likes = toNumber(tweet?.like_count || tweet?.likeCount);
+  const retweets = toNumber(tweet?.retweet_count || tweet?.retweetCount);
+  const engagement = likes + retweets;
+  const ageHours = getAgeHours(tweet?.created_at || tweet?.createdAt);
+  if (ageHours <= 0 || engagement === 0) return null;
+  const engPerHour = engagement / ageHours;
+  if (ageHours <= 6 && engPerHour >= 200) return '🔥 กำลังระเบิด';
+  if (ageHours <= 24 && engPerHour >= 50) return '📈 กำลังขึ้น';
+  if (ageHours <= 48 && engPerHour >= 15) return '📊 กำลังมา';
+  return null;
 };
 
 const getHypePenalty = (text = '') => {
@@ -824,6 +831,7 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
         broad_global_authority_score: Number(broadGlobalAuthorityScore.toFixed(3)),
         broad_viral_momentum_score: Number(broadViralMomentumScore.toFixed(3)),
         search_score: Number(totalScore.toFixed(3)),
+        velocityTag: getVelocityTag(tweet),
       };
     })
     .sort((a, b) => {
@@ -948,14 +956,65 @@ export const searchEverythingDeep = async (
   };
 };
 
+const getBigrams = (text = '') => {
+  const words = String(text || '').toLowerCase().replace(/[^\u0E00-\u0E7Fa-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+  const bigrams = new Set();
+  for (let i = 0; i < words.length - 1; i++) bigrams.add(`${words[i]}_${words[i + 1]}`);
+  return bigrams;
+};
+
+const jaccardSimilarity = (a, b) => {
+  if (!a.size || !b.size) return 0;
+  let intersection = 0;
+  for (const item of a) if (b.has(item)) intersection++;
+  return intersection / (a.size + b.size - intersection);
+};
+
+export const clusterBySimilarity = (tweets = [], threshold = 0.55) => {
+  if (!tweets.length) return tweets;
+  const bigramSets = tweets.map((t) => getBigrams(t.text || ''));
+  const kept = [];
+  const consumed = new Set();
+
+  for (let i = 0; i < tweets.length; i++) {
+    if (consumed.has(i)) continue;
+    let bestIdx = i;
+    let bestScore = tweets[i].search_score ?? 0;
+    consumed.add(i);
+    for (let j = i + 1; j < tweets.length; j++) {
+      if (consumed.has(j)) continue;
+      if (jaccardSimilarity(bigramSets[i], bigramSets[j]) >= threshold) {
+        const jScore = tweets[j].search_score ?? 0;
+        if (jScore > bestScore) { bestScore = jScore; bestIdx = j; }
+        consumed.add(j);
+      }
+    }
+    kept.push(tweets[bestIdx]);
+  }
+  return kept;
+};
+
 export const analyzeSearchQueryIntent = (rawQuery = '') => {
   const queryProfile = buildQueryProfile(rawQuery);
+  const q = String(rawQuery || '').toLowerCase();
+
+  let intentType = 'general';
+  if (/ราคา|price|ค่าเงิน|btc|eth|bitcoin|ethereum|\$/.test(q)) intentType = 'price';
+  else if (/เปิดตัว|ประกาศ|ด่วน|breaking|event|งาน|เปิดงาน|launch/.test(q)) intentType = 'event';
+  else if (/vs|เทียบ|comparison|เปรียบเทียบ|ต่างกัน/.test(q)) intentType = 'comparison';
+  else if (/^@\w+/.test(q.trim())) intentType = 'person';
+
+  const forceLatestMode = intentType === 'price' || intentType === 'event';
+  const tavilyFirst = intentType === 'event' || (intentType === 'general' && /ข่าว|news|update/.test(q));
 
   return {
     broadDiscoveryIntent: Boolean(queryProfile.broadIntent),
     preferGlobal: Boolean(queryProfile.preferGlobal),
     queryKey: queryProfile.key,
     queryTerms: [...(queryProfile.queryTerms || [])],
+    intentType,
+    forceLatestMode,
+    tavilyFirst,
   };
 };
 

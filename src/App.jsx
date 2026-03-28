@@ -50,7 +50,8 @@ import {
   searchEverything,
   searchEverythingDeep,
   curateSearchResults,
-  analyzeSearchQueryIntent
+  analyzeSearchQueryIntent,
+  clusterBySimilarity
 } from './services/TwitterService';
 import { agentFilterFeed, buildSearchPlan, discoverTopExperts, expandSearchQuery, generateExecutiveSummary, generateGrokBatch, tavilySearch } from './services/GrokService';
 import { renderMarkdownToHtml } from './utils/markdown';
@@ -258,7 +259,7 @@ const App = () => {
   const [isSourcesExpanded, setIsSourcesExpanded] = useState(false);
   const [searchCursor, setSearchCursor] = useState(null);
   const [activeSearchPlan, setActiveSearchPlan] = useState(null);
-  const [onlyNews] = useState(true);
+  const onlyNews = true;
   const [nextCursor, setNextCursor] = useState(null);
   const [isLatestMode, setIsLatestMode] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
@@ -579,8 +580,6 @@ const App = () => {
     try {
       let webContext = '';
       let searchPlan = activeSearchPlan;
-      const searchQueryType = isLatestMode ? 'Latest' : 'Top';
-      
       const isComplexQuery = !/ฮา|ตลก|ขำ|funny|meme|lol|haha/i.test(requestedQuery);
       const normalizedRequestedQuery = normalizeSearchText(requestedQuery);
       const queryTokenCount = normalizedRequestedQuery ? normalizedRequestedQuery.split(' ').length : 0;
@@ -591,6 +590,8 @@ const App = () => {
         !/from:|since:|until:|@|"/i.test(requestedQuery);
       const queryIntent = analyzeSearchQueryIntent(requestedQuery);
       const effectiveBroadDiscoveryQuery = queryIntent.broadDiscoveryIntent || legacyBroadDiscoveryQuery;
+      // Auto-enable Latest mode for price/event queries that need freshness
+      const searchQueryType = (isLatestMode || queryIntent.forceLatestMode) ? 'Latest' : 'Top';
       const broadBlueprint = effectiveBroadDiscoveryQuery ? getBroadQueryBlueprint(requestedQuery) : null;
       const shouldUseAdaptivePlan = isComplexQuery && !effectiveBroadDiscoveryQuery;
       const preferStrictSources = isComplexQuery && !effectiveBroadDiscoveryQuery;
@@ -763,13 +764,14 @@ const App = () => {
           }
         } else {
           setStatus(`[Agent 2/3] Selecting the highest-quality posts from the search pool...`);
-          const validPicks = await agentFilterFeed(curated, rankingQuery, { preferCredibleSources: preferStrictSources, webContext, isComplexQuery });
-          const pickedData = curated
+          const dedupedCurated = clusterBySimilarity(curated, 0.55);
+          const validPicks = await agentFilterFeed(dedupedCurated, rankingQuery, { preferCredibleSources: preferStrictSources, webContext, isComplexQuery });
+          const pickedData = dedupedCurated
             .filter(t => validPicks.some(pick => String(pick.id) === String(t.id)))
             .map(t => {
               const pick = validPicks.find(p => String(p.id) === String(t.id));
-              return { 
-                ...t, 
+              return {
+                ...t,
                 ai_reasoning: pick?.reasoning,
                 temporalTag: pick?.temporalTag,
                 citation_id: pick?.citation_id
@@ -778,7 +780,7 @@ const App = () => {
           const shouldFallbackToCurated = pickedData.length === 0;
           cleanData = !shouldFallbackToCurated && pickedData.length > 0
             ? pickedData
-            : curated.slice(0, Math.min(curated.length, 12)).map((tweet, index) => ({
+            : dedupedCurated.slice(0, Math.min(dedupedCurated.length, 12)).map((tweet, index) => ({
                 ...tweet,
                 ai_reasoning: tweet.ai_reasoning || 'Kept as a fallback result after passing the local quality checks.',
                 temporalTag: tweet.temporalTag || (isLatestMode ? 'Breaking' : 'Background'),
@@ -1457,12 +1459,20 @@ const App = () => {
 
             <div style={{ display: contentTab === 'create' ? 'block' : 'none' }}>
               <div className="animate-fade-in">
-                <ContentErrorBoundary key={createContentSource?.id}>
+                <ContentErrorBoundary key={createContentSource?.id ?? 'no-source'}>
                   <CreateContent 
                     sourceNode={createContentSource} 
                     onRemoveSource={() => setCreateContentSource(null)}
-                    onSaveArticle={(title, content) => {
-                      const newArt = { id: Date.now().toString(), type: 'article', title: title || 'บทความ AI', summary: content, created_at: new Date().toISOString() };
+                    onSaveArticle={(title, content, meta) => {
+                      const newArt = {
+                        id: Date.now().toString(),
+                        type: 'article',
+                        title: title || 'บทความ AI',
+                        summary: content,
+                        created_at: new Date().toISOString(),
+                        attachedSource: meta?.attachedSource || null,
+                        sources: meta?.sources || [],
+                      };
                       setBookmarks(prev => [newArt, ...prev]);
                     }}
                     isGenerating={isGeneratingContent}

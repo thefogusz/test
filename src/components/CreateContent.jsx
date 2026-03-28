@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, Bookmark, ExternalLink } from 'lucide-react';
+import { Sparkles, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, Bookmark, ExternalLink, RefreshCw } from 'lucide-react';
 import { researchAndPreventHallucination, generateStructuredContentV2 } from '../services/GrokService';
 import { renderMarkdownToHtml } from '../utils/markdown';
 
@@ -236,6 +236,7 @@ const CreateContent = ({
 
   // Generation state (LIFTED TO APP.JSX)
   const [factSheet, setFactSheet] = useState(() => localStorage.getItem('foro_gen_factsheet_v1') || null);
+  const [titleIdea, setTitleIdea] = useState(() => localStorage.getItem('foro_gen_titleidea_v1') || '');
   const [articleSources, setArticleSources] = useState(() => {
     const saved = localStorage.getItem('foro_gen_sources_v1');
     return safeParse(saved, []);
@@ -246,6 +247,7 @@ const CreateContent = ({
   const [isEditing, setIsEditing] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [thinkingStep, setThinkingStep] = useState(0);
+  const abortRef = useRef(null);
   const activeFormatHint = FORMAT_HINTS[format] || FORMAT_HINTS['โพสต์โซเชียล'];
 
   useEffect(() => {
@@ -263,22 +265,34 @@ const CreateContent = ({
   useEffect(() => { localStorage.setItem('foro_gen_tone_v1', tone); }, [tone]);
   useEffect(() => { localStorage.setItem('foro_gen_format_v1', format); }, [format]);
   useEffect(() => { if (factSheet) localStorage.setItem('foro_gen_factsheet_v1', factSheet); else localStorage.removeItem('foro_gen_factsheet_v1'); }, [factSheet]);
+  useEffect(() => { if (titleIdea) localStorage.setItem('foro_gen_titleidea_v1', titleIdea); else localStorage.removeItem('foro_gen_titleidea_v1'); }, [titleIdea]);
   useEffect(() => { localStorage.setItem('foro_gen_sources_v1', JSON.stringify(articleSources)); }, [articleSources]);
   useEffect(() => { localStorage.setItem('foro_gen_markdown_v1', generatedMarkdown); }, [generatedMarkdown]);
+
+  const handleStop = () => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+  };
 
   const handleGenerate = async () => {
     const isManualInputValid = input.trim().length > 0;
     const hasSource = !!sourceNode;
-    
+
     if (!isManualInputValid && !hasSource) return;
+
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     setIsGenerating(true);
     setFactSheet(null);
+    setTitleIdea('');
     setArticleSources([]);
     setGeneratedMarkdown('');
     setError(null);
     setPhase('researching');
-    
+
     try {
       let researchPrompt = input.trim();
       let factIntel = '';
@@ -303,30 +317,30 @@ const CreateContent = ({
       }
 
       // 1. Research Phase
-      const { factSheet: facts, sources: rawSources } = await researchAndPreventHallucination(researchPrompt, factIntel);
+      const { factSheet: facts, sources: rawSources } = await researchAndPreventHallucination(researchPrompt, factIntel, {
+        signal: controller.signal,
+      });
       setFactSheet(facts);
       setArticleSources(rawSources || []);
       setPhase('generating');
 
       // 2. Generation Phase (Streaming)
-      const appliedTone = tone;
-
       const allowEmoji = EMOJI_REQUEST_PATTERN.test(customInstructions);
       const lengthIndex = LENGTH_OPTIONS.indexOf(length);
       const normalizedLength = lengthIndex === 0 ? 'short' : lengthIndex === 2 ? 'long' : 'medium';
 
-      await generateStructuredContentV2(
+      const result = await generateStructuredContentV2(
         facts,
         normalizedLength,
-        appliedTone,
+        tone,
         format,
-        (currentText) => {
-          setGeneratedMarkdown(currentText); // Stream to UI instantly
-        },
-        { allowEmoji, customInstructions }
+        (currentText) => setGeneratedMarkdown(currentText),
+        { allowEmoji, customInstructions, signal: controller.signal }
       );
-      
-      setPhase('done'); // Done
+
+      if (result?.titleIdea) setTitleIdea(result.titleIdea);
+
+      setPhase('done');
       
       // Auto-scroll to result gracefully only after it's done
       setTimeout(() => {
@@ -335,16 +349,18 @@ const CreateContent = ({
       }, 100);
 
     } catch (err) {
-      console.error('Generation Error [Detailed]:', err);
-      const stage = phase === 'researching' ? 'Research' : 'Generation';
-      let msg = err.message || 'Unknown Error';
-      
-      // Handle the "Response is not defined" case or similar Vercel AI SDK errors
-      if (err.name === 'Error' && !err.message) msg = 'API Communication Error';
-      
-      setError(`${stage} Failed: ${msg}. กรุณาลองใหม่อีกครั้ง หรือสรุปข้อมูลสั้นลง`);
-      setPhase('done');
+      if (err.name === 'AbortError') {
+        setPhase('idle');
+      } else {
+        console.error('Generation Error [Detailed]:', err);
+        const stage = phase === 'researching' ? 'Research' : 'Generation';
+        let msg = err.message || 'Unknown Error';
+        if (err.name === 'Error' && !err.message) msg = 'API Communication Error';
+        setError(`${stage} Failed: ${msg}. กรุณาลองใหม่อีกครั้ง หรือสรุปข้อมูลสั้นลง`);
+        setPhase('done');
+      }
     } finally {
+      abortRef.current = null;
       setIsGenerating(false);
     }
   };
@@ -357,12 +373,14 @@ const CreateContent = ({
   };
 
   const clearForm = () => {
+    handleStop();
     setInput('');
     setCustomInstructions('');
     setShowAdvanced(false);
     setPhase('idle');
     setGeneratedMarkdown('');
     setFactSheet(null);
+    setTitleIdea('');
     setArticleSources([]);
     setError(null);
     setIsEditing(false);
@@ -373,6 +391,54 @@ const CreateContent = ({
     localStorage.removeItem('foro_gen_markdown_v1');
     localStorage.removeItem('foro_gen_factsheet_v1');
     localStorage.removeItem('foro_gen_sources_v1');
+    localStorage.removeItem('foro_gen_titleidea_v1');
+  };
+
+  // Regenerate: skip research phase, reuse cached factSheet
+  const handleRegenerate = async () => {
+    if (!factSheet || isGenerating) return;
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setIsGenerating(true);
+    setGeneratedMarkdown('');
+    setTitleIdea('');
+    setError(null);
+    setPhase('generating');
+
+    try {
+      const allowEmoji = EMOJI_REQUEST_PATTERN.test(customInstructions);
+      const lengthIndex = LENGTH_OPTIONS.indexOf(length);
+      const normalizedLength = lengthIndex === 0 ? 'short' : lengthIndex === 2 ? 'long' : 'medium';
+
+      const result = await generateStructuredContentV2(
+        factSheet,
+        normalizedLength,
+        tone,
+        format,
+        (currentText) => setGeneratedMarkdown(currentText),
+        { allowEmoji, customInstructions, signal: controller.signal },
+      );
+
+      if (result?.titleIdea) setTitleIdea(result.titleIdea);
+
+      setPhase('done');
+      setTimeout(() => {
+        const resEl = document.getElementById('content-result');
+        if (resEl) resEl.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        setError(`Generation Failed: ${err.message}. กรุณาลองใหม่`);
+        setPhase('done');
+      } else {
+        setPhase('idle');
+      }
+    } finally {
+      abortRef.current = null;
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -547,34 +613,50 @@ const CreateContent = ({
             {activeFormatHint}
           </div>
           
-          {/* Right: Premium Generate Button */}
-          <button 
-            className="create-content-generate-btn"
-            onClick={handleGenerate}
-            disabled={isGenerating || (!input.trim() && !sourceNode)}
-            style={{
-              marginLeft: 'auto', // Guarantee right alignment even if wrapped
-              background: (isGenerating || (!input.trim() && !sourceNode)) ? 'transparent' : 'var(--accent-secondary)',
-              color: (isGenerating || (!input.trim() && !sourceNode)) ? 'var(--text-muted)' : '#ffffff',
-              border: (isGenerating || (!input.trim() && !sourceNode)) ? '1px solid var(--glass-border)' : '1px solid rgba(255,255,255,0.1)', 
-              borderRadius: '100px',
-              padding: '12px 32px', 
-              fontSize: '15px', 
-              fontWeight: '800',
-              cursor: (isGenerating || (!input.trim() && !sourceNode)) ? 'not-allowed' : 'pointer',
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '10px',
-              boxShadow: (isGenerating || (!input.trim() && !sourceNode)) ? 'none' : '0 8px 24px rgba(41, 151, 255, 0.4)',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            {isGenerating ? (
-              <><Loader2 size={18} className="spinner" /> กำลังสร้าง...</>
-            ) : (
-              <><Sparkles size={18} /> สร้างคอนเทนต์</>
+          {/* Right: Stop + Generate Buttons */}
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {isGenerating && (
+              <button
+                onClick={handleStop}
+                style={{
+                  background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                  borderRadius: '100px', color: '#ef4444', padding: '12px 20px',
+                  fontSize: '14px', fontWeight: '700', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
+              >
+                <X size={16} /> หยุด
+              </button>
             )}
-          </button>
+            <button
+              className="create-content-generate-btn"
+              onClick={handleGenerate}
+              disabled={isGenerating || (!input.trim() && !sourceNode)}
+              style={{
+                background: (isGenerating || (!input.trim() && !sourceNode)) ? 'transparent' : 'var(--accent-secondary)',
+                color: (isGenerating || (!input.trim() && !sourceNode)) ? 'var(--text-muted)' : '#ffffff',
+                border: (isGenerating || (!input.trim() && !sourceNode)) ? '1px solid var(--glass-border)' : '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '100px',
+                padding: '12px 32px',
+                fontSize: '15px',
+                fontWeight: '800',
+                cursor: (isGenerating || (!input.trim() && !sourceNode)) ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                boxShadow: (isGenerating || (!input.trim() && !sourceNode)) ? 'none' : '0 8px 24px rgba(41, 151, 255, 0.4)',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              {isGenerating ? (
+                <><Loader2 size={18} className="spinner" /> กำลังสร้าง...</>
+              ) : (
+                <><Sparkles size={18} /> สร้างคอนเทนต์</>
+              )}
+            </button>
+          </div>
         </div>
         
         {/* Progress Bar - indeterminate flowing animation */}
@@ -665,12 +747,42 @@ const CreateContent = ({
       {/* Result Display - only parse markdown AFTER generation is fully done to prevent streaming crash */}
       {generatedMarkdown && !isGenerating && (
         <div id="content-result" className="animate-fade-in" style={{ marginTop: '32px' }}>
+          {titleIdea && (
+            <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'rgba(41,151,255,0.06)', border: '1px solid rgba(41,151,255,0.15)', borderRadius: '12px', animation: 'fadeIn 0.3s ease-out' }}>
+              <Sparkles size={14} style={{ color: 'var(--accent-secondary)', flexShrink: 0 }} />
+              <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', flex: 1 }}>
+                <strong style={{ color: 'var(--accent-secondary)' }}>ไอเดียหัวข้อ:</strong> {titleIdea}
+              </span>
+              <button
+                onClick={() => setInput(titleIdea)}
+                style={{ background: 'rgba(41,151,255,0.15)', border: '1px solid rgba(41,151,255,0.3)', borderRadius: '8px', color: 'var(--accent-secondary)', padding: '4px 12px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}
+                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(41,151,255,0.25)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(41,151,255,0.15)'; }}
+              >
+                ใช้หัวข้อนี้
+              </button>
+            </div>
+          )}
           <div className="content-result-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 className="content-result-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px', margin: 0, fontWeight: '800' }}>
               <ShieldCheck className="text-accent" size={24} />
               ผลลัพธ์พร้อมใช้งาน
             </h2>
-            <div className="content-result-actions" style={{ display: 'flex', gap: '8px' }}>
+            <div className="content-result-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {factSheet && (
+                <button
+                  onClick={handleRegenerate}
+                  disabled={isGenerating}
+                  className="btn-pill content-result-action-btn"
+                  title="สร้างเนื้อหาใหม่โดยใช้ข้อมูลเดิม ข้ามขั้นตอนค้นคว้า (เร็วกว่า)"
+                  style={{ background: 'var(--bg-800)', height: '36px', padding: '0 16px', fontSize: '13px', opacity: isGenerating ? 0.5 : 1, transition: 'all 0.2s' }}
+                  onMouseOver={(e) => { if (!isGenerating) e.currentTarget.style.background = 'var(--bg-700)'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.background = 'var(--bg-800)'; }}
+                >
+                  <RefreshCw size={14} />
+                  สร้างเวอร์ชันใหม่
+                </button>
+              )}
               <button
                 onClick={() => setIsEditing(!isEditing)}
                 className="btn-pill content-result-action-btn"

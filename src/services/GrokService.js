@@ -17,7 +17,6 @@ const grok = createXai({
   },
 });
 
-const factCache = new Map();
 const responseCache = new Map();
 const CACHE_MAX_ENTRIES = 400;
 const TAVILY_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -25,6 +24,7 @@ const QUERY_CACHE_TTL_MS = 15 * 60 * 1000;
 const SUMMARY_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const EXECUTIVE_SUMMARY_CACHE_TTL_MS = 10 * 60 * 1000;
 const CONTENT_BRIEF_CACHE_TTL_MS = 30 * 60 * 1000;
+const FACT_CACHE_TTL_MS = 30 * 60 * 1000;
 
 const normalizeCacheText = (value = '') => String(value || '').replace(/\s+/g, ' ').trim();
 
@@ -405,6 +405,25 @@ const CONTENT_BRIEF_SCHEMA = z.object({
   titleIdea: z.string().min(4).max(140),
   ctaMode: z.enum(['none', 'soft', 'direct']),
 });
+
+const SHORT_FORMAT_SET = new Set(['โพสต์โซเชียล', 'สคริปต์วิดีโอสั้น']);
+
+const compressFactSheetForFormat = (factSheetText = '', format = '') => {
+  if (!SHORT_FORMAT_SET.has(format)) return factSheetText;
+  const verifiedMatch = factSheetText.match(/\[VERIFIED FACTS\]\n([\s\S]*?)(?:\n\n\[|$)/);
+  const communityMatch = factSheetText.match(/\[COMMUNITY SIGNAL\]\n([\s\S]*?)(?:\n\n\[|$)/);
+  const entitiesMatch = factSheetText.match(/\[KEY ENTITIES\]\n([\s\S]*?)(?:\n\n\[|$)/);
+  const verifiedFacts = verifiedMatch
+    ? verifiedMatch[1].split('\n').filter(l => l.startsWith('- ')).slice(0, 4).join('\n')
+    : '';
+  const communitySignal = communityMatch ? communityMatch[1].trim() : '';
+  const keyEntities = entitiesMatch ? entitiesMatch[1].trim() : '';
+  return [
+    verifiedFacts ? `[VERIFIED FACTS]\n${verifiedFacts}` : '',
+    communitySignal ? `[COMMUNITY SIGNAL]\n${communitySignal}` : '',
+    keyEntities ? `[KEY ENTITIES]\n${keyEntities}` : '',
+  ].filter(Boolean).join('\n\n');
+};
 
 const buildContentBriefPrompt = ({ factSheet, length, tone, format, customInstructions = '' }) => {
   const profile = buildFormatProfile(format);
@@ -1049,9 +1068,10 @@ const extractTweetIdFromInput = (input = '') => {
   return { username: match[1], tweetId: match[2] };
 };
 
-export const researchAndPreventHallucination = async (input, interactionData = '') => {
-  const cacheKey = input + (interactionData || '');
-  if (factCache.has(cacheKey)) return factCache.get(cacheKey);
+export const researchAndPreventHallucination = async (input, interactionData = '', options = {}) => {
+  const cacheKey = buildCacheKey('fact-sheet-v1', normalizeCacheText(input) + '||' + normalizeCacheText((interactionData || '').slice(0, 300)));
+  const cached = getCachedValue(responseCache, cacheKey);
+  if (cached) return cached;
 
   let attachedExternalUrls = extractExternalSourceUrls(input, interactionData);
 
@@ -1086,7 +1106,8 @@ export const researchAndPreventHallucination = async (input, interactionData = '
 
   try {
     console.log('[GrokService] Starting research with query:', researchQuery);
-    
+    if (options.onProgress) options.onProgress('fetching');
+
     // Query Gating: Only fetch X Latest if query seems time-sensitive
     const isLatestNeeded = /ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update/i.test(input) || /ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update/i.test(interactionData);
     
@@ -1180,15 +1201,19 @@ export const researchAndPreventHallucination = async (input, interactionData = '
       xContext = `[X EVIDENCE]\n${toTweetEvidence(xTweets, 6)}`;
     }
     console.log('[GrokService] Evidence gathering complete:', { web: !!webContext, x: xTweets.length });
+    if (options.onProgress) options.onProgress('context-built');
   } catch (error) {
     console.error('[GrokService] Search aggregation error:', error);
   }
 
   try {
+    if (options.onProgress) options.onProgress('compiling');
+    const todayDate = new Date().toISOString().split('T')[0];
     const { object: factSheetObj } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
       system: `คุณคือหัวหน้าทีมนักวิจัย (Lead Investigator) ที่รับผิดชอบความถูกต้องของข้อมูล (Fact-Check) 100%
 เป้าหมาย: สร้าง Fact Sheet ฉบับสมบูรณ์ที่แม่นยำที่สุด โดยห้ามมี Hallucination เด็ดขาด ส่งออกเป็น JSON ตามโครงสร้างที่กำหนดเท่านั้น
+[TODAY'S DATE: ${todayDate}]
 
 [การใช้แหล่งข้อมูล]
 - หากมี [PRIMARY LEAD / ORIGINAL SOURCE] ให้ถือว่านี่คือแกนกลางของเรื่องที่ต้องตรวจสอบและยืนยันเป็นอันดับแรก
@@ -1229,8 +1254,7 @@ export const researchAndPreventHallucination = async (input, interactionData = '
       sources: finalSources,
     };
 
-    factCache.set(cacheKey, resultPayload);
-    return resultPayload;
+    return setCachedValue(responseCache, cacheKey, resultPayload, FACT_CACHE_TTL_MS);
   } catch (error) {
     console.error('[GrokService] FactSheet generation error:', error);
     throw error;
@@ -1351,6 +1375,7 @@ export const generateStructuredContentV2 = async (
   const lengthInstruction = getLengthInstruction(length);
   const profile = buildFormatProfile(format);
   const brief = await buildContentBrief({ factSheet, length, tone, format, customInstructions });
+  const activeFactSheet = compressFactSheetForFormat(factSheet, format);
 
   const draftSystemPrompt = `<global_system_instruction>
 คุณคือ Copywriter ตัวท็อปของไทยที่เชี่ยวชาญการเขียนคอนเทนต์และโพสต์ Social Media หน้าที่ของคุณคือการดึงดูดคนอ่านตั้งแต่บรรทัดแรก โดยต้องใช้หลักการ Bento-Box Prompting ในการรับคำสั่ง
@@ -1399,7 +1424,7 @@ Example of GOOD Native Thai:
   const draftUserPrompt = [
     `<format_rules>\nFormat: ${format} (${profile.label})\nLength: ${lengthInstruction}\n${profile.structure}\n${profile.goals}\n</format_rules>`,
     `<structured_brief>\n${JSON.stringify(brief, null, 2)}\n</structured_brief>`,
-    `<fact_sheet>\n${factSheet}\n</fact_sheet>`,
+    `<fact_sheet>\n${activeFactSheet}\n</fact_sheet>`,
     `<extra_instructions>\n${customInstructions || 'None'}\n</extra_instructions>`,
     'Write the final Thai content now.',
   ].join('\n\n');
@@ -1414,6 +1439,7 @@ Example of GOOD Native Thai:
         topP: 0.85,
         frequencyPenalty: writerFrequencyPenalty,
         presencePenalty: 0.1,
+        abortSignal: options.signal,
       });
 
       let fullContent = '';
@@ -1422,8 +1448,9 @@ Example of GOOD Native Thai:
         onStreamChunk(polishThaiContent(fullContent, { format, customInstructions, allowEmoji, tone }));
       }
 
-      return polishThaiContent(fullContent, { format, customInstructions, allowEmoji, tone });
+      return { content: polishThaiContent(fullContent, { format, customInstructions, allowEmoji, tone }), titleIdea: brief.titleIdea };
     } catch (error) {
+      if (error.name === 'AbortError') throw error;
       console.error('[GrokService] Streaming error (v2), falling back to non-streaming:', error);
       const fallbackDraft = await callGrok({
         modelName: MODEL_WRITER,
@@ -1437,7 +1464,7 @@ Example of GOOD Native Thai:
       });
       const fallbackResult = polishThaiContent(fallbackDraft, { format, customInstructions, allowEmoji, tone });
       onStreamChunk(fallbackResult);
-      return fallbackResult;
+      return { content: fallbackResult, titleIdea: brief.titleIdea };
     }
   }
 
@@ -1462,7 +1489,7 @@ Set passed=true only if:
 - it does not read like generic AI copy
 - it respects heading and CTA expectations for the format
 - it names people only when their identity or influence materially matters`,
-      prompt: `[FORMAT]\n${format}\n\n[TONE]\n${tone}\n\n[FACT SHEET]\n${factSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[DRAFT]\n${contentDraft}`,
+      prompt: `[FORMAT]\n${format}\n\n[TONE]\n${tone}\n\n[FACT SHEET]\n${activeFactSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[DRAFT]\n${contentDraft}`,
       schema: z.object({
         passed: z.boolean(),
         reason: z.string().optional(),
@@ -1473,20 +1500,20 @@ Set passed=true only if:
       const revisedDraft = await callGrok({
         modelName: MODEL_WRITER,
         system: draftSystemPrompt,
-        prompt: `[FACT SHEET]\n${factSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[CURRENT DRAFT]\n${contentDraft}\n\n[EDITOR FEEDBACK]\n${
+        prompt: `[FACT SHEET]\n${activeFactSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[CURRENT DRAFT]\n${contentDraft}\n\n[EDITOR FEEDBACK]\n${
           evalResult.reason || 'Improve accuracy, tone, and natural Thai flow.'
         }\n\nRewrite the content now.${prefersConversationalViralFlow ? '\nFor this tone and format, keep the energy but make the writing feel more human and less like a news report.' : ''}`,
         temperature: 0.4,
         allowEmoji,
       });
 
-      return polishThaiContent(revisedDraft, { format, customInstructions, allowEmoji, tone });
+      return { content: polishThaiContent(revisedDraft, { format, customInstructions, allowEmoji, tone }), titleIdea: brief.titleIdea };
     }
   } catch (error) {
     console.warn('[GrokService] Editor pass skipped (v2):', error);
   }
 
-  return polishThaiContent(contentDraft, { format, customInstructions, allowEmoji, tone });
+  return { content: polishThaiContent(contentDraft, { format, customInstructions, allowEmoji, tone }), titleIdea: brief.titleIdea };
 };
 
 export const generateFinalContent = async (enrichedData, targetFormat, customPrompt = '') => {
