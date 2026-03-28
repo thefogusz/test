@@ -1083,6 +1083,26 @@ h1, h2, h3, h4, h5, h6 {
   min-width: fit-content;
 }
 
+.reader-library-view .feed-card {
+  content-visibility: auto;
+  contain-intrinsic-size: 420px;
+}
+
+.reader-load-more-shell {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0 20px;
+}
+
+.reader-load-more-copy {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
 .reader-empty-search-state {
   grid-column: 1 / -1;
   min-height: 240px;
@@ -1914,6 +1934,10 @@ h1, h2, h3, h4, h5, h6 {
   .reader-toolbar-count {
     width: 100%;
     padding-right: 0;
+  }
+
+  .reader-load-more-shell {
+    padding-bottom: 12px;
   }
 
   .reader-empty-search-state {

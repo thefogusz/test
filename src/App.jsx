@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { startTransition, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   Search,
   Sparkles,
@@ -90,6 +90,8 @@ const deserializeAttachedSource = (saved) =>
 const deserializePostLists = (saved) => safeParse(saved, []);
 
 const MAX_SEARCH_PRESETS = 4;
+const READ_ARCHIVE_INITIAL_RENDER = 24;
+const READ_ARCHIVE_RENDER_BATCH = 24;
 
 const normalizeSearchLabel = (value) => (value || '').trim().replace(/\s+/g, ' ');
 
@@ -291,6 +293,8 @@ const App = () => {
     deserialize: deserializeStoredCollection,
   });
   const [readSearchQuery, setReadSearchQuery] = usePersistentState(STORAGE_KEYS.readSearchQuery, '');
+  const deferredReadSearchQuery = useDeferredValue(readSearchQuery);
+  const [visibleReadCount, setVisibleReadCount] = useState(READ_ARCHIVE_INITIAL_RENDER);
 
   const [createContentSource, setCreateContentSource] = usePersistentState(STORAGE_KEYS.attachedSource, null, {
     deserialize: deserializeAttachedSource,
@@ -902,8 +906,8 @@ const App = () => {
   );
 
   const normalizedReadSearchQuery = useMemo(
-    () => normalizeSearchText(readSearchQuery),
-    [readSearchQuery],
+    () => normalizeSearchText(deferredReadSearchQuery),
+    [deferredReadSearchQuery],
   );
 
   const { readSearchSuggestions, filteredReadArchive } = useMemo(() => {
@@ -977,6 +981,15 @@ const App = () => {
       filteredReadArchive: filtered,
     };
   }, [activeReadListMemberSet, normalizedReadSearchQuery, readArchive, readFilters]);
+
+  const visibleReadArchive = useMemo(
+    () => filteredReadArchive.slice(0, visibleReadCount),
+    [filteredReadArchive, visibleReadCount],
+  );
+
+  useEffect(() => {
+    setVisibleReadCount(READ_ARCHIVE_INITIAL_RENDER);
+  }, [activeView, activeListId, normalizedReadSearchQuery, readFilters.view, readFilters.engagement, readArchive.length]);
 
   useEffect(() => {
     const isAudienceManual = activeView === 'audience' && audienceTab === 'manual';
@@ -1273,7 +1286,9 @@ const App = () => {
       <Sidebar 
         activeView={activeView}
         onNavClick={(view) => {
-          setActiveView(view);
+          startTransition(() => {
+            setActiveView(view);
+          });
           if (view === 'home') { 
             setActiveListId(null);
           }
@@ -1843,7 +1858,12 @@ const App = () => {
                         className="reader-search-input"
                         placeholder="ค้นหาจากชื่อบัญชี เนื้อหา หรือคำใกล้เคียง..."
                         value={readSearchQuery}
-                        onChange={(e) => setReadSearchQuery(e.target.value)}
+                        onChange={(e) => {
+                          const nextValue = e.target.value;
+                          startTransition(() => {
+                            setReadSearchQuery(nextValue);
+                          });
+                        }}
                       />
                       {readSearchQuery && (
                         <button
@@ -1880,12 +1900,20 @@ const App = () => {
               )}
               
               <div className="feed-grid">
-                {filteredReadArchive
+                {visibleReadArchive
                   .map((item, idx) => (
                     <FeedCard key={item.id || idx} tweet={item} isBookmarked={bookmarkIds.has(item.id)} onBookmark={handleBookmark} onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }} />
                   ))
                 }
                 {readArchive.length === 0 && <div className="empty-state-card">ยังไม่มีบทความในห้องสมุด</div>}
+                {visibleReadArchive.length < filteredReadArchive.length && (
+                  <div className="reader-load-more-shell">
+                    <div className="reader-load-more-copy">แสดงแล้ว {visibleReadArchive.length} จาก {filteredReadArchive.length} รายการ</div>
+                    <button type="button" className="btn-pill" onClick={() => setVisibleReadCount((current) => current + READ_ARCHIVE_RENDER_BATCH)}>
+                      โหลดเพิ่ม
+                    </button>
+                  </div>
+                )}
                 {readArchive.length > 0 && filteredReadArchive.length === 0 && (
                   <div className="reader-empty-search-state">
                     <div className="reader-empty-search-icon"><Search size={20} /></div>

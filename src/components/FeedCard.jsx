@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import { 
   BarChart2, Heart, MessageCircle, Repeat,
   ExternalLink, Sparkles, PenTool, Bookmark,
@@ -36,6 +36,10 @@ const isUsableThaiSummary = (summary, originalText = '') => {
 const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookmarked = false }) => {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const displayText = isUsableThaiSummary(tweet.summary, tweet.text) ? tweet.summary : tweet.text;
+
+  useEffect(() => {
+    setBookmarked(initialBookmarked);
+  }, [initialBookmarked]);
 
   const handleBookmark = () => {
     const next = !bookmarked;
@@ -237,4 +241,7 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
   );
 };
 
-export default FeedCard;
+export default memo(FeedCard, (prevProps, nextProps) => (
+  prevProps.tweet === nextProps.tweet
+  && prevProps.isBookmarked === nextProps.isBookmarked
+));
