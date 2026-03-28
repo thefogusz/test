@@ -12,7 +12,10 @@
       "mcp__Claude_Preview__preview_start",
       "Bash(rm -f package-lock.json)",
       "Bash(npm install:*)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "Bash(wc -l ./src/components/*.jsx ./src/services/*.js)",
+      "Bash(wc -l /d/TEST/src/services/*.js /d/TEST/src/components/*.jsx /d/TEST/src/App.jsx)",
+      "Bash(python -:*)"
     ]
   }
 }
