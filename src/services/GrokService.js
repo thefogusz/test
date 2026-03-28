@@ -291,7 +291,7 @@ const CONTENT_FORMAT_PROFILES = {
 
 const TONE_GUIDES = {
   'ให้ข้อมูล/ปกติ': 'Calm, informed, editorial. Use professional but accessible Thai. Use particles like ครับ/ค่ะ appropriately. Avoid robotic transitions.',
-  'กระตือรือร้น/ไวรัล': 'เขียนแบบ Energetic และดึงดูด — ใช้ insight ที่แหลมคมเป็น hook บรรทัดแรกต้องดึงคนหยุดอ่านทันที ใช้คำลงท้าย นะ/น้า/สิ/ซะ/เลย ได้ตามธรรมชาติ ประโยคสั้น กระชับ มีจังหวะ ใช้ตัวเลขหรือข้อเท็จจริงที่น่าตกใจเป็น anchor เขียนแบบ "เพื่อนที่รู้จริงเล่าให้ฟัง" ไม่ใช่นักข่าว อนุญาตให้ใช้ภาษาแรงกว่าปกติได้ (เช่น "สั่นสะเทือน" "พลิกเกม" "ต้องรู้เลย") ตราบใดที่มีข้อเท็จจริงรองรับ ถ้าร่างยังฟังเหมือนรายงานข่าวหรือเรียงข้อมูลแข็งเกินไป ให้เรียบเรียงใหม่ให้เป็นภาษาคนมากขึ้นโดยคงประเด็นสำคัญไว้ ห้ามขึ้นต้นด้วย "สาย... ห้ามพลาด" หรือ "อัปเดตด่วน" — ให้ hook ด้วยสาระแทน',
+  'กระตือรือร้น/ไวรัล': 'เขียนแบบ Energetic และดึงดูด — ใช้ insight ที่แหลมคมเป็น hook บรรทัดแรกต้องดึงคนหยุดอ่านทันที ใช้คำลงท้าย นะ/น้า/สิ/ซะ/เลย ได้ตามธรรมชาติ ประโยคสั้น กระชับ มีจังหวะ ใช้ตัวเลขหรือข้อเท็จจริงที่น่าตกใจเป็น anchor เขียนให้ดึงดูดและมีชีวิตชีวา แต่ภาษาต้องเป็นภาษาไทยจริงๆ ที่คนใช้ในชีวิตประจำวัน — ห้ามประดิษฐ์สำนวนหรือใช้คำแสลงที่ฟังดูแปลกหรือไม่มีอยู่จริง ถ้าร่างยังฟังเหมือนรายงานข่าวหรือเรียงข้อมูลแข็งเกินไป ให้เรียบเรียงใหม่ให้กระชับและตรงประเด็นขึ้น ห้ามขึ้นต้นด้วย "สาย... ห้ามพลาด" หรือ "อัปเดตด่วน" — ให้ hook ด้วยสาระแทน',
   'ทางการ/วิชาการ': 'Precise, objective, and well-structured. No slang. Use ครับ/ค่ะ for standard politeness.',
   'เป็นกันเอง/เพื่อนเล่าให้ฟัง': 'Warm, conversational, dropping formal pronouns where implied. Flow like a natural speech. Use particles like เถอะ/หน่อย, นะ/น้า for closeness.',
   'ตลก/มีอารมณ์ขัน': 'Lightly playful, witty observations. No forced jokes.',
@@ -343,6 +343,11 @@ const stripEngagementBait = (text = '') =>
     .replace(/(^|\n)(คุณคิดยังไง.*)$/gim, '')
     .replace(/(^|\n)(แชร์ความเห็น.*)$/gim, '')
     .replace(/(^|\n)(รีโพสต์.*)$/gim, '')
+    .replace(/(^|\n)(comment\s*มา.*)$/gim, '')
+    .replace(/(^|\n)(คอมเมนต์.*(หน่อย|กัน|สิ|นะ).*)$/gim, '')
+    .replace(/(^|\n)(.*คิดว่ายังไง.*comment.*)$/gim, '')
+    .replace(/(^|\n)(.*อยู่มั้ย.*คุยกัน.*)$/gim, '')
+    .replace(/(^|\n)(.*follow.*ไว้.*)$/gim, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
@@ -1413,7 +1418,9 @@ ${format === 'สคริปต์วิดีโอสั้น'
 7. NO DICTIONARY PAIRS. Choose either English or Thai for a term. Never write "Artificial Intelligence (ปัญญาประดิษฐ์)".
 8. STRICT LANGUAGE RULE: ระวังการหลอนภาษาต่างประเทศ (Hallucination) ให้ใช้เฉพาะภาษา "ไทย" (Thai) และตัวอักษร "ภาษาอังกฤษ" (English) สำหรับคำทับศัพท์เท่านั้น ห้ามพิมพ์ภาษาจีน, ญี่ปุ่น, เกาหลี หรือ รัสเซีย เด็ดขาด (หากเจอใน Fact Sheet ให้สกัดเอาเฉพาะความหมายมาเขียนเป็นภาษาไทย)
 9. PERSPECTIVE RULE: คุณคือ "ผู้สร้างคอนเทนต์ต้นทาง" (Original Creator) ห้ามเขียนในเชิงรายงานข่าวว่า "โพสต์ของ X บอกว่า..." หรือ "X รายงานว่า..." ให้นำข้อมูลมาเล่าด้วยมุมมองที่มั่นใจ รู้จริง และเล่าเรื่องโดยตรงไปที่ผู้อ่านแทน
-${prefersConversationalViralFlow ? '10. TONE REWRITE RULE: ถ้าผู้ใช้เลือกโทนกระตือรือร้นหรือไวรัลในรูปแบบโพสต์ แต่ร่างยังฟังเหมือนรายงานข่าวเกินไป ให้เรียบเรียงใหม่ให้เหมือนคนเล่าจริงโดยคงประเด็นสำคัญไว้' : ''}
+10. NO FAKE THAI IDIOMS: ห้ามประดิษฐ์สำนวนภาษาไทยที่ไม่แน่ใจว่ามีจริง — ถ้าไม่มั่นใจ 100% ว่าสำนวนนั้นคนไทยใช้จริงในชีวิตประจำวัน ให้เขียนตรงๆ ด้วยภาษาธรรมดาแทน ดีกว่าใช้สำนวนปลอมที่ฟังดูแปลก
+11. NATURAL CODE-SWITCHING ONLY: คำภาษาอังกฤษที่ผสมได้ต้องเป็นคำที่คนไทยใช้ในชีวิตจริง เช่น "เซ็ต", "เทรนด์", "ฟีเจอร์" — ห้ามแปะคำอังกฤษกลางประโยคแบบสุ่ม เช่น "มันเป็น killer เลยนะ" หรือ "เจอ reality check ซะแล้ว" ถ้าฟังไม่เป็นธรรมชาติ ให้แทนด้วยภาษาไทยล้วน
+${prefersConversationalViralFlow ? '12. TONE REWRITE RULE: ถ้าผู้ใช้เลือกโทนกระตือรือร้นหรือไวรัลในรูปแบบโพสต์ แต่ร่างยังฟังเหมือนรายงานข่าวเกินไป ให้เรียบเรียงใหม่ให้เหมือนคนเล่าจริงโดยคงประเด็นสำคัญไว้' : ''}
 </rules_and_constraints>
 
 <tasks>
@@ -1425,10 +1432,14 @@ ${prefersConversationalViralFlow ? '10. TONE REWRITE RULE: ถ้าผู้ใ
 </tasks>
 
 <few_shot_examples>
-Example of BAD AI Thai:
-"มันถูกรายงานว่าบริษัท Apple (แอปเปิ้ล) ได้ทำการเปิดตัวสินค้าใหม่ ซึ่งนี่คือเกมเชนเจอร์ของตลาด"
-Example of GOOD Native Thai:
-"มีรายงานว่า Apple เปิดตัวสินค้าใหม่ที่อาจพลิกโฉมตลาดไปชั่วข้ามคืน"
+❌ BAD — unnatural idioms, forced slang, awkward English mid-sentence:
+"Nintendo ตัดผลิตไปเลย 33%! ขายดีเป็นเทน้าเท่า แต่กลับเจอ reality check แบบนี้ซะได้ มันเป็น killer ของปีนี้แท้ๆ สั่นสะเทือนวงการขัดๆ นะ"
+
+✅ GOOD — plain Thai, English only for proper nouns/tech, measured tone, uses ครับ:
+"Nintendo ตัดกำลังผลิต Switch 2 ลง 33% จาก 6 ล้านเครื่องเหลือ 4 ล้าน เหตุเพราะยอดขายในตลาด US อ่อนแอกว่าที่คาด โดยเฉพาะช่วง holiday sales ที่ไม่ได้ตามเป้า Bloomberg กับ IGN รายงานข่าวนี้ แต่ Nintendo ยังไม่ยืนยันอย่างเป็นทางการครับ"
+
+✅ GOOD — informative, factual, ends with specific topic question (not generic CTA):
+"Capcom ยืนยันชัดเจนครับว่าจะไม่เอา asset ที่ generative AI สร้างไปใส่ในตัวเกมจริง แต่จะใช้ AI ช่วยงาน backend อย่างการ brainstorm และ prototype design documents แทน ท่าทีนี้ต่างจาก studio หลายเจ้าที่กำลังทดลองใช้ AI ในงาน visual โดยตรงครับ"
 </few_shot_examples>`;
 
   const draftUserPrompt = [
