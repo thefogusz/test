@@ -160,11 +160,19 @@ const buildTweetUrl = (tweet) => {
   return `https://x.com/${username}/status/${tweet.id}`;
 };
 
-export const tavilySearch = async (query, isLatest = false) => {
+export const tavilySearch = async (query, isLatest = false, options = {}) => {
   const normalizedQuery = normalizeCacheText(query);
   if (!normalizedQuery) return { results: [], answer: '' };
 
-  const cacheKey = buildCacheKey('tavily', { normalizedQuery, isLatest });
+  const searchOptions = {
+    max_results: options.max_results ?? 5,
+    include_answer: options.include_answer ?? true,
+    search_depth: options.search_depth ?? 'advanced',
+    include_raw_content: options.include_raw_content ?? false,
+    topic: options.topic,
+  };
+
+  const cacheKey = buildCacheKey('tavily', { normalizedQuery, isLatest, searchOptions });
   const cached = getCachedValue(responseCache, cacheKey);
   if (cached) return cached;
 
@@ -174,9 +182,11 @@ export const tavilySearch = async (query, isLatest = false) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         query: normalizedQuery,
-        search_depth: 'advanced',
-        include_answer: true,
-        max_results: 5,
+        search_depth: searchOptions.search_depth,
+        include_answer: searchOptions.include_answer,
+        max_results: searchOptions.max_results,
+        include_raw_content: searchOptions.include_raw_content,
+        topic: searchOptions.topic,
         time_range: isLatest ? 'day' : undefined,
       }),
     });
@@ -708,6 +718,58 @@ ${preferCredibleSources ? '- Prioritize topic fit first, then strictly prefer cr
   }
 };
 
+const URL_PATTERN = /https?:\/\/[^\s)\]]+/gi;
+
+const extractUrlsFromText = (text = '') =>
+  Array.from(
+    new Set(
+      String(text || '')
+        .match(URL_PATTERN)
+        ?.map((url) => url.replace(/[),.;!?]+$/g, '').trim())
+        .filter(Boolean) || [],
+    ),
+  );
+
+const isSocialPlatformUrl = (url = '') => {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+    return ['x.com', 'twitter.com', 't.co'].includes(hostname);
+  } catch {
+    return false;
+  }
+};
+
+const extractExternalSourceUrls = (...chunks) =>
+  Array.from(
+    new Set(
+      chunks
+        .flatMap((chunk) => extractUrlsFromText(chunk))
+        .filter((url) => !isSocialPlatformUrl(url)),
+    ),
+  ).slice(0, 2);
+
+const buildTavilyContextBlock = (label, data) => {
+  if (!data || (!data.answer && !data.results?.length)) return '';
+
+  const results = Array.isArray(data.results) ? data.results : [];
+  return [
+    data.answer ? `[${label} ANSWER]\n${data.answer}` : '',
+    results.length
+      ? `[${label} SOURCES]\n${results
+          .map((result, index) => {
+            const snippet = (result.content || result.raw_content || '')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .slice(0, 320);
+            return `${index + 1}. ${result.title || result.url} - ${snippet} (${result.url})`;
+          })
+          .join('\n')}`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+};
+
 export const generateExecutiveSummary = async (validTweets, userQuery, onStreamChunk, webContext = '') => {
   if (!validTweets?.length) return null;
 
@@ -991,6 +1053,8 @@ export const researchAndPreventHallucination = async (input, interactionData = '
   const cacheKey = input + (interactionData || '');
   if (factCache.has(cacheKey)) return factCache.get(cacheKey);
 
+  let attachedExternalUrls = extractExternalSourceUrls(input, interactionData);
+
   // Detect and fetch tweet when input contains a tweet URL
   const tweetRef = extractTweetIdFromInput(input);
   if (tweetRef && !interactionData) {
@@ -1000,6 +1064,7 @@ export const researchAndPreventHallucination = async (input, interactionData = '
         const tweetText = tweet.text.replace(/https?:\/\/\S+/g, '').trim();
         const author = tweet.author?.name || tweet.author?.username || tweetRef.username;
         interactionData = `[ORIGINAL TWEET SOURCE]\nAuthor: @${tweet.author?.username || tweetRef.username} (${author})\nContent: ${tweetText}\nLikes: ${tweet.like_count || 0} | Retweets: ${tweet.retweet_count || 0}`;
+        attachedExternalUrls = extractExternalSourceUrls(input, interactionData, tweet.text);
       }
     } catch {
       // silently continue without tweet data
@@ -1017,6 +1082,7 @@ export const researchAndPreventHallucination = async (input, interactionData = '
   let webContext = '';
   let xContext = '';
   let extractedSources = [];
+  let attachedSourceContext = '';
 
   try {
     console.log('[GrokService] Starting research with query:', researchQuery);
@@ -1024,10 +1090,23 @@ export const researchAndPreventHallucination = async (input, interactionData = '
     // Query Gating: Only fetch X Latest if query seems time-sensitive
     const isLatestNeeded = /ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update/i.test(input) || /ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update/i.test(interactionData);
     
-    const [data, xTopResponse, xLatestResponse] = await Promise.all([
+    const [data, xTopResponse, xLatestResponse, attachedUrlResponses] = await Promise.all([
       tavilySearch(researchQuery, false), // Force false here as research flow is general
       searchEverything(researchQuery, '', false, 'Top').catch(() => ({ data: [] })),
       isLatestNeeded ? searchEverything(researchQuery, '', false, 'Latest').catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+      attachedExternalUrls.length
+        ? Promise.all(
+            attachedExternalUrls.map((url) =>
+              tavilySearch(url, false, {
+                max_results: 3,
+                include_answer: true,
+                include_raw_content: true,
+                search_depth: 'advanced',
+                topic: 'general',
+              }).catch(() => ({ results: [], answer: '' })),
+            ),
+          )
+        : Promise.resolve([]),
     ]);
 
     if (data && (data.results?.length || data.answer)) {
@@ -1056,6 +1135,39 @@ export const researchAndPreventHallucination = async (input, interactionData = '
       ]
         .filter(Boolean)
         .join('\n\n');
+    }
+
+    if (attachedExternalUrls.length && attachedUrlResponses.length) {
+      const attachedBlocks = attachedUrlResponses
+        .map((response, index) => {
+          const sourceUrl = attachedExternalUrls[index];
+          if (!response || (!response.results?.length && !response.answer)) return '';
+
+          extractedSources.push(
+            ...((response.results || []).map((result) => ({
+              title: result.title || result.url || sourceUrl,
+              url: result.url || sourceUrl,
+            }))),
+          );
+
+          const matchedPrimarySource = (response.results || []).find((result) => result?.url === sourceUrl);
+          if (matchedPrimarySource) {
+            extractedSources.push({
+              title: matchedPrimarySource.title || sourceUrl,
+              url: matchedPrimarySource.url || sourceUrl,
+            });
+          } else {
+            extractedSources.push({
+              title: sourceUrl,
+              url: sourceUrl,
+            });
+          }
+
+          return buildTavilyContextBlock(`PRIMARY SOURCE WEB ${index + 1}`, response);
+        })
+        .filter(Boolean);
+
+      attachedSourceContext = attachedBlocks.join('\n\n');
     }
 
     const xTweets = dedupeByNormalizedText(
@@ -1093,6 +1205,7 @@ export const researchAndPreventHallucination = async (input, interactionData = '
         `[ORIGINAL REQUEST]\n${input}`,
         `[SEARCH QUERY]\n${researchQuery}`,
         webContext || '[No web context available]',
+        attachedSourceContext,
         xContext || '[No X evidence available]',
       ]
         .filter(Boolean)
