@@ -263,29 +263,37 @@ const CONTENT_FORMAT_PROFILES = {
     label: 'social post',
     allowHeadings: false,
     allowCta: true,
-    structure: 'Write 2-4 short paragraphs with natural flow. No markdown headings.',
-    goals: 'Lead with the core point quickly, keep the tone human and sharp. Include 2-3 relevant hashtags at the very bottom.',
+    boldHeadline: true,
+    structure: 'เริ่มด้วยบรรทัดแรกที่เป็น headline hook ห่อด้วย **...** แล้วตามด้วย 3-5 ย่อหน้าสั้น แต่ละย่อหน้ามีไอเดียเดียวชัดเจน คั่นด้วย "." บรรทัดเดียว ไม่ใช้ markdown heading ใดๆ',
+    goals: 'headline บรรทัดแรก (bold) ต้อง hook ด้วยตัวเลขจริงหรือข้อเท็จจริงที่น่าสนใจที่สุดจาก fact sheet — เปิดทันที ไม่ต้องนำเข้า ลงท้ายด้วยคำถามหรือประเด็นที่เกี่ยวกับ topic จริงๆ วางแฮชแท็ก 2-3 ตัวท้ายสุด',
+    skill: 'คนรู้เรื่องเล่าให้คนอื่นฟัง — ไม่ใช่ clickbait ไม่ใช่รายงานข่าว ให้ข้อมูลจริงก่อนแล้วค่อยมีมุมมอง ใช้ ครับ ลงท้ายตามธรรมชาติ',
   },
   'สคริปต์วิดีโอสั้น': {
     label: 'short-form video script',
     allowHeadings: false,
     allowCta: false,
-    structure: 'Write as a spoken script with a hook, body, and closing beat. No markdown headings.',
-    goals: 'Use spoken Thai, short sentences, and strong pacing for voice delivery.',
+    boldHeadline: true,
+    structure: 'เริ่มด้วย **[ชื่อเรื่อง/hook line]** หนึ่งบรรทัด แล้วแบ่งเป็น 3 ส่วน: [HOOK 3-5 วินาที] → [เนื้อหาหลัก] → [ปิดจบ] ประโยคละไม่เกิน 12-15 คำ มีจังหวะหายใจ ไม่ใช้ markdown heading',
+    goals: 'เขียนให้ฟังเหมือนคนพูดจริงๆ ไม่ใช่อ่านบทความ ใช้คำลงท้ายพูด (ครับ/นะ/น้า) เพื่อจังหวะธรรมชาติ hook ต้องดึงความสนใจใน 3 วินาทีแรก',
+    skill: 'สคริปต์ที่ใช้ได้จริงในวิดีโอ TikTok/Shorts — ฟังแล้วไม่รู้สึกว่ากำลังอ่านอยู่ มีพลังงานและจังหวะที่ดี ประโยคสั้นกว่าการเขียนปกติ',
   },
   'บทความ SEO / บล็อก': {
     label: 'blog article',
     allowHeadings: true,
     allowCta: false,
-    structure: 'Write as a polished article. Use headings only when they genuinely improve readability.',
-    goals: 'Prioritize clarity, information density, and credibility over hype.',
+    boldHeadline: false,
+    structure: 'เขียนบทความที่มีโครงสร้างชัดเจน บรรทัดแรกสุดเป็น # Headline (H1) ที่ชัดเจน ใช้ ## subheading เมื่อจำเป็นจริงๆ เท่านั้น แต่ละ section ต้องมีเนื้อหาที่มีน้ำหนัก ไม่ใช่แค่ subheading แล้วสองสามประโยค',
+    goals: 'ให้ข้อมูลครบ ลึก น่าเชื่อถือ — อ่านจบแล้วผู้อ่านรู้สึกว่าได้ความรู้จริงๆ เน้น clarity และ information density ไม่มี hype เกินข้อเท็จจริง',
+    skill: 'บทความที่ค้นหาแล้วเจอและอ่านแล้วไม่รู้สึกเสียเวลา — ข้อมูลถูกต้อง ลำดับดี ภาษาเป็นทางการแต่ไม่น่าเบื่อ ใช้ ครับ ได้ตามธรรมชาติ',
   },
   'โพสต์ให้ความรู้ (Thread)': {
     label: 'thread',
     allowHeadings: false,
     allowCta: true,
-    structure: 'Write as a thread-style piece with a strong opener and sequential points. No markdown headings.',
-    goals: 'Each paragraph should move the story forward clearly. Include 2-3 relevant hashtags at the very bottom.',
+    boldHeadline: true,
+    structure: 'เริ่มด้วยบรรทัดแรกที่เป็น headline hook ห่อด้วย **...** แล้วแต่ละ section ต่อเนื่องกันและอ่านได้ด้วยตัวเองในฐานะ standalone point ไม่ใช้ markdown heading',
+    goals: 'เรียงข้อมูลจากน่าสนใจที่สุดไปหาน้อยที่สุด (inverted pyramid) แต่ละ section มีไอเดียเดียวชัดเจน จบด้วย insight หรือคำถาม topic จริงๆ วาง hashtag 2-3 ตัวท้ายสุด',
+    skill: 'thread ที่อ่านไปก็ได้ความรู้ไป — ไม่ใช่แค่ bullet points เฉยๆ มีเรื่องราวและ flow ที่ดึงดูด คนอ่านครึ่งทางก็ยังอยากอ่านต่อ',
   },
 };
 
@@ -374,11 +382,13 @@ const shouldAllowHighEnergyLanguage = (customInstructions = '', tone = '') =>
 
 const polishThaiContent = (text = '', { format, customInstructions = '', allowEmoji = false, tone = '' } = {}) => {
   const profile = buildFormatProfile(format);
-  const allowExplicitCta = /cta|call to action|ชวนคอมเมนต์|ชวนแชร์|ชวนรีโพสต์/i.test(
+  const hasCustomInstructions = customInstructions.trim().length > 20;
+  const allowExplicitCta = hasCustomInstructions || /cta|call to action|ชวนคอมเมนต์|ชวนแชร์|ชวนรีโพสต์/i.test(
     customInstructions,
   );
 
-  const allowHighEnergyLanguage = shouldAllowHighEnergyLanguage(customInstructions, tone);
+  // When user specifies custom instructions, trust them — skip hype softening so we don't undo what they asked for
+  const allowHighEnergyLanguage = hasCustomInstructions || shouldAllowHighEnergyLanguage(customInstructions, tone);
   let nextText = cleanGeneratedContent(text, { allowEmoji });
 
   if (!profile.allowHeadings) {
@@ -1443,7 +1453,7 @@ ${prefersConversationalViralFlow ? '12. TONE REWRITE RULE: ถ้าผู้ใ
 </few_shot_examples>`;
 
   const draftUserPrompt = [
-    `<format_rules>\nFormat: ${format} (${profile.label})\nLength: ${lengthInstruction}\n${profile.structure}\n${profile.goals}\n</format_rules>`,
+    `<format_rules>\nFormat: ${format} (${profile.label})\nLength: ${lengthInstruction}\nStructure: ${profile.structure}\nGoals: ${profile.goals}\nWriting skill for this format: ${profile.skill || ''}\n</format_rules>`,
     `<structured_brief>\n${JSON.stringify(brief, null, 2)}\n</structured_brief>`,
     `<fact_sheet>\n${activeFactSheet}\n</fact_sheet>`,
     `<extra_instructions>\n${customInstructions || 'None'}\n</extra_instructions>`,

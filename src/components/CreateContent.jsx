@@ -236,7 +236,6 @@ const CreateContent = ({
 
   // Generation state (LIFTED TO APP.JSX)
   const [factSheet, setFactSheet] = useState(() => localStorage.getItem('foro_gen_factsheet_v1') || null);
-  const [titleIdea, setTitleIdea] = useState(() => localStorage.getItem('foro_gen_titleidea_v1') || '');
   const [articleSources, setArticleSources] = useState(() => {
     const saved = localStorage.getItem('foro_gen_sources_v1');
     return safeParse(saved, []);
@@ -265,7 +264,6 @@ const CreateContent = ({
   useEffect(() => { localStorage.setItem('foro_gen_tone_v1', tone); }, [tone]);
   useEffect(() => { localStorage.setItem('foro_gen_format_v1', format); }, [format]);
   useEffect(() => { if (factSheet) localStorage.setItem('foro_gen_factsheet_v1', factSheet); else localStorage.removeItem('foro_gen_factsheet_v1'); }, [factSheet]);
-  useEffect(() => { if (titleIdea) localStorage.setItem('foro_gen_titleidea_v1', titleIdea); else localStorage.removeItem('foro_gen_titleidea_v1'); }, [titleIdea]);
   useEffect(() => { localStorage.setItem('foro_gen_sources_v1', JSON.stringify(articleSources)); }, [articleSources]);
   useEffect(() => { localStorage.setItem('foro_gen_markdown_v1', generatedMarkdown); }, [generatedMarkdown]);
 
@@ -338,7 +336,7 @@ const CreateContent = ({
         { allowEmoji, customInstructions, signal: controller.signal }
       );
 
-      if (result?.titleIdea) setTitleIdea(result.titleIdea);
+
 
       setPhase('done');
       
@@ -421,7 +419,7 @@ const CreateContent = ({
         { allowEmoji, customInstructions, signal: controller.signal },
       );
 
-      if (result?.titleIdea) setTitleIdea(result.titleIdea);
+
 
       setPhase('done');
       setTimeout(() => {
@@ -747,22 +745,6 @@ const CreateContent = ({
       {/* Result Display - only parse markdown AFTER generation is fully done to prevent streaming crash */}
       {generatedMarkdown && !isGenerating && (
         <div id="content-result" className="animate-fade-in" style={{ marginTop: '32px' }}>
-          {titleIdea && (
-            <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 16px', background: 'rgba(41,151,255,0.06)', border: '1px solid rgba(41,151,255,0.15)', borderRadius: '12px', animation: 'fadeIn 0.3s ease-out' }}>
-              <Sparkles size={14} style={{ color: 'var(--accent-secondary)', flexShrink: 0 }} />
-              <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', flex: 1 }}>
-                <strong style={{ color: 'var(--accent-secondary)' }}>ไอเดียหัวข้อ:</strong> {titleIdea}
-              </span>
-              <button
-                onClick={() => setInput(titleIdea)}
-                style={{ background: 'rgba(41,151,255,0.15)', border: '1px solid rgba(41,151,255,0.3)', borderRadius: '8px', color: 'var(--accent-secondary)', padding: '4px 12px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}
-                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(41,151,255,0.25)'; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(41,151,255,0.15)'; }}
-              >
-                ใช้หัวข้อนี้
-              </button>
-            </div>
-          )}
           <div className="content-result-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 className="content-result-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px', margin: 0, fontWeight: '800' }}>
               <ShieldCheck className="text-accent" size={24} />
