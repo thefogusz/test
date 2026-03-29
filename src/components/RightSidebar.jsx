@@ -114,6 +114,10 @@ const RightSidebar = ({
     '#ff9500', // Orange
     '#af52de', // Purple
     '#ff2d55', // Pink
+    '#ffd60a', // Yellow
+    '#64d2ff', // Sky
+    '#30d158', // Mint
+    '#bf5af2', // Lavender
   ];
 
   const accountPool = buildKnownAccountPool(watchlist, postLists);

@@ -969,6 +969,29 @@ const App = () => {
     );
   }, [activeListId, postLists]);
 
+  const filteredBookmarks = useMemo(() => {
+    return bookmarks.filter((item) => {
+      const isArticle = item?.type === 'article';
+      const matchesTab = bookmarkTab === 'news' ? !isArticle : isArticle;
+      if (!matchesTab) return false;
+      if (!activeReadListMemberSet) return true;
+
+      if (!isArticle) {
+        return item?.author?.username && activeReadListMemberSet.has(item.author.username.toLowerCase());
+      }
+
+      const attachedAuthor = item?.attachedSource?.author?.username;
+      if (attachedAuthor && activeReadListMemberSet.has(attachedAuthor.toLowerCase())) {
+        return true;
+      }
+
+      return (Array.isArray(item?.sources) ? item.sources : []).some((source) => {
+        const sourceAuthor = source?.author?.username;
+        return sourceAuthor && activeReadListMemberSet.has(sourceAuthor.toLowerCase());
+      });
+    });
+  }, [activeReadListMemberSet, bookmarkTab, bookmarks]);
+
   const bookmarkIds = useMemo(
     () => new Set(bookmarks.map((item) => item?.id).filter(Boolean)),
     [bookmarks],
@@ -1472,6 +1495,7 @@ const App = () => {
                     </button>
                   </div>
                 </div>
+                {activeListId && <div className="active-list-pills">กำลังกรองตาม: {postLists.find(l => l.id === activeListId)?.name}</div>}
               </header>
 
               {showHomeFeedToolbar && <div className="feed-section-header home-desktop-feed-header home-feed-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -2290,7 +2314,7 @@ const App = () => {
           {/* ===== BOOKMARKS VIEW ===== */}
           <div className="animate-fade-in" style={{ display: activeView === 'bookmarks' ? 'block' : 'none' }}>
             <header className="dashboard-header">
-                <h1 style={{ fontSize: '32px', fontWeight: '800', lineHeight: '1.4' }}>Bookmarks</h1>
+                <h1 style={{ fontSize: '32px', fontWeight: '800', lineHeight: '1.4', color: activeListId ? (postLists.find(l => l.id === activeListId)?.color || 'inherit') : 'inherit' }}>Bookmarks</h1>
                 <p style={{ color: 'var(--text-muted)' }}>คลังข้อมูลที่คุณบันทึกไว้แยกตามประเภท</p>
               </header>
 
@@ -2300,7 +2324,7 @@ const App = () => {
               </div>
               
               <div className="feed-grid">
-                {bookmarks.filter(b => bookmarkTab === 'news' ? b.type !== 'article' : b.type === 'article').map((item, idx) => (
+                {filteredBookmarks.map((item, idx) => (
                    bookmarkTab === 'news' ? (
                      <FeedCard key={item.id || idx} tweet={item} isBookmarked={true} onBookmark={handleBookmark} onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }} />
                    ) : (
