@@ -1956,6 +1956,7 @@ h1, h2, h3, h4, h5, h6 {
   .home-control-panel {
     padding: 8px 10px !important;
     border-radius: 18px;
+    overflow: hidden;
   }
 
   .mobile-only-flex.home-mobile-feed-inline {
@@ -1965,6 +1966,17 @@ h1, h2, h3, h4, h5, h6 {
   .dashboard-header-actions-group {
     width: auto;
     flex-wrap: nowrap;
+    flex: 0 0 auto;
+  }
+
+  .home-ai-filter-cluster {
+    overflow: hidden;
+  }
+
+  .home-ai-connector,
+  .home-ai-filter-cluster > .btn-pill,
+  .home-ai-filter-cluster > .btn-pill.primary {
+    flex: 0 0 auto;
   }
 
   .dashboard-header-actions-group .icon-btn-large {
@@ -2405,16 +2417,26 @@ h1, h2, h3, h4, h5, h6 {
   gap: 8px;
   flex: 1;
   justify-content: flex-end;
+  min-width: 0;
 }
 
 .home-ai-quick-presets {
   display: flex;
   gap: 5px;
-  overflow: hidden;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.home-ai-quick-presets::-webkit-scrollbar {
+  display: none;
 }
 
 .home-ai-quick-chip {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 999px;
