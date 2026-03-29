@@ -1704,15 +1704,18 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @media (max-width: 768px) {
+  html,
   body {
+    overflow-x: hidden !important;
     overflow: auto !important;
   }
 
   .foro-layout {
     padding-left: 8px !important;
     padding-right: 8px !important;
-    padding-bottom: 80px !important;
+    padding-bottom: calc(94px + env(safe-area-inset-bottom, 0px)) !important;
     display: block !important;
+    overflow-x: clip !important;
   }
 
   .sidebar-logo {
@@ -1734,10 +1737,10 @@ h1, h2, h3, h4, h5, h6 {
     bottom: 0 !important;
     left: 0 !important;
     width: 100% !important;
-    height: 70px !important;
+    height: calc(78px + env(safe-area-inset-bottom, 0px)) !important;
     border-radius: 20px 20px 0 0 !important;
     flex-direction: row !important;
-    padding: 0 !important;
+    padding: 0 0 env(safe-area-inset-bottom, 0px) 0 !important;
     justify-content: space-around !important;
     align-items: center !important;
     border-top: 1px solid var(--glass-border) !important;
@@ -1764,8 +1767,16 @@ h1, h2, h3, h4, h5, h6 {
     justify-content: center !important;
     width: auto !important;
     flex: 1 !important;
+    min-width: 0 !important;
     text-align: center !important;
     box-shadow: none !important;
+  }
+
+  .nav-text {
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .nav-item.active::before {
@@ -1784,11 +1795,12 @@ h1, h2, h3, h4, h5, h6 {
   .foro-main {
     width: 100% !important;
     margin: 0 !important;
-    padding: 16px !important;
+    padding: 16px 14px calc(116px + env(safe-area-inset-bottom, 0px)) !important;
     height: auto !important;
-    min-height: calc(100vh - 80px) !important;
+    min-height: calc(100vh - 78px - env(safe-area-inset-bottom, 0px)) !important;
     border-radius: 0 !important;
     overflow-y: visible !important;
+    overflow-x: clip !important;
   }
 
   .feed-grid {
@@ -1797,8 +1809,11 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .feed-card {
+    width: 100%;
+    min-width: 0;
     padding: 16px;
     border-radius: 16px;
+    overflow: hidden;
   }
 
   .feed-card-header {
@@ -1822,31 +1837,34 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .feed-card-footer {
-    flex-direction: row;
-    align-items: center !important;
-    justify-content: space-between;
+    flex-direction: column;
+    align-items: stretch !important;
+    justify-content: flex-start;
     gap: 12px;
   }
 
   .feed-card-stats {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     gap: 10px !important;
+    justify-content: flex-start;
   }
 
   .feed-card-stats-group {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     min-width: 0;
   }
 
   .feed-card-actions {
     flex: 0 0 auto;
-    margin-left: auto;
+    width: 100%;
+    margin-left: 0;
   }
 
   .feed-card-inline-action {
     justify-content: center;
+    width: 100%;
   }
 
   .dashboard-header h1 {
@@ -2001,24 +2019,26 @@ h1, h2, h3, h4, h5, h6 {
 
   .reader-toolbar-actions {
     justify-content: flex-start;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     width: 100%;
     gap: 8px;
   }
 
   .reader-toolbar-count {
-    width: auto;
+    width: 100%;
     padding-right: 0;
-    flex: 0 0 auto;
+    flex: 0 0 100%;
   }
 
   .reader-toolbar-actions-group {
-    margin-left: auto;
+    margin-left: 0;
+    width: 100%;
     gap: 6px;
+    justify-content: stretch;
   }
 
   .reader-toolbar-actions .btn-pill {
-    flex: 0 1 auto;
+    flex: 1 1 0;
     min-width: 0;
     justify-content: center;
     white-space: nowrap;
@@ -2169,16 +2189,16 @@ h1, h2, h3, h4, h5, h6 {
 
   .content-view-tabs-hero {
     width: 100%;
-    margin-bottom: 10px;
+    margin-bottom: 18px;
     padding-bottom: 0;
     border-bottom: 0;
-    position: fixed;
-    left: 12px;
-    right: 12px;
-    bottom: calc(78px + env(safe-area-inset-bottom, 0px));
-    z-index: 9600;
+    position: sticky;
+    top: 0;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    z-index: 30;
     padding: 8px;
-    margin: 0;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 22px;
     background: rgba(12, 12, 14, 0.9);
@@ -2203,7 +2223,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .unified-content-view {
-    padding-bottom: calc(170px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px));
   }
 
   .hero-search-container {
@@ -2279,6 +2299,18 @@ h1, h2, h3, h4, h5, h6 {
     width: 100%;
   }
 
+  .reader-library-view,
+  .unified-content-view,
+  .hero-search-wrapper,
+  .search-results-container,
+  .article-card,
+  .content-result-header,
+  .content-result-actions {
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
   .watchlist-grid {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -2308,7 +2340,7 @@ h1, h2, h3, h4, h5, h6 {
   .status-toast {
     left: 12px !important;
     right: 12px !important;
-    bottom: 92px !important;
+    bottom: calc(96px + env(safe-area-inset-bottom, 0px)) !important;
     transform: none !important;
     text-align: center;
     border-radius: 18px !important;

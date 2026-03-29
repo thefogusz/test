@@ -209,6 +209,42 @@ const getBroadQueryBlueprint = (query = '') => {
   ) || null;
 };
 
+const getBroadFallbackQueries = (query = '') => {
+  const normalized = normalizeSearchText(query);
+  if (!normalized) return [];
+
+  const fallbackGroups = [
+    {
+      triggers: ['à¸§à¸‡à¸à¸²à¸£à¹€à¸à¸¡', 'à¹€à¸à¸¡', 'gaming', 'games', 'videogames', 'video game'],
+      queries: [
+        '(game OR gaming OR videogame OR videogames OR à¹€à¸à¸¡ OR à¸§à¸‡à¸à¸²à¸£à¹€à¸à¸¡)',
+        '(Nintendo OR PlayStation OR Xbox OR Steam OR PS5 OR GTA OR Pokemon OR Zelda OR Mario OR "Monster Hunter" OR "Game Awards")',
+        '(esports OR gamedev OR "game dev" OR studio OR trailer OR launch)',
+      ],
+    },
+    {
+      triggers: ['à¸Ÿà¸¸à¸•à¸šà¸­à¸¥', 'à¸šà¸­à¸¥', 'soccer', 'football'],
+      queries: [
+        '(football OR soccer OR à¸Ÿà¸¸à¸•à¸šà¸­à¸¥)',
+        '(Premier League OR Champions League OR FIFA OR UEFA OR Arsenal OR Liverpool OR Real Madrid OR Barcelona)',
+      ],
+    },
+    {
+      triggers: ['à¸„à¸£à¸´à¸›à¹‚à¸•', 'crypto', 'bitcoin', 'btc', 'ethereum', 'eth'],
+      queries: [
+        '(crypto OR bitcoin OR btc OR ethereum OR eth OR à¸„à¸£à¸´à¸›à¹‚à¸•)',
+        '(Solana OR Binance OR Coinbase OR ETF OR blockchain OR web3)',
+      ],
+    },
+  ];
+
+  const match = fallbackGroups.find((group) =>
+    group.triggers.some((trigger) => normalized.includes(normalizeSearchText(trigger))),
+  );
+
+  return match ? match.queries : [];
+};
+
 const isBroadTopicSearchQuery = (query = '') => {
   const normalized = normalizeSearchText(query);
   if (!normalized) return false;
@@ -601,10 +637,12 @@ const App = () => {
       // Auto-enable Latest mode for price/event queries that need freshness
       const searchQueryType = (isLatestMode || queryIntent.forceLatestMode) ? 'Latest' : 'Top';
       const broadBlueprint = effectiveBroadDiscoveryQuery ? getBroadQueryBlueprint(requestedQuery) : null;
+      const broadFallbackQueries = effectiveBroadDiscoveryQuery ? getBroadFallbackQueries(requestedQuery) : [];
       const shouldUseAdaptivePlan = isComplexQuery && !effectiveBroadDiscoveryQuery;
       const preferStrictSources = isComplexQuery && !effectiveBroadDiscoveryQuery;
       const rawDataChunks = [];
       let finalCursor = null;
+      let ytPromise = Promise.resolve([]);
 
       const getScopedQuery = (q, lane = 'default') => {
         let sq = q;
@@ -681,7 +719,7 @@ const App = () => {
 
         // Extract YouTube cards from Tavily results (zero YouTube search quota — Tavily already ran)
         // Run in background while X results are being processed below
-        const ytPromise = (webData?.results?.length)
+        ytPromise = (webData?.results?.length)
           ? extractYouTubeFromTavily(webData.results).catch(() => [])
           : Promise.resolve([]);
         
@@ -693,6 +731,30 @@ const App = () => {
         if (!finalCursor && exactResult.meta?.next_cursor) finalCursor = exactResult.meta.next_cursor;
         if (!finalCursor && entityResult.meta?.next_cursor) finalCursor = entityResult.meta.next_cursor;
         if (!finalCursor && viralResult.meta?.next_cursor) finalCursor = viralResult.meta.next_cursor;
+
+        const initialMergedBroadData = mergeUniquePostsById(...rawDataChunks);
+        if (effectiveBroadDiscoveryQuery && initialMergedBroadData.length < 8 && broadFallbackQueries.length > 0) {
+          setStatus('[Fallback] à¸¥à¸­à¸‡à¸‚à¸¢à¸²à¸¢à¸„à¸³à¸„à¹‰à¸™à¸«à¸²à¸­à¸±à¸•à¹‚à¸™à¸¡à¸±à¸•à¸´à¸”à¹‰à¸§à¸¢à¸„à¸³à¸—à¸µà¹ˆà¹ƒà¸à¸¥à¹‰à¹€à¸„à¸µà¸¢à¸‡...');
+          const fallbackResults = await Promise.all(
+            broadFallbackQueries.map((fallbackQuery, index) =>
+              searchEverythingDeep(
+                getScopedQuery(fallbackQuery, index === 0 ? 'exact' : 'broad'),
+                null,
+                onlyNews,
+                searchQueryType,
+                index === 0 ? 2 : 3,
+              ).catch((err) => {
+                console.warn(`[Search] Failed fallback broad query: ${fallbackQuery}`, err);
+                return { data: [], meta: {} };
+              }),
+            ),
+          );
+
+          fallbackResults.forEach((result) => {
+            if (result.data && result.data.length > 0) rawDataChunks.push(result.data);
+            if (!finalCursor && result.meta?.next_cursor) finalCursor = result.meta.next_cursor;
+          });
+        }
 
         if (webData && (webData.results?.length || webData.answer)) {
           webContext = [
@@ -761,9 +823,16 @@ const App = () => {
         let nextOverflowResults = [];
 
         if (effectiveBroadDiscoveryQuery) {
-          const rankedBroadResults = curated.slice(0, Math.min(curated.length, 30)).map((tweet, index) => ({
+          const broadCandidatePool = curated.length > 0
+            ? curated
+            : data.slice(0, Math.min(data.length, 20));
+          const rankedBroadResults = broadCandidatePool.slice(0, Math.min(broadCandidatePool.length, 30)).map((tweet, index) => ({
             ...tweet,
-            ai_reasoning: tweet.ai_reasoning || 'Kept from the global-first ranked result set for this broad query.',
+            ai_reasoning: tweet.ai_reasoning || (
+              curated.length > 0
+                ? 'Kept from the global-first ranked result set for this broad query.'
+                : 'Kept from the fallback broad-topic result set after the strict quality gate returned empty.'
+            ),
             temporalTag: tweet.temporalTag || (isLatestMode ? 'Breaking' : 'Background'),
             citation_id: tweet.citation_id || `[F${index + 1}]`,
           }));
@@ -1724,7 +1793,7 @@ const App = () => {
                           <Search size={48} style={{ margin: '0 auto' }} />
                         </div>
                         <h3 style={{ fontSize: '18px', marginBottom: '8px', color: 'var(--text-dim)', lineHeight: '1.4' }}>ไม่พบข้อมูลสำหรับ "{searchQuery}"</h3>
-                        <p style={{ color: 'var(--text-muted)' }}>ลองปรับคำค้นหา หรือใช้คำที่กว้างขึ้น เช่น ภาษาอังกฤษ</p>
+                        <p style={{ color: 'var(--text-muted)' }}>ระบบลองขยายคำค้นหาอัตโนมัติแล้ว แต่ยังไม่เจอผลลัพธ์ที่น่าใช้งานในตอนนี้</p>
                       </div>
                     )}
 
@@ -2376,7 +2445,7 @@ const App = () => {
               </button>
               <button
                 className="modal-btn modal-btn-primary"
-                onClick={handleAiFilter}
+                onClick={() => handleAiFilter()}
                 disabled={filterModal.isFiltering || !filterModal.prompt.trim()}
                 style={{ position: 'relative', overflow: 'hidden' }}
               >
