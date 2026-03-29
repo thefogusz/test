@@ -2012,17 +2012,18 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .dashboard-header-top {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center !important;
-    justify-content: center !important;
+    justify-content: stretch !important;
     gap: 12px !important;
     position: relative;
+    padding-inline: 20px;
   }
 
   .home-mobile-logo {
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
+    position: static;
+    transform: none;
     flex: 0 0 auto;
     justify-content: flex-start !important;
     width: auto !important;
@@ -2038,17 +2039,17 @@ h1, h2, h3, h4, h5, h6 {
 
   .dashboard-header-title-block {
     width: 100%;
-    padding: 0 64px;
+    padding: 0;
     align-items: center;
     text-align: center;
     min-width: 0;
+    justify-self: center;
   }
 
   .dashboard-header-top .mobile-only-flex.icon-btn-large {
-    position: absolute;
-    right: 0;
-    top: 0;
+    position: static;
     transform: none;
+    justify-self: end;
   }
 
   .dashboard-header-actions {

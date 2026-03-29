@@ -1665,9 +1665,6 @@ const App = () => {
 
           {/* ===== UNIFIED CONTENT VIEW ===== */}
           <div className="unified-content-view animate-fade-in" style={{ display: activeView === 'content' ? 'block' : 'none' }}>
-            <div style={{ fontSize: '11px', fontWeight: '800', letterSpacing: '0.08em', color: 'var(--accent-secondary)', marginBottom: '12px' }}>
-              {AI_WORKSPACES.langGraph.role} | {CONTENT_TAB_LABELS[contentTab]}
-            </div>
             <div className="content-view-tabs content-view-tabs-hero">
               <button className={`btn-pill content-view-tab-btn ${contentTab === 'search' ? 'primary' : ''}`} onClick={() => setContentTab('search')}>
                 <Search size={16} /> ค้นหา
