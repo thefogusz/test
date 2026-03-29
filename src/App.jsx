@@ -1497,7 +1497,7 @@ const App = () => {
                 </div>
               </header>
 
-              {showHomeFeedToolbar && <div className="feed-section-header home-desktop-feed-header home-feed-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              {showHomeFeedToolbar && <div className="feed-section-header home-desktop-feed-header home-feed-toolbar reader-toolbar-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div className="section-title">โพสต์ล่าสุด</div>
                   {activeListId && <div className="active-list-pills">กำลังกรองตาม: {postLists.find(l => l.id === activeListId)?.name}</div>}
@@ -1511,7 +1511,7 @@ const App = () => {
                     </div>
                   )}
                 </div>
-                <div className="feed-section-filters" style={{ display: 'flex', gap: '8px' }}>
+                <div className="feed-section-filters reader-toolbar-actions-group" style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => handleSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`}>ยอดวิว</button>
                   <button onClick={() => handleSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`}>เอนเกจเมนต์</button>
                 </div>
