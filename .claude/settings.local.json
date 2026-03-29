@@ -15,7 +15,9 @@
       "Bash(npx vite:*)",
       "Bash(wc -l ./src/components/*.jsx ./src/services/*.js)",
       "Bash(wc -l /d/TEST/src/services/*.js /d/TEST/src/components/*.jsx /d/TEST/src/App.jsx)",
-      "Bash(python -:*)"
+      "Bash(python -:*)",
+      "WebSearch",
+      "Bash(node -e \":*)"
     ]
   }
 }

@@ -1533,7 +1533,7 @@ const App = () => {
 
           {/* ===== UNIFIED CONTENT VIEW ===== */}
           <div className="unified-content-view animate-fade-in" style={{ display: activeView === 'content' ? 'block' : 'none' }}>
-            <div className="content-view-tabs">
+            <div className="content-view-tabs content-view-tabs-hero">
               <button className={`btn-pill content-view-tab-btn ${contentTab === 'search' ? 'primary' : ''}`} onClick={() => setContentTab('search')}>
                 <Search size={16} /> ค้นหา
               </button>
@@ -1578,7 +1578,41 @@ const App = () => {
                       <p className="hero-search-subtitle">สำรวจเทรนด์และเจาะลึกข้อมูลจากทั่วโลก</p>
                     </div>
                   </div>
-                  <div className="hero-search-wrapper">
+                  {false && (
+                    <div className="create-content-inline-panel animate-fade-in">
+                      <ContentErrorBoundary key={createContentSource?.id ?? 'no-source'}>
+                        <CreateContent 
+                          sourceNode={createContentSource} 
+                          onRemoveSource={() => setCreateContentSource(null)}
+                          onSaveArticle={(title, content, meta) => {
+                            const newArt = {
+                              id: Date.now().toString(),
+                              type: 'article',
+                              title: title || 'บทความ AI',
+                              summary: content,
+                              created_at: new Date().toISOString(),
+                              attachedSource: meta?.attachedSource || null,
+                              sources: meta?.sources || [],
+                            };
+                            setBookmarks(prev => [newArt, ...prev]);
+                          }}
+                          isGenerating={isGeneratingContent}
+                          setIsGenerating={setIsGeneratingContent}
+                          phase={genPhase}
+                          setPhase={setGenPhase}
+                        />
+                      </ContentErrorBoundary>
+                    </div>
+                  )}
+                  <div style={{ display: contentTab === 'search' ? 'block' : 'none' }} className="hero-search-wrapper">
+                    <div style={{ display: 'none' }} className="content-view-tabs content-view-tabs-hero">
+                      <button className={`btn-pill content-view-tab-btn ${contentTab === 'search' ? 'primary' : ''}`} onClick={() => setContentTab('search')}>
+                        <Search size={16} /> ค้นหา
+                      </button>
+                      <button className={`btn-pill content-view-tab-btn ${contentTab === 'create' ? 'primary' : ''}`} onClick={() => setContentTab('create')}>
+                        <Sparkles size={16} /> สร้างคอนเทนต์
+                      </button>
+                    </div>
                     <div className="hero-search-form" style={{ width: '100%' }}>
                       <Search size={20} className="hero-search-icon" />
                       <input
@@ -1926,8 +1960,10 @@ const App = () => {
 
                   <div className="reader-toolbar-actions">
                     <span className="reader-toolbar-count">{filteredReadArchive.length} รายการ</span>
-                    <button onClick={() => setReadFilters(p => ({ ...p, view: !p.view }))} className={`btn-pill ${readFilters.view ? 'active' : ''}`}>ยอดวิว</button>
-                    <button onClick={() => setReadFilters(p => ({ ...p, engagement: !p.engagement }))} className={`btn-pill ${readFilters.engagement ? 'active' : ''}`}>เอนเกจเมนต์</button>
+                    <div className="reader-toolbar-actions-group">
+                      <button onClick={() => setReadFilters(p => ({ ...p, view: !p.view }))} className={`btn-pill ${readFilters.view ? 'active' : ''}`}>ยอดวิว</button>
+                      <button onClick={() => setReadFilters(p => ({ ...p, engagement: !p.engagement }))} className={`btn-pill ${readFilters.engagement ? 'active' : ''}`}>เอนเกจเมนต์</button>
+                    </div>
                   </div>
                 </div>
               )}

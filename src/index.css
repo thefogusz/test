@@ -551,6 +551,15 @@ h1, h2, h3, h4, h5, h6 {
   opacity: 1;
 }
 
+.feed-card-inline-action {
+  flex: 0 0 auto;
+}
+
+.feed-card-stats-group {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
 /* Search View Hero */
 .hero-search-container {
   display: flex;
@@ -1077,6 +1086,14 @@ h1, h2, h3, h4, h5, h6 {
   align-self: flex-start;
   min-height: 38px;
   padding-top: 1px;
+}
+
+.reader-toolbar-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  margin-left: auto;
 }
 
 .reader-toolbar-count {
@@ -1785,9 +1802,9 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .feed-card-header {
-    flex-direction: column;
+    flex-direction: row;
     align-items: flex-start !important;
-    gap: 12px !important;
+    gap: 10px !important;
   }
 
   .feed-card-author {
@@ -1796,30 +1813,39 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .feed-card-meta {
-    width: 100%;
-    max-width: 100%;
-    flex: 1 1 auto;
-    flex-wrap: wrap;
-    justify-content: flex-start;
+    width: auto;
+    max-width: none;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    align-self: flex-start;
   }
 
   .feed-card-footer {
-    flex-direction: column;
-    align-items: stretch !important;
+    flex-direction: row;
+    align-items: center !important;
+    justify-content: space-between;
     gap: 12px;
   }
 
   .feed-card-stats {
-    flex-wrap: wrap;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-wrap: nowrap;
     gap: 10px !important;
   }
 
-  .feed-card-actions {
-    width: 100%;
+  .feed-card-stats-group {
+    flex-wrap: nowrap;
+    min-width: 0;
   }
 
-  .feed-card-actions .btn-forge {
-    width: 100%;
+  .feed-card-actions {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  .feed-card-inline-action {
     justify-content: center;
   }
 
@@ -1975,20 +2001,28 @@ h1, h2, h3, h4, h5, h6 {
 
   .reader-toolbar-actions {
     justify-content: flex-start;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     width: 100%;
     gap: 8px;
   }
 
   .reader-toolbar-count {
-    width: 100%;
+    width: auto;
     padding-right: 0;
+    flex: 0 0 auto;
+  }
+
+  .reader-toolbar-actions-group {
+    margin-left: auto;
+    gap: 6px;
   }
 
   .reader-toolbar-actions .btn-pill {
-    flex: 1 1 calc(50% - 4px);
+    flex: 0 1 auto;
     min-width: 0;
     justify-content: center;
+    white-space: nowrap;
+    padding-inline: 12px;
   }
 
   .reader-load-more-shell {
@@ -2120,14 +2154,24 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .content-view-tabs {
-    gap: 10px;
-    flex-direction: column;
+    gap: 8px;
+    flex-direction: row;
     align-items: stretch;
   }
 
   .content-view-tab-btn {
-    width: 100%;
+    flex: 1 1 0;
+    width: calc(50% - 4px);
     justify-content: center;
+    min-height: 44px;
+    padding-inline: 12px;
+  }
+
+  .content-view-tabs-hero {
+    width: 100%;
+    margin-bottom: 10px;
+    padding-bottom: 0;
+    border-bottom: 0;
   }
 
   .hero-search-wrapper {
@@ -3826,12 +3870,14 @@ h1, h2, h3, h4, h5, h6 {
 
 @media (max-width: 420px) {
   .feed-card-header {
-    flex-direction: column;
+    flex-direction: row;
+    align-items: flex-start !important;
   }
 
   .feed-card-meta {
-    max-width: 100%;
-    justify-content: flex-start;
+    max-width: none;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
   }
 
   .audience-category-grid {

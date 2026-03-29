@@ -194,24 +194,23 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
       </div>
 
       {/* ── FOOTER: Stats & Sublte Actions ── */}
-      <div className="feed-card-footer" style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+      <div className="feed-card-footer" style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
         {/* Minimalist Stats */}
-        <div className="feed-card-stats" style={{ display: 'flex', gap: '12px' }}>
-          {stats.map((s, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-dim)', fontSize: '11px' }}>
-              <s.icon size={12} strokeWidth={2.5} opacity={0.5} />
-              <span style={{ fontWeight: '700' }}>{fmt(s.v)}</span>
-            </div>
-          ))}
+        <div className="feed-card-stats" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div className="feed-card-stats-group" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            {stats.map((s, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-dim)', fontSize: '11px' }}>
+                <s.icon size={12} strokeWidth={2.5} opacity={0.5} />
+                <span style={{ fontWeight: '700' }}>{fmt(s.v)}</span>
+              </div>
+            ))}
+          </div>
         </div>
-
-        {/* Mini-Ghost Actions */}
         <div className="feed-card-actions" style={{ display: 'flex', gap: '4px' }}>
-
           {onArticleGen && (
             <button 
               onClick={(e) => { e.stopPropagation(); onArticleGen(tweet); }} 
-              className="btn-forge" 
+              className="btn-forge feed-card-inline-action" 
             >
               <PenTool size={11} strokeWidth={2.5} /> <span>สร้างคอนเทนต์</span>
             </button>
