@@ -11,6 +11,19 @@ export default defineConfig(({ mode }) => {
 
   return {
     base: '/test/',
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return
+            if (id.includes('react') || id.includes('scheduler')) return 'react-vendor'
+            if (id.includes('lucide-react')) return 'icons'
+            if (id.includes('@ai-sdk') || id.includes('/ai/')) return 'ai-vendor'
+            if (id.includes('marked') || id.includes('dompurify')) return 'markdown-vendor'
+          },
+        },
+      },
+    },
     plugins: [
       react(),
       {

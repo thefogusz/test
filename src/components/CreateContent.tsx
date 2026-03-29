@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, Search, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, Bookmark, ExternalLink, RefreshCw } from 'lucide-react';
 import { researchAndPreventHallucination, generateStructuredContentV2 } from '../services/GrokService';
 import { renderMarkdownToHtml } from '../utils/markdown';
+import ContentTabSwitcher from './ContentTabSwitcher';
 
 const THINKING_PHASES = {
   researching: [
@@ -473,14 +474,11 @@ const CreateContent = ({
           </button>
         )}
       </div>
-      <div className="content-view-tabs content-view-tabs-hero content-view-tabs-mobile-inline">
-        <button className={`btn-pill content-view-tab-btn ${contentTab === 'search' ? 'primary' : ''}`} onClick={() => setContentTab('search')}>
-          <Search size={16} /> ค้นหา
-        </button>
-        <button className={`btn-pill content-view-tab-btn ${contentTab === 'create' ? 'primary' : ''}`} onClick={() => setContentTab('create')}>
-          <Sparkles size={16} /> สร้างคอนเทนต์
-        </button>
-      </div>
+      <ContentTabSwitcher
+        contentTab={contentTab}
+        setContentTab={setContentTab}
+        className="content-view-tabs-mobile-inline"
+      />
 
       {/* Unified Editor Interface */}
       <div style={{ 

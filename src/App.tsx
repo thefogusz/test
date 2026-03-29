@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, lazy, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Search,
   Sparkles,
@@ -43,7 +43,7 @@ import Sidebar from './components/Sidebar';
 import RightSidebar from './components/RightSidebar';
 import HomeCanvas from './components/HomeCanvas';
 import FeedCard from './components/FeedCard';
-import CreateContent from './components/CreateContent';
+import AiFilteredBadge from './components/AiFilteredBadge';
 import {
   getUserInfo,
   fetchWatchlistFeed,
@@ -58,6 +58,7 @@ import { agentFilterFeed, buildSearchPlan, discoverTopExperts, expandSearchQuery
 import { renderMarkdownToHtml } from './utils/markdown';
 import './index.css';
 import { STORAGE_KEYS } from './constants/storageKeys';
+import useLibraryViews from './hooks/useLibraryViews';
 import { usePersistentState } from './hooks/usePersistentState';
 import {
   deriveVisibleFeed,
@@ -68,17 +69,16 @@ import {
   sanitizeStoredCollection,
   sanitizeStoredSingle,
   sanitizeCollectionState,
-  getEngagementTotal,
   normalizeSearchText,
-  scoreFuzzyTextMatch,
-  toNumber,
   mergePlanLabelsIntoQuery
 } from './utils/appUtils';
 import UserCard from './components/UserCard';
-import ContentErrorBoundary from './components/ContentErrorBoundary';
-import SearchInlineStatus from './components/SearchInlineStatus';
-import { AI_WORKSPACES, CONTENT_TAB_LABELS } from './config/aiWorkspaces';
 import { TOPIC_TRIGGERS } from './config/topics';
+
+const AudienceWorkspace = lazy(() => import('./components/AudienceWorkspace'));
+const BookmarksWorkspace = lazy(() => import('./components/BookmarksWorkspace'));
+const ContentWorkspace = lazy(() => import('./components/ContentWorkspace'));
+const ReadWorkspace = lazy(() => import('./components/ReadWorkspace'));
 
 const deserializeWatchlist = (saved) => {
   const parsed = safeParse(saved, []);
@@ -1001,130 +1001,31 @@ const App = () => {
     (isSearching || isSearchSummaryPending) &&
     !!searchStatusMessage;
 
-  const activeReadListMemberSet = useMemo(() => {
-    if (!activeListId) return null;
-    const activeList = postLists.find((list) => list.id === activeListId);
-    if (!activeList) return null;
-    return new Set(
-      (Array.isArray(activeList.members) ? activeList.members : [])
-        .map((member) => member?.toLowerCase())
-        .filter(Boolean),
-    );
-  }, [activeListId, postLists]);
-
-  const filteredBookmarks = useMemo(() => {
-    return bookmarks.filter((item) => {
-      const isArticle = item?.type === 'article';
-      const matchesTab = bookmarkTab === 'news' ? !isArticle : isArticle;
-      if (!matchesTab) return false;
-      if (!activeReadListMemberSet) return true;
-
-      if (!isArticle) {
-        return item?.author?.username && activeReadListMemberSet.has(item.author.username.toLowerCase());
-      }
-
-      const attachedAuthor = item?.attachedSource?.author?.username;
-      if (attachedAuthor && activeReadListMemberSet.has(attachedAuthor.toLowerCase())) {
-        return true;
-      }
-
-      return (Array.isArray(item?.sources) ? item.sources : []).some((source) => {
-        const sourceAuthor = source?.author?.username;
-        return sourceAuthor && activeReadListMemberSet.has(sourceAuthor.toLowerCase());
-      });
-    });
-  }, [activeReadListMemberSet, bookmarkTab, bookmarks]);
-
-  const bookmarkIds = useMemo(
-    () => new Set(bookmarks.map((item) => item?.id).filter(Boolean)),
-    [bookmarks],
+  const currentActiveList = useMemo(
+    () => (activeListId ? postLists.find((list) => list.id === activeListId) ?? null : null),
+    [activeListId, postLists],
   );
-
-  const normalizedReadSearchQuery = useMemo(
-    () => normalizeSearchText(deferredReadSearchQuery),
-    [deferredReadSearchQuery],
-  );
-
-  const { readSearchSuggestions, filteredReadArchive } = useMemo(() => {
-    const suggestions = Array.from(
-      new Set(
-        readArchive
-          .flatMap((item) => [
-            item?.author?.name,
-            item?.author?.username ? `@${item.author.username}` : '',
-            item?.summary,
-            item?.text,
-          ])
-          .filter(Boolean)
-          .flatMap((value) =>
-            String(value)
-              .split(/[\n,]/)
-              .map((part) => part.trim()),
-          )
-          .filter((value) => {
-            const normalizedValue = normalizeSearchText(value);
-            return (
-              normalizedReadSearchQuery &&
-              normalizedValue &&
-              normalizedValue !== normalizedReadSearchQuery &&
-              normalizedValue.includes(normalizedReadSearchQuery)
-            );
-          }),
-      ),
-    ).slice(0, 4);
-
-    const filtered = readArchive
-      .filter((item) => {
-        if (!activeReadListMemberSet) return true;
-        return item?.author?.username && activeReadListMemberSet.has(item.author.username.toLowerCase());
-      })
-      .map((item) => ({
-        item,
-        searchScore: normalizedReadSearchQuery
-          ? scoreFuzzyTextMatch(
-              normalizedReadSearchQuery,
-              item?.author?.name,
-              item?.author?.username,
-              item?.summary,
-              item?.text,
-            )
-          : 1,
-      }))
-      .filter(({ searchScore }) => searchScore > 0)
-      .sort((left, right) => {
-        if (normalizedReadSearchQuery && right.searchScore !== left.searchScore) {
-          return right.searchScore - left.searchScore;
-        }
-
-        if (!readFilters.view && !readFilters.engagement) {
-          return new Date(right.item.created_at || 0) - new Date(left.item.created_at || 0);
-        }
-
-        const scoreA =
-          (readFilters.view ? toNumber(left.item.view_count) : 0) +
-          (readFilters.engagement ? getEngagementTotal(left.item) : 0);
-        const scoreB =
-          (readFilters.view ? toNumber(right.item.view_count) : 0) +
-          (readFilters.engagement ? getEngagementTotal(right.item) : 0);
-
-        return scoreB - scoreA;
-      })
-      .map(({ item }) => item);
-
-    return {
-      readSearchSuggestions: suggestions,
-      filteredReadArchive: filtered,
-    };
-  }, [activeReadListMemberSet, normalizedReadSearchQuery, readArchive, readFilters]);
-
-  const visibleReadArchive = useMemo(
-    () => filteredReadArchive.slice(0, visibleReadCount),
-    [filteredReadArchive, visibleReadCount],
-  );
-
-  useEffect(() => {
-    setVisibleReadCount(READ_ARCHIVE_INITIAL_RENDER);
-  }, [activeView, activeListId, normalizedReadSearchQuery, readFilters.view, readFilters.engagement, readArchive.length]);
+  const {
+    activeReadListMemberSet,
+    filteredBookmarks,
+    bookmarkIds,
+    normalizedReadSearchQuery,
+    readSearchSuggestions,
+    filteredReadArchive,
+    visibleReadArchive,
+  } = useLibraryViews({
+    activeListId,
+    postLists,
+    bookmarkTab,
+    bookmarks,
+    deferredReadSearchQuery,
+    readArchive,
+    readFilters,
+    visibleReadCount,
+    setVisibleReadCount,
+    readArchiveInitialRender: READ_ARCHIVE_INITIAL_RENDER,
+    activeView,
+  });
 
   useEffect(() => {
     const isAudienceManual = activeView === 'audience' && audienceTab === 'manual';
@@ -1450,6 +1351,34 @@ const App = () => {
     setManualQuery('');
   };
 
+  const handleSaveGeneratedArticle = (title, content, meta) => {
+    const newArt = {
+      id: Date.now().toString(),
+      type: 'article',
+      title: title || '\u0e1a\u0e17\u0e04\u0e27\u0e32\u0e21 AI',
+      summary: content,
+      created_at: new Date().toISOString(),
+      attachedSource: meta?.attachedSource || null,
+      sources: meta?.sources || [],
+    };
+    setBookmarks((prev) => [newArt, ...prev]);
+  };
+
+  const openContentComposerFromPost = (item) => {
+    setCreateContentSource(item);
+    setActiveView('content');
+    setTimeout(() => setContentTab('create'), 0);
+  };
+
+  const workspaceLoadingFallback = (
+    <div className="animate-fade-in" style={{ padding: '56px 0', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', color: 'var(--text-dim)', fontSize: '13px', fontWeight: '700' }}>
+        <Loader2 size={16} className="animate-spin" />
+        <span>Loading workspace...</span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="foro-layout">
       <Sidebar 
@@ -1480,15 +1409,15 @@ const App = () => {
 
           {/* ===== HOME VIEW ===== */}
           <div className="animate-fade-in" style={{ display: activeView === 'home' ? 'block' : 'none' }}>
-            <header className="dashboard-header dashboard-header-home" style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '32px' }}>
-                <div className="dashboard-header-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '16px' }}>
-                  <div className="mobile-only-flex home-mobile-logo" style={{ justifyContent: 'center', width: 'auto', minHeight: '32px' }}>
-                    <img src="logo.png" alt="FO" className="home-mobile-logo-img" style={{ height: '24px', width: 'auto', display: 'block' }} loading="eager" />
+            <header className="dashboard-header dashboard-header-home dashboard-header-home-layout">
+                <div className="dashboard-header-top dashboard-header-top-layout">
+                  <div className="mobile-only-flex home-mobile-logo home-mobile-logo-layout">
+                    <img src="logo.png" alt="FO" className="home-mobile-logo-img" loading="eager" />
                   </div>
-                  <div className="dashboard-header-title-block" style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: 0 }}>
+                  <div className="dashboard-header-title-block dashboard-header-title-stack">
                     <div style={{ color: 'var(--text-dim)', fontSize: '13px', fontWeight: '500' }}>WATCHLIST FEED</div>
-                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: '800', lineHeight: '1.4', color: activeListId ? (postLists.find(l => l.id === activeListId)?.color || 'inherit') : 'inherit' }}>
-                      {activeListId ? postLists.find(l => l.id === activeListId)?.name : 'หน้าหลัก'}
+                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: '800', lineHeight: '1.4', color: currentActiveList?.color || 'inherit' }}>
+                      {currentActiveList?.name || '\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e25\u0e31\u0e01'}
                     </h1>
                   </div>
                   <button className="mobile-only-flex icon-btn-large" onClick={() => setIsMobilePostListOpen(true)}><List size={20} /></button>
@@ -1506,15 +1435,7 @@ const App = () => {
                   <div className="mobile-only-flex home-mobile-feed-inline" style={{ alignItems: 'center', justifyContent: 'space-between', gap: '12px', width: '100%' }}>
                     <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div className="section-title">โพสต์ล่าสุด</div>
-                      {isFiltered && (
-                        <div className="ai-filtered-badge">
-                          <Sparkles size={12} className="text-accent" />
-                          <span>AI FILTERED</span>
-                          <button onClick={clearAiFilter} className="ai-filtered-clear-btn" title="ล้างตัวกรอง">
-                            <X size={12} />
-                          </button>
-                        </div>
-                      )}
+                      {isFiltered && <AiFilteredBadge onClear={clearAiFilter} clearTitle="\u0e25\u0e49\u0e32\u0e07\u0e15\u0e31\u0e27\u0e01\u0e23\u0e2d\u0e07" />}
                     </div>
                     <div className="feed-section-filters" style={{ display: 'flex', gap: '8px' }}>
                       <button onClick={() => handleSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`}>ยอดวิว</button>
@@ -1563,16 +1484,8 @@ const App = () => {
               {showHomeFeedToolbar && <div className="feed-section-header home-desktop-feed-header home-feed-toolbar reader-toolbar-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div className="section-title">โพสต์ล่าสุด</div>
-                  {activeListId && <div className="active-list-pills">กำลังกรองตาม: {postLists.find(l => l.id === activeListId)?.name}</div>}
-                  {isFiltered && (
-                    <div className="ai-filtered-badge">
-                      <Sparkles size={12} className="text-accent" />
-                      <span>AI FILTERED</span>
-                      <button onClick={clearAiFilter} className="ai-filtered-clear-btn" title="ล้างตัวกรอง">
-                        <X size={12} />
-                      </button>
-                    </div>
-                  )}
+                  {activeListId && <div className="active-list-pills">กำลังกรองตาม: {currentActiveList?.name}</div>}
+                  {isFiltered && <AiFilteredBadge onClear={clearAiFilter} clearTitle="\u0e25\u0e49\u0e32\u0e07\u0e15\u0e31\u0e27\u0e01\u0e23\u0e2d\u0e07" />}
                 </div>
                 <div className="feed-section-filters reader-toolbar-actions-group" style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => handleSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`}>ยอดวิว</button>
@@ -1652,7 +1565,7 @@ const App = () => {
                   <FeedCard key={item.id || idx} tweet={item}
                     isBookmarked={bookmarks.some(b => b.id === item.id)}
                     onBookmark={handleBookmark}
-                    onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }}
+                    onArticleGen={openContentComposerFromPost}
                   />
                 ))}
               </div>
@@ -1664,807 +1577,130 @@ const App = () => {
             </div>
 
           {/* ===== UNIFIED CONTENT VIEW ===== */}
-          <div className="unified-content-view animate-fade-in" style={{ display: activeView === 'content' ? 'block' : 'none' }}>
-            <div className="content-view-tabs content-view-tabs-hero">
-              <button className={`btn-pill content-view-tab-btn ${contentTab === 'search' ? 'primary' : ''}`} onClick={() => setContentTab('search')}>
-                <Search size={16} /> ค้นหา
-              </button>
-              <button className={`btn-pill content-view-tab-btn ${contentTab === 'create' ? 'primary' : ''}`} onClick={() => setContentTab('create')}>
-                <Sparkles size={16} /> สร้างคอนเทนต์
-              </button>
-            </div>
-
-            <div style={{ display: contentTab === 'create' ? 'block' : 'none' }}>
-              <div className="animate-fade-in">
-                <ContentErrorBoundary key={createContentSource?.id ?? 'no-source'}>
-                  <CreateContent 
-                    sourceNode={createContentSource} 
-                    onRemoveSource={() => setCreateContentSource(null)}
-                    onSaveArticle={(title, content, meta) => {
-                      const newArt = {
-                        id: Date.now().toString(),
-                        type: 'article',
-                        title: title || 'บทความ AI',
-                        summary: content,
-                        created_at: new Date().toISOString(),
-                        attachedSource: meta?.attachedSource || null,
-                        sources: meta?.sources || [],
-                      };
-                      setBookmarks(prev => [newArt, ...prev]);
-                    }}
-                    isGenerating={isGeneratingContent}
-                    setIsGenerating={setIsGeneratingContent}
-                    phase={genPhase}
-                    setPhase={setGenPhase}
-                    contentTab={contentTab}
-                    setContentTab={setContentTab}
-                  />
-                </ContentErrorBoundary>
-              </div>
-            </div>
-
-            <div style={{ display: contentTab === 'search' ? 'block' : 'none' }}>
-              <div className="search-discovery-view animate-fade-in">
-                <div className="hero-search-container">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div>
-                      <h1 className="hero-search-title">ค้นหาคอนเทนต์</h1>
-                      <p className="hero-search-subtitle">สำรวจเทรนด์และเจาะลึกข้อมูลจากทั่วโลก</p>
-                    </div>
-                  </div>
-                  <div className="content-view-tabs content-view-tabs-hero content-view-tabs-mobile-inline">
-                    <button className={`btn-pill content-view-tab-btn ${contentTab === 'search' ? 'primary' : ''}`} onClick={() => setContentTab('search')}>
-                      <Search size={16} /> ค้นหา
-                    </button>
-                    <button className={`btn-pill content-view-tab-btn ${contentTab === 'create' ? 'primary' : ''}`} onClick={() => setContentTab('create')}>
-                      <Sparkles size={16} /> สร้างคอนเทนต์
-                    </button>
-                  </div>
-                  {false && (
-                    <div className="create-content-inline-panel animate-fade-in">
-                      <ContentErrorBoundary key={createContentSource?.id ?? 'no-source'}>
-                        <CreateContent 
-                          sourceNode={createContentSource} 
-                          onRemoveSource={() => setCreateContentSource(null)}
-                          onSaveArticle={(title, content, meta) => {
-                            const newArt = {
-                              id: Date.now().toString(),
-                              type: 'article',
-                              title: title || 'บทความ AI',
-                              summary: content,
-                              created_at: new Date().toISOString(),
-                              attachedSource: meta?.attachedSource || null,
-                              sources: meta?.sources || [],
-                            };
-                            setBookmarks(prev => [newArt, ...prev]);
-                          }}
-                          isGenerating={isGeneratingContent}
-                          setIsGenerating={setIsGeneratingContent}
-                          phase={genPhase}
-                          setPhase={setGenPhase}
-                        />
-                      </ContentErrorBoundary>
-                    </div>
-                  )}
-                  <div style={{ display: contentTab === 'search' ? 'block' : 'none' }} className="hero-search-wrapper">
-                    <div style={{ display: 'none' }} className="content-view-tabs content-view-tabs-hero">
-                      <button className={`btn-pill content-view-tab-btn ${contentTab === 'search' ? 'primary' : ''}`} onClick={() => setContentTab('search')}>
-                        <Search size={16} /> ค้นหา
-                      </button>
-                      <button className={`btn-pill content-view-tab-btn ${contentTab === 'create' ? 'primary' : ''}`} onClick={() => setContentTab('create')}>
-                        <Sparkles size={16} /> สร้างคอนเทนต์
-                      </button>
-                    </div>
-                    <div className="hero-search-form" style={{ width: '100%' }}>
-                      <Search size={20} className="hero-search-icon" />
-                      <input
-                        type="text"
-                        className="hero-search-input"
-                        placeholder="พิมพ์คีย์เวิร์ดที่สนใจ..."
-                        value={searchQuery}
-                        onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); setActiveSuggestionIndex(-1); }}
-                        onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
-                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'ArrowDown') setActiveSuggestionIndex(prev => Math.min(prev + 1, suggestions.length - 1));
-                          else if (e.key === 'ArrowUp') setActiveSuggestionIndex(prev => Math.max(prev - 1, -1));
-                          else if (e.key === 'Enter') {
-                            if (activeSuggestionIndex >= 0) {
-                              const sel = suggestions[activeSuggestionIndex];
-                              setSearchQuery(sel); handleSearch(null, false, sel); setShowSuggestions(false);
-                            } else if (!e.nativeEvent.isComposing) {
-                              handleSearch(e); setShowSuggestions(false);
-                            }
-                          }
-                        }}
-                      />
-                      <div className="hero-search-actions">
-                        <button 
-                          type="button" 
-                          onClick={() => setIsLatestMode(!isLatestMode)} 
-                          className={`zap-toggle-btn ${isLatestMode ? 'active' : ''}`}
-                          title="คอนเทนต์ใหม่"
-                        >
-                          <Zap size={18} fill={isLatestMode ? "currentColor" : "none"} />
-                        </button>
-                        {searchQuery && <button type="button" onClick={() => { setSearchQuery(''); setSuggestions([]); }} className="hero-clear-btn"><X size={16} /></button>}
-                        <button 
-                          type="button" 
-                          className="hero-submit-btn" 
-                          onClick={(e) => { handleSearch(e); setShowSuggestions(false); }} 
-                          disabled={isSearching}
-                        >
-                          {isSearching ? <Loader2 size={18} className="animate-spin" /> : <span className="btn-text">ค้นหา</span>}
-                        </button>
-                      </div>
-                    </div>
-                    {searchResults.length > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
-                        <button 
-                          onClick={() => {
-                            setSearchQuery('');
-                            setSearchResults([]);
-                            setSearchOverflowResults([]);
-                            setSearchSummary('');
-                            setSearchWebSources([]);
-                            setSearchCursor(null);
-                            setStatus('');
-                          }}
-                          className="btn-mini-ghost"
-                          style={{ color: 'var(--text-dim)', background: 'transparent' }}
-                        >
-                          <RefreshCcw size={14} /> ล้างผลลัพธ์
-                        </button>
-                      </div>
-                    )}
-                    {shouldInlineSearchStatus && (
-                      <SearchInlineStatus
-                        badge={isSearching ? AI_WORKSPACES.langGraph.role : AI_WORKSPACES.langChain.role}
-                        message={searchStatusMessage}
-                        hint={
-                          isSearching
-                            ? 'Broad searches may take around 10-30 seconds while the system expands sources and ranks signal quality.'
-                            : 'Results are ready. The summary is still being refined in the background.'
-                        }
-                        loading={isSearching}
-                      />
-                    )}
-                    {(canSaveCurrentSearchAsPreset || searchPresets.length > 0) && (
-                      <div className="search-preset-toolbar">
-                        <div className="search-preset-toolbar-copy">
-                          {searchPresets.length > 0 ? `Preset ของคุณ ${searchPresets.length}/${MAX_SEARCH_PRESETS}` : 'บันทึกคำค้นไว้ใช้ซ้ำได้สูงสุด 4 ปุ่ม'}
-                        </div>
-                        {canSaveCurrentSearchAsPreset && (
-                          <button
-                            type="button"
-                            className="search-preset-save-btn"
-                            onClick={() => addSearchPreset(searchQuery)}
-                          >
-                            <Plus size={14} /> บันทึกเป็น Preset
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    {showSuggestions && suggestions.length > 0 && (
-                      <div className="search-suggestions-dropdown">
-                        {suggestions.map((item, idx) => (
-                          <div key={item} className={`suggestion-item ${idx === activeSuggestionIndex ? 'active' : ''}`} onClick={() => { setSearchQuery(item); handleSearch(null, false, item); setShowSuggestions(false); }}>
-                            <Search size={14} className="suggestion-icon" /><span>{item}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {isLiveSearching && !isSearching && <div className="searching-indicator" style={{ marginTop: '16px' }}><RefreshCw size={12} className="animate-spin" /> กำลังเตรียมข้อมูล...</div>}
-                    
-                    {isSearching && (
-                      <div className="search-loading-state animate-fade-in" style={{ padding: '40px 0', width: '100%' }}>
-                        <div className="search-minimal-loader">
-                          <div className="search-minimal-loader-bar"></div>
-                          <div className="search-minimal-loader-grid">
-                            <div className="search-minimal-loader-line search-minimal-loader-line-wide"></div>
-                            <div className="search-minimal-loader-line"></div>
-                            <div className="search-minimal-loader-line search-minimal-loader-line-short"></div>
-                          </div>
-                        </div>
-                        <div className="search-loading-label">{AI_WORKSPACES.langGraph.title} กำลังขยายแหล่งข้อมูล</div>
-                        <div className="search-narrative">
-                          <div className="narrative-item" key={status} style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '500' }}>
-                            {searchStatusMessage || 'Preparing the next search stage...'}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {searchQuery && searchResults.length === 0 && !isSearching && (
-                      <div className="search-idea-tags animate-fade-in" style={{ textAlign: 'center', padding: '40px 20px' }}>
-                        <div style={{ marginBottom: '16px', opacity: 0.5 }}>
-                          <Search size={48} style={{ margin: '0 auto' }} />
-                        </div>
-                        <h3 style={{ fontSize: '18px', marginBottom: '8px', color: 'var(--text-dim)', lineHeight: '1.4' }}>ไม่พบข้อมูลสำหรับ "{searchQuery}"</h3>
-                        <p style={{ color: 'var(--text-muted)' }}>ระบบลองขยายคำค้นหาอัตโนมัติแล้ว แต่ยังไม่เจอผลลัพธ์ที่น่าใช้งานในตอนนี้</p>
-                      </div>
-                    )}
-
-                    {!searchQuery && searchResults.length === 0 && !isSearching && (
-                      <div className="search-idea-tags search-preset-hub animate-fade-in">
-                        <div className="search-preset-hub-header">
-                          <p>{searchPresets.length > 0 ? 'Preset ของคุณ' : searchHistory.length > 0 ? 'ต่อจากสิ่งที่คุณสนใจ' : interestSeedLabels.length > 0 ? 'ตามสิ่งที่คุณกำลังติดตาม' : 'เริ่มจากหัวข้อยอดนิยม'}</p>
-                          <span>{searchPresets.length > 0 ? 'กดเพื่อค้นหาทันที หรือลบปุ่มที่ไม่ใช้แล้ว' : searchHistory.length > 0 ? 'ระบบจะดันคำค้นที่คุณใช้จริงขึ้นมาก่อน แล้วค่อยเติมหัวข้อที่เกี่ยวข้องให้' : interestSeedLabels.length > 0 ? 'ระบบหยิบจากลิสต์และบัญชีที่คุณติดตามมาเป็นจุดเริ่มต้นให้' : 'เมื่อคุณเริ่มค้นหา ระบบจะเรียนรู้และเปลี่ยนปุ่มชุดนี้ให้เหมาะกับคุณมากขึ้น'}</span>
-                        </div>
-                        <div className="tags-row">
-                          {dynamicSearchTags.map((tag) => (
-                            <div key={`${tag.source}-${tag.label}`} className={`idea-tag search-preset-pill ${tag.source === 'preset' ? 'is-preset' : ''}`}>
-                              <button
-                                type="button"
-                                className="search-preset-pill-button"
-                                onClick={() => { setSearchQuery(tag.label); handleSearch(null, false, tag.label); }}
-                              >
-                                {tag.label}
-                              </button>
-                              {tag.source === 'preset' && (
-                                <button
-                                  type="button"
-                                  className="search-preset-remove-btn"
-                                  aria-label={`ลบ preset ${tag.label}`}
-                                  onClick={() => removeSearchPreset(tag.label)}
-                                >
-                                  <X size={12} />
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {searchResults.length > 0 && (
-                  <div className="search-results-container">
-                    {searchSummary && (
-                      <div className="search-summary-card animate-fade-in" style={{
-                        background: 'rgba(255, 255, 255, 0.03)',
-                        borderRadius: '24px',
-                        border: '1px solid var(--glass-border)',
-                        padding: '24px',
-                        marginBottom: '32px',
-                        position: 'relative',
-                        overflow: 'hidden',
-                        boxShadow: '0 20px 50px rgba(0,0,0,0.2)'
-                      }}>
-                        {/* Shimmer effect behind icon */}
-                  <div style={{
-                    position: 'absolute', top: '-20px', left: '-20px', width: '120px', height: '120px',
-                    background: 'radial-gradient(circle, rgba(41, 151, 255, 0.15) 0%, transparent 70%)',
-                    zIndex: 0,
-                    pointerEvents: 'none'
-                  }}></div>
-
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <div style={{ 
-                              background: 'var(--accent-gradient)', padding: '8px', borderRadius: '12px', 
-                              display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff'
-                            }}>
-                              <Sparkles size={18} fill="currentColor" />
-                            </div>
-                            <div>
-                              <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>NEWS EXECUTIVE SUMMARY</div>
-                              <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>ANALYZING {Math.min(searchResults.length, 10)} KEY SIGNALS</div>
-                            </div>
-                          </div>
-                          <button 
-                            onClick={() => {
-                              navigator.clipboard.writeText(searchSummary);
-                              setStatus('คัดลอกบทสรุปแล้ว');
-                            }}
-                            className="icon-btn-large" 
-                            style={{ width: '32px', height: '32px' }}
-                            title="คัดลอกบทสรุป"
-                          >
-                            <Copy size={14} />
-                          </button>
-                        </div>
-
-                        {(() => {
-                          const confMatch = searchSummary.match(/\[CONFIDENCE_SCORE:\s*([^\]]+)\]/i);
-                          const confidenceScore = confMatch ? confMatch[1] : null;
-                          const cleanSummary = searchSummary.replace(/\[CONFIDENCE_SCORE:\s*([^\]]+)\]/gi, '').trim();
-                          
-                          return (
-                            <>
-                              <div 
-                                className="markdown-body search-summary-content" 
-                                style={{ fontSize: '15px', lineHeight: '1.8', color: 'rgba(255,255,255,0.9)', position: 'relative', zIndex: 1 }}
-                                dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(cleanSummary) }} 
-                              />
-                              
-                              <div style={{ 
-                                display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-                                marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)',
-                                flexWrap: 'wrap', gap: '12px'
-                              }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', flexWrap: 'wrap' }}>
-                                  <ShieldCheck size={12} className="text-accent" />
-                                  สรุปโดย AI อ้างอิงจากข้อมูลล่าสุดใน 24-48 ชั่วโมงที่ผ่านมา
-                                  {confidenceScore && (
-                                    <span style={{ 
-                                      marginLeft: '4px', padding: '2px 8px', borderRadius: '100px', 
-                                      background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', 
-                                      border: '1px solid rgba(16, 185, 129, 0.3)', display: 'inline-flex', alignItems: 'center', gap: '4px',
-                                      letterSpacing: '0.02em'
-                                    }}>
-                                      <Activity size={10} /> อัตราความแม่นยำ (Confidence) {confidenceScore}
-                                    </span>
-                                  )}
-                                </div>
-                          
-                                {searchWebSources.length > 0 && (
-                                  <button 
-                                    onClick={() => setIsSourcesExpanded(!isSourcesExpanded)}
-                                    style={{ 
-                                      background: 'transparent', border: '1px solid rgba(255,255,255,0.1)', 
-                                      color: 'var(--text-dim)', fontSize: '11px', padding: '4px 10px', 
-                                      borderRadius: '100px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' 
-                                    }}
-                                    className="action-hover-btn"
-                                  >
-                                    <Link size={12} /> {isSourcesExpanded ? 'ซ่อนแหล่งอ้างอิง' : `อ้างอิงจาก ${searchWebSources.length} เว็บไซต์`}
-                                  </button>
-                                )}
-                              </div>
-                            </>
-                          );
-                        })()}
-
-                        {/* Collapsible Source List */}
-                        {isSourcesExpanded && searchWebSources.length > 0 && (
-                          <div className="animate-fade-in" style={{ 
-                            marginTop: '16px', padding: '16px', background: 'rgba(0,0,0,0.3)', 
-                            borderRadius: '12px', border: '1px solid rgba(255,255,255,0.04)' 
-                          }}>
-                            <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-dim)', marginBottom: '12px', letterSpacing: '0.05em' }}>WEB SOURCES</div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                              {searchWebSources.map((src, i) => (
-                                <a key={i} href={src.url} target="_blank" rel="noreferrer" style={{ 
-                                  display: 'flex', flexDirection: 'column', gap: '4px', textDecoration: 'none',
-                                  padding: '10px 14px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px',
-                                  transition: 'background 0.2s'
-                                }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.02)'}>
-                                  <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                    {src.title}
-                                  </div>
-                                  <div style={{ fontSize: '11px', color: '#60A5FA', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <ExternalLink size={10} /> เปิดอ่านต้นฉบับเว็บไซต์
-                                  </div>
-                                </a>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    <div className="feed-grid">
-                      {searchResults.map((item, idx) => (
-                        <FeedCard key={item.id || idx} tweet={item} onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }} />
-                      ))}
-                    </div>
-                    {(searchOverflowResults.length > 0 || searchCursor) && !isSearching && (
-                      <div style={{ textAlign: 'center', marginTop: '32px', paddingBottom: '40px' }}>
-                        <button onClick={(e) => handleSearch(e, true)} className="btn-pill">โหลดเพิ่มเติม</button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          <Suspense fallback={workspaceLoadingFallback}>
+            <ContentWorkspace
+              isVisible={activeView === 'content'}
+              contentTab={contentTab}
+              setContentTab={setContentTab}
+              createContentSource={createContentSource}
+              onRemoveSource={() => setCreateContentSource(null)}
+              onSaveGeneratedArticle={handleSaveGeneratedArticle}
+              isGeneratingContent={isGeneratingContent}
+              setIsGeneratingContent={setIsGeneratingContent}
+              genPhase={genPhase}
+              setGenPhase={setGenPhase}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              suggestions={suggestions}
+              setSuggestions={setSuggestions}
+              showSuggestions={showSuggestions}
+              setShowSuggestions={setShowSuggestions}
+              activeSuggestionIndex={activeSuggestionIndex}
+              setActiveSuggestionIndex={setActiveSuggestionIndex}
+              handleSearch={handleSearch}
+              isLatestMode={isLatestMode}
+              setIsLatestMode={setIsLatestMode}
+              isSearching={isSearching}
+              searchResults={searchResults}
+              setSearchResults={setSearchResults}
+              setSearchOverflowResults={setSearchOverflowResults}
+              setSearchSummary={setSearchSummary}
+              setSearchWebSources={setSearchWebSources}
+              setSearchCursor={setSearchCursor}
+              setStatus={setStatus}
+              shouldInlineSearchStatus={shouldInlineSearchStatus}
+              searchStatusMessage={searchStatusMessage}
+              searchPresets={searchPresets}
+              canSaveCurrentSearchAsPreset={canSaveCurrentSearchAsPreset}
+              maxSearchPresets={MAX_SEARCH_PRESETS}
+              addSearchPreset={addSearchPreset}
+              isLiveSearching={isLiveSearching}
+              dynamicSearchTags={dynamicSearchTags}
+              searchHistory={searchHistory}
+              interestSeedLabels={interestSeedLabels}
+              removeSearchPreset={removeSearchPreset}
+              searchOverflowResults={searchOverflowResults}
+              searchCursor={searchCursor}
+              searchSummary={searchSummary}
+              searchWebSources={searchWebSources}
+              isSourcesExpanded={isSourcesExpanded}
+              setIsSourcesExpanded={setIsSourcesExpanded}
+              onArticleGen={openContentComposerFromPost}
+            />
+          </Suspense>
 
           {/* ===== READ VIEW ===== */}
-          {activeView === 'read' && (
-          <div className="reader-library-view animate-fade-in">
-            <header className="reader-header">
-                <div className="reader-header-top">
-                  <div className="reader-header-copy">
-                    <h1 className="reader-title">อ่านข่าว</h1>
-                    <p className="reader-subtitle">บทความและข่าวสารที่คุณบันทึกไว้อ่านแบบ Deep Read</p>
-                  </div>
-                  <button className="mobile-only-flex icon-btn-large" onClick={() => setIsMobilePostListOpen(true)}><List size={20} /></button>
-                </div>
-                {activeListId && <div className="active-list-pills">กำลังกรองตาม: {postLists.find(l => l.id === activeListId)?.name}</div>}
-              </header>
-
-              {readArchive.length > 0 && (
-                <div className="reader-toolbar">
-                  <div className="reader-search-shell">
-                    <div className="reader-search-input-wrap">
-                      <Search size={18} className="reader-search-icon" />
-                      <input
-                        type="text"
-                        className="reader-search-input"
-                        placeholder="ค้นหาจากชื่อบัญชี เนื้อหา หรือคำใกล้เคียง..."
-                        value={readSearchQuery}
-                        onChange={(e) => {
-                          const nextValue = e.target.value;
-                          startTransition(() => {
-                            setReadSearchQuery(nextValue);
-                          });
-                        }}
-                      />
-                      {readSearchQuery && (
-                        <button
-                          type="button"
-                          className="reader-search-clear"
-                          onClick={() => setReadSearchQuery('')}
-                        >
-                          <X size={14} />
-                        </button>
-                      )}
-                    </div>
-                    {readSearchSuggestions.length > 0 && (
-                      <div className="reader-search-suggestions">
-                        {readSearchSuggestions.map((suggestion) => (
-                          <button
-                            key={suggestion}
-                            type="button"
-                            className="reader-search-suggestion-pill"
-                            onClick={() => setReadSearchQuery(suggestion)}
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="reader-toolbar-actions">
-                    <span className="reader-toolbar-count">{filteredReadArchive.length} รายการ</span>
-                    <div className="reader-toolbar-actions-group">
-                      <button onClick={() => setReadFilters(p => ({ ...p, view: !p.view }))} className={`btn-pill ${readFilters.view ? 'active' : ''}`}>ยอดวิว</button>
-                      <button onClick={() => setReadFilters(p => ({ ...p, engagement: !p.engagement }))} className={`btn-pill ${readFilters.engagement ? 'active' : ''}`}>เอนเกจเมนต์</button>
-                    </div>
-                  </div>
-                </div>
-              )}
-              
-              <div className="feed-grid">
-                {visibleReadArchive
-                  .map((item, idx) => (
-                    <FeedCard key={item.id || idx} tweet={item} isBookmarked={bookmarkIds.has(item.id)} onBookmark={handleBookmark} onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }} />
-                  ))
-                }
-                {readArchive.length === 0 && <div className="empty-state-card">ยังไม่มีบทความในห้องสมุด</div>}
-                {visibleReadArchive.length < filteredReadArchive.length && (
-                  <div className="reader-load-more-shell">
-                    <div className="reader-load-more-copy">แสดงแล้ว {visibleReadArchive.length} จาก {filteredReadArchive.length} รายการ</div>
-                    <button type="button" className="btn-pill" onClick={() => setVisibleReadCount((current) => current + READ_ARCHIVE_RENDER_BATCH)}>
-                      โหลดเพิ่ม
-                    </button>
-                  </div>
-                )}
-                {readArchive.length > 0 && filteredReadArchive.length === 0 && (
-                  <div className="reader-empty-search-state">
-                    <div className="reader-empty-search-icon"><Search size={20} /></div>
-                    <div className="reader-empty-search-title">ไม่พบข่าวที่ใกล้เคียงกับ "{readSearchQuery}"</div>
-                    <div className="reader-empty-search-copy">ลองใช้คำที่กว้างขึ้น ชื่อบัญชี หรือคำสำคัญที่สะกดใกล้เคียงกัน ระบบจะจับคู่แบบ dynamic ให้เอง</div>
-                    <button type="button" className="btn-pill" onClick={() => setReadSearchQuery('')}>ล้างคำค้น</button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          <Suspense fallback={workspaceLoadingFallback}>
+            <ReadWorkspace
+              isVisible={activeView === 'read'}
+              activeListId={activeListId}
+              currentActiveList={currentActiveList}
+              setIsMobilePostListOpen={setIsMobilePostListOpen}
+              readArchive={readArchive}
+              readSearchQuery={readSearchQuery}
+              setReadSearchQuery={setReadSearchQuery}
+              readSearchSuggestions={readSearchSuggestions}
+              filteredReadArchive={filteredReadArchive}
+              readFilters={readFilters}
+              setReadFilters={setReadFilters}
+              visibleReadArchive={visibleReadArchive}
+              setVisibleReadCount={setVisibleReadCount}
+              readArchiveRenderBatch={READ_ARCHIVE_RENDER_BATCH}
+              bookmarkIds={bookmarkIds}
+              handleBookmark={handleBookmark}
+              onArticleGen={openContentComposerFromPost}
+              selectedArticle={selectedArticle}
+              setSelectedArticle={setSelectedArticle}
+            />
+          </Suspense>
 
           {/* ===== AUDIENCE VIEW: SMART TARGET DISCOVERY ===== */}
-          <div style={{ display: activeView === 'audience' ? 'block' : 'none' }}>
-            {(() => {
-              const CATEGORIES = [
-                { icon: '⚙️', label: 'เทคโนโลยี' }, { icon: '🤖', label: 'AI' },
-              { icon: '💼', label: 'ธุรกิจ' }, { icon: '📈', label: 'การตลาด' },
-              { icon: '💹', label: 'การเงิน' }, { icon: '📊', label: 'การลงทุน' },
-              { icon: '₿', label: 'คริปโต' }, { icon: '🏥', label: 'สุขภาพ' },
-              { icon: '🌿', label: 'ไลฟ์สไตล์' }, { icon: '🌐', label: 'เศรษฐกิจ' },
-              { icon: '🏛️', label: 'การเมือง' }, { icon: '🧠', label: 'การพัฒนาตัวเอง' },
-            ];
-
-              CATEGORIES.splice(0, CATEGORIES.length,
-                { icon: Cpu, label: 'เทคโนโลยี', tone: 'blue' },
-                { icon: Bot, label: 'AI', tone: 'violet' },
-                { icon: BriefcaseBusiness, label: 'ธุรกิจ', tone: 'amber' },
-                { icon: TrendingUp, label: 'การตลาด', tone: 'rose' },
-                { icon: BadgeDollarSign, label: 'การเงิน', tone: 'emerald' },
-                { icon: ChartColumn, label: 'การลงทุน', tone: 'cyan' },
-                { icon: Bitcoin, label: 'คริปโต', tone: 'orange' },
-                { icon: HeartPulse, label: 'สุขภาพ', tone: 'red' },
-                { icon: Leaf, label: 'ไลฟ์สไตล์', tone: 'green' },
-                { icon: Globe2, label: 'เศรษฐกิจ', tone: 'sky' },
-                { icon: Landmark, label: 'การเมือง', tone: 'slate' },
-                { icon: BrainCircuit, label: 'การพัฒนาตัวเอง', tone: 'pink' },
-              );
-
-            return (
-              <div key={audienceKey} className="animate-fade-in">
-                <header className="dashboard-header audience-hero-header" style={{ marginBottom: '28px', paddingTop: '0' }}>
-                  <div className="audience-hero-copy">
-                    <div className="audience-hero-text">
-                      <h1 className="audience-hero-title">
-                        <span className="audience-hero-title-mark">
-                          <Activity size={17} strokeWidth={2.2} />
-                        </span>
-                        <span>Smart Target Discovery</span>
-                      </h1>
-                    </div>
-                  </div>
-                  <p className="audience-hero-subtitle">ค้นหาและเพิ่มแหล่งข้อมูลที่ตรงกับความสนใจของคุณ</p>
-                </header>
-
-                <div className="audience-tabs">
-                  <button onClick={() => setAudienceTab('ai')} className={`audience-tab-btn ${audienceTab === 'ai' ? 'active-ai' : ''}`}>
-                    <Sparkles size={14} strokeWidth={2.1} />
-                    แนะนำโดย AI
-                  </button>
-                  <button onClick={() => setAudienceTab('manual')} className={`audience-tab-btn ${audienceTab === 'manual' ? 'active-manual' : ''}`}>
-                    <Search size={14} strokeWidth={2.1} />
-                    ค้นหาชื่อ
-                  </button>
-                </div>
-
-                {audienceTab === 'ai' && (
-                  <div className="animate-fade-in">
-                    <div className="audience-ai-searchbar audience-command-row" style={{ display: 'flex', gap: '12px', marginBottom: '32px', maxWidth: '680px' }}>
-                      <div className="audience-ai-search-input">
-                        <input type="text" placeholder="ฉันอยากติดตามเรื่องเทคโนโลยี AI..." value={aiQuery} onChange={e => setAiQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAiSearchAudience()} style={{ background: 'transparent', border: 'none', color: '#fff', flex: 1, fontSize: '14px', outline: 'none' }} />
-                      </div>
-                      <button onClick={() => handleAiSearchAudience()} disabled={aiSearchLoading} className="btn-sync-premium" style={{ height: '48px', padding: '0 24px' }}>
-                        {aiSearchLoading ? <RefreshCw size={15} className="animate-spin" /> : 'ค้นหา'}
-                      </button>
-                    </div>
-
-                    {aiSearchLoading && aiSearchResults.length === 0 && (
-                      <div style={{ padding: '60px 0', textAlign: 'center' }}>
-                        <div className="ai-loader-ring" style={{ margin: '0 auto 20px' }}></div>
-                        <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--accent-secondary)' }} className="animate-pulse">AI ANALYST IS SCANNING...</div>
-                      </div>
-                    )}
-
-                    {!aiSearchLoading && aiSearchResults.length > 0 && (
-                      <div style={{ marginBottom: '32px' }}>
-                        <div className="expert-grid" style={{ marginBottom: '24px' }}>
-                          {aiSearchResults.map((expert, i) => {
-                            const isAdded = watchlist.find(w => w.username.toLowerCase() === expert.username.toLowerCase());
-                            return (
-                              <div key={expert.username} className="expert-card animate-fade-in" style={{ animationDelay: `${i * 0.05}s` }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                                  <div className="ai-pick-pill"><Sparkles size={10} /> AI PICK</div>
-                                  <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
-                                    <button
-                                      onClick={(e) => {
-                                        const btn = e.currentTarget;
-                                        const menu = btn.nextElementSibling;
-                                        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-                                      }}
-                                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'var(--text-dim)', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}
-                                    >
-                                      <Plus size={12} />
-                                    </button>
-                                    <div className="discovery-menu" style={{ display: 'none', position: 'absolute', right: 0, top: '100%', marginTop: '8px', zIndex: 100, width: '180px' }}>
-                                      <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--glass-border)', fontSize: '10px', fontWeight: '800', color: 'var(--accent-secondary)' }}>ADD TO LIST</div>
-                                      {postLists.map(list => {
-                                        const isMember = list.members.some(m => m.toLowerCase() === expert.username.toLowerCase());
-                                        return (
-                                          <button
-                                            key={list.id}
-                                            onClick={(e) => { handleToggleMemberInList(list.id, expert.username); e.currentTarget.closest('.discovery-menu').style.display = 'none'; }}
-                                            className={`discovery-menu-item ${isMember ? 'active' : ''}`}
-                                          >
-                                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '8px' }}>{list.name}</span>
-                                            {isMember && <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--accent-secondary)' }} />}
-                                          </button>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                </div>
-                                <img 
-                                  src={`https://unavatar.io/twitter/${expert.username}`} 
-                                  style={{ width: '42px', height: '42px', borderRadius: '50%', marginBottom: '10px', border: '2px solid var(--bg-700)', objectFit: 'cover' }} 
-                                  onError={e => {
-                                    if (e.target.src.includes('unavatar.io')) {
-                                      // Try GitHub as a secondary fallback (common for tech types)
-                                      e.target.src = `https://unavatar.io/github/${expert.username}`;
-                                    } else if (e.target.src.includes('github')) {
-                                       // Final try: Google favicon (not an user photo but consistent)
-                                       e.target.src = `https://www.google.com/s2/favicons?domain=x.com&sz=128`;
-                                    } else {
-                                      // Absolute final: Initials
-                                      e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(expert.name)}&background=random&color=fff&bold=true`;
-                                      e.target.onerror = null;
-                                    }
-                                  }}
-                                />
-                                <a 
-                                  href={`https://x.com/${expert.username}`} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer" 
-                                  style={{ textDecoration: 'none', display: 'inline-block', marginBottom: '8px', width: 'fit-content' }}
-                                >
-                                  <div className="expert-name" style={{ fontSize: '14px', color: '#fff', fontWeight: '800' }}>{expert.name}</div>
-                                  <div className="expert-username" style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>@{expert.username}</div>
-                                </a>
-                                <div className="expert-reasoning" style={{ fontSize: '13px', marginBottom: '16px', flex: 1, color: 'rgba(255,255,255,0.7)', lineHeight: '1.5' }}>"{expert.reasoning}"</div>
-                                <button onClick={() => handleAddExpert(expert)} disabled={isAdded} className={`expert-follow-btn ${isAdded ? 'added' : ''}`} style={{ padding: '6px', fontSize: '11px' }}>{isAdded ? '✓ เพิ่มแล้ว' : '+ เพิ่มเข้า Watchlist'}</button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                          <button 
-                            onClick={() => handleAiSearchAudience(null, true)} 
-                            disabled={aiSearchLoading}
-                            className="btn-pill"
-                          >
-                            {aiSearchLoading ? <RefreshCw size={14} className="animate-spin" /> : 'ค้นหาเพิ่มเติม'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="audience-category-section" style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '28px' }}>
-                      <div className="audience-category-heading">Discover By Category</div>
-                      <div className="audience-category-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
-                        {CATEGORIES.map(cat => {
-                          const Icon = cat.icon;
-                          return (
-                            <button key={cat.label} onClick={() => { setAiQuery(cat.label); handleAiSearchAudience(cat.label); }} className={`category-btn category-btn-${cat.tone}`}>
-                              <span className="category-btn-icon-wrap">
-                                <Icon size={18} strokeWidth={2.1} />
-                              </span>
-                              <span className="category-btn-label">{cat.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {audienceTab === 'manual' && (
-                  <div className="animate-fade-in">
-                    <div style={{ maxWidth: '640px', marginBottom: '40px' }}>
-                      <div className="audience-manual-label" style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: '700', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ค้นหาด้วย X Username โดยตรง</div>
-                      <form onSubmit={handleManualSearch} className="manual-search-form audience-command-row" style={{ display: 'flex', gap: '12px', position: 'relative' }}>
-                        <div className="custom-input-wrapper">
-                          <Search size={16} />
-                          <input 
-                            placeholder="กรอก X Username (เช่น elonmusk)..." 
-                            value={manualQuery} 
-                            onChange={e => { setManualQuery(e.target.value); setShowSuggestions(true); setActiveSuggestionIndex(-1); }} 
-                            onFocus={() => setShowSuggestions(true)}
-                            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'ArrowDown') setActiveSuggestionIndex(prev => Math.min(prev + 1, suggestions.length - 1));
-                              else if (e.key === 'ArrowUp') setActiveSuggestionIndex(prev => Math.max(prev - 1, -1));
-                              else if (e.key === 'Enter' && activeSuggestionIndex >= 0) {
-                                const sel = suggestions[activeSuggestionIndex];
-                                setManualQuery(sel); setShowSuggestions(false);
-                              }
-                            }}
-                          />
-                        </div>
-                        <button type="submit" className="btn-sync-premium" style={{ height: '44px', padding: '0 28px' }}>ค้นหา</button>
-                        
-                        {showSuggestions && suggestions.length > 0 && activeView === 'audience' && (
-                          <div className="search-suggestions-dropdown" style={{ top: '100%', left: 0, right: 0, marginTop: '8px', zIndex: 1000 }}>
-                            {suggestions.map((item, idx) => (
-                              <div key={item} className={`suggestion-item ${idx === activeSuggestionIndex ? 'active' : ''}`} onClick={() => { setManualQuery(item); setShowSuggestions(false); }}>
-                                <Search size={14} className="suggestion-icon" /><span>{item}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </form>
-                      {manualPreview && (
-                        <div className="preview-card" style={{ padding: '20px', borderRadius: '16px', marginTop: '24px' }}>
-                          <img 
-                            src={manualPreview.profile_image_url} 
-                            style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--bg-700)' }} 
-                            onError={e => {
-                              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(manualPreview.name)}&background=random&color=fff`;
-                              e.target.onerror = null;
-                            }}
-                          />
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: '800', fontSize: '16px' }}>{manualPreview.name}</div>
-                            <div style={{ color: 'var(--accent-secondary)', fontWeight: '700' }}>@{manualPreview.username}</div>
-                          </div>
-                          <button onClick={() => handleAddUser(manualPreview)} className="btn-pill primary" style={{ height: '40px', padding: '0 24px' }}>+ เพิ่มเข้า Watchlist</button>
-                        </div>
-                      )}
-                    </div>
-
-                    <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '32px' }}>
-                      <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '16px' }}>▌ บัญชีที่ติดตามอยู่ ({watchlist.length})</div>
-                      <div className="watchlist-grid">
-                        {watchlist.map(user => (
-                          <UserCard 
-                            key={user.id} 
-                            user={user} 
-                            postLists={postLists}
-                            onToggleList={handleToggleMemberInList}
-                            onRemove={handleRemoveAccountGlobal} 
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-            })()}
-          </div>
+          <Suspense fallback={workspaceLoadingFallback}>
+            <AudienceWorkspace
+              isVisible={activeView === 'audience'}
+              audienceKey={audienceKey}
+              audienceTab={audienceTab}
+              setAudienceTab={setAudienceTab}
+              aiQuery={aiQuery}
+              setAiQuery={setAiQuery}
+              handleAiSearchAudience={handleAiSearchAudience}
+              aiSearchLoading={aiSearchLoading}
+              aiSearchResults={aiSearchResults}
+              watchlist={watchlist}
+              postLists={postLists}
+              handleToggleMemberInList={handleToggleMemberInList}
+              handleAddExpert={handleAddExpert}
+              manualQuery={manualQuery}
+              setManualQuery={setManualQuery}
+              showSuggestions={showSuggestions}
+              setShowSuggestions={setShowSuggestions}
+              activeSuggestionIndex={activeSuggestionIndex}
+              setActiveSuggestionIndex={setActiveSuggestionIndex}
+              suggestions={suggestions}
+              handleManualSearch={handleManualSearch}
+              manualPreview={manualPreview}
+              handleAddUser={handleAddUser}
+              handleRemoveAccountGlobal={handleRemoveAccountGlobal}
+            />
+          </Suspense>
 
           {/* ===== BOOKMARKS VIEW ===== */}
-          <div className="animate-fade-in" style={{ display: activeView === 'bookmarks' ? 'block' : 'none' }}>
-            <header className="dashboard-header">
-                <div className="reader-header-top">
-                  <div className="reader-header-copy">
-                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: '800', lineHeight: '1.4', color: activeListId ? (postLists.find(l => l.id === activeListId)?.color || 'inherit') : 'inherit' }}>Bookmarks</h1>
-                    <p style={{ margin: '4px 0 0', color: 'var(--text-muted)' }}>คลังข้อมูลที่คุณบันทึกไว้แยกตามประเภท</p>
-                  </div>
-                  <button className="mobile-only-flex icon-btn-large" onClick={() => setIsMobilePostListOpen(true)}><List size={20} /></button>
-                </div>
-                {activeListId && <div className="active-list-pills">กำลังกรองตาม: {postLists.find(l => l.id === activeListId)?.name}</div>}
-              </header>
-
-              <div className="bookmark-tabs">
-                <button onClick={() => setBookmarkTab('news')} className={`bookmark-tab-btn ${bookmarkTab === 'news' ? 'active' : ''}`}>📰 ข่าว</button>
-                <button onClick={() => setBookmarkTab('article')} className={`bookmark-tab-btn ${bookmarkTab === 'article' ? 'active' : ''}`}>📝 บทความ</button>
-              </div>
-              
-              <div className="feed-grid">
-                {filteredBookmarks.map((item, idx) => (
-                   bookmarkTab === 'news' ? (
-                     <FeedCard key={item.id || idx} tweet={item} isBookmarked={true} onBookmark={handleBookmark} onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }} />
-                   ) : (
-                     <div key={item.id} className="article-card" onClick={() => setSelectedArticle(item)}>
-                       <div className="article-card-header">
-                         {item.title && item.title.startsWith('http') ? (
-                           <a 
-                             href={item.title} 
-                             target="_blank" 
-                             rel="noopener noreferrer" 
-                             onClick={(e) => e.stopPropagation()}
-                             style={{ color: 'var(--accent-secondary)', textDecoration: 'none', display: 'block', maxWidth: '85%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                           >
-                             {item.title}
-                           </a>
-                         ) : (
-                           <h3 title={item.title}>{item.title}</h3>
-                         )}
-                         <button 
-                           onClick={(e) => { 
-                              e.stopPropagation(); 
-                              if (window.confirm('คุณต้องการลบบทความนี้ใช่หรือไม่?')) {
-                                setBookmarks(prev => prev.filter(p => p.id !== item.id)); 
-                              }
-                            }} 
-                           className="btn-mini-ghost text-red"
-                           style={{ padding: '4px 8px' }}
-                         >
-                           <Trash2 size={12} />
-                         </button>
-                       </div>
-                       <div className="article-preview">
-                         {(item.summary || '').replace(/[#*`]/g, '').slice(0, 300)}
-                       </div>
-                       <div className="article-card-footer">
-                         <span>{item.created_at ? new Date(item.created_at).toLocaleDateString('th-TH') : ''}</span>
-                         <span>อ่านเพิ่มเติม →</span>
-                       </div>
-                     </div>
-                   )
-                ))}
-              </div>
-            </div>
-          </div>
+          <Suspense fallback={workspaceLoadingFallback}>
+            <BookmarksWorkspace
+              isVisible={activeView === 'bookmarks'}
+              currentActiveList={currentActiveList}
+              activeListId={activeListId}
+              setIsMobilePostListOpen={setIsMobilePostListOpen}
+              bookmarkTab={bookmarkTab}
+              setBookmarkTab={setBookmarkTab}
+              filteredBookmarks={filteredBookmarks}
+              handleBookmark={handleBookmark}
+              onArticleGen={openContentComposerFromPost}
+              setSelectedArticle={setSelectedArticle}
+              setBookmarks={setBookmarks}
+            />
+          </Suspense>
+        </div>
         </main>
 
       {listModal.show && (
@@ -2596,25 +1832,6 @@ const App = () => {
         </div>
       )}
       
-      {selectedArticle && (
-        <div className="modal-overlay" onClick={() => setSelectedArticle(null)}>
-          <div className="modal-content" style={{ maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-            <button className="modal-close-btn" onClick={() => setSelectedArticle(null)}><X size={20} /></button>
-            <div className="modal-title" style={{ fontSize: '24px', marginBottom: '20px' }}>
-              {selectedArticle.title && selectedArticle.title.startsWith('http') ? (
-                <a href={selectedArticle.title} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-secondary)' }}>
-                  {selectedArticle.title}
-                </a>
-              ) : selectedArticle.title}
-            </div>
-            <div className="markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(selectedArticle.summary) }} />
-            <div className="modal-actions" style={{ marginTop: '32px', justifyContent: 'flex-end' }}>
-              <button className="modal-btn modal-btn-secondary" onClick={() => setSelectedArticle(null)}>ปิด</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {status && !shouldInlineSearchStatus && (
         <div className="status-toast" style={{ position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', background: '#fff', color: '#000', padding: '12px 24px', borderRadius: '100px', fontSize: '12px', fontWeight: '900', letterSpacing: '0.02em', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', zIndex: 9999, maxWidth: 'min(720px, calc(100vw - 24px))', lineHeight: '1.4', textAlign: 'center' }}>
           {searchStatusMessage || status}

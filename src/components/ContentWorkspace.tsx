@@ -1,0 +1,561 @@
+// @ts-nocheck
+import React from 'react';
+import {
+  Activity,
+  Copy,
+  ExternalLink,
+  Link,
+  Loader2,
+  RefreshCw,
+  RefreshCcw,
+  Search,
+  ShieldCheck,
+  Sparkles,
+  X,
+  Zap,
+} from 'lucide-react';
+import { AI_WORKSPACES } from '../config/aiWorkspaces';
+import { renderMarkdownToHtml } from '../utils/markdown';
+import ContentErrorBoundary from './ContentErrorBoundary';
+import ContentTabSwitcher from './ContentTabSwitcher';
+import CreateContent from './CreateContent';
+import FeedCard from './FeedCard';
+import SearchInlineStatus from './SearchInlineStatus';
+
+const ContentWorkspace = ({
+  isVisible,
+  contentTab,
+  setContentTab,
+  createContentSource,
+  onRemoveSource,
+  onSaveGeneratedArticle,
+  isGeneratingContent,
+  setIsGeneratingContent,
+  genPhase,
+  setGenPhase,
+  searchQuery,
+  setSearchQuery,
+  suggestions,
+  setSuggestions,
+  showSuggestions,
+  setShowSuggestions,
+  activeSuggestionIndex,
+  setActiveSuggestionIndex,
+  handleSearch,
+  isLatestMode,
+  setIsLatestMode,
+  isSearching,
+  searchResults,
+  setSearchResults,
+  setSearchOverflowResults,
+  setSearchSummary,
+  setSearchWebSources,
+  setSearchCursor,
+  setStatus,
+  shouldInlineSearchStatus,
+  searchStatusMessage,
+  searchPresets,
+  canSaveCurrentSearchAsPreset,
+  maxSearchPresets,
+  addSearchPreset,
+  isLiveSearching,
+  dynamicSearchTags,
+  searchHistory,
+  interestSeedLabels,
+  removeSearchPreset,
+  searchOverflowResults,
+  searchCursor,
+  searchSummary,
+  searchWebSources,
+  isSourcesExpanded,
+  setIsSourcesExpanded,
+  onArticleGen,
+}) => {
+  return (
+    <div className="unified-content-view animate-fade-in" style={{ display: isVisible ? 'block' : 'none' }}>
+      <ContentTabSwitcher contentTab={contentTab} setContentTab={setContentTab} />
+
+      <div style={{ display: contentTab === 'create' ? 'block' : 'none' }}>
+        <div className="animate-fade-in">
+          <ContentErrorBoundary key={createContentSource?.id ?? 'no-source'}>
+            <CreateContent
+              sourceNode={createContentSource}
+              onRemoveSource={onRemoveSource}
+              onSaveArticle={onSaveGeneratedArticle}
+              isGenerating={isGeneratingContent}
+              setIsGenerating={setIsGeneratingContent}
+              phase={genPhase}
+              setPhase={setGenPhase}
+              contentTab={contentTab}
+              setContentTab={setContentTab}
+            />
+          </ContentErrorBoundary>
+        </div>
+      </div>
+
+      <div style={{ display: contentTab === 'search' ? 'block' : 'none' }}>
+        <div className="search-discovery-view animate-fade-in">
+          <div className="hero-search-container">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h1 className="hero-search-title">à¸„à¹‰à¸™à¸«à¸²à¸„à¸­à¸™à¹€à¸—à¸™à¸•à¹Œ</h1>
+                <p className="hero-search-subtitle">à¸ªà¸³à¸£à¸§à¸ˆà¹€à¸—à¸£à¸™à¸”à¹Œà¹à¸¥à¸°à¹€à¸ˆà¸²à¸°à¸¥à¸¶à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ˆà¸²à¸à¸—à¸±à¹ˆà¸§à¹‚à¸¥à¸</p>
+              </div>
+            </div>
+            <ContentTabSwitcher
+              contentTab={contentTab}
+              setContentTab={setContentTab}
+              className="content-view-tabs-mobile-inline"
+            />
+            <div style={{ display: contentTab === 'search' ? 'block' : 'none' }} className="hero-search-wrapper">
+              <ContentTabSwitcher contentTab={contentTab} setContentTab={setContentTab} hidden />
+              <div className="hero-search-form" style={{ width: '100%' }}>
+                <Search size={20} className="hero-search-icon" />
+                <input
+                  type="text"
+                  className="hero-search-input"
+                  placeholder="à¸žà¸´à¸¡à¸žà¹Œà¸„à¸µà¸¢à¹Œà¹€à¸§à¸´à¸£à¹Œà¸”à¸—à¸µà¹ˆà¸ªà¸™à¹ƒà¸ˆ..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setShowSuggestions(true);
+                    setActiveSuggestionIndex(-1);
+                  }}
+                  onFocus={() => {
+                    if (suggestions.length > 0) setShowSuggestions(true);
+                  }}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowDown') {
+                      setActiveSuggestionIndex((prev) => Math.min(prev + 1, suggestions.length - 1));
+                    } else if (e.key === 'ArrowUp') {
+                      setActiveSuggestionIndex((prev) => Math.max(prev - 1, -1));
+                    } else if (e.key === 'Enter') {
+                      if (activeSuggestionIndex >= 0) {
+                        const selectedSuggestion = suggestions[activeSuggestionIndex];
+                        setSearchQuery(selectedSuggestion);
+                        handleSearch(null, false, selectedSuggestion);
+                        setShowSuggestions(false);
+                      } else if (!e.nativeEvent.isComposing) {
+                        handleSearch(e);
+                        setShowSuggestions(false);
+                      }
+                    }
+                  }}
+                />
+                <div className="hero-search-actions">
+                  <button
+                    type="button"
+                    onClick={() => setIsLatestMode(!isLatestMode)}
+                    className={`zap-toggle-btn ${isLatestMode ? 'active' : ''}`}
+                    title="à¸„à¸­à¸™à¹€à¸—à¸™à¸•à¹Œà¹ƒà¸«à¸¡à¹ˆ"
+                  >
+                    <Zap size={18} fill={isLatestMode ? 'currentColor' : 'none'} />
+                  </button>
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSuggestions([]);
+                      }}
+                      className="hero-clear-btn"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="hero-submit-btn"
+                    onClick={(e) => {
+                      handleSearch(e);
+                      setShowSuggestions(false);
+                    }}
+                    disabled={isSearching}
+                  >
+                    {isSearching ? <Loader2 size={18} className="animate-spin" /> : <span className="btn-text">à¸„à¹‰à¸™à¸«à¸²</span>}
+                  </button>
+                </div>
+              </div>
+              {searchResults.length > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSearchResults([]);
+                      setSearchOverflowResults([]);
+                      setSearchSummary('');
+                      setSearchWebSources([]);
+                      setSearchCursor(null);
+                      setStatus('');
+                    }}
+                    className="btn-mini-ghost"
+                    style={{ color: 'var(--text-dim)', background: 'transparent' }}
+                  >
+                    <RefreshCcw size={14} /> à¸¥à¹‰à¸²à¸‡à¸œà¸¥à¸¥à¸±à¸žà¸˜à¹Œ
+                  </button>
+                </div>
+              )}
+              {shouldInlineSearchStatus && (
+                <SearchInlineStatus
+                  badge={isSearching ? AI_WORKSPACES.langGraph.role : AI_WORKSPACES.langChain.role}
+                  message={searchStatusMessage}
+                  hint={
+                    isSearching
+                      ? 'Broad searches may take around 10-30 seconds while the system expands sources and ranks signal quality.'
+                      : 'Results are ready. The summary is still being refined in the background.'
+                  }
+                  loading={isSearching}
+                />
+              )}
+              {(canSaveCurrentSearchAsPreset || searchPresets.length > 0) && (
+                <div className="search-preset-toolbar">
+                  <div className="search-preset-toolbar-copy">
+                    {searchPresets.length > 0
+                      ? `Preset à¸‚à¸­à¸‡à¸„à¸¸à¸“ ${searchPresets.length}/${maxSearchPresets}`
+                      : 'à¸šà¸±à¸™à¸—à¸¶à¸à¸„à¸³à¸„à¹‰à¸™à¹„à¸§à¹‰à¹ƒà¸Šà¹‰à¸‹à¹‰à¸³à¹„à¸”à¹‰à¸ªà¸¹à¸‡à¸ªà¸¸à¸” 4 à¸›à¸¸à¹ˆà¸¡'}
+                  </div>
+                  {canSaveCurrentSearchAsPreset && (
+                    <button
+                      type="button"
+                      className="search-preset-save-btn"
+                      onClick={() => addSearchPreset(searchQuery)}
+                    >
+                      <Sparkles size={14} /> à¸šà¸±à¸™à¸—à¸¶à¸à¹€à¸›à¹‡à¸™ Preset
+                    </button>
+                  )}
+                </div>
+              )}
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="search-suggestions-dropdown">
+                  {suggestions.map((item, idx) => (
+                    <div
+                      key={item}
+                      className={`suggestion-item ${idx === activeSuggestionIndex ? 'active' : ''}`}
+                      onClick={() => {
+                        setSearchQuery(item);
+                        handleSearch(null, false, item);
+                        setShowSuggestions(false);
+                      }}
+                    >
+                      <Search size={14} className="suggestion-icon" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {isLiveSearching && !isSearching && (
+                <div className="searching-indicator" style={{ marginTop: '16px' }}>
+                  <RefreshCw size={12} className="animate-spin" /> à¸à¸³à¸¥à¸±à¸‡à¹€à¸•à¸£à¸µà¸¢à¸¡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥...
+                </div>
+              )}
+
+              {isSearching && (
+                <div className="search-loading-state animate-fade-in" style={{ padding: '40px 0', width: '100%' }}>
+                  <div className="search-minimal-loader">
+                    <div className="search-minimal-loader-bar"></div>
+                    <div className="search-minimal-loader-grid">
+                      <div className="search-minimal-loader-line search-minimal-loader-line-wide"></div>
+                      <div className="search-minimal-loader-line"></div>
+                      <div className="search-minimal-loader-line search-minimal-loader-line-short"></div>
+                    </div>
+                  </div>
+                  <div className="search-loading-label">{AI_WORKSPACES.langGraph.title} à¸à¸³à¸¥à¸±à¸‡à¸‚à¸¢à¸²à¸¢à¹à¸«à¸¥à¹ˆà¸‡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥</div>
+                  <div className="search-narrative">
+                    <div className="narrative-item" style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '500' }}>
+                      {searchStatusMessage || 'Preparing the next search stage...'}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {searchQuery && searchResults.length === 0 && !isSearching && (
+                <div className="search-idea-tags animate-fade-in" style={{ textAlign: 'center', padding: '40px 20px' }}>
+                  <div style={{ marginBottom: '16px', opacity: 0.5 }}>
+                    <Search size={48} style={{ margin: '0 auto' }} />
+                  </div>
+                  <h3 style={{ fontSize: '18px', marginBottom: '8px', color: 'var(--text-dim)', lineHeight: '1.4' }}>
+                    à¹„à¸¡à¹ˆà¸žà¸šà¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ªà¸³à¸«à¸£à¸±à¸š "{searchQuery}"
+                  </h3>
+                  <p style={{ color: 'var(--text-muted)' }}>
+                    à¸£à¸°à¸šà¸šà¸¥à¸­à¸‡à¸‚à¸¢à¸²à¸¢à¸„à¸³à¸„à¹‰à¸™à¸«à¸²à¸­à¸±à¸•à¹‚à¸™à¸¡à¸±à¸•à¸´à¹à¸¥à¹‰à¸§ à¹à¸•à¹ˆà¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¹€à¸ˆà¸­à¸œà¸¥à¸¥à¸±à¸žà¸˜à¹Œà¸—à¸µà¹ˆà¸™à¹ˆà¸²à¹ƒà¸Šà¹‰à¸‡à¸²à¸™à¹ƒà¸™à¸•à¸­à¸™à¸™à¸µà¹‰
+                  </p>
+                </div>
+              )}
+
+              {!searchQuery && searchResults.length === 0 && !isSearching && (
+                <div className="search-idea-tags search-preset-hub animate-fade-in">
+                  <div className="search-preset-hub-header">
+                    <p>
+                      {searchPresets.length > 0
+                        ? 'Preset à¸‚à¸­à¸‡à¸„à¸¸à¸“'
+                        : searchHistory.length > 0
+                          ? 'à¸•à¹ˆà¸­à¸ˆà¸²à¸à¸ªà¸´à¹ˆà¸‡à¸—à¸µà¹ˆà¸„à¸¸à¸“à¸ªà¸™à¹ƒà¸ˆ'
+                          : interestSeedLabels.length > 0
+                            ? 'à¸•à¸²à¸¡à¸ªà¸´à¹ˆà¸‡à¸—à¸µà¹ˆà¸„à¸¸à¸“à¸à¸³à¸¥à¸±à¸‡à¸•à¸´à¸”à¸•à¸²à¸¡'
+                            : 'à¹€à¸£à¸´à¹ˆà¸¡à¸ˆà¸²à¸à¸«à¸±à¸§à¸‚à¹‰à¸­à¸¢à¸­à¸”à¸™à¸´à¸¢à¸¡'}
+                    </p>
+                    <span>
+                      {searchPresets.length > 0
+                        ? 'à¸à¸”à¹€à¸žà¸·à¹ˆà¸­à¸„à¹‰à¸™à¸«à¸²à¸—à¸±à¸™à¸—à¸µ à¸«à¸£à¸·à¸­à¸¥à¸šà¸›à¸¸à¹ˆà¸¡à¸—à¸µà¹ˆà¹„à¸¡à¹ˆà¹ƒà¸Šà¹‰à¹à¸¥à¹‰à¸§'
+                        : searchHistory.length > 0
+                          ? 'à¸£à¸°à¸šà¸šà¸ˆà¸°à¸”à¸±à¸™à¸„à¸³à¸„à¹‰à¸™à¸—à¸µà¹ˆà¸„à¸¸à¸“à¹ƒà¸Šà¹‰à¸ˆà¸£à¸´à¸‡à¸‚à¸¶à¹‰à¸™à¸¡à¸²à¸à¹ˆà¸­à¸™ à¹à¸¥à¹‰à¸§à¸„à¹ˆà¸­à¸¢à¹€à¸•à¸´à¸¡à¸«à¸±à¸§à¸‚à¹‰à¸­à¸—à¸µà¹ˆà¹€à¸à¸µà¹ˆà¸¢à¸§à¸‚à¹‰à¸­à¸‡à¹ƒà¸«à¹‰'
+                          : interestSeedLabels.length > 0
+                            ? 'à¸£à¸°à¸šà¸šà¸«à¸¢à¸´à¸šà¸ˆà¸²à¸à¸¥à¸´à¸ªà¸•à¹Œà¹à¸¥à¸°à¸šà¸±à¸à¸Šà¸µà¸—à¸µà¹ˆà¸„à¸¸à¸“à¸•à¸´à¸”à¸•à¸²à¸¡à¸¡à¸²à¹€à¸›à¹‡à¸™à¸ˆà¸¸à¸”à¹€à¸£à¸´à¹ˆà¸¡à¸•à¹‰à¸™à¹ƒà¸«à¹‰'
+                            : 'à¹€à¸¡à¸·à¹ˆà¸­à¸„à¸¸à¸“à¹€à¸£à¸´à¹ˆà¸¡à¸„à¹‰à¸™à¸«à¸² à¸£à¸°à¸šà¸šà¸ˆà¸°à¹€à¸£à¸µà¸¢à¸™à¸£à¸¹à¹‰à¹à¸¥à¸°à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸›à¸¸à¹ˆà¸¡à¸Šà¸¸à¸”à¸™à¸µà¹‰à¹ƒà¸«à¹‰à¹€à¸«à¸¡à¸²à¸°à¸à¸±à¸šà¸„à¸¸à¸“à¸¡à¸²à¸à¸‚à¸¶à¹‰à¸™'}
+                    </span>
+                  </div>
+                  <div className="tags-row">
+                    {dynamicSearchTags.map((tag) => (
+                      <div key={`${tag.source}-${tag.label}`} className={`idea-tag search-preset-pill ${tag.source === 'preset' ? 'is-preset' : ''}`}>
+                        <button
+                          type="button"
+                          className="search-preset-pill-button"
+                          onClick={() => {
+                            setSearchQuery(tag.label);
+                            handleSearch(null, false, tag.label);
+                          }}
+                        >
+                          {tag.label}
+                        </button>
+                        {tag.source === 'preset' && (
+                          <button
+                            type="button"
+                            className="search-preset-remove-btn"
+                            aria-label={`à¸¥à¸š preset ${tag.label}`}
+                            onClick={() => removeSearchPreset(tag.label)}
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          {searchResults.length > 0 && (
+            <div className="search-results-container">
+              {searchSummary && (
+                <div
+                  className="search-summary-card animate-fade-in"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    borderRadius: '24px',
+                    border: '1px solid var(--glass-border)',
+                    padding: '24px',
+                    marginBottom: '32px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.2)',
+                  }}
+                >
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '-20px',
+                      left: '-20px',
+                      width: '120px',
+                      height: '120px',
+                      background: 'radial-gradient(circle, rgba(41, 151, 255, 0.15) 0%, transparent 70%)',
+                      zIndex: 0,
+                      pointerEvents: 'none',
+                    }}
+                  ></div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div
+                        style={{
+                          background: 'var(--accent-gradient)',
+                          padding: '8px',
+                          borderRadius: '12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#fff',
+                        }}
+                      >
+                        <Sparkles size={18} fill="currentColor" />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>
+                          NEWS EXECUTIVE SUMMARY
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>
+                          ANALYZING {Math.min(searchResults.length, 10)} KEY SIGNALS
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(searchSummary);
+                        setStatus('à¸„à¸±à¸”à¸¥à¸­à¸à¸šà¸—à¸ªà¸£à¸¸à¸›à¹à¸¥à¹‰à¸§');
+                      }}
+                      className="icon-btn-large"
+                      style={{ width: '32px', height: '32px' }}
+                      title="à¸„à¸±à¸”à¸¥à¸­à¸à¸šà¸—à¸ªà¸£à¸¸à¸›"
+                    >
+                      <Copy size={14} />
+                    </button>
+                  </div>
+
+                  {(() => {
+                    const confMatch = searchSummary.match(/\[CONFIDENCE_SCORE:\s*([^\]]+)\]/i);
+                    const confidenceScore = confMatch ? confMatch[1] : null;
+                    const cleanSummary = searchSummary.replace(/\[CONFIDENCE_SCORE:\s*([^\]]+)\]/gi, '').trim();
+
+                    return (
+                      <>
+                        <div
+                          className="markdown-body search-summary-content"
+                          style={{ fontSize: '15px', lineHeight: '1.8', color: 'rgba(255,255,255,0.9)', position: 'relative', zIndex: 1 }}
+                          dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(cleanSummary) }}
+                        />
+
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginTop: '20px',
+                            paddingTop: '16px',
+                            borderTop: '1px solid rgba(255,255,255,0.05)',
+                            flexWrap: 'wrap',
+                            gap: '12px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', flexWrap: 'wrap' }}>
+                            <ShieldCheck size={12} className="text-accent" />
+                            à¸ªà¸£à¸¸à¸›à¹‚à¸”à¸¢ AI à¸­à¹‰à¸²à¸‡à¸­à¸´à¸‡à¸ˆà¸²à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸¥à¹ˆà¸²à¸ªà¸¸à¸”à¹ƒà¸™ 24-48 à¸Šà¸±à¹ˆà¸§à¹‚à¸¡à¸‡à¸—à¸µà¹ˆà¸œà¹ˆà¸²à¸™à¸¡à¸²
+                            {confidenceScore && (
+                              <span
+                                style={{
+                                  marginLeft: '4px',
+                                  padding: '2px 8px',
+                                  borderRadius: '100px',
+                                  background: 'rgba(16, 185, 129, 0.15)',
+                                  color: '#10b981',
+                                  border: '1px solid rgba(16, 185, 129, 0.3)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  letterSpacing: '0.02em',
+                                }}
+                              >
+                                <Activity size={10} /> à¸­à¸±à¸•à¸£à¸²à¸„à¸§à¸²à¸¡à¹à¸¡à¹ˆà¸™à¸¢à¸³ (Confidence) {confidenceScore}
+                              </span>
+                            )}
+                          </div>
+
+                          {searchWebSources.length > 0 && (
+                            <button
+                              onClick={() => setIsSourcesExpanded(!isSourcesExpanded)}
+                              style={{
+                                background: 'transparent',
+                                border: '1px solid rgba(255,255,255,0.1)',
+                                color: 'var(--text-dim)',
+                                fontSize: '11px',
+                                padding: '4px 10px',
+                                borderRadius: '100px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                              }}
+                              className="action-hover-btn"
+                            >
+                              <Link size={12} />{' '}
+                              {isSourcesExpanded
+                                ? 'à¸‹à¹ˆà¸­à¸™à¹à¸«à¸¥à¹ˆà¸‡à¸­à¹‰à¸²à¸‡à¸­à¸´à¸‡'
+                                : `à¸­à¹‰à¸²à¸‡à¸­à¸´à¸‡à¸ˆà¸²à¸ ${searchWebSources.length} à¹€à¸§à¹‡à¸šà¹„à¸‹à¸•à¹Œ`}
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    );
+                  })()}
+
+                  {isSourcesExpanded && searchWebSources.length > 0 && (
+                    <div
+                      className="animate-fade-in"
+                      style={{
+                        marginTop: '16px',
+                        padding: '16px',
+                        background: 'rgba(0,0,0,0.3)',
+                        borderRadius: '12px',
+                        border: '1px solid rgba(255,255,255,0.04)',
+                      }}
+                    >
+                      <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-dim)', marginBottom: '12px', letterSpacing: '0.05em' }}>
+                        WEB SOURCES
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {searchWebSources.map((src, index) => (
+                          <a
+                            key={index}
+                            href={src.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '4px',
+                              textDecoration: 'none',
+                              padding: '10px 14px',
+                              background: 'rgba(255,255,255,0.02)',
+                              borderRadius: '8px',
+                              transition: 'background 0.2s',
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+                            }}
+                          >
+                            <div
+                              style={{
+                                fontSize: '13px',
+                                color: '#fff',
+                                fontWeight: '600',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 1,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',
+                              }}
+                            >
+                              {src.title}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#60A5FA', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <ExternalLink size={10} /> à¹€à¸›à¸´à¸”à¸­à¹ˆà¸²à¸™à¸•à¹‰à¸™à¸‰à¸šà¸±à¸šà¹€à¸§à¹‡à¸šà¹„à¸‹à¸•à¹Œ
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="feed-grid">
+                {searchResults.map((item, idx) => (
+                  <FeedCard key={item.id || idx} tweet={item} onArticleGen={onArticleGen} />
+                ))}
+              </div>
+              {(searchOverflowResults.length > 0 || searchCursor) && !isSearching && (
+                <div style={{ textAlign: 'center', marginTop: '32px', paddingBottom: '40px' }}>
+                  <button onClick={(e) => handleSearch(e, true)} className="btn-pill">
+                    à¹‚à¸«à¸¥à¸”à¹€à¸žà¸´à¹ˆà¸¡à¹€à¸•à¸´à¸¡
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ContentWorkspace;
