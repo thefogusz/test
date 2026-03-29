@@ -2001,8 +2001,8 @@ h1, h2, h3, h4, h5, h6 {
   .dashboard-header-top .mobile-only-flex.icon-btn-large {
     position: absolute;
     right: 0;
-    top: 50%;
-    transform: translateY(-50%);
+    top: 0;
+    transform: none;
   }
 
   .dashboard-header-actions {
@@ -2068,7 +2068,15 @@ h1, h2, h3, h4, h5, h6 {
     align-items: center;
   }
 
+  .home-feed-toolbar .feed-section-title-row {
+    min-height: 34px;
+  }
+
   .home-feed-toolbar .section-title {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    line-height: 1;
     font-size: 12px;
     font-weight: 800;
     color: rgba(255,255,255,0.92);
