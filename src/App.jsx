@@ -1633,6 +1633,8 @@ const App = () => {
                     setIsGenerating={setIsGeneratingContent}
                     phase={genPhase}
                     setPhase={setGenPhase}
+                    contentTab={contentTab}
+                    setContentTab={setContentTab}
                   />
                 </ContentErrorBoundary>
               </div>
@@ -1646,6 +1648,14 @@ const App = () => {
                       <h1 className="hero-search-title">ค้นหาคอนเทนต์</h1>
                       <p className="hero-search-subtitle">สำรวจเทรนด์และเจาะลึกข้อมูลจากทั่วโลก</p>
                     </div>
+                  </div>
+                  <div className="content-view-tabs content-view-tabs-hero content-view-tabs-mobile-inline">
+                    <button className={`btn-pill content-view-tab-btn ${contentTab === 'search' ? 'primary' : ''}`} onClick={() => setContentTab('search')}>
+                      <Search size={16} /> ค้นหา
+                    </button>
+                    <button className={`btn-pill content-view-tab-btn ${contentTab === 'create' ? 'primary' : ''}`} onClick={() => setContentTab('create')}>
+                      <Sparkles size={16} /> สร้างคอนเทนต์
+                    </button>
                   </div>
                   {false && (
                     <div className="create-content-inline-panel animate-fade-in">

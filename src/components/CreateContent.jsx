@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, Bookmark, ExternalLink, RefreshCw } from 'lucide-react';
+import { Sparkles, Search, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, Bookmark, ExternalLink, RefreshCw } from 'lucide-react';
 import { researchAndPreventHallucination, generateStructuredContentV2 } from '../services/GrokService';
 import { renderMarkdownToHtml } from '../utils/markdown';
 
@@ -226,7 +226,9 @@ const CreateContent = ({
   isGenerating,
   setIsGenerating,
   phase,
-  setPhase
+  setPhase,
+  contentTab,
+  setContentTab
 }) => {
   const [input, setInput] = useState(() => localStorage.getItem('foro_gen_input_v1') || '');
   
@@ -439,7 +441,7 @@ const CreateContent = ({
   };
 
   return (
-    <div style={{ padding: '0 20px 40px', maxWidth: '840px', margin: '0 auto', color: '#fff', animation: 'fadeIn 0.3s ease-out' }}>
+    <div className="create-content-shell" style={{ padding: '0 20px 40px', maxWidth: '840px', margin: '0 auto', color: '#fff', animation: 'fadeIn 0.3s ease-out' }}>
       
       {/* Compact Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', marginTop: '10px' }}>
@@ -456,6 +458,14 @@ const CreateContent = ({
             <Plus size={14} /> สร้างคอนเทนต์ใหม่
           </button>
         )}
+      </div>
+      <div className="content-view-tabs content-view-tabs-hero content-view-tabs-mobile-inline">
+        <button className={`btn-pill content-view-tab-btn ${contentTab === 'search' ? 'primary' : ''}`} onClick={() => setContentTab('search')}>
+          <Search size={16} /> ค้นหา
+        </button>
+        <button className={`btn-pill content-view-tab-btn ${contentTab === 'create' ? 'primary' : ''}`} onClick={() => setContentTab('create')}>
+          <Sparkles size={16} /> สร้างคอนเทนต์
+        </button>
       </div>
 
       {/* Unified Editor Interface */}
