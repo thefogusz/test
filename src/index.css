@@ -991,6 +991,10 @@ h1, h2, h3, h4, h5, h6 {
   gap: 16px;
 }
 
+.reader-header-copy {
+  min-width: 0;
+}
+
 .reader-title {
   font-size: 36px;
   font-weight: 800;
@@ -2077,11 +2081,13 @@ h1, h2, h3, h4, h5, h6 {
   .reader-toolbar {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: 8px;
+    margin-bottom: 16px;
   }
 
-  .reader-header-top .mobile-only-flex.icon-btn-large {
-    margin-top: -4px;
+  .reader-header {
+    padding-bottom: 10px;
+    margin-bottom: 12px;
   }
 
   .reader-search-shell {
@@ -3311,6 +3317,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @media (max-width: 768px) {
+  .audience-manual-label {
+    display: none;
+  }
+
   .audience-hero-subtitle {
     margin-left: 0 !important;
     margin-top: 12px !important;

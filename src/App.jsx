@@ -1988,8 +1988,8 @@ const App = () => {
           {activeView === 'read' && (
           <div className="reader-library-view animate-fade-in">
             <header className="reader-header">
-                <div className="reader-header-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
-                  <div>
+                <div className="reader-header-top">
+                  <div className="reader-header-copy">
                     <h1 className="reader-title">อ่านข่าว</h1>
                     <p className="reader-subtitle">บทความและข่าวสารที่คุณบันทึกไว้อ่านแบบ Deep Read</p>
                   </div>
@@ -2254,7 +2254,7 @@ const App = () => {
                 {audienceTab === 'manual' && (
                   <div className="animate-fade-in">
                     <div style={{ maxWidth: '640px', marginBottom: '40px' }}>
-                      <div style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: '700', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ค้นหาด้วย X Username โดยตรง</div>
+                      <div className="audience-manual-label" style={{ color: 'var(--text-muted)', fontSize: '12px', fontWeight: '700', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ค้นหาด้วย X Username โดยตรง</div>
                       <form onSubmit={handleManualSearch} className="manual-search-form audience-command-row" style={{ display: 'flex', gap: '12px', position: 'relative' }}>
                         <div className="custom-input-wrapper">
                           <Search size={16} />
@@ -2329,10 +2329,10 @@ const App = () => {
           {/* ===== BOOKMARKS VIEW ===== */}
           <div className="animate-fade-in" style={{ display: activeView === 'bookmarks' ? 'block' : 'none' }}>
             <header className="dashboard-header">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
-                  <div>
-                    <h1 style={{ fontSize: '32px', fontWeight: '800', lineHeight: '1.4', color: activeListId ? (postLists.find(l => l.id === activeListId)?.color || 'inherit') : 'inherit' }}>Bookmarks</h1>
-                    <p style={{ color: 'var(--text-muted)' }}>คลังข้อมูลที่คุณบันทึกไว้แยกตามประเภท</p>
+                <div className="reader-header-top">
+                  <div className="reader-header-copy">
+                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: '800', lineHeight: '1.4', color: activeListId ? (postLists.find(l => l.id === activeListId)?.color || 'inherit') : 'inherit' }}>Bookmarks</h1>
+                    <p style={{ margin: '4px 0 0', color: 'var(--text-muted)' }}>คลังข้อมูลที่คุณบันทึกไว้แยกตามประเภท</p>
                   </div>
                   <button className="mobile-only-flex icon-btn-large" onClick={() => setIsMobilePostListOpen(true)}><List size={20} /></button>
                 </div>
