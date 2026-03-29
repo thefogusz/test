@@ -98,8 +98,8 @@ const ContentWorkspace = ({
           <div className="hero-search-container">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <h1 className="hero-search-title">à¸„à¹‰à¸™à¸«à¸²à¸„à¸­à¸™à¹€à¸—à¸™à¸•à¹Œ</h1>
-                <p className="hero-search-subtitle">à¸ªà¸³à¸£à¸§à¸ˆà¹€à¸—à¸£à¸™à¸”à¹Œà¹à¸¥à¸°à¹€à¸ˆà¸²à¸°à¸¥à¸¶à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ˆà¸²à¸à¸—à¸±à¹ˆà¸§à¹‚à¸¥à¸</p>
+                <h1 className="hero-search-title">{'\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e04\u0e2d\u0e19\u0e40\u0e17\u0e19\u0e15\u0e4c'}</h1>
+                <p className="hero-search-subtitle">{'\u0e2a\u0e33\u0e23\u0e27\u0e08\u0e40\u0e17\u0e23\u0e19\u0e14\u0e4c\u0e41\u0e25\u0e30\u0e40\u0e08\u0e32\u0e30\u0e25\u0e36\u0e01\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e08\u0e32\u0e01\u0e17\u0e31\u0e48\u0e27\u0e42\u0e25\u0e01'}</p>
               </div>
             </div>
             <ContentTabSwitcher
@@ -114,7 +114,7 @@ const ContentWorkspace = ({
                 <input
                   type="text"
                   className="hero-search-input"
-                  placeholder="à¸žà¸´à¸¡à¸žà¹Œà¸„à¸µà¸¢à¹Œà¹€à¸§à¸´à¸£à¹Œà¸”à¸—à¸µà¹ˆà¸ªà¸™à¹ƒà¸ˆ..."
+                  placeholder={'\u0e1e\u0e34\u0e21\u0e1e\u0e4c\u0e04\u0e35\u0e22\u0e4c\u0e40\u0e27\u0e34\u0e23\u0e4c\u0e14\u0e17\u0e35\u0e48\u0e2a\u0e19\u0e43\u0e08...'}
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -148,8 +148,8 @@ const ContentWorkspace = ({
                     type="button"
                     onClick={() => setIsLatestMode(!isLatestMode)}
                     className={`zap-toggle-btn ${isLatestMode ? 'active' : ''}`}
-                    title="à¸„à¸­à¸™à¹€à¸—à¸™à¸•à¹Œà¹ƒà¸«à¸¡à¹ˆ"
-                  >
+                    title={'\u0e04\u0e2d\u0e19\u0e40\u0e17\u0e19\u0e15\u0e4c\u0e43\u0e2b\u0e21\u0e48'}
+                    >
                     <Zap size={18} fill={isLatestMode ? 'currentColor' : 'none'} />
                   </button>
                   {searchQuery && (
@@ -173,7 +173,7 @@ const ContentWorkspace = ({
                     }}
                     disabled={isSearching}
                   >
-                    {isSearching ? <Loader2 size={18} className="animate-spin" /> : <span className="btn-text">à¸„à¹‰à¸™à¸«à¸²</span>}
+                    {isSearching ? <Loader2 size={18} className="animate-spin" /> : <span className="btn-text">{'\u0e04\u0e49\u0e19\u0e2b\u0e32'}</span>}
                   </button>
                 </div>
               </div>
@@ -187,13 +187,12 @@ const ContentWorkspace = ({
                       setSearchSummary('');
                       setSearchWebSources([]);
                       setSearchCursor(null);
-                      setStatus('');
+                      setStatus('\u0e04\u0e31\u0e14\u0e25\u0e2d\u0e01\u0e1a\u0e17\u0e2a\u0e23\u0e38\u0e1b\u0e41\u0e25\u0e49\u0e27');
                     }}
                     className="btn-mini-ghost"
                     style={{ color: 'var(--text-dim)', background: 'transparent' }}
                   >
-                    <RefreshCcw size={14} /> à¸¥à¹‰à¸²à¸‡à¸œà¸¥à¸¥à¸±à¸žà¸˜à¹Œ
-                  </button>
+                    <RefreshCcw size={14} /> {'\u0e25\u0e49\u0e32\u0e07\u0e1c\u0e25\u0e25\u0e31\u0e1e\u0e18\u0e4c'}</button>
                 </div>
               )}
               {shouldInlineSearchStatus && (
@@ -212,8 +211,12 @@ const ContentWorkspace = ({
                 <div className="search-preset-toolbar">
                   <div className="search-preset-toolbar-copy">
                     {searchPresets.length > 0
-                      ? `Preset à¸‚à¸­à¸‡à¸„à¸¸à¸“ ${searchPresets.length}/${maxSearchPresets}`
-                      : 'à¸šà¸±à¸™à¸—à¸¶à¸à¸„à¸³à¸„à¹‰à¸™à¹„à¸§à¹‰à¹ƒà¸Šà¹‰à¸‹à¹‰à¸³à¹„à¸”à¹‰à¸ªà¸¹à¸‡à¸ªà¸¸à¸” 4 à¸›à¸¸à¹ˆà¸¡'}
+                        ? '\u0e01\u0e14\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e17\u0e31\u0e19\u0e17\u0e35 \u0e2b\u0e23\u0e37\u0e2d\u0e25\u0e1a\u0e1b\u0e38\u0e48\u0e21\u0e17\u0e35\u0e48\u0e44\u0e21\u0e48\u0e43\u0e0a\u0e49\u0e41\u0e25\u0e49\u0e27'
+                        : searchHistory.length > 0
+                          ? '\u0e23\u0e30\u0e1a\u0e1a\u0e08\u0e30\u0e14\u0e31\u0e19\u0e04\u0e33\u0e04\u0e49\u0e19\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e43\u0e0a\u0e49\u0e08\u0e23\u0e34\u0e07\u0e02\u0e36\u0e49\u0e19\u0e21\u0e32\u0e01\u0e48\u0e2d\u0e19 \u0e41\u0e25\u0e49\u0e27\u0e04\u0e48\u0e2d\u0e22\u0e40\u0e15\u0e34\u0e21\u0e2b\u0e31\u0e27\u0e02\u0e49\u0e2d\u0e17\u0e35\u0e48\u0e40\u0e01\u0e35\u0e48\u0e22\u0e27\u0e02\u0e49\u0e2d\u0e07\u0e43\u0e2b\u0e49'
+                          : interestSeedLabels.length > 0
+                            ? '\u0e23\u0e30\u0e1a\u0e1a\u0e2b\u0e22\u0e34\u0e1a\u0e08\u0e32\u0e01\u0e25\u0e34\u0e2a\u0e15\u0e4c\u0e41\u0e25\u0e30\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e15\u0e34\u0e14\u0e15\u0e32\u0e21\u0e21\u0e32\u0e40\u0e1b\u0e47\u0e19\u0e08\u0e38\u0e14\u0e40\u0e23\u0e34\u0e48\u0e21\u0e15\u0e49\u0e19\u0e43\u0e2b\u0e49'
+                            : '\u0e40\u0e21\u0e37\u0e48\u0e2d\u0e04\u0e38\u0e13\u0e40\u0e23\u0e34\u0e48\u0e21\u0e04\u0e49\u0e19\u0e2b\u0e32 \u0e23\u0e30\u0e1a\u0e1a\u0e08\u0e30\u0e40\u0e23\u0e35\u0e22\u0e19\u0e23\u0e39\u0e49\u0e41\u0e25\u0e30\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e1b\u0e38\u0e48\u0e21\u0e0a\u0e38\u0e14\u0e19\u0e35\u0e49\u0e43\u0e2b\u0e49\u0e40\u0e2b\u0e21\u0e32\u0e30\u0e01\u0e31\u0e1a\u0e04\u0e38\u0e13\u0e21\u0e32\u0e01\u0e02\u0e36\u0e49\u0e19'}
                   </div>
                   {canSaveCurrentSearchAsPreset && (
                     <button
@@ -221,7 +224,7 @@ const ContentWorkspace = ({
                       className="search-preset-save-btn"
                       onClick={() => addSearchPreset(searchQuery)}
                     >
-                      <Sparkles size={14} /> à¸šà¸±à¸™à¸—à¸¶à¸à¹€à¸›à¹‡à¸™ Preset
+                      <Sparkles size={14} /> {'\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e40\u0e1b\u0e47\u0e19 Preset'}
                     </button>
                   )}
                 </div>
@@ -246,8 +249,7 @@ const ContentWorkspace = ({
               )}
               {isLiveSearching && !isSearching && (
                 <div className="searching-indicator" style={{ marginTop: '16px' }}>
-                  <RefreshCw size={12} className="animate-spin" /> à¸à¸³à¸¥à¸±à¸‡à¹€à¸•à¸£à¸µà¸¢à¸¡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥...
-                </div>
+                  <RefreshCw size={12} className="animate-spin" /> {'\u0e01\u0e33\u0e25\u0e31\u0e07\u0e40\u0e15\u0e23\u0e35\u0e22\u0e21\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25...'}</div>
               )}
 
               {isSearching && (
@@ -260,7 +262,7 @@ const ContentWorkspace = ({
                       <div className="search-minimal-loader-line search-minimal-loader-line-short"></div>
                     </div>
                   </div>
-                  <div className="search-loading-label">{AI_WORKSPACES.langGraph.title} à¸à¸³à¸¥à¸±à¸‡à¸‚à¸¢à¸²à¸¢à¹à¸«à¸¥à¹ˆà¸‡à¸‚à¹‰à¸­à¸¡à¸¹à¸¥</div>
+                  <div className="search-loading-label">{AI_WORKSPACES.langGraph.title} {'\u0e01\u0e33\u0e25\u0e31\u0e07\u0e02\u0e22\u0e32\u0e22\u0e41\u0e2b\u0e25\u0e48\u0e07\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25'}</div>
                   <div className="search-narrative">
                     <div className="narrative-item" style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '500' }}>
                       {searchStatusMessage || 'Preparing the next search stage...'}
@@ -274,12 +276,8 @@ const ContentWorkspace = ({
                   <div style={{ marginBottom: '16px', opacity: 0.5 }}>
                     <Search size={48} style={{ margin: '0 auto' }} />
                   </div>
-                  <h3 style={{ fontSize: '18px', marginBottom: '8px', color: 'var(--text-dim)', lineHeight: '1.4' }}>
-                    à¹„à¸¡à¹ˆà¸žà¸šà¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ªà¸³à¸«à¸£à¸±à¸š "{searchQuery}"
-                  </h3>
-                  <p style={{ color: 'var(--text-muted)' }}>
-                    à¸£à¸°à¸šà¸šà¸¥à¸­à¸‡à¸‚à¸¢à¸²à¸¢à¸„à¸³à¸„à¹‰à¸™à¸«à¸²à¸­à¸±à¸•à¹‚à¸™à¸¡à¸±à¸•à¸´à¹à¸¥à¹‰à¸§ à¹à¸•à¹ˆà¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¹€à¸ˆà¸­à¸œà¸¥à¸¥à¸±à¸žà¸˜à¹Œà¸—à¸µà¹ˆà¸™à¹ˆà¸²à¹ƒà¸Šà¹‰à¸‡à¸²à¸™à¹ƒà¸™à¸•à¸­à¸™à¸™à¸µà¹‰
-                  </p>
+                  <h3 style={{ fontSize: '18px', marginBottom: '8px', color: 'var(--text-dim)', lineHeight: '1.4' }}>{'\u0e44\u0e21\u0e48\u0e1e\u0e1a\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a'} "{searchQuery}"</h3>
+                  <p style={{ color: 'var(--text-muted)' }}>{'\u0e23\u0e30\u0e1a\u0e1a\u0e25\u0e2d\u0e07\u0e02\u0e22\u0e32\u0e22\u0e04\u0e33\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e2d\u0e31\u0e15\u0e42\u0e19\u0e21\u0e31\u0e15\u0e34\u0e41\u0e25\u0e49\u0e27 \u0e41\u0e15\u0e48\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e40\u0e08\u0e2d\u0e1c\u0e25\u0e25\u0e31\u0e1e\u0e18\u0e4c\u0e17\u0e35\u0e48\u0e19\u0e48\u0e32\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19\u0e43\u0e19\u0e15\u0e2d\u0e19\u0e19\u0e35\u0e49'}</p>
                 </div>
               )}
 
@@ -288,21 +286,21 @@ const ContentWorkspace = ({
                   <div className="search-preset-hub-header">
                     <p>
                       {searchPresets.length > 0
-                        ? 'Preset à¸‚à¸­à¸‡à¸„à¸¸à¸“'
+                        ? '\u0050reset \u0e02\u0e2d\u0e07\u0e04\u0e38\u0e13'
                         : searchHistory.length > 0
-                          ? 'à¸•à¹ˆà¸­à¸ˆà¸²à¸à¸ªà¸´à¹ˆà¸‡à¸—à¸µà¹ˆà¸„à¸¸à¸“à¸ªà¸™à¹ƒà¸ˆ'
+                          ? '\u0e15\u0e48\u0e2d\u0e08\u0e32\u0e01\u0e2a\u0e34\u0e48\u0e07\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e2a\u0e19\u0e43\u0e08'
                           : interestSeedLabels.length > 0
-                            ? 'à¸•à¸²à¸¡à¸ªà¸´à¹ˆà¸‡à¸—à¸µà¹ˆà¸„à¸¸à¸“à¸à¸³à¸¥à¸±à¸‡à¸•à¸´à¸”à¸•à¸²à¸¡'
-                            : 'à¹€à¸£à¸´à¹ˆà¸¡à¸ˆà¸²à¸à¸«à¸±à¸§à¸‚à¹‰à¸­à¸¢à¸­à¸”à¸™à¸´à¸¢à¸¡'}
+                            ? '\u0e15\u0e32\u0e21\u0e2a\u0e34\u0e48\u0e07\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e01\u0e33\u0e25\u0e31\u0e07\u0e15\u0e34\u0e14\u0e15\u0e32\u0e21'
+                            : '\u0e40\u0e23\u0e34\u0e48\u0e21\u0e08\u0e32\u0e01\u0e2b\u0e31\u0e27\u0e02\u0e49\u0e2d\u0e22\u0e2d\u0e14\u0e19\u0e34\u0e22\u0e21'}
                     </p>
                     <span>
                       {searchPresets.length > 0
-                        ? 'à¸à¸”à¹€à¸žà¸·à¹ˆà¸­à¸„à¹‰à¸™à¸«à¸²à¸—à¸±à¸™à¸—à¸µ à¸«à¸£à¸·à¸­à¸¥à¸šà¸›à¸¸à¹ˆà¸¡à¸—à¸µà¹ˆà¹„à¸¡à¹ˆà¹ƒà¸Šà¹‰à¹à¸¥à¹‰à¸§'
+                        ? '\u0e01\u0e14\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e17\u0e31\u0e19\u0e17\u0e35 \u0e2b\u0e23\u0e37\u0e2d\u0e25\u0e1a\u0e1b\u0e38\u0e48\u0e21\u0e17\u0e35\u0e48\u0e44\u0e21\u0e48\u0e43\u0e0a\u0e49\u0e41\u0e25\u0e49\u0e27'
                         : searchHistory.length > 0
-                          ? 'à¸£à¸°à¸šà¸šà¸ˆà¸°à¸”à¸±à¸™à¸„à¸³à¸„à¹‰à¸™à¸—à¸µà¹ˆà¸„à¸¸à¸“à¹ƒà¸Šà¹‰à¸ˆà¸£à¸´à¸‡à¸‚à¸¶à¹‰à¸™à¸¡à¸²à¸à¹ˆà¸­à¸™ à¹à¸¥à¹‰à¸§à¸„à¹ˆà¸­à¸¢à¹€à¸•à¸´à¸¡à¸«à¸±à¸§à¸‚à¹‰à¸­à¸—à¸µà¹ˆà¹€à¸à¸µà¹ˆà¸¢à¸§à¸‚à¹‰à¸­à¸‡à¹ƒà¸«à¹‰'
+                          ? '\u0e23\u0e30\u0e1a\u0e1a\u0e08\u0e30\u0e14\u0e31\u0e19\u0e04\u0e33\u0e04\u0e49\u0e19\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e43\u0e0a\u0e49\u0e08\u0e23\u0e34\u0e07\u0e02\u0e36\u0e49\u0e19\u0e21\u0e32\u0e01\u0e48\u0e2d\u0e19 \u0e41\u0e25\u0e49\u0e27\u0e04\u0e48\u0e2d\u0e22\u0e40\u0e15\u0e34\u0e21\u0e2b\u0e31\u0e27\u0e02\u0e49\u0e2d\u0e17\u0e35\u0e48\u0e40\u0e01\u0e35\u0e48\u0e22\u0e27\u0e02\u0e49\u0e2d\u0e07\u0e43\u0e2b\u0e49'
                           : interestSeedLabels.length > 0
-                            ? 'à¸£à¸°à¸šà¸šà¸«à¸¢à¸´à¸šà¸ˆà¸²à¸à¸¥à¸´à¸ªà¸•à¹Œà¹à¸¥à¸°à¸šà¸±à¸à¸Šà¸µà¸—à¸µà¹ˆà¸„à¸¸à¸“à¸•à¸´à¸”à¸•à¸²à¸¡à¸¡à¸²à¹€à¸›à¹‡à¸™à¸ˆà¸¸à¸”à¹€à¸£à¸´à¹ˆà¸¡à¸•à¹‰à¸™à¹ƒà¸«à¹‰'
-                            : 'à¹€à¸¡à¸·à¹ˆà¸­à¸„à¸¸à¸“à¹€à¸£à¸´à¹ˆà¸¡à¸„à¹‰à¸™à¸«à¸² à¸£à¸°à¸šà¸šà¸ˆà¸°à¹€à¸£à¸µà¸¢à¸™à¸£à¸¹à¹‰à¹à¸¥à¸°à¹€à¸›à¸¥à¸µà¹ˆà¸¢à¸™à¸›à¸¸à¹ˆà¸¡à¸Šà¸¸à¸”à¸™à¸µà¹‰à¹ƒà¸«à¹‰à¹€à¸«à¸¡à¸²à¸°à¸à¸±à¸šà¸„à¸¸à¸“à¸¡à¸²à¸à¸‚à¸¶à¹‰à¸™'}
+                            ? '\u0e23\u0e30\u0e1a\u0e1a\u0e2b\u0e22\u0e34\u0e1a\u0e08\u0e32\u0e01\u0e25\u0e34\u0e2a\u0e15\u0e4c\u0e41\u0e25\u0e30\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e15\u0e34\u0e14\u0e15\u0e32\u0e21\u0e21\u0e32\u0e40\u0e1b\u0e47\u0e19\u0e08\u0e38\u0e14\u0e40\u0e23\u0e34\u0e48\u0e21\u0e15\u0e49\u0e19\u0e43\u0e2b\u0e49'
+                            : '\u0e40\u0e21\u0e37\u0e48\u0e2d\u0e04\u0e38\u0e13\u0e40\u0e23\u0e34\u0e48\u0e21\u0e04\u0e49\u0e19\u0e2b\u0e32 \u0e23\u0e30\u0e1a\u0e1a\u0e08\u0e30\u0e40\u0e23\u0e35\u0e22\u0e19\u0e23\u0e39\u0e49\u0e41\u0e25\u0e30\u0e40\u0e1b\u0e25\u0e35\u0e48\u0e22\u0e19\u0e1b\u0e38\u0e48\u0e21\u0e0a\u0e38\u0e14\u0e19\u0e35\u0e49\u0e43\u0e2b\u0e49\u0e40\u0e2b\u0e21\u0e32\u0e30\u0e01\u0e31\u0e1a\u0e04\u0e38\u0e13\u0e21\u0e32\u0e01\u0e02\u0e36\u0e49\u0e19'}
                     </span>
                   </div>
                   <div className="tags-row">
@@ -322,7 +320,7 @@ const ContentWorkspace = ({
                           <button
                             type="button"
                             className="search-preset-remove-btn"
-                            aria-label={`à¸¥à¸š preset ${tag.label}`}
+                            aria-label={`\u0e25\u0e1a preset ${tag.label}`}
                             onClick={() => removeSearchPreset(tag.label)}
                           >
                             <X size={12} />
@@ -391,11 +389,11 @@ const ContentWorkspace = ({
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(searchSummary);
-                        setStatus('à¸„à¸±à¸”à¸¥à¸­à¸à¸šà¸—à¸ªà¸£à¸¸à¸›à¹à¸¥à¹‰à¸§');
+                        setStatus('\u0e04\u0e31\u0e14\u0e25\u0e2d\u0e01\u0e1a\u0e17\u0e2a\u0e23\u0e38\u0e1b\u0e41\u0e25\u0e49\u0e27');
                       }}
                       className="icon-btn-large"
                       style={{ width: '32px', height: '32px' }}
-                      title="à¸„à¸±à¸”à¸¥à¸­à¸à¸šà¸—à¸ªà¸£à¸¸à¸›"
+                      title={'\u0e04\u0e31\u0e14\u0e25\u0e2d\u0e01\u0e1a\u0e17\u0e2a\u0e23\u0e38\u0e1b'}
                     >
                       <Copy size={14} />
                     </button>
@@ -427,8 +425,7 @@ const ContentWorkspace = ({
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', flexWrap: 'wrap' }}>
-                            <ShieldCheck size={12} className="text-accent" />
-                            à¸ªà¸£à¸¸à¸›à¹‚à¸”à¸¢ AI à¸­à¹‰à¸²à¸‡à¸­à¸´à¸‡à¸ˆà¸²à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸¥à¹ˆà¸²à¸ªà¸¸à¸”à¹ƒà¸™ 24-48 à¸Šà¸±à¹ˆà¸§à¹‚à¸¡à¸‡à¸—à¸µà¹ˆà¸œà¹ˆà¸²à¸™à¸¡à¸²
+                            <ShieldCheck size={12} className="text-accent" /> {'\u0e2a\u0e23\u0e38\u0e1b\u0e42\u0e14\u0e22 AI \u0e2d\u0e49\u0e32\u0e07\u0e2d\u0e34\u0e07\u0e08\u0e32\u0e01\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e25\u0e48\u0e32\u0e2a\u0e38\u0e14\u0e43\u0e19 24-48 \u0e0a\u0e31\u0e48\u0e27\u0e42\u0e21\u0e07\u0e17\u0e35\u0e48\u0e1c\u0e48\u0e32\u0e19\u0e21\u0e32'}
                             {confidenceScore && (
                               <span
                                 style={{
@@ -444,7 +441,7 @@ const ContentWorkspace = ({
                                   letterSpacing: '0.02em',
                                 }}
                               >
-                                <Activity size={10} /> à¸­à¸±à¸•à¸£à¸²à¸„à¸§à¸²à¸¡à¹à¸¡à¹ˆà¸™à¸¢à¸³ (Confidence) {confidenceScore}
+                                <Activity size={10} /> {'\u0e2d\u0e31\u0e15\u0e23\u0e32\u0e04\u0e27\u0e32\u0e21\u0e41\u0e21\u0e48\u0e19\u0e22\u0e33 (Confidence)'} {confidenceScore}
                               </span>
                             )}
                           </div>
@@ -468,8 +465,8 @@ const ContentWorkspace = ({
                             >
                               <Link size={12} />{' '}
                               {isSourcesExpanded
-                                ? 'à¸‹à¹ˆà¸­à¸™à¹à¸«à¸¥à¹ˆà¸‡à¸­à¹‰à¸²à¸‡à¸­à¸´à¸‡'
-                                : `à¸­à¹‰à¸²à¸‡à¸­à¸´à¸‡à¸ˆà¸²à¸ ${searchWebSources.length} à¹€à¸§à¹‡à¸šà¹„à¸‹à¸•à¹Œ`}
+                                ? '\u0e0b\u0e48\u0e2d\u0e19\u0e41\u0e2b\u0e25\u0e48\u0e07\u0e2d\u0e49\u0e32\u0e07\u0e2d\u0e34\u0e07'
+                                : `\u0e2d\u0e49\u0e32\u0e07\u0e2d\u0e34\u0e07\u0e08\u0e32\u0e01 ${searchWebSources.length} \u0e40\u0e27\u0e47\u0e1a\u0e44\u0e0b\u0e15\u0e4c`}
                             </button>
                           )}
                         </div>
@@ -529,8 +526,7 @@ const ContentWorkspace = ({
                               {src.title}
                             </div>
                             <div style={{ fontSize: '11px', color: '#60A5FA', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <ExternalLink size={10} /> à¹€à¸›à¸´à¸”à¸­à¹ˆà¸²à¸™à¸•à¹‰à¸™à¸‰à¸šà¸±à¸šà¹€à¸§à¹‡à¸šà¹„à¸‹à¸•à¹Œ
-                            </div>
+                              <ExternalLink size={10} /> {'\u0e40\u0e1b\u0e34\u0e14\u0e2d\u0e48\u0e32\u0e19\u0e15\u0e49\u0e19\u0e09\u0e1a\u0e31\u0e1a\u0e40\u0e27\u0e47\u0e1a\u0e44\u0e0b\u0e15\u0e4c'}</div>
                           </a>
                         ))}
                       </div>
@@ -545,9 +541,7 @@ const ContentWorkspace = ({
               </div>
               {(searchOverflowResults.length > 0 || searchCursor) && !isSearching && (
                 <div style={{ textAlign: 'center', marginTop: '32px', paddingBottom: '40px' }}>
-                  <button onClick={(e) => handleSearch(e, true)} className="btn-pill">
-                    à¹‚à¸«à¸¥à¸”à¹€à¸žà¸´à¹ˆà¸¡à¹€à¸•à¸´à¸¡
-                  </button>
+                  <button onClick={(e) => handleSearch(e, true)} className="btn-pill">{'\u0e42\u0e2b\u0e25\u0e14\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e15\u0e34\u0e21'}</button>
                 </div>
               )}
             </div>
