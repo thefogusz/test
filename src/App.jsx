@@ -1366,7 +1366,7 @@ const App = () => {
                   </div>
                   <div className="mobile-only-flex home-mobile-feed-inline" style={{ alignItems: 'center', justifyContent: 'space-between', gap: '12px', width: '100%' }}>
                     <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div className="section-title">à¹‚à¸žà¸ªà¸•à¹Œà¸¥à¹ˆà¸²à¸ªà¸¸à¸”</div>
+                      <div className="section-title">à¹‚à¸žà¸ªà¸•à¹Œà¸¥à¹ˆà¸²à¸ªà¸¸à¸"</div>
                       {isFiltered && (
                         <div className="ai-filtered-badge">
                           <Sparkles size={12} className="text-accent" />
@@ -1378,7 +1378,7 @@ const App = () => {
                       )}
                     </div>
                     <div className="feed-section-filters" style={{ display: 'flex', gap: '8px' }}>
-                      <button onClick={() => handleSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`}>à¸¢à¸­à¸”à¸§à¸´à¸§</button>
+                      <button onClick={() => handleSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`}>à¸¢à¸­à¸"à¸§à¸´à¸§</button>
                       <button onClick={() => handleSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`}>à¹€à¸­à¸™à¹€à¸à¸ˆà¹€à¸¡à¸™à¸•à¹Œ</button>
                     </div>
                   </div>
@@ -2095,7 +2095,7 @@ const App = () => {
                                   <div className="expert-name" style={{ fontSize: '14px', color: '#fff', fontWeight: '800' }}>{expert.name}</div>
                                   <div className="expert-username" style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>@{expert.username}</div>
                                 </a>
-                                <div className="expert-reasoning" style={{ fontSize: '13px', marginBottom: '16px', flex: 1, color: 'rgba(255,255,255,0.7)', lineHeight: '1.5' }}>“{expert.reasoning}”</div>
+                                <div className="expert-reasoning" style={{ fontSize: '13px', marginBottom: '16px', flex: 1, color: 'rgba(255,255,255,0.7)', lineHeight: '1.5' }}>"{expert.reasoning}"</div>
                                 <button onClick={() => handleAddExpert(expert)} disabled={isAdded} className={`expert-follow-btn ${isAdded ? 'added' : ''}`} style={{ padding: '6px', fontSize: '11px' }}>{isAdded ? '✓ เพิ่มแล้ว' : '+ เพิ่มเข้า Watchlist'}</button>
                               </div>
                             );
@@ -2317,39 +2317,39 @@ const App = () => {
               </div>
             </div>
             <textarea
-              className=”modal-input ai-filter-input”
+              className="modal-input ai-filter-input"
               autoFocus
               disabled={filterModal.isFiltering}
-              placeholder=”เช่น “หาโพสต์ที่เกี่ยวกับ AI และมี engagement สูง””
+              placeholder="เช่น AI ที่มี engagement สูง"
               value={filterModal.prompt}
               onChange={e => setFilterModal({ ...filterModal, prompt: e.target.value })}
             />
             {filterModal.prompt.trim() && !quickFilterPresets.includes(filterModal.prompt.trim()) && (
               <button
-                type=”button”
-                className=”ai-filter-save-preset-btn”
+                type="button"
+                className="ai-filter-save-preset-btn"
                 onClick={() => addQuickPreset(filterModal.prompt)}
               >
                 <Plus size={12} /> บันทึกเป็น Preset
               </button>
             )}
-            <div className=”modal-actions”>
+            <div className="modal-actions">
               <button
-                className=”modal-btn modal-btn-secondary”
+                className="modal-btn modal-btn-secondary"
                 disabled={filterModal.isFiltering}
                 onClick={() => setFilterModal({ ...filterModal, show: false })}
               >
                 ยกเลิก
               </button>
               <button
-                className=”modal-btn modal-btn-primary”
+                className="modal-btn modal-btn-primary"
                 onClick={handleAiFilter}
                 disabled={filterModal.isFiltering || !filterModal.prompt.trim()}
                 style={{ position: 'relative', overflow: 'hidden' }}
               >
                 {filterModal.isFiltering ? (
                   <>
-                    <RefreshCw size={16} className=”animate-spin” />
+                    <RefreshCw size={16} className="animate-spin" />
                     <span>กำลังวิเคราะห์...</span>
                   </>
                 ) : (
