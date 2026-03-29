@@ -1495,12 +1495,12 @@ const App = () => {
                     </button>
                   </div>
                 </div>
-                {activeListId && <div className="active-list-pills">กำลังกรองตาม: {postLists.find(l => l.id === activeListId)?.name}</div>}
               </header>
 
               {showHomeFeedToolbar && <div className="feed-section-header home-desktop-feed-header home-feed-toolbar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div className="section-title">โพสต์ล่าสุด</div>
+                  {activeListId && <div className="active-list-pills">กำลังกรองตาม: {postLists.find(l => l.id === activeListId)?.name}</div>}
                   {isFiltered && (
                     <div className="ai-filtered-badge">
                       <Sparkles size={12} className="text-accent" />
