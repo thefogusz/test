@@ -555,9 +555,27 @@ h1, h2, h3, h4, h5, h6 {
   flex: 0 0 auto;
 }
 
+.feed-card-footer {
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.feed-card-stats {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .feed-card-stats-group {
   min-width: 0;
   flex: 0 1 auto;
+  flex-wrap: nowrap;
+}
+
+.feed-card-actions {
+  flex: 0 0 auto;
+  width: auto;
+  margin-left: auto;
 }
 
 /* Search View Hero */
