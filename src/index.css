@@ -2569,24 +2569,6 @@ h1, h2, h3, h4, h5, h6 {
   cursor: not-allowed;
 }
 
-.home-ai-quick-remove-btn {
-  background: transparent;
-  border: none;
-  border-left: 1px solid rgba(255, 255, 255, 0.06);
-  color: var(--text-dim);
-  padding: 5px 8px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  transition: color 0.15s ease, background 0.15s ease;
-  line-height: 1;
-}
-
-.home-ai-quick-remove-btn:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.05);
-}
-
 .home-ai-connector {
   display: flex;
   align-items: center;

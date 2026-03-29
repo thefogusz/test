@@ -1494,13 +1494,6 @@ const App = () => {
                             >
                               {preset}
                             </button>
-                            <button
-                              onClick={() => removeQuickPreset(preset)}
-                              className="home-ai-quick-remove-btn"
-                              title="ลบ preset"
-                            >
-                              <X size={9} />
-                            </button>
                           </div>
                         ))}
                       </div>
