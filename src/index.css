@@ -397,6 +397,12 @@ h1, h2, h3, h4, h5, h6 {
 
 .post-list-expand-swatches {
   animation-duration: 240ms;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  box-sizing: border-box;
 }
 
 @keyframes postListExpandIn {
@@ -2098,31 +2104,39 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .reader-toolbar-actions {
-    justify-content: flex-start;
-    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: nowrap;
     width: 100%;
     gap: 8px;
   }
 
   .reader-toolbar-count {
-    width: 100%;
+    width: auto;
     padding-right: 0;
-    flex: 0 0 100%;
+    flex: 0 0 auto;
+    font-size: 12px;
+    font-weight: 800;
+    color: rgba(255,255,255,0.92);
   }
 
   .reader-toolbar-actions-group {
     margin-left: 0;
-    width: 100%;
-    gap: 6px;
-    justify-content: stretch;
+    width: auto;
+    gap: 8px;
+    justify-content: flex-end;
+    flex: 0 0 auto;
   }
 
   .reader-toolbar-actions .btn-pill {
-    flex: 1 1 0;
+    flex: 0 0 auto;
     min-width: 0;
     justify-content: center;
     white-space: nowrap;
-    padding-inline: 12px;
+    height: 34px;
+    padding: 0 18px;
+    font-size: 12px;
+    font-weight: 700;
   }
 
   .reader-load-more-shell {

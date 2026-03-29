@@ -485,7 +485,7 @@ const RightSidebar = ({
 
               {/* Color Swatches - shown ONLY when expanded */}
               {currentExpandedId === list.id && (
-                <div className="post-list-expand-swatches" style={{ display: 'flex', gap: '6px', padding: '4px 12px 12px 60px' }}>
+                <div className="post-list-expand-swatches" style={{ display: 'flex', padding: '4px 12px 12px' }}>
                   {COLORS.map(c => (
                     <button 
                       key={c}
