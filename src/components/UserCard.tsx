@@ -1,7 +1,15 @@
 import React, { useState } from 'react';
 import { ExternalLink, Trash2, Plus } from 'lucide-react';
+import type { PostList, WatchlistUser } from '../types/domain';
 
-const UserCard = ({ user, postLists = [], onToggleList, onRemove }) => {
+type UserCardProps = {
+  user: WatchlistUser;
+  postLists?: PostList[];
+  onToggleList?: (listId: string, username: string) => void;
+  onRemove?: (userId: string) => void;
+};
+
+const UserCard = ({ user, postLists = [], onToggleList, onRemove }: UserCardProps) => {
   const [showMenu, setShowMenu] = useState(false);
 
   return (
@@ -25,7 +33,9 @@ const UserCard = ({ user, postLists = [], onToggleList, onRemove }) => {
           src={user.profile_image_url ? user.profile_image_url.replace('_normal', '_200x200') : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff&bold=true&size=128`} 
           style={{ width: '52px', height: '52px', borderRadius: '50%', border: '1px solid var(--bg-700)', flexShrink: 0, objectFit: 'cover' }} 
           alt={user.name}
-          onError={e => e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random&color=fff&bold=true&size=128`}
+          onError={e => {
+            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.username)}&background=random&color=fff&bold=true&size=128`;
+          }}
         />
 
         <div className="user-card-info" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -83,7 +93,7 @@ const UserCard = ({ user, postLists = [], onToggleList, onRemove }) => {
                     return (
                         <div 
                           key={list.id} 
-                          onClick={() => { onToggleList(list.id, user.username); setShowMenu(false); }}
+                          onClick={() => { onToggleList?.(list.id, user.username); setShowMenu(false); }}
                           className={`discovery-menu-item ${isMember ? 'active' : ''}`}
                         >
                           <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '8px' }}>{list.name}</span>

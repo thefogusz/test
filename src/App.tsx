@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { startTransition, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   Search,
@@ -75,6 +76,8 @@ import {
 } from './utils/appUtils';
 import UserCard from './components/UserCard';
 import ContentErrorBoundary from './components/ContentErrorBoundary';
+import SearchInlineStatus from './components/SearchInlineStatus';
+import { AI_WORKSPACES, CONTENT_TAB_LABELS } from './config/aiWorkspaces';
 
 const deserializeWatchlist = (saved) => {
   const parsed = safeParse(saved, []);
@@ -370,10 +373,21 @@ const App = () => {
 
   useEffect(() => {
     if (status) {
+      const shouldKeepStatusVisible =
+        isSearching ||
+        (
+          activeView === 'content' &&
+          contentTab === 'search' &&
+          searchResults.length > 0 &&
+          !searchSummary
+        );
+
+      if (shouldKeepStatusVisible) return undefined;
+
       const timer = setTimeout(() => setStatus(''), 3000);
       return () => clearTimeout(timer);
     }
-  }, [status]);
+  }, [activeView, contentTab, isSearching, searchResults.length, searchSummary, status]);
 
   useEffect(() => {
     if (aiReport) {
@@ -961,6 +975,19 @@ const App = () => {
     !!normalizeSearchLabel(searchQuery) &&
     !searchPresets.some((item) => item.toLowerCase() === normalizeSearchLabel(searchQuery).toLowerCase()) &&
     searchPresets.length < MAX_SEARCH_PRESETS;
+
+  const searchStatusMessage = status.replace(/\[.*?\]\s*/g, '').trim();
+  const isSearchSummaryPending =
+    activeView === 'content' &&
+    contentTab === 'search' &&
+    !isSearching &&
+    searchResults.length > 0 &&
+    !searchSummary;
+  const shouldInlineSearchStatus =
+    activeView === 'content' &&
+    contentTab === 'search' &&
+    (isSearching || isSearchSummaryPending) &&
+    !!searchStatusMessage;
 
   const activeReadListMemberSet = useMemo(() => {
     if (!activeListId) return null;
@@ -1559,7 +1586,7 @@ const App = () => {
                         <Sparkles size={18} fill="currentColor" />
                       </div>
                       <div>
-                        <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>AI FILTER SUMMARY</div>
+                        <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>NEWS FILTER SUMMARY</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>SYNTHESIZING {feed.length} FILTERED RESULTS</div>
                       </div>
                     </div>
@@ -1626,6 +1653,9 @@ const App = () => {
 
           {/* ===== UNIFIED CONTENT VIEW ===== */}
           <div className="unified-content-view animate-fade-in" style={{ display: activeView === 'content' ? 'block' : 'none' }}>
+            <div style={{ fontSize: '11px', fontWeight: '800', letterSpacing: '0.08em', color: 'var(--accent-secondary)', marginBottom: '12px' }}>
+              {AI_WORKSPACES.langGraph.role} role | {CONTENT_TAB_LABELS[contentTab]}
+            </div>
             <div className="content-view-tabs content-view-tabs-hero">
               <button className={`btn-pill content-view-tab-btn ${contentTab === 'search' ? 'primary' : ''}`} onClick={() => setContentTab('search')}>
                 <Search size={16} /> ค้นหา
@@ -1778,6 +1808,18 @@ const App = () => {
                         </button>
                       </div>
                     )}
+                    {shouldInlineSearchStatus && (
+                      <SearchInlineStatus
+                        badge={isSearching ? `${AI_WORKSPACES.langGraph.role} role` : `${AI_WORKSPACES.langChain.role} role`}
+                        message={searchStatusMessage}
+                        hint={
+                          isSearching
+                            ? 'Broad searches may take around 10-30 seconds while the system expands sources and ranks signal quality.'
+                            : 'Results are ready. The summary is still being refined in the background.'
+                        }
+                        loading={isSearching}
+                      />
+                    )}
                     {(canSaveCurrentSearchAsPreset || searchPresets.length > 0) && (
                       <div className="search-preset-toolbar">
                         <div className="search-preset-toolbar-copy">
@@ -1815,10 +1857,10 @@ const App = () => {
                             <div className="search-minimal-loader-line search-minimal-loader-line-short"></div>
                           </div>
                         </div>
-                        <div className="search-loading-label">Searching Signal Sources</div>
+                        <div className="search-loading-label">{AI_WORKSPACES.langGraph.title} กำลังขยายแหล่งข้อมูล</div>
                         <div className="search-narrative">
                           <div className="narrative-item" key={status} style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '500' }}>
-                            {status.replace(/\[.*?\]/g, '⚡')}
+                            {searchStatusMessage || 'Preparing the next search stage...'}
                           </div>
                         </div>
                       </div>
@@ -1897,7 +1939,7 @@ const App = () => {
                               <Sparkles size={18} fill="currentColor" />
                             </div>
                             <div>
-                              <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>AI EXECUTIVE SUMMARY</div>
+                              <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>NEWS EXECUTIVE SUMMARY</div>
                               <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>ANALYZING {Math.min(searchResults.length, 10)} KEY SIGNALS</div>
                             </div>
                           </div>
@@ -2564,9 +2606,9 @@ const App = () => {
         </div>
       )}
 
-      {status && (
-        <div className="status-toast" style={{ position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', background: '#fff', color: '#000', padding: '12px 24px', borderRadius: '100px', fontSize: '12px', fontWeight: '900', letterSpacing: '0.05em', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', zIndex: 9999 }}>
-          {status.toUpperCase()}
+      {status && !shouldInlineSearchStatus && (
+        <div className="status-toast" style={{ position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', background: '#fff', color: '#000', padding: '12px 24px', borderRadius: '100px', fontSize: '12px', fontWeight: '900', letterSpacing: '0.02em', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', zIndex: 9999, maxWidth: 'min(720px, calc(100vw - 24px))', lineHeight: '1.4', textAlign: 'center' }}>
+          {searchStatusMessage || status}
         </div>
       )}
 

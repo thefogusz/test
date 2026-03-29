@@ -4,6 +4,7 @@ import {
   ExternalLink, Sparkles, PenTool, Bookmark,
   MessageSquare, Reply
 } from 'lucide-react';
+import type { Post } from '../types/domain';
 
 const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
 
@@ -11,7 +12,7 @@ const getRelativeTime = (dateString) => {
   if (!dateString) return '';
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return '';
-  const diff = Math.floor((new Date() - date) / 1000);
+  const diff = Math.floor((Date.now() - date.getTime()) / 1000);
   if (diff < 60) return `${Math.max(1, diff)}s`;
   if (diff < 3600) return `${Math.floor(diff / 60)}m`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
@@ -33,7 +34,14 @@ const isUsableThaiSummary = (summary, originalText = '') => {
   return THAI_CHAR_REGEX.test(trimmedSummary);
 };
 
-const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookmarked = false }) => {
+type FeedCardProps = {
+  tweet: Post;
+  onArticleGen?: (tweet: Post) => void;
+  onBookmark?: (tweet: Post, bookmarked: boolean) => void;
+  isBookmarked?: boolean;
+};
+
+const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookmarked = false }: FeedCardProps) => {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const displayText = isUsableThaiSummary(tweet.summary, tweet.text) ? tweet.summary : tweet.text;
 
@@ -68,7 +76,7 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
               alt=""
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               onError={e => {
-                e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tweet.author?.name || 'U')}&background=random&color=fff&bold=true`;
+                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tweet.author?.name || 'U')}&background=random&color=fff&bold=true`;
               }}
             />
           </div>

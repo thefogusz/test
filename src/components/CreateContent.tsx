@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, Search, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, Bookmark, ExternalLink, RefreshCw } from 'lucide-react';
 import { researchAndPreventHallucination, generateStructuredContentV2 } from '../services/GrokService';

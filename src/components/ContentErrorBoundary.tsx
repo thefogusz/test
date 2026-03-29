@@ -1,14 +1,23 @@
 import React from 'react';
 
-class ContentErrorBoundary extends React.Component {
-  constructor(props) {
+type ContentErrorBoundaryProps = {
+  children: React.ReactNode;
+};
+
+type ContentErrorBoundaryState = {
+  hasError: boolean;
+  error: Error | null;
+};
+
+class ContentErrorBoundary extends React.Component<ContentErrorBoundaryProps, ContentErrorBoundaryState> {
+  constructor(props: ContentErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
   }
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: Error): ContentErrorBoundaryState {
     return { hasError: true, error };
   }
-  componentDidCatch(error, info) {
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error('[ContentErrorBoundary] Caught crash:', error, info);
   }
   render() {

@@ -1,3 +1,7 @@
+interface ApiFetchOptions extends RequestInit {
+  timeout?: number;
+}
+
 /**
  * apiFetch — A thin wrapper around fetch() that automatically attaches
  * the internal API token to all requests going through /api/*.
@@ -12,7 +16,7 @@ export const INTERNAL_TOKEN = import.meta.env.VITE_INTERNAL_API_SECRET ?? '';
 
 const DEFAULT_TIMEOUT_MS = 90000; // 90 seconds
 
-export const apiFetch = (url, options = {}) => {
+export const apiFetch = (url: RequestInfo | URL, options: ApiFetchOptions = {}) => {
   const { timeout = DEFAULT_TIMEOUT_MS, ...fetchOptions } = options;
   
   const controller = new AbortController();

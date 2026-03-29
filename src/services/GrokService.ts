@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createXai } from '@ai-sdk/xai';
 import { generateObject, generateText, streamText } from 'ai';
 import { z } from 'zod';

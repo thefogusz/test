@@ -1,16 +1,18 @@
 import { useEffect, useRef } from 'react';
 
 export default function HomeCanvas() {
-  const canvasRef = useRef(null);
-  const animRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const animRef = useRef<number | null>(null);
   const mouseRef = useRef({ x: -9999, y: -9999 });
-  const clickRef = useRef(null);
+  const clickRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
+    if (!canvas) return undefined;
     const ctx = canvas.getContext('2d');
+    if (!ctx) return undefined;
     let width, height;
-    const particles = [];
+    const particles: Array<{ x: number; y: number; vx: number; vy: number; r: number; hue: number; opacity: number }> = [];
     const COUNT = 60;
     const MAX_DIST = 140;
     const MOUSE_R = 130;
@@ -20,7 +22,7 @@ export default function HomeCanvas() {
       height = canvas.height = canvas.offsetHeight;
     }
 
-    function spawn(x, y) {
+    function spawn(x?: number, y?: number) {
       return {
         x: x ?? Math.random() * width,
         y: y ?? Math.random() * height,
@@ -130,12 +132,12 @@ export default function HomeCanvas() {
     draw();
 
     const onResize = () => { resize(); };
-    const onMove = (e) => {
+    const onMove = (e: MouseEvent) => {
       const r = canvas.getBoundingClientRect();
       mouseRef.current = { x: e.clientX - r.left, y: e.clientY - r.top };
     };
     const onLeave = () => { mouseRef.current = { x: -9999, y: -9999 }; };
-    const onClick = (e) => {
+    const onClick = (e: MouseEvent) => {
       const r = canvas.getBoundingClientRect();
       clickRef.current = { x: e.clientX - r.left, y: e.clientY - r.top };
     };
@@ -146,7 +148,9 @@ export default function HomeCanvas() {
     canvas.addEventListener('click', onClick);
 
     return () => {
-      cancelAnimationFrame(animRef.current);
+      if (animRef.current) {
+        cancelAnimationFrame(animRef.current);
+      }
       window.removeEventListener('resize', onResize);
       canvas.removeEventListener('mousemove', onMove);
       canvas.removeEventListener('mouseleave', onLeave);

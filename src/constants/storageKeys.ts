@@ -23,4 +23,4 @@ export const STORAGE_KEYS = {
   isGeneratingContent: 'foro_is_generating_content_v1',
   quickFilterPresets: 'foro_quick_filter_presets_v1',
   quickFilterVisiblePresets: 'foro_quick_filter_visible_presets_v1',
-};
+} as const;

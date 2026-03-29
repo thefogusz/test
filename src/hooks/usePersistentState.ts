@@ -1,9 +1,19 @@
 import { useEffect, useState } from 'react';
 
-const resolveInitialValue = (value) =>
-  typeof value === 'function' ? value() : value;
+type PersistentStateOptions<T> = {
+  deserialize?: (storedValue: string, fallbackValue: T) => T;
+  serialize?: (value: T) => string;
+  shouldRemove?: (value: T) => boolean;
+};
 
-export const usePersistentState = (storageKey, initialValue, options = {}) => {
+const resolveInitialValue = <T,>(value: T | (() => T)): T =>
+  typeof value === 'function' ? (value as () => T)() : value;
+
+export const usePersistentState = <T,>(
+  storageKey: string,
+  initialValue: T | (() => T),
+  options: PersistentStateOptions<T> = {},
+) => {
   const { deserialize, serialize, shouldRemove } = options;
 
   const [state, setState] = useState(() => {
@@ -37,5 +47,5 @@ export const usePersistentState = (storageKey, initialValue, options = {}) => {
     }
   }, [serialize, shouldRemove, storageKey, state]);
 
-  return [state, setState];
+  return [state, setState] as const;
 };

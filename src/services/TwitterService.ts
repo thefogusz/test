@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { apiFetch } from '../utils/apiFetch';
 import { toNumber } from '../utils/appUtils';
 
