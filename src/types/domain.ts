@@ -74,7 +74,6 @@ export interface Post {
   velocityTag?: string | null;
   attachedSource?: AttachedSource | null;
   sources?: ContentSource[];
-  [key: string]: unknown;
 }
 
 export interface SavedArticle extends Post {

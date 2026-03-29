@@ -4201,7 +4201,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .audience-category-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(3, 1fr) !important;
   }
 
   .create-content-toolbar-controls {

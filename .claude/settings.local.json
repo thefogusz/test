@@ -17,7 +17,8 @@
       "Bash(wc -l /d/TEST/src/services/*.js /d/TEST/src/components/*.jsx /d/TEST/src/App.jsx)",
       "Bash(python -:*)",
       "WebSearch",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(wc -l /d/TEST/src/**/*.ts /d/TEST/src/**/*.tsx)"
     ]
   }
 }

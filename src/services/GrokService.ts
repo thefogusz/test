@@ -1529,12 +1529,12 @@ Set passed=true only if:
     });
 
     if (!evalResult.passed) {
+      const evalFeedback = evalResult.reason ||
+        'Draft did not fully meet quality bar. Check: (1) all key facts from brief are present, (2) tone matches requested style, (3) no generic AI phrasing, (4) Thai flows naturally without robotic transitions.';
       const revisedDraft = await callGrok({
         modelName: MODEL_WRITER,
         system: draftSystemPrompt,
-        prompt: `[FACT SHEET]\n${activeFactSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[CURRENT DRAFT]\n${contentDraft}\n\n[EDITOR FEEDBACK]\n${
-          evalResult.reason || 'Improve accuracy, tone, and natural Thai flow.'
-        }\n\nRewrite the content now.${prefersConversationalViralFlow ? '\nFor this tone and format, keep the energy but make the writing feel more human and less like a news report.' : ''}`,
+        prompt: `[FACT SHEET]\n${activeFactSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[CURRENT DRAFT]\n${contentDraft}\n\n[EDITOR FEEDBACK]\n${evalFeedback}\n\nRewrite the content now.${prefersConversationalViralFlow ? '\nFor this tone and format, keep the energy but make the writing feel more human and less like a news report.' : ''}`,
         temperature: 0.4,
         allowEmoji,
       });
@@ -1548,25 +1548,3 @@ Set passed=true only if:
   return { content: polishThaiContent(contentDraft, { format, customInstructions, allowEmoji, tone }), titleIdea: brief.titleIdea };
 };
 
-export const generateFinalContent = async (enrichedData, targetFormat, customPrompt = '') => {
-  try {
-    return await callGrok({
-      modelName: MODEL_MULTI_AGENT,
-      system: `สร้างผลงานเนื้อหาภาษาไทยที่ขัดเกลาแล้วในรูปแบบของ "${targetFormat}"
-อ้างอิงจากข้อมูลวิจัยที่ให้มาเท่านั้น โดยระบุชื่อบัญชี (@handle) เฉพาะคนที่มีชื่อเสียง, มีเอนเกจเม้นท์สูง, มีผู้ติดตามมาก หรือเป็นต้นทางข้อมูลสำคัญเท่านั้น บัญชีที่แค่รีโพสต์ต่อกันโดยไม่มีอิมแพคไม่ต้องระบุชื่อแต่ให้สรุปเป็นภาพรวมแทน
-`,
-      prompt: `[RESEARCH]\n${enrichedData}\n\n[EXTRA INSTRUCTIONS]\n${customPrompt || 'None'}`,
-    });
-  } catch (error) {
-    console.warn('[GrokService] Multi-agent fallback triggered:', error);
-    return callGrok({
-      modelName: MODEL_WRITER,
-      system: `Create a polished Thai piece in the format "${targetFormat}".
-Stay grounded in the provided material only.`,
-      prompt: `[RESEARCH]\n${enrichedData}\n\n[EXTRA INSTRUCTIONS]\n${customPrompt || 'None'}`,
-    });
-  }
-};
-
-export const generateContentArticle = generateFinalContent;
-export const generateArticle = generateFinalContent;

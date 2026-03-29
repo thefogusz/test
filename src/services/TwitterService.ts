@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { apiFetch } from '../utils/apiFetch';
 import { toNumber } from '../utils/appUtils';
+import { TOPIC_TRIGGERS } from '../config/topics';
 
 const BASE_URL = '/api/twitter';
 export const RECENT_WINDOW_HOURS = 24;
@@ -32,7 +33,7 @@ const SEARCH_STOPWORDS = new Set([
 
 const BROAD_TOPIC_HINTS = [
   {
-    triggers: ['วงการเกม', 'เกม', 'gaming', 'videogame', 'video game', 'games'],
+    triggers: TOPIC_TRIGGERS.gaming,
     hints: [
       'nintendo', 'switch', 'switch 2', 'playstation', 'ps5', 'xbox', 'steam', 'pc gaming',
       'esports', 'game awards', 'gta', 'minecraft', 'fortnite', 'monster hunter', 'pokemon',
@@ -40,11 +41,11 @@ const BROAD_TOPIC_HINTS = [
     ],
   },
   {
-    triggers: ['ฟุตบอล', 'บอล', 'soccer', 'football'],
+    triggers: TOPIC_TRIGGERS.football,
     hints: ['premier league', 'champions league', 'fifa', 'uefa', 'goal', 'matchday', 'liverpool', 'man utd'],
   },
   {
-    triggers: ['คริปโต', 'crypto', 'bitcoin', 'btc', 'ethereum', 'eth'],
+    triggers: TOPIC_TRIGGERS.crypto,
     hints: ['solana', 'binance', 'altcoin', 'defi', 'web3', 'token', 'coinbase', 'blockchain'],
   },
 ];

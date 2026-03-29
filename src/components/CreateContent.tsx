@@ -9,7 +9,13 @@ const THINKING_PHASES = {
     'Researching source material...',
     'Cross-checking external references...',
     'Summarizing the key facts...',
-    'Preparing the writing brief...',
+    'Validating sources and signals...',
+  ],
+  briefing: [
+    'Building content brief...',
+    'Defining angle and structure...',
+    'Locking key facts and tone...',
+    'Brief ready — preparing writer...',
   ],
   generating: [
     'Drafting the content...',
@@ -324,19 +330,26 @@ const CreateContent = ({
       });
       setFactSheet(facts);
       setArticleSources(rawSources || []);
-      setPhase('generating');
+      setPhase('briefing');
 
-      // 2. Generation Phase (Streaming)
+      // 2. Brief + Generation Phase (Streaming)
       const allowEmoji = EMOJI_REQUEST_PATTERN.test(customInstructions);
       const lengthIndex = LENGTH_OPTIONS.indexOf(length);
       const normalizedLength = lengthIndex === 0 ? 'short' : lengthIndex === 2 ? 'long' : 'medium';
 
+      let streamStarted = false;
       const result = await generateStructuredContentV2(
         facts,
         normalizedLength,
         tone,
         format,
-        (currentText) => setGeneratedMarkdown(currentText),
+        (currentText) => {
+          if (!streamStarted) {
+            streamStarted = true;
+            setPhase('generating');
+          }
+          setGeneratedMarkdown(currentText);
+        },
         { allowEmoji, customInstructions, signal: controller.signal }
       );
 
@@ -681,8 +694,8 @@ const CreateContent = ({
           {/* Agent Nodes */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0', justifyContent: 'center', marginBottom: '24px' }}>
             {[
-              { id: 'research', emoji: 'R', label: 'Harper Research', sub: 'Fact-checking & Web Search', active: ['researching'].includes(phase), done: ['generating', 'done'].includes(phase) },
-              { id: 'factcheck', emoji: 'F', label: 'Inspector Agent', sub: 'Cross-referencing sources', active: phase === 'researching' && thinkingStep >= 2, done: ['generating', 'done'].includes(phase) },
+              { id: 'research', emoji: 'R', label: 'Harper Research', sub: 'Fact-checking & Web Search', active: ['researching'].includes(phase), done: ['briefing', 'generating', 'done'].includes(phase) },
+              { id: 'brief', emoji: 'B', label: 'Brief Builder', sub: 'Structuring angle & tone', active: phase === 'briefing', done: ['generating', 'done'].includes(phase) },
               { id: 'writer', emoji: 'W', label: 'AI Writer', sub: 'Drafting & streaming', active: phase === 'generating', done: phase === 'done' },
             ].map((agent, i) => (
               <React.Fragment key={agent.id}>

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { startTransition, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import React, { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Search,
   Sparkles,
@@ -78,6 +78,7 @@ import UserCard from './components/UserCard';
 import ContentErrorBoundary from './components/ContentErrorBoundary';
 import SearchInlineStatus from './components/SearchInlineStatus';
 import { AI_WORKSPACES, CONTENT_TAB_LABELS } from './config/aiWorkspaces';
+import { TOPIC_TRIGGERS } from './config/topics';
 
 const deserializeWatchlist = (saved) => {
   const parsed = safeParse(saved, []);
@@ -185,17 +186,17 @@ const shouldRemoveWhenFalsy = (value) => !value;
 
 const BROAD_QUERY_BLUEPRINTS = [
   {
-    triggers: ['วงการเกม', 'เกม', 'gaming', 'games', 'videogames'],
+    triggers: TOPIC_TRIGGERS.gaming,
     entityQuery: '(Nintendo OR PlayStation OR Xbox OR Steam OR "Switch 2" OR GTA OR Pokemon OR Zelda OR Mario OR "Monster Hunter" OR "Game Awards")',
     viralQuery: '(gaming OR videogames OR Nintendo OR PlayStation OR Xbox OR Steam OR "Switch 2" OR GTA) min_faves:500',
   },
   {
-    triggers: ['ฟุตบอล', 'บอล', 'soccer', 'football'],
+    triggers: TOPIC_TRIGGERS.football,
     entityQuery: '(Premier League OR Champions League OR FIFA OR UEFA OR Arsenal OR Liverpool OR Real Madrid OR Barcelona)',
     viralQuery: '(football OR soccer OR Premier League OR Champions League OR FIFA OR UEFA) min_faves:500',
   },
   {
-    triggers: ['คริปโต', 'crypto', 'bitcoin', 'btc', 'ethereum', 'eth'],
+    triggers: TOPIC_TRIGGERS.crypto,
     entityQuery: '(Bitcoin OR BTC OR Ethereum OR ETH OR Solana OR Binance OR Coinbase OR ETF)',
     viralQuery: '(crypto OR bitcoin OR btc OR ethereum OR eth OR solana) min_faves:500',
   },
@@ -216,24 +217,24 @@ const getBroadFallbackQueries = (query = '') => {
 
   const fallbackGroups = [
     {
-      triggers: ['à¸§à¸‡à¸à¸²à¸£à¹€à¸à¸¡', 'à¹€à¸à¸¡', 'gaming', 'games', 'videogames', 'video game'],
+      triggers: TOPIC_TRIGGERS.gaming,
       queries: [
-        '(game OR gaming OR videogame OR videogames OR à¹€à¸à¸¡ OR à¸§à¸‡à¸à¸²à¸£à¹€à¸à¸¡)',
+        '(game OR gaming OR videogame OR videogames OR เกม OR วงการเกม)',
         '(Nintendo OR PlayStation OR Xbox OR Steam OR PS5 OR GTA OR Pokemon OR Zelda OR Mario OR "Monster Hunter" OR "Game Awards")',
         '(esports OR gamedev OR "game dev" OR studio OR trailer OR launch)',
       ],
     },
     {
-      triggers: ['à¸Ÿà¸¸à¸•à¸šà¸­à¸¥', 'à¸šà¸­à¸¥', 'soccer', 'football'],
+      triggers: TOPIC_TRIGGERS.football,
       queries: [
-        '(football OR soccer OR à¸Ÿà¸¸à¸•à¸šà¸­à¸¥)',
+        '(football OR soccer OR ฟุตบอล)',
         '(Premier League OR Champions League OR FIFA OR UEFA OR Arsenal OR Liverpool OR Real Madrid OR Barcelona)',
       ],
     },
     {
-      triggers: ['à¸„à¸£à¸´à¸›à¹‚à¸•', 'crypto', 'bitcoin', 'btc', 'ethereum', 'eth'],
+      triggers: TOPIC_TRIGGERS.crypto,
       queries: [
-        '(crypto OR bitcoin OR btc OR ethereum OR eth OR à¸„à¸£à¸´à¸›à¹‚à¸•)',
+        '(crypto OR bitcoin OR btc OR ethereum OR eth OR คริปโต)',
         '(Solana OR Binance OR Coinbase OR ETF OR blockchain OR web3)',
       ],
     },
@@ -370,6 +371,7 @@ const App = () => {
   // Global Background Tasks Persistence
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [genPhase, setGenPhase] = useState('idle');
+  const isSummarizingRef = useRef(false);
 
   useEffect(() => {
     if (status) {
@@ -434,11 +436,18 @@ const App = () => {
 
   const processAndSummarizeFeed = async (newBatch, statusPrefix = 'พบ') => {
     if (newBatch.length === 0) return;
-    setStatus(`${statusPrefix} ${newBatch.length} โพสต์! กำลังทยอยแปลและสรุปเป็นภาษาไทย...`);
+    if (isSummarizingRef.current) return;
+    isSummarizingRef.current = true;
+
     const CHUNK_SIZE = 10;
-    let runningFeed = [...originalFeed]; 
-    
+    const totalChunks = Math.ceil(newBatch.length / CHUNK_SIZE);
+    let runningFeed = [...originalFeed];
+
+    try {
     for (let i = 0; i < newBatch.length; i += CHUNK_SIZE) {
+      const chunkIndex = Math.floor(i / CHUNK_SIZE) + 1;
+      setStatus(`${statusPrefix} ${newBatch.length} โพสต์ — กำลังสรุป ${chunkIndex}/${totalChunks}...`);
+
       const chunk = newBatch.slice(i, i + CHUNK_SIZE);
       const toSummarize = chunk.filter(t => {
         const existing = runningFeed.find(p => p.id === t.id);
@@ -474,6 +483,9 @@ const App = () => {
         if (newItems.length > 0) return [...newItems, ...prev];
         return prev;
       });
+    }
+    } finally {
+      isSummarizingRef.current = false;
     }
   };
 
@@ -745,7 +757,7 @@ const App = () => {
 
         const initialMergedBroadData = mergeUniquePostsById(...rawDataChunks);
         if (effectiveBroadDiscoveryQuery && initialMergedBroadData.length < 8 && broadFallbackQueries.length > 0) {
-          setStatus('[Fallback] à¸¥à¸­à¸‡à¸‚à¸¢à¸²à¸¢à¸„à¸³à¸„à¹‰à¸™à¸«à¸²à¸­à¸±à¸•à¹‚à¸™à¸¡à¸±à¸•à¸´à¸”à¹‰à¸§à¸¢à¸„à¸³à¸—à¸µà¹ˆà¹ƒà¸à¸¥à¹‰à¹€à¸„à¸µà¸¢à¸‡...');
+          setStatus('[Fallback] ลองขยายคำค้นหาอัตโนมัติด้วยคำที่ใกล้เคียง...');
           const fallbackResults = await Promise.all(
             broadFallbackQueries.map((fallbackQuery, index) =>
               searchEverythingDeep(
@@ -1287,7 +1299,7 @@ const App = () => {
 
       if (sourceFeed.length === 0) {
         setFilterModal(prev => ({ ...prev, show: false, isFiltering: false }));
-        setStatus('à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µà¹‚à¸žà¸ªà¸•à¹Œà¹ƒà¸™ Watchlist Feed à¹ƒà¸«à¹‰ AI à¸à¸£à¸­à¸‡');
+        setStatus('ยังไม่มีโพสต์ใน Watchlist Feed ให้ AI กรอง');
         return;
       }
 
@@ -1493,20 +1505,20 @@ const App = () => {
                   </div>
                   <div className="mobile-only-flex home-mobile-feed-inline" style={{ alignItems: 'center', justifyContent: 'space-between', gap: '12px', width: '100%' }}>
                     <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div className="section-title">à¹‚à¸žà¸ªà¸•à¹Œà¸¥à¹ˆà¸²à¸ªà¸¸à¸"</div>
+                      <div className="section-title">โพสต์ล่าสุด</div>
                       {isFiltered && (
                         <div className="ai-filtered-badge">
                           <Sparkles size={12} className="text-accent" />
                           <span>AI FILTERED</span>
-                          <button onClick={clearAiFilter} className="ai-filtered-clear-btn" title="à¸¥à¹‰à¸²à¸‡à¸•à¸±à¸§à¸à¸£à¸­à¸‡">
+                          <button onClick={clearAiFilter} className="ai-filtered-clear-btn" title="ล้างตัวกรอง">
                             <X size={12} />
                           </button>
                         </div>
                       )}
                     </div>
                     <div className="feed-section-filters" style={{ display: 'flex', gap: '8px' }}>
-                      <button onClick={() => handleSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`}>à¸¢à¸­à¸"à¸§à¸´à¸§</button>
-                      <button onClick={() => handleSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`}>à¹€à¸­à¸™à¹€à¸à¸ˆà¹€à¸¡à¸™à¸•à¹Œ</button>
+                      <button onClick={() => handleSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`}>ยอดวิว</button>
+                      <button onClick={() => handleSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`}>เอนเกจเมนต์</button>
                     </div>
                   </div>
                   <div className="home-ai-filter-cluster">
@@ -1654,7 +1666,7 @@ const App = () => {
           {/* ===== UNIFIED CONTENT VIEW ===== */}
           <div className="unified-content-view animate-fade-in" style={{ display: activeView === 'content' ? 'block' : 'none' }}>
             <div style={{ fontSize: '11px', fontWeight: '800', letterSpacing: '0.08em', color: 'var(--accent-secondary)', marginBottom: '12px' }}>
-              {AI_WORKSPACES.langGraph.role} role | {CONTENT_TAB_LABELS[contentTab]}
+              {AI_WORKSPACES.langGraph.role} | {CONTENT_TAB_LABELS[contentTab]}
             </div>
             <div className="content-view-tabs content-view-tabs-hero">
               <button className={`btn-pill content-view-tab-btn ${contentTab === 'search' ? 'primary' : ''}`} onClick={() => setContentTab('search')}>
@@ -1810,7 +1822,7 @@ const App = () => {
                     )}
                     {shouldInlineSearchStatus && (
                       <SearchInlineStatus
-                        badge={isSearching ? `${AI_WORKSPACES.langGraph.role} role` : `${AI_WORKSPACES.langChain.role} role`}
+                        badge={isSearching ? AI_WORKSPACES.langGraph.role : AI_WORKSPACES.langChain.role}
                         message={searchStatusMessage}
                         hint={
                           isSearching
