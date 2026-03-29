@@ -22,4 +22,5 @@ export const STORAGE_KEYS = {
   aiSearchLoading: 'foro_ai_search_loading_v1',
   isGeneratingContent: 'foro_is_generating_content_v1',
   quickFilterPresets: 'foro_quick_filter_presets_v1',
+  quickFilterVisiblePresets: 'foro_quick_filter_visible_presets_v1',
 };

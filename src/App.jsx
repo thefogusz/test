@@ -347,6 +347,10 @@ const App = () => {
   const [filterModal, setFilterModal] = useState({ show: false, prompt: '' });
   const DEFAULT_QUICK_PRESETS = ['สรุป', 'หาโพสต์เด่น', 'โพสต์ไหนน่าทำคอนเทนต์'];
   const [quickFilterPresets, setQuickFilterPresets] = usePersistentState(STORAGE_KEYS.quickFilterPresets, DEFAULT_QUICK_PRESETS);
+  const [quickFilterVisiblePresets, setQuickFilterVisiblePresets] = usePersistentState(
+    STORAGE_KEYS.quickFilterVisiblePresets,
+    DEFAULT_QUICK_PRESETS.slice(0, 3),
+  );
   const [readFilters, setReadFilters] = useState({ view: false, engagement: false });
 
   const [audienceTab, setAudienceTab] = usePersistentState(STORAGE_KEYS.audienceTab, 'ai');
@@ -1293,6 +1297,7 @@ const App = () => {
 
   const removeQuickPreset = (preset) => {
     setQuickFilterPresets(prev => prev.filter(p => p !== preset));
+    setQuickFilterVisiblePresets(prev => prev.filter(p => p !== preset));
   };
 
   const addQuickPreset = (preset) => {
@@ -1300,6 +1305,33 @@ const App = () => {
     if (!trimmed) return;
     setQuickFilterPresets(prev => prev.includes(trimmed) ? prev : [...prev, trimmed]);
   };
+
+  const toggleVisibleQuickPreset = (preset) => {
+    setQuickFilterVisiblePresets((prev) => {
+      if (prev.includes(preset)) {
+        return prev.filter((item) => item !== preset);
+      }
+      if (prev.length >= 3) {
+        return prev;
+      }
+      return [...prev, preset];
+    });
+  };
+
+  const visibleQuickPresets = useMemo(
+    () => quickFilterVisiblePresets.filter((preset) => quickFilterPresets.includes(preset)).slice(0, 3),
+    [quickFilterPresets, quickFilterVisiblePresets],
+  );
+
+  useEffect(() => {
+    setQuickFilterVisiblePresets((prev) => {
+      const next = prev.filter((preset) => quickFilterPresets.includes(preset)).slice(0, 3);
+      if (next.length === prev.length && next.every((preset, index) => preset === prev[index])) {
+        return prev;
+      }
+      return next;
+    });
+  }, [quickFilterPresets, setQuickFilterVisiblePresets]);
 
   const clearAiFilter = () => {
     setIsFiltered(false);
@@ -1451,9 +1483,9 @@ const App = () => {
                     </div>
                   </div>
                   <div className="home-ai-filter-cluster">
-                    {feed.length > 0 && !isFiltered && quickFilterPresets.length > 0 && (
+                    {feed.length > 0 && !isFiltered && visibleQuickPresets.length > 0 && (
                       <div className="home-ai-quick-presets">
-                        {quickFilterPresets.map(preset => (
+                        {visibleQuickPresets.map(preset => (
                           <div key={preset} className="home-ai-quick-chip">
                             <button
                               onClick={() => handleAiFilter(preset)}
@@ -1476,7 +1508,6 @@ const App = () => {
                     {feed.length > 0 && !isFiltered && quickFilterPresets.length > 0 && (
                       <div className="home-ai-connector">
                         <div className="home-ai-connector-line" />
-                        <Sparkles size={9} className="home-ai-connector-icon" />
                       </div>
                     )}
                     <button
@@ -2433,55 +2464,90 @@ const App = () => {
 
       {filterModal.show && (
         <div className="modal-overlay" onClick={() => !filterModal.isFiltering && setFilterModal({ ...filterModal, show: false })}>
-          <div className="modal-content ai-filter-modal animate-fade-in" onClick={e => e.stopPropagation()}>
-            <div className="ai-filter-modal-header">
-              <div className="ai-filter-modal-icon"><Sparkles size={16} /></div>
-              <div>
-                <div className="modal-title">AI Smart Filter</div>
-                <div className="ai-filter-modal-hint">บอก AI ว่าอยากหาอะไรในฟีดนี้</div>
+            <div className="modal-content ai-filter-modal animate-fade-in" onClick={e => e.stopPropagation()}>
+              <div className="ai-filter-modal-header">
+                <div className="ai-filter-modal-icon"><Sparkles size={16} /></div>
+                <div>
+                  <div className="modal-title">AI Smart Filter</div>
+                  <div className="ai-filter-modal-hint">บอก AI ว่าอยากหาอะไรในฟีดนี้</div>
+                </div>
               </div>
-            </div>
-            <textarea
-              className="modal-input ai-filter-input"
-              autoFocus
-              disabled={filterModal.isFiltering}
-              placeholder="เช่น AI ที่มี engagement สูง"
-              value={filterModal.prompt}
-              onChange={e => setFilterModal({ ...filterModal, prompt: e.target.value })}
-            />
-            {filterModal.prompt.trim() && !quickFilterPresets.includes(filterModal.prompt.trim()) && (
-              <button
-                type="button"
-                className="ai-filter-save-preset-btn"
-                onClick={() => addQuickPreset(filterModal.prompt)}
-              >
-                <Plus size={12} /> บันทึกเป็น Preset
-              </button>
-            )}
-            <div className="modal-actions">
-              <button
-                className="modal-btn modal-btn-secondary"
+              {quickFilterPresets.length > 0 && (
+                <div className="ai-filter-presets">
+                  {quickFilterPresets.map((preset) => (
+                    <div key={preset} className="ai-filter-modal-preset-chip">
+                      <button
+                        type="button"
+                        className={`ai-filter-preset-btn ${filterModal.prompt === preset ? 'active' : ''}`}
+                        disabled={filterModal.isFiltering}
+                        onClick={() => setFilterModal({ ...filterModal, prompt: preset })}
+                      >
+                        {preset}
+                      </button>
+                      <button
+                        type="button"
+                        className="ai-filter-preset-remove-btn"
+                        disabled={filterModal.isFiltering}
+                        onClick={() => removeQuickPreset(preset)}
+                        title="ลบ preset"
+                      >
+                        <X size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        className={`ai-filter-preset-visibility-btn ${quickFilterVisiblePresets.includes(preset) ? 'active' : ''}`}
+                        disabled={filterModal.isFiltering || (!quickFilterVisiblePresets.includes(preset) && visibleQuickPresets.length >= 3)}
+                        onClick={() => toggleVisibleQuickPreset(preset)}
+                        title={quickFilterVisiblePresets.includes(preset) ? 'ซ่อนจากหน้าข่าววันนี้' : 'แสดงบนหน้าข่าววันนี้'}
+                      >
+                        {quickFilterVisiblePresets.includes(preset) ? 'ซ่อน' : 'โชว์'}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="ai-filter-visible-hint">เลือก preset ไปโชว์บนหน้าข่าววันนี้ได้สูงสุด 3 อัน</div>
+              <textarea
+                className="modal-input ai-filter-input"
+                autoFocus
                 disabled={filterModal.isFiltering}
-                onClick={() => setFilterModal({ ...filterModal, show: false })}
-              >
-                ยกเลิก
-              </button>
-              <button
-                className="modal-btn modal-btn-primary"
-                onClick={() => handleAiFilter()}
-                disabled={filterModal.isFiltering || !filterModal.prompt.trim()}
-                style={{ position: 'relative', overflow: 'hidden' }}
-              >
-                {filterModal.isFiltering ? (
-                  <>
-                    <RefreshCw size={16} className="animate-spin" />
-                    <span>กำลังวิเคราะห์...</span>
-                  </>
-                ) : (
-                  <>กรองฟีด</>
-                )}
-              </button>
-            </div>
+                placeholder="เช่น AI ที่มี engagement สูง"
+                value={filterModal.prompt}
+                onChange={e => setFilterModal({ ...filterModal, prompt: e.target.value })}
+              />
+              {filterModal.prompt.trim() && !quickFilterPresets.includes(filterModal.prompt.trim()) && (
+                <button
+                  type="button"
+                  className="ai-filter-save-preset-btn"
+                  onClick={() => addQuickPreset(filterModal.prompt)}
+                >
+                  <Plus size={12} /> บันทึกเป็น Preset
+                </button>
+              )}
+              <div className="modal-actions">
+                <button
+                  className="modal-btn modal-btn-secondary"
+                  disabled={filterModal.isFiltering}
+                  onClick={() => setFilterModal({ ...filterModal, show: false })}
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  className="modal-btn modal-btn-primary"
+                  onClick={() => handleAiFilter()}
+                  disabled={filterModal.isFiltering || !filterModal.prompt.trim()}
+                  style={{ position: 'relative', overflow: 'hidden' }}
+                >
+                  {filterModal.isFiltering ? (
+                    <>
+                      <RefreshCw size={16} className="animate-spin" />
+                      <span>กำลังวิเคราะห์...</span>
+                    </>
+                  ) : (
+                    <>กรองฟีด</>
+                  )}
+                </button>
+              </div>
           </div>
         </div>
       )}
