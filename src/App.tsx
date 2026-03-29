@@ -54,7 +54,7 @@ import {
   analyzeSearchQueryIntent,
   clusterBySimilarity
 } from './services/TwitterService';
-import { agentFilterFeed, buildSearchPlan, discoverTopExperts, expandSearchQuery, generateExecutiveSummary, generateGrokBatch, tavilySearch } from './services/GrokService';
+import { agentFilterFeed, buildSearchPlan, discoverTopExperts, expandSearchQuery, generateExecutiveSummary, generateGrokBatch, generateGrokSummary, tavilySearch } from './services/GrokService';
 import { renderMarkdownToHtml } from './utils/markdown';
 import './index.css';
 import { STORAGE_KEYS } from './constants/storageKeys';
@@ -372,6 +372,8 @@ const App = () => {
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [genPhase, setGenPhase] = useState('idle');
   const isSummarizingRef = useRef(false);
+  const isBackfillingThaiRef = useRef(false);
+  const failedThaiSummaryIdsRef = useRef(new Set());
 
   useEffect(() => {
     if (status) {
@@ -434,6 +436,76 @@ const App = () => {
     }));
   }, [activeListId, originalFeed, activeView, postLists, watchlist, isFiltered, activeFilters]);
 
+  const translatePostsToThai = async (posts = []) => {
+    if (!posts.length) return [];
+
+    const batchSummaries = await generateGrokBatch(posts.map((post) => post.text));
+
+    return Promise.all(
+      posts.map(async (post, idx) => {
+        const batchSummary = batchSummaries[idx] || '';
+        if (hasUsefulThaiSummary(batchSummary, post.text)) {
+          failedThaiSummaryIdsRef.current.delete(post.id);
+          return { ...post, summary: batchSummary };
+        }
+
+        try {
+          const retrySummary = await generateGrokSummary(post.text);
+          if (hasUsefulThaiSummary(retrySummary, post.text)) {
+            failedThaiSummaryIdsRef.current.delete(post.id);
+            return { ...post, summary: retrySummary };
+          }
+        } catch (retryError) {
+          console.warn('[Thai Summary Retry Failed]', retryError);
+        }
+
+        failedThaiSummaryIdsRef.current.add(post.id);
+        return post;
+      }),
+    );
+  };
+
+  useEffect(() => {
+    const candidates = originalFeed
+      .filter((post) => post?.id && !hasUsefulThaiSummary(post.summary, post.text) && !failedThaiSummaryIdsRef.current.has(post.id))
+      .slice(0, 6);
+
+    if (!candidates.length || isSummarizingRef.current || isBackfillingThaiRef.current) return undefined;
+
+    const timer = setTimeout(async () => {
+      isBackfillingThaiRef.current = true;
+      try {
+        const translatedPosts = await translatePostsToThai(candidates);
+        const translatedSummaryMap = new Map(
+          translatedPosts
+            .filter((post) => hasUsefulThaiSummary(post.summary, post.text))
+            .map((post) => [post.id, post.summary]),
+        );
+
+        if (!translatedSummaryMap.size) return;
+
+        setOriginalFeed((prev) =>
+          prev.map((post) => (
+            translatedSummaryMap.has(post.id)
+              ? { ...post, summary: translatedSummaryMap.get(post.id) }
+              : post
+          )),
+        );
+        setReadArchive((prev) =>
+          prev.map((post) => (
+            translatedSummaryMap.has(post.id)
+              ? { ...post, summary: translatedSummaryMap.get(post.id) }
+              : post
+          )),
+        );
+      } finally {
+        isBackfillingThaiRef.current = false;
+      }
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [originalFeed, setOriginalFeed, setReadArchive]);
+
   const processAndSummarizeFeed = async (newBatch, statusPrefix = 'พบ') => {
     if (newBatch.length === 0) return;
     if (isSummarizingRef.current) return;
@@ -455,10 +527,17 @@ const App = () => {
       });
 
       if (toSummarize.length > 0) {
-        const batchTexts = toSummarize.map(t => t.text);
-        const summaries = await generateGrokBatch(batchTexts);
-        toSummarize.forEach((post, idx) => {
-          post.summary = summaries[idx] || post.text;
+        const translatedPosts = await translatePostsToThai(toSummarize);
+        const translatedSummaryMap = new Map(
+          translatedPosts
+            .filter((post) => hasUsefulThaiSummary(post.summary, post.text))
+            .map((post) => [post.id, post.summary]),
+        );
+
+        toSummarize.forEach((post) => {
+          if (translatedSummaryMap.has(post.id)) {
+            post.summary = translatedSummaryMap.get(post.id);
+          }
         });
       }
 
