@@ -2316,6 +2316,7 @@ const App = () => {
             <header className="dashboard-header">
                 <h1 style={{ fontSize: '32px', fontWeight: '800', lineHeight: '1.4', color: activeListId ? (postLists.find(l => l.id === activeListId)?.color || 'inherit') : 'inherit' }}>Bookmarks</h1>
                 <p style={{ color: 'var(--text-muted)' }}>คลังข้อมูลที่คุณบันทึกไว้แยกตามประเภท</p>
+                {activeListId && <div className="active-list-pills">กำลังกรองตาม: {postLists.find(l => l.id === activeListId)?.name}</div>}
               </header>
 
               <div className="bookmark-tabs">
