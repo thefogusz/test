@@ -1227,6 +1227,12 @@ const App = () => {
     setQuickFilterPresets(prev => prev.filter(p => p !== preset));
   };
 
+  const addQuickPreset = (preset) => {
+    const trimmed = preset.trim();
+    if (!trimmed) return;
+    setQuickFilterPresets(prev => prev.includes(trimmed) ? prev : [...prev, trimmed]);
+  };
+
   const clearAiFilter = () => {
     setIsFiltered(false);
     setAiFilterSummary('');
@@ -2311,30 +2317,39 @@ const App = () => {
               </div>
             </div>
             <textarea
-              className="modal-input ai-filter-input"
+              className=”modal-input ai-filter-input”
               autoFocus
               disabled={filterModal.isFiltering}
-              placeholder="หรือพิมพ์เองได้เลย เช่น “หาโพสต์ที่เกี่ยวกับ AI และมี engagement สูง”"
+              placeholder=”เช่น “หาโพสต์ที่เกี่ยวกับ AI และมี engagement สูง””
               value={filterModal.prompt}
               onChange={e => setFilterModal({ ...filterModal, prompt: e.target.value })}
             />
-            <div className="modal-actions">
+            {filterModal.prompt.trim() && !quickFilterPresets.includes(filterModal.prompt.trim()) && (
               <button
-                className="modal-btn modal-btn-secondary"
+                type=”button”
+                className=”ai-filter-save-preset-btn”
+                onClick={() => addQuickPreset(filterModal.prompt)}
+              >
+                <Plus size={12} /> บันทึกเป็น Preset
+              </button>
+            )}
+            <div className=”modal-actions”>
+              <button
+                className=”modal-btn modal-btn-secondary”
                 disabled={filterModal.isFiltering}
                 onClick={() => setFilterModal({ ...filterModal, show: false })}
               >
                 ยกเลิก
               </button>
               <button
-                className="modal-btn modal-btn-primary"
+                className=”modal-btn modal-btn-primary”
                 onClick={handleAiFilter}
                 disabled={filterModal.isFiltering || !filterModal.prompt.trim()}
                 style={{ position: 'relative', overflow: 'hidden' }}
               >
                 {filterModal.isFiltering ? (
                   <>
-                    <RefreshCw size={16} className="animate-spin" />
+                    <RefreshCw size={16} className=”animate-spin” />
                     <span>กำลังวิเคราะห์...</span>
                   </>
                 ) : (

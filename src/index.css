@@ -3421,6 +3421,32 @@ h1, h2, h3, h4, h5, h6 {
   resize: none !important;
   padding: 14px 16px !important;
   font-size: 13px !important;
+  margin-bottom: 8px !important;
+}
+
+.ai-filter-save-preset-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  margin-bottom: 20px;
+  transition: all 0.15s ease;
+  width: 100%;
+  justify-content: center;
+}
+
+.ai-filter-save-preset-btn:hover {
+  border-color: rgba(41, 151, 255, 0.3);
+  color: rgba(41, 151, 255, 0.8);
+  background: rgba(41, 151, 255, 0.04);
 }
 
 .modal-input {
