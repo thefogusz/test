@@ -2139,7 +2139,7 @@ const App = () => {
                         <input type="text" placeholder="ฉันอยากติดตามเรื่องเทคโนโลยี AI..." value={aiQuery} onChange={e => setAiQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAiSearchAudience()} style={{ background: 'transparent', border: 'none', color: '#fff', flex: 1, fontSize: '14px', outline: 'none' }} />
                       </div>
                       <button onClick={() => handleAiSearchAudience()} disabled={aiSearchLoading} className="btn-sync-premium" style={{ height: '48px', padding: '0 24px' }}>
-                        {aiSearchLoading ? <RefreshCw size={15} className="animate-spin" /> : 'SEARCH →'}
+                        {aiSearchLoading ? <RefreshCw size={15} className="animate-spin" /> : 'ค้นหา'}
                       </button>
                     </div>
 

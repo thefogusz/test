@@ -1962,6 +1962,7 @@ h1, h2, h3, h4, h5, h6 {
 
   .dashboard-header-home {
     gap: 16px !important;
+    margin-bottom: 12px !important;
   }
 
   .dashboard-header-top {
@@ -2057,7 +2058,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .home-feed-toolbar {
-    padding: 4px 0 0 !important;
+    padding: 0 !important;
     border-radius: 0;
   }
 
@@ -2088,6 +2089,22 @@ h1, h2, h3, h4, h5, h6 {
   .reader-header {
     padding-bottom: 10px;
     margin-bottom: 12px;
+  }
+
+  .reader-header-top {
+    position: relative;
+    align-items: flex-start !important;
+  }
+
+  .reader-header-copy {
+    width: 100%;
+    padding-right: 64px;
+  }
+
+  .reader-header-top .mobile-only-flex.icon-btn-large {
+    position: absolute;
+    right: 0;
+    top: 0;
   }
 
   .reader-search-shell {
