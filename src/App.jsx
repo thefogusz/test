@@ -882,10 +882,7 @@ const App = () => {
     ...originalFeed.slice(0, 12),
     ...readArchive.slice(0, 12),
   ]);
-  const interestSeedLabels = [
-    ...postLists.map((list) => normalizeSearchLabel(list?.name)),
-    ...feedInterestLabels,
-  ].filter(Boolean);
+  const interestSeedLabels = [...feedInterestLabels].filter(Boolean);
   const dynamicSearchTags = [
     ...searchPresets.map((label) => ({ label, source: 'preset' })),
     ...searchHistoryLabels
