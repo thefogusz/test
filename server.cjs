@@ -33,7 +33,6 @@ const TWITTER_API_KEY = process.env.TWITTER_API_KEY;
 const XAI_API_KEY = process.env.XAI_API_KEY;
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 const INTERNAL_API_SECRET = process.env.INTERNAL_API_SECRET;
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
 app.use(express.json({ limit: '5mb' }));
 
@@ -134,94 +133,6 @@ app.post('/api/tavily/search', async (req, res) => {
   } catch (error) {
     console.error('[server] Tavily proxy error:', error);
     res.status(502).json({ error: 'Failed to reach Tavily' });
-  }
-});
-
-// ── YouTube: Video details (stats + snippet) — 1 quota unit per call ──
-app.get('/api/youtube/videos', async (req, res) => {
-  if (!YOUTUBE_API_KEY) return res.status(501).json({ error: 'YouTube API not configured', items: [] });
-  const { id } = req.query;
-  if (!id) return res.status(400).json({ error: 'Missing id param', items: [] });
-  try {
-    const params = new URLSearchParams({ part: 'snippet,statistics,contentDetails', id, key: YOUTUBE_API_KEY });
-    const upstream = await fetch(`https://www.googleapis.com/youtube/v3/videos?${params}`, {
-      signal: AbortSignal.timeout(10000),
-    });
-    const text = await upstream.text();
-    res.status(upstream.status).type('application/json').send(text);
-  } catch (err) {
-    console.error('[server] YouTube videos error:', err.message);
-    res.status(502).json({ error: 'YouTube videos request failed', items: [] });
-  }
-});
-
-// ── YouTube: Transcript via web scraping — zero API quota ──
-app.get('/api/youtube/transcript/:videoId', async (req, res) => {
-  const { videoId } = req.params;
-  try {
-    const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-      signal: AbortSignal.timeout(15000),
-    });
-
-    if (!pageRes.ok) return res.json({ transcript: null, error: 'Could not fetch video page' });
-
-    const html = await pageRes.text();
-
-    // Extract video title
-    const titleMatch = html.match(/<title>(.+?) - YouTube<\/title>/);
-    const title = titleMatch ? titleMatch[1] : '';
-
-    // Locate captionTracks array inside embedded JSON
-    const captionStart = html.indexOf('"captionTracks":');
-    if (captionStart === -1) return res.json({ transcript: null, title, error: 'No captions available' });
-
-    const arrStart = html.indexOf('[', captionStart);
-    if (arrStart === -1) return res.json({ transcript: null, title, error: 'Invalid caption format' });
-
-    let depth = 0, arrEnd = -1;
-    for (let i = arrStart; i < Math.min(arrStart + 80000, html.length); i++) {
-      if (html[i] === '[') depth++;
-      else if (html[i] === ']') { depth--; if (depth === 0) { arrEnd = i; break; } }
-    }
-    if (arrEnd === -1) return res.json({ transcript: null, title, error: 'Could not parse captions' });
-
-    let captionTracks;
-    try { captionTracks = JSON.parse(html.substring(arrStart, arrEnd + 1)); } catch {
-      return res.json({ transcript: null, title, error: 'Failed to parse caption JSON' });
-    }
-
-    if (!Array.isArray(captionTracks) || !captionTracks.length) {
-      return res.json({ transcript: null, title, error: 'No caption tracks found' });
-    }
-
-    // Prefer English auto-generated, then English manual, then first available
-    const track = captionTracks.find(t => t.languageCode === 'en' && t.kind === 'asr')
-      || captionTracks.find(t => t.languageCode === 'en')
-      || captionTracks[0];
-
-    if (!track?.baseUrl) return res.json({ transcript: null, title, error: 'No valid caption URL' });
-
-    const transcriptRes = await fetch(`${track.baseUrl}&fmt=json3`, {
-      signal: AbortSignal.timeout(10000),
-    });
-    if (!transcriptRes.ok) return res.json({ transcript: null, title, error: 'Failed to fetch transcript content' });
-
-    const data = await transcriptRes.json();
-    const text = (data.events || [])
-      .filter(e => e.segs)
-      .map(e => e.segs.map(s => s.utf8 || '').join(''))
-      .join(' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-
-    res.json({ transcript: text || null, title, lang: track.languageCode });
-  } catch (err) {
-    console.error('[server] YouTube transcript error:', err.message);
-    res.status(502).json({ transcript: null, error: 'Failed to fetch transcript' });
   }
 });
 
