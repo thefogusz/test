@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, Bookmark, ExternalLink, RefreshCw } from 'lucide-react';
+import { Sparkles, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, Bookmark, ExternalLink, RefreshCw, Youtube } from 'lucide-react';
 import { researchAndPreventHallucination, generateStructuredContentV2 } from '../services/GrokService';
+import { enrichYouTubeUrl } from '../services/YouTubeService';
 import { renderMarkdownToHtml } from '../utils/markdown';
 
 const THINKING_PHASES = {
@@ -43,7 +44,9 @@ const safeMarkdown = (text) => {
 };
 
 const buildAttachedTweetUrl = (sourceNode) => {
-  if (!sourceNode?.id) return '';
+  if (!sourceNode) return '';
+  if (sourceNode.url) return sourceNode.url; // YouTube or any source with explicit URL
+  if (!sourceNode.id) return '';
   const username = sourceNode.author?.username || 'i';
   return `https://x.com/${username}/status/${sourceNode.id}`;
 };
@@ -249,6 +252,9 @@ const CreateContent = ({
   const [thinkingStep, setThinkingStep] = useState(0);
   const abortRef = useRef(null);
   const activeFormatHint = FORMAT_HINTS[format] || FORMAT_HINTS['โพสต์โซเชียล'];
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [youtubeLoading, setYoutubeLoading] = useState(false);
+  const [youtubeSourceNode, setYoutubeSourceNode] = useState(null);
 
   useEffect(() => {
     if (!isGenerating) { setThinkingStep(0); return; }
@@ -275,9 +281,22 @@ const CreateContent = ({
     }
   };
 
+  const handleYoutubeLoad = async (url) => {
+    setYoutubeLoading(true);
+    try {
+      const node = await enrichYouTubeUrl(url);
+      if (node) setYoutubeSourceNode(node);
+    } catch (err) {
+      console.error('[CreateContent] YouTube enrichment error:', err);
+    } finally {
+      setYoutubeLoading(false);
+      setYoutubeUrl('');
+    }
+  };
+
   const handleGenerate = async () => {
     const isManualInputValid = input.trim().length > 0;
-    const hasSource = !!sourceNode;
+    const hasSource = !!sourceNode || !!youtubeSourceNode;
 
     if (!isManualInputValid && !hasSource) return;
 
@@ -312,6 +331,19 @@ const CreateContent = ({
         if (!researchPrompt) {
           researchPrompt = sourceUrl || originalText || sourceLabel;
         }
+      }
+
+      if (youtubeSourceNode) {
+        const ytText = (youtubeSourceNode.text || '').slice(0, 8000);
+        factIntel += [
+          '[YOUTUBE VIDEO TRANSCRIPT]',
+          `Title: ${youtubeSourceNode.title}`,
+          `Channel: ${youtubeSourceNode.author?.name || ''}`,
+          `URL: ${youtubeSourceNode.url}`,
+          ytText ? `Transcript:\n${ytText}` : '',
+        ].filter(Boolean).join('\n') + '\n\n';
+
+        if (!researchPrompt) researchPrompt = youtubeSourceNode.title || youtubeSourceNode.url;
       }
 
       // 1. Research Phase
@@ -522,6 +554,72 @@ const CreateContent = ({
             >
               <X size={18} />
             </button>
+          </div>
+        )}
+
+        {/* YouTube Source Node Display */}
+        {youtubeSourceNode && (
+          <div style={{
+            background: 'linear-gradient(90deg, rgba(255,50,50,0.08), transparent)',
+            borderBottom: '1px solid var(--glass-border)',
+            padding: '14px 24px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            animation: 'fadeIn 0.3s ease-out',
+          }}>
+            <div style={{ display: 'flex', gap: '14px', alignItems: 'center', minWidth: 0 }}>
+              {youtubeSourceNode.thumbnail && (
+                <img src={youtubeSourceNode.thumbnail} alt="" style={{ width: '72px', height: '40px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }} />
+              )}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '11px', fontWeight: '700', color: '#ff5555', letterSpacing: '0.05em', marginBottom: '3px' }}>
+                  YouTube Transcript แนบแล้ว
+                </div>
+                <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {youtubeSourceNode.title}
+                </div>
+                {youtubeSourceNode.text && (
+                  <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginTop: '2px' }}>
+                    {youtubeSourceNode.text.length.toLocaleString()} ตัวอักษร
+                  </div>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => setYoutubeSourceNode(null)}
+              className="icon-hover"
+              style={{ padding: '8px', color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '8px', cursor: 'pointer', flexShrink: 0 }}
+              onMouseOver={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
+              onMouseOut={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
+        {/* YouTube URL Input — shown when no source attached */}
+        {!sourceNode && !youtubeSourceNode && (
+          <div style={{ padding: '10px 24px', borderBottom: '1px solid rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Youtube size={14} style={{ color: '#ff5555', flexShrink: 0 }} />
+            <input
+              type="text"
+              placeholder="วาง YouTube URL เพื่อดึง Transcript อัตโนมัติ..."
+              value={youtubeUrl}
+              onChange={e => setYoutubeUrl(e.target.value)}
+              disabled={isGenerating || youtubeLoading}
+              style={{ flex: 1, background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.6)', fontSize: '13px', outline: 'none', fontFamily: 'inherit' }}
+              onKeyDown={e => { if (e.key === 'Enter' && youtubeUrl.trim()) handleYoutubeLoad(youtubeUrl.trim()); }}
+            />
+            {youtubeLoading && <Loader2 size={14} style={{ color: 'var(--text-dim)', animation: 'spin 1s linear infinite', flexShrink: 0 }} />}
+            {!youtubeLoading && youtubeUrl.trim() && (
+              <button
+                onClick={() => handleYoutubeLoad(youtubeUrl.trim())}
+                style={{ background: 'rgba(255,50,50,0.15)', border: '1px solid rgba(255,85,85,0.3)', borderRadius: '8px', color: '#ff6666', padding: '4px 12px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', flexShrink: 0 }}
+              >
+                โหลด
+              </button>
+            )}
           </div>
         )}
 

@@ -42,6 +42,7 @@ import Sidebar from './components/Sidebar';
 import RightSidebar from './components/RightSidebar';
 import HomeCanvas from './components/HomeCanvas';
 import FeedCard from './components/FeedCard';
+import YouTubeCard from './components/YouTubeCard';
 import CreateContent from './components/CreateContent';
 import {
   getUserInfo,
@@ -54,6 +55,7 @@ import {
   clusterBySimilarity
 } from './services/TwitterService';
 import { agentFilterFeed, buildSearchPlan, discoverTopExperts, expandSearchQuery, generateExecutiveSummary, generateGrokBatch, tavilySearch } from './services/GrokService';
+import { extractYouTubeFromTavily } from './services/YouTubeService';
 import { renderMarkdownToHtml } from './utils/markdown';
 import './index.css';
 import { STORAGE_KEYS } from './constants/storageKeys';
@@ -676,6 +678,12 @@ const App = () => {
           entitySearchPromise,
           viralSearchPromise,
         ]);
+
+        // Extract YouTube cards from Tavily results (zero YouTube search quota — Tavily already ran)
+        // Run in background while X results are being processed below
+        const ytPromise = (webData?.results?.length)
+          ? extractYouTubeFromTavily(webData.results).catch(() => [])
+          : Promise.resolve([]);
         
         if (exactResult.data && exactResult.data.length > 0) rawDataChunks.push(exactResult.data);
         if (broadResult.data && broadResult.data.length > 0) rawDataChunks.push(broadResult.data);
@@ -793,11 +801,27 @@ const App = () => {
                 citation_id: tweet.citation_id || `[F${index + 1}]`,
               }));
         }
-        const nextResults = effectiveBroadDiscoveryQuery
+        const xResults = effectiveBroadDiscoveryQuery
           ? cleanData
           : isMore
             ? mergeUniquePostsById(searchResults, cleanData)
             : cleanData;
+
+        // Await YouTube cards (ran in background during X processing) — interleave if any
+        const ytItems = await ytPromise;
+        const nextResults = (() => {
+          if (!ytItems.length) return xResults;
+          const mixed = [];
+          let ytIdx = 0;
+          xResults.forEach((item, i) => {
+            mixed.push(item);
+            // Insert 1 YouTube card after every 3 X cards
+            if ((i + 1) % 3 === 0 && ytIdx < ytItems.length) mixed.push(ytItems[ytIdx++]);
+          });
+          // Append any remaining YouTube cards
+          while (ytIdx < ytItems.length) mixed.push(ytItems[ytIdx++]);
+          return mixed;
+        })();
         setSearchResults(nextResults);
         setSearchOverflowResults(effectiveBroadDiscoveryQuery ? nextOverflowResults : []);
         setSearchCursor(meta.next_cursor);
@@ -1826,7 +1850,10 @@ const App = () => {
                       </div>
                     )}
                     <div className="feed-grid">
-                      {searchResults.map((item, idx) => <FeedCard key={item.id || idx} tweet={item} onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }} />)}
+                      {searchResults.map((item, idx) => item.source === 'youtube'
+                        ? <YouTubeCard key={item.id || idx} video={item} onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }} />
+                        : <FeedCard key={item.id || idx} tweet={item} onArticleGen={(it) => { setCreateContentSource(it); setActiveView('content'); setTimeout(() => setContentTab('create'), 0); }} />
+                      )}
                     </div>
                     {(searchOverflowResults.length > 0 || searchCursor) && !isSearching && (
                       <div style={{ textAlign: 'center', marginTop: '32px', paddingBottom: '40px' }}>
