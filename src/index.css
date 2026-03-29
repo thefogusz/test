@@ -1791,6 +1791,10 @@ h1, h2, h3, h4, h5, h6 {
     margin: 0 auto !important;
   }
 
+  .nav-item-spinner {
+    display: none !important;
+  }
+
   /* Main Feed Full Width */
   .foro-main {
     width: 100% !important;
@@ -1837,34 +1841,39 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .feed-card-footer {
-    flex-direction: column;
-    align-items: stretch !important;
-    justify-content: flex-start;
-    gap: 12px;
+    flex-direction: row;
+    align-items: center !important;
+    justify-content: space-between;
+    gap: 10px;
   }
 
   .feed-card-stats {
-    flex: 0 1 auto;
+    flex: 1 1 auto;
     min-width: 0;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 10px !important;
     justify-content: flex-start;
   }
 
   .feed-card-stats-group {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     min-width: 0;
   }
 
   .feed-card-actions {
     flex: 0 0 auto;
-    width: 100%;
-    margin-left: 0;
+    width: auto;
+    margin-left: auto;
   }
 
   .feed-card-inline-action {
     justify-content: center;
-    width: 100%;
+    width: auto;
+    max-width: 100%;
+    padding: 0 14px !important;
+    height: 34px;
+    font-size: 11px;
+    white-space: nowrap;
   }
 
   .dashboard-header h1 {

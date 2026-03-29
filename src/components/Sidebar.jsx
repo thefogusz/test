@@ -21,7 +21,7 @@ const Sidebar = ({ activeView, onNavClick, backgroundTasks = {} }) => {
         >
           <Home size={24} fill={activeView === 'home' || !activeView ? "currentColor" : "none"} />
           <span className="nav-text">ข่าววันนี้</span>
-          {backgroundTasks.syncing && <RefreshCw size={14} className="animate-spin" style={{ marginLeft: 'auto', color: 'var(--accent-secondary)' }} />}
+          {backgroundTasks.syncing && <RefreshCw size={14} className="animate-spin nav-item-spinner" style={{ marginLeft: 'auto', color: 'var(--accent-secondary)' }} />}
         </button>
         <button 
           className={`nav-item ${activeView === 'content' ? 'active' : ''}`}
@@ -29,7 +29,7 @@ const Sidebar = ({ activeView, onNavClick, backgroundTasks = {} }) => {
         >
           <PenTool size={24} />
           <span className="nav-text">คอนเทนต์</span>
-          {(backgroundTasks.generating || backgroundTasks.searching) && <Loader2 size={14} className="animate-spin" style={{ marginLeft: 'auto', color: 'var(--accent-secondary)' }} />}
+          {(backgroundTasks.generating || backgroundTasks.searching) && <Loader2 size={14} className="animate-spin nav-item-spinner" style={{ marginLeft: 'auto', color: 'var(--accent-secondary)' }} />}
         </button>
         <button 
           className={`nav-item ${activeView === 'read' ? 'active' : ''}`}
@@ -45,7 +45,7 @@ const Sidebar = ({ activeView, onNavClick, backgroundTasks = {} }) => {
         >
           <Users size={24} />
           <span className="nav-text">กลุ่มเป้าหมาย</span>
-          {backgroundTasks.audienceSearch && <Loader2 size={14} className="animate-spin" style={{ marginLeft: 'auto', color: 'var(--accent-secondary)' }} />}
+          {backgroundTasks.audienceSearch && <Loader2 size={14} className="animate-spin nav-item-spinner" style={{ marginLeft: 'auto', color: 'var(--accent-secondary)' }} />}
         </button>
         <button 
           className={`nav-item ${activeView === 'bookmarks' ? 'active' : ''}`}
