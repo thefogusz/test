@@ -155,6 +155,213 @@ const dedupeSources = (sources = []) => {
   return Array.from(byUrl.values());
 };
 
+const SOURCE_TRUST_TIERS = {
+  highest: [
+    'reuters.com',
+    'apnews.com',
+    'bloomberg.com',
+    'ft.com',
+    'wsj.com',
+    'nytimes.com',
+    'theguardian.com',
+    'bbc.com',
+    'bbc.co.uk',
+    'cnn.com',
+    'cnbc.com',
+    'forbes.com',
+    'businessinsider.com',
+    'theverge.com',
+    'techcrunch.com',
+    'ign.com',
+    'gamespot.com',
+    'polygon.com',
+    'eurogamer.net',
+    'gematsu.com',
+    'nintendo.com',
+    'sony.com',
+    'playstation.com',
+    'xbox.com',
+    'microsoft.com',
+    'steampowered.com',
+    'ea.com',
+    'ubisoft.com',
+    'capcom.com',
+    'sega.com',
+  ],
+  medium: ['yahoo.com', 'finance.yahoo.com', 'investing.com', 'usnews.com'],
+  low: ['reddit.com', 'youtube.com', 'youtu.be', 'cookpad.com', 'eventbanana.com', 'facebook.com', 'instagram.com', 'tiktok.com', 'x.com', 'twitter.com'],
+};
+
+const getHostname = (url = '') => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+  } catch {
+    return '';
+  }
+};
+
+const matchesDomainTier = (hostname = '', domains = []) =>
+  domains.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`));
+
+const tokenizeTopicText = (value = '', minLength = 4, limit = 12) =>
+  Array.from(new Set(normalizeCacheText(value).toLowerCase().match(new RegExp(`[a-z0-9\\u0E00-\\u0E7F]{${minLength},}`, 'g')) || [])).slice(0, limit);
+
+const extractUrlSlugTokens = (url = '', limit = 12) => {
+  try {
+    const pathname = new URL(url).pathname
+      .replace(/[-_/]+/g, ' ')
+      .replace(/\b\d{4}\b/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return tokenizeTopicText(pathname, 4, limit);
+  } catch {
+    return [];
+  }
+};
+
+const getPrimaryLeadTokens = ({ primaryLeadUrl = '', primaryLeadTitle = '' } = {}) => {
+  const titleTokens = tokenizeTopicText(primaryLeadTitle, 4, 12);
+  const slugTokens = extractUrlSlugTokens(primaryLeadUrl, 12);
+  return Array.from(new Set([...titleTokens, ...slugTokens])).slice(0, 12);
+};
+
+const buildStrictPrimarySourceContext = (label, response, sourceUrl, primaryLeadTitle = '') => {
+  if (!response) return '';
+
+  const primaryTokens = getPrimaryLeadTokens({ primaryLeadUrl: sourceUrl, primaryLeadTitle });
+  const primaryHostname = getHostname(sourceUrl);
+  const strictResults = (Array.isArray(response.results) ? response.results : [])
+    .filter((result) => {
+      const hostname = getHostname(result?.url || '');
+      const normalizedTitle = normalizeCacheText(result?.title || '').toLowerCase();
+      const sharedTitleTokens = primaryTokens.filter((token) => normalizedTitle.includes(token)).length;
+      const isExactLead = result?.url === sourceUrl;
+      const isLeadDomain = hostname === primaryHostname;
+      const isTrusted = matchesDomainTier(hostname, SOURCE_TRUST_TIERS.highest);
+      return isExactLead || isLeadDomain || (isTrusted && sharedTitleTokens >= 3);
+    })
+    .slice(0, 3);
+
+  return [
+    `[${label} SOURCE URL]\n${sourceUrl}`,
+    strictResults.length
+      ? `[${label} VERIFIED SNIPPETS]\n${strictResults
+          .map((result, index) => {
+            const snippet = sanitizeForPrompt(result.raw_content || result.content || '', 500);
+            return `${index + 1}. ${result.title || result.url} - ${snippet} (${result.url})`;
+          })
+          .join('\n')}`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+};
+
+const scoreSourceQuality = (source = {}, { primaryLeadUrl = '', researchQuery = '', input = '' } = {}) => {
+  const hostname = getHostname(source?.url || '');
+  const title = normalizeCacheText(source?.title || '').toLowerCase();
+  const combinedText = `${title} ${hostname}`;
+  const primaryHostname = getHostname(primaryLeadUrl);
+  const queryTokens = tokenizeTopicText(`${researchQuery} ${input}`, 3, 12);
+
+  let score = 0;
+
+  if (!hostname) score -= 20;
+  if (primaryHostname && hostname === primaryHostname) score += 80;
+
+  if (matchesDomainTier(hostname, SOURCE_TRUST_TIERS.highest)) score += 40;
+  else if (matchesDomainTier(hostname, SOURCE_TRUST_TIERS.medium)) score += 18;
+  else if (matchesDomainTier(hostname, SOURCE_TRUST_TIERS.low)) score -= 25;
+
+  const tokenHits = queryTokens.filter((token) => combinedText.includes(token)).length;
+  score += tokenHits * 4;
+
+  if (/official|press release|statement|reuters/i.test(combinedText)) score += 10;
+  if (/recipe|ice break|icebreak|event|walkthrough|guide/i.test(combinedText)) score -= 25;
+
+  return score;
+};
+
+const rankAndFilterSources = (sources = [], options = {}) => {
+  const scored = dedupeSources(sources)
+    .map((source) => ({
+      ...source,
+      _score: scoreSourceQuality(source, options),
+      _hostname: getHostname(source.url),
+    }))
+    .filter((source) => source._score >= 8);
+
+  const hasHighTrustLead = scored.some((source) => matchesDomainTier(source._hostname, SOURCE_TRUST_TIERS.highest));
+  const filtered = hasHighTrustLead
+    ? scored.filter((source) => matchesDomainTier(source._hostname, SOURCE_TRUST_TIERS.highest) || source._score >= 40)
+    : scored;
+
+  return filtered
+    .sort((a, b) => b._score - a._score)
+    .map(({ _score, _hostname, ...source }) => source)
+    .slice(0, 6);
+};
+
+const getPrimaryLeadAwareSources = (sources = [], { primaryLeadUrl = '', primaryLeadTitle = '' } = {}) => {
+  if (!primaryLeadUrl) return rankAndFilterSources(sources, {});
+
+  const primaryHostname = getHostname(primaryLeadUrl);
+  const normalizedPrimaryTitle = normalizeCacheText(primaryLeadTitle).toLowerCase();
+  const primaryTokens = getPrimaryLeadTokens({ primaryLeadUrl, primaryLeadTitle });
+
+  const filtered = dedupeSources(sources)
+    .map((source) => {
+      const hostname = getHostname(source.url);
+      const normalizedTitle = normalizeCacheText(source.title || '').toLowerCase();
+      const sharedTitleTokens = primaryTokens.filter((token) => normalizedTitle.includes(token)).length;
+      const isExactLead = source.url === primaryLeadUrl;
+      const isLeadDomain = hostname === primaryHostname;
+      const isTrustedSyndication = matchesDomainTier(hostname, SOURCE_TRUST_TIERS.highest);
+      const keep = isExactLead || isLeadDomain || (isTrustedSyndication && sharedTitleTokens >= 3);
+
+      return {
+        source,
+        keep,
+        score: scoreSourceQuality(source, { primaryLeadUrl, researchQuery: normalizedPrimaryTitle, input: normalizedPrimaryTitle }) + sharedTitleTokens * 8,
+      };
+    })
+    .filter((entry) => entry.keep)
+    .sort((a, b) => b.score - a.score)
+    .map((entry) => entry.source);
+
+  return filtered.slice(0, 6);
+};
+
+const strengthenPrimaryLeadFactSheet = (factSheet = {}, primaryLeadUrl = '') => {
+  const safeFallback = {
+    verified_facts: [],
+    reported_claims: [],
+    open_questions: [],
+    community_signal: '',
+    must_not_claim: [],
+    named_entities: [],
+  };
+  const next = {
+    ...safeFallback,
+    ...factSheet,
+  };
+
+  const riskyInferencePattern = /(ผลกระทบต่อผู้บริโภค|ความปลอดภัยผู้บริโภค|การส่งมอบ|การจัดส่ง|ขาดแคลน|ของปลอม|ตรวจรหัส|เช็กรหัส|batch code|แรงจูงใจ|เจตนา|ป้องกันการโจมตีซ้ำ|ไม่มีร่องรอย|ติดตามได้ทั้งหมด|บน x|ใน x|ผู้ใช้บน x|ชาวเน็ต|โซเชียลสงสัย|เป็นแคมเปญ)/i;
+  next.verified_facts = dedupeByNormalizedText(next.verified_facts.filter((fact) => !riskyInferencePattern.test(fact)));
+  next.reported_claims = dedupeByNormalizedText(next.reported_claims.filter((claim) => !riskyInferencePattern.test(claim))).slice(0, 4);
+  next.community_signal = '';
+  next.must_not_claim = dedupeByNormalizedText([
+    ...next.must_not_claim,
+    'ห้ามสรุปผลกระทบต่อผู้บริโภคหรือการส่งมอบ ถ้าต้นทางไม่ได้ระบุชัด',
+    'ห้ามเดาแรงจูงใจ มาตรการภายใน หรือรายละเอียดแวดล้อมที่ต้นทางไม่ได้ยืนยัน',
+    primaryLeadUrl ? `ห้ามเขียนเกินกว่าสิ่งที่ยืนยันได้จาก ${primaryLeadUrl}` : 'ห้ามเขียนเกินกว่าสิ่งที่ยืนยันได้จากต้นทาง',
+  ]);
+  next.open_questions = dedupeByNormalizedText(next.open_questions).slice(0, 5);
+  next.named_entities = dedupeByNormalizedText(next.named_entities).slice(0, 8);
+
+  return next;
+};
+
 const buildTweetUrl = (tweet) => {
   if (!tweet?.id) return null;
   const username = tweet.author?.username || 'i';
@@ -263,10 +470,10 @@ const CONTENT_FORMAT_PROFILES = {
   'โพสต์โซเชียล': {
     label: 'social post',
     allowHeadings: false,
-    allowCta: true,
+    allowCta: false,
     boldHeadline: true,
     structure: 'เริ่มด้วยบรรทัดแรกที่เป็น headline hook ห่อด้วย **...** แล้วตามด้วย 3-5 ย่อหน้าสั้น แต่ละย่อหน้ามีไอเดียเดียวชัดเจน คั่นด้วย "." บรรทัดเดียว ไม่ใช้ markdown heading ใดๆ',
-    goals: 'headline บรรทัดแรก (bold) ต้อง hook ด้วยตัวเลขจริงหรือข้อเท็จจริงที่น่าสนใจที่สุดจาก fact sheet — เปิดทันที ไม่ต้องนำเข้า ลงท้ายด้วยคำถามหรือประเด็นที่เกี่ยวกับ topic จริงๆ วางแฮชแท็ก 2-3 ตัวท้ายสุด',
+    goals: 'headline บรรทัดแรก (bold) ต้อง hook ด้วยตัวเลขจริงหรือข้อเท็จจริงที่น่าสนใจที่สุดจาก fact sheet — เปิดทันที ไม่ต้องนำเข้า ปิดให้คมและจบพอดีโดยไม่ต้องฝืนใส่คำถามปลายเปิดหรือแฮชแท็กถ้าไม่จำเป็น',
     skill: 'คนรู้เรื่องเล่าให้คนอื่นฟัง — ไม่ใช่ clickbait ไม่ใช่รายงานข่าว ให้ข้อมูลจริงก่อนแล้วค่อยมีมุมมอง ใช้ ครับ ลงท้ายตามธรรมชาติ',
   },
   'สคริปต์วิดีโอสั้น': {
@@ -290,10 +497,10 @@ const CONTENT_FORMAT_PROFILES = {
   'โพสต์ให้ความรู้ (Thread)': {
     label: 'thread',
     allowHeadings: false,
-    allowCta: true,
+    allowCta: false,
     boldHeadline: true,
     structure: 'เริ่มด้วยบรรทัดแรกที่เป็น headline hook ห่อด้วย **...** แล้วแต่ละ section ต่อเนื่องกันและอ่านได้ด้วยตัวเองในฐานะ standalone point ไม่ใช้ markdown heading',
-    goals: 'เรียงข้อมูลจากน่าสนใจที่สุดไปหาน้อยที่สุด (inverted pyramid) แต่ละ section มีไอเดียเดียวชัดเจน จบด้วย insight หรือคำถาม topic จริงๆ วาง hashtag 2-3 ตัวท้ายสุด',
+    goals: 'เรียงข้อมูลจากน่าสนใจที่สุดไปหาน้อยที่สุด (inverted pyramid) แต่ละ section มีไอเดียเดียวชัดเจน จบด้วย insight ที่ชัดพอดี ไม่ฝืนใส่คำถามปลายเปิดหรือ hashtag ถ้าไม่จำเป็น',
     skill: 'thread ที่อ่านไปก็ได้ความรู้ไป — ไม่ใช่แค่ bullet points เฉยๆ มีเรื่องราวและ flow ที่ดึงดูด คนอ่านครึ่งทางก็ยังอยากอ่านต่อ',
   },
 };
@@ -383,13 +590,11 @@ const shouldAllowHighEnergyLanguage = (customInstructions = '', tone = '') =>
 
 const polishThaiContent = (text = '', { format, customInstructions = '', allowEmoji = false, tone = '' } = {}) => {
   const profile = buildFormatProfile(format);
-  const hasCustomInstructions = customInstructions.trim().length > 20;
-  const allowExplicitCta = hasCustomInstructions || /cta|call to action|ชวนคอมเมนต์|ชวนแชร์|ชวนรีโพสต์/i.test(
+  const allowExplicitCta = /cta|call to action|ชวนคอมเมนต์|ชวนแชร์|ชวนรีโพสต์|ฝากกด|ฝากติดตาม/i.test(
     customInstructions,
   );
 
-  // When user specifies custom instructions, trust them — skip hype softening so we don't undo what they asked for
-  const allowHighEnergyLanguage = hasCustomInstructions || shouldAllowHighEnergyLanguage(customInstructions, tone);
+  const allowHighEnergyLanguage = shouldAllowHighEnergyLanguage(customInstructions, tone);
   let nextText = cleanGeneratedContent(text, { allowEmoji });
 
   if (!profile.allowHeadings) {
@@ -408,6 +613,12 @@ const polishThaiContent = (text = '', { format, customInstructions = '', allowEm
     nextText = nextText.replace(/!!+/g, '!');
     // Don't over-soften everything. Keep the hook-driven energy.
   }
+
+  nextText = nextText
+    .replace(/(^|\n)(ลองเช็ครหัส batch .*?$)/gim, '')
+    .replace(/(^|\n)(ถ้าเจอ .*?คอมเมนต์.*?$)/gim, '')
+    .replace(/(^|\n)(ใครเคย.*เล่า.*?$)/gim, '');
+
   return normalizeThaiSpacing(nextText);
 };
 
@@ -422,17 +633,122 @@ const CONTENT_BRIEF_SCHEMA = z.object({
   ctaMode: z.enum(['none', 'soft', 'direct']),
 });
 
+const CONTENT_INTENT_SCHEMA = z.object({
+  primaryTopic: z.string().min(1).max(200),
+  researchHint: z.string().min(1).max(200),
+  framingAngle: z.string().min(1).max(240),
+  rewrittenInstructions: z.string().min(1).max(500),
+  explicitCtaAllowed: z.boolean(),
+  forbidInteractiveDetours: z.boolean(),
+  thaiPriority: z.boolean(),
+});
+
+const CONTENT_REVIEW_SCHEMA = z.object({
+  passed: z.boolean(),
+  groundingPassed: z.boolean(),
+  thaiNaturalnessPassed: z.boolean(),
+  sourceDisciplinePassed: z.boolean(),
+  reason: z.string().optional(),
+});
+
 const SHORT_FORMAT_SET = new Set(['โพสต์โซเชียล', 'สคริปต์วิดีโอสั้น']);
+
+const fallbackNormalizeContentIntent = ({ input = '', customInstructions = '' }) => {
+  const baseInput = normalizeCacheText(input);
+  const baseInstructions = normalizeCacheText(customInstructions);
+  const explicitCtaAllowed = /cta|call to action|ชวนคอมเมนต์|ชวนแชร์|ชวนรีโพสต์|ฝากกด|ฝากติดตาม/i.test(baseInstructions);
+
+  return {
+    primaryTopic: baseInput || 'หัวข้อที่ผู้ใช้ให้มา',
+    researchHint: baseInput || 'หัวข้อที่ผู้ใช้ให้มา',
+    framingAngle: baseInstructions || 'เล่าตามข้อเท็จจริงโดยไม่ออกนอกประเด็น',
+    rewrittenInstructions: [
+      baseInstructions || 'เน้นเล่าตามข้อเท็จจริง',
+      'เขียนเป็นภาษาไทยธรรมชาติ',
+      explicitCtaAllowed ? 'อนุญาต CTA ตามที่ผู้ใช้ขอ' : 'ห้ามเติม CTA หรือกิจกรรมชวนมีส่วนร่วมเอง',
+      'ห้ามขยายความหมายของคำสั่งจนเกิดกิจกรรมหรือ narrative ใหม่',
+    ].join(' | '),
+    explicitCtaAllowed,
+    forbidInteractiveDetours: !explicitCtaAllowed,
+    thaiPriority: true,
+  };
+};
+
+const isSimpleContentIntent = ({ input = '', customInstructions = '', sourceContext = '' } = {}) => {
+  const normalizedInput = normalizeCacheText(input);
+  const normalizedInstructions = normalizeCacheText(customInstructions);
+  const normalizedSource = normalizeCacheText(sourceContext);
+  const combined = `${normalizedInput} ${normalizedInstructions} ${normalizedSource}`;
+  const hasUrl = /https?:\/\//i.test(combined);
+  const hasComplexOperators = /(compare|vs\.?|versus|angle|framework|strategy|เชื่อมโยง|โยงกับ|เล่าแบบ|โทน|สไตล์|เหมือน|เทียบกับ)/i.test(combined);
+  const hasInteractiveAsk = /(quiz|challenge|poll|game|กิจกรรม|เกม|โพล|ชวน)/i.test(normalizedInstructions);
+  const totalLength = combined.length;
+
+  return Boolean(normalizedInput) && totalLength <= 220 && !hasUrl && !hasComplexOperators && !hasInteractiveAsk;
+};
+
+const shouldSkipReviewPass = ({ format = '', tone = '', intentProfile = null, customInstructions = '', factSheet = '' } = {}) => {
+  const normalizedInstructions = normalizeCacheText(customInstructions);
+  const hasOpenQuestions = /\[OPEN QUESTIONS\]\n- /i.test(factSheet);
+  const hasReportedClaims = /\[REPORTED CLAIMS\]\n- /i.test(factSheet);
+  const isShortFormat = SHORT_FORMAT_SET.has(format);
+  const isNonViralTone = tone !== 'กระตือรือร้น/ไวรัล';
+  const hasLowRiskInstructions = normalizedInstructions.length <= 40;
+  const noInteractiveRisk = intentProfile?.forbidInteractiveDetours !== false;
+
+  return isShortFormat && isNonViralTone && hasLowRiskInstructions && noInteractiveRisk && !hasOpenQuestions && !hasReportedClaims;
+};
+
+export const normalizeContentIntent = async ({ input = '', customInstructions = '', sourceContext = '' } = {}) => {
+  const cacheKey = buildCacheKey('content-intent', {
+    input: normalizeCacheText(input),
+    customInstructions: normalizeCacheText(customInstructions),
+    sourceContext: normalizeCacheText(sourceContext).slice(0, 240),
+  });
+  const cached = getCachedValue(responseCache, cacheKey);
+  if (cached) return cached;
+
+  if (isSimpleContentIntent({ input, customInstructions, sourceContext })) {
+    return setCachedValue(responseCache, cacheKey, fallbackNormalizeContentIntent({ input, customInstructions }), CONTENT_BRIEF_CACHE_TTL_MS);
+  }
+
+  try {
+    const { object } = await generateObject({
+      model: grok(MODEL_NEWS_FAST),
+      system: `You normalize user intent for a Thai content-generation workflow.
+Return JSON only.
+Rules:
+- Identify the real topic and the intended framing angle.
+- Treat examples and casual wording as examples, not special triggers.
+- Requests like "เชื่อมโยงกับ..." mean framing/comparison angle only unless the user explicitly asks for a game, quiz, challenge, poll, or activity.
+- Default to Thai-first writing quality.
+- CTA is allowed only when explicitly requested.
+- Preserve user intent, but remove ambiguous instructions that could cause off-topic detours.`,
+      prompt: `[USER INPUT]\n${input || 'None'}\n\n[CUSTOM INSTRUCTIONS]\n${customInstructions || 'None'}\n\n[SOURCE CONTEXT]\n${sourceContext || 'None'}`,
+      schema: CONTENT_INTENT_SCHEMA,
+      temperature: 0,
+    });
+
+    return setCachedValue(responseCache, cacheKey, object, CONTENT_BRIEF_CACHE_TTL_MS);
+  } catch (error) {
+    console.warn('[GrokService] Intent normalization fallback:', error);
+    return setCachedValue(responseCache, cacheKey, fallbackNormalizeContentIntent({ input, customInstructions }), CONTENT_BRIEF_CACHE_TTL_MS);
+  }
+};
 
 const compressFactSheetForFormat = (factSheetText = '', format = '') => {
   if (!SHORT_FORMAT_SET.has(format)) return factSheetText;
   const verifiedMatch = factSheetText.match(/\[VERIFIED FACTS\]\n([\s\S]*?)(?:\n\n\[|$)/);
+  const reportedMatch = factSheetText.match(/\[REPORTED CLAIMS\]\n([\s\S]*?)(?:\n\n\[|$)/);
   const openMatch = factSheetText.match(/\[OPEN QUESTIONS\]\n([\s\S]*?)(?:\n\n\[|$)/);
   const communityMatch = factSheetText.match(/\[COMMUNITY SIGNAL\]\n([\s\S]*?)(?:\n\n\[|$)/);
   const mustNotMatch = factSheetText.match(/\[MUST NOT CLAIM\]\n([\s\S]*?)(?:\n\n\[|$)/);
   const entitiesMatch = factSheetText.match(/\[KEY ENTITIES\]\n([\s\S]*?)(?:\n\n\[|$)/);
   const verifiedFacts = verifiedMatch
     ? verifiedMatch[1].split('\n').filter(l => l.startsWith('- ')).slice(0, 4).join('\n')
+    : '';
+  const reportedClaims = reportedMatch
+    ? reportedMatch[1].split('\n').filter(l => l.startsWith('- ')).slice(0, 2).join('\n')
     : '';
   // Keep top-2 open questions as a lite caution signal
   const openQuestions = openMatch
@@ -444,6 +760,7 @@ const compressFactSheetForFormat = (factSheetText = '', format = '') => {
   const keyEntities = entitiesMatch ? entitiesMatch[1].trim() : '';
   return [
     verifiedFacts ? `[VERIFIED FACTS]\n${verifiedFacts}` : '',
+    reportedClaims ? `[REPORTED CLAIMS]\n${reportedClaims}` : '',
     openQuestions ? `[OPEN QUESTIONS]\n${openQuestions}` : '',
     communitySignal ? `[COMMUNITY SIGNAL]\n${communitySignal}` : '',
     mustNotClaim ? `[MUST NOT CLAIM]\n${mustNotClaim}` : '',
@@ -451,7 +768,7 @@ const compressFactSheetForFormat = (factSheetText = '', format = '') => {
   ].filter(Boolean).join('\n\n');
 };
 
-const buildContentBriefPrompt = ({ factSheet, length, tone, format, customInstructions = '' }) => {
+const buildContentBriefPrompt = ({ factSheet, length, tone, format, customInstructions = '', intentProfile = null }) => {
   const profile = buildFormatProfile(format);
   const toneGuide = TONE_GUIDES[tone] || tone;
   const prefersConversationalViralFlow = shouldPreferConversationalViralFlow(tone, format);
@@ -475,7 +792,7 @@ ${profile.goals}
 
 [STYLE RULES & NATIVE THAI FLOW]
 - You are a Senior Thai Content Creator. Your writing must feel 100% human, rhythmic, and culturally native.
-- PERSPECTIVE RULE: Write as the ORIGINAL CREATOR. Do not write like a news aggregator saying "According to account X...". Internalize the facts and tell the story directly from your own authoritative perspective. You can credit sources casually if it builds immense credibility, but do not make them the subject of the sentence unnecessarily.
+- PERSPECTIVE RULE: Write as an informed Thai editor who explains the story clearly and confidently. Do not write like a news aggregator saying "According to account X...", but also do not invent extra emotion, opinion, or authority beyond the fact sheet.
 ${prefersConversationalViralFlow ? '- For this format and tone, prioritize natural Thai flow, emotional momentum, and a human-sounding voice over a report-like cadence. If the draft feels like a news recap, rewrite it to sound more like a real person telling the story.' : ''}
 - STRICT LANGUAGE RULE: ONLY THAI and ENGLISH are allowed. STRICTLY DO NOT output Chinese, Japanese, Korean, Russian/Cyrillic or any other languages under any circumstances.
 - ANTI-ROBOT RULE 1: NO PASSIVE VOICE translated from English. Do not use "ถูก..." unless describing a negative/punishing action.
@@ -491,18 +808,30 @@ ${prefersConversationalViralFlow ? '- For this format and tone, prioritize natur
 [CUSTOM INSTRUCTIONS]
 ${customInstructions || 'None'}
 
+[NORMALIZED INTENT]
+${intentProfile ? JSON.stringify(intentProfile, null, 2) : 'None'}
+
 [FACT SHEET]
 ${factSheet}
+
+[OUTPUT REQUIREMENTS]
+- Return JSON only.
+- Stay grounded in the fact sheet.
+- Treat requests like "เชื่อมโยงกับ..." or "โยงกับ..." as a framing angle only.
+- Do not invent games, quizzes, icebreakers, activities, or audience participation unless the user explicitly asks for that.
+- Do not force hashtags, CTA, or engagement bait unless the user explicitly asks.
+- If the fact sheet contains uncertainty, preserve that caution in the brief.
 `.trim();
 };
 
-const buildContentBrief = async ({ factSheet, length, tone, format, customInstructions = '' }) => {
+const buildContentBrief = async ({ factSheet, length, tone, format, customInstructions = '', intentProfile = null }) => {
   const cacheKey = buildCacheKey('content-brief', {
     factSheet,
     length,
     tone,
     format,
     customInstructions,
+    intentProfile,
   });
   const cached = getCachedValue(responseCache, cacheKey);
   if (cached) return cached;
@@ -510,7 +839,7 @@ const buildContentBrief = async ({ factSheet, length, tone, format, customInstru
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
       system: 'Return a concise Thai content brief as JSON only. Stay grounded in the fact sheet.',
-      prompt: buildContentBriefPrompt({ factSheet, length, tone, format, customInstructions }),
+      prompt: buildContentBriefPrompt({ factSheet, length, tone, format, customInstructions, intentProfile }),
       schema: CONTENT_BRIEF_SCHEMA,
     });
 
@@ -1095,11 +1424,12 @@ const extractTweetIdFromInput = (input = '') => {
 };
 
 export const researchAndPreventHallucination = async (input, interactionData = '', options = {}) => {
-  const cacheKey = buildCacheKey('fact-sheet-v1', normalizeCacheText(input) + '||' + normalizeCacheText((interactionData || '').slice(0, 300)));
+  const rawInput = options.originalInput || input;
+  const cacheKey = buildCacheKey('fact-sheet-v2', normalizeCacheText(rawInput) + '||' + normalizeCacheText(input) + '||' + normalizeCacheText((interactionData || '').slice(0, 300)));
   const cached = getCachedValue(responseCache, cacheKey);
   if (cached) return cached;
 
-  let attachedExternalUrls = extractExternalSourceUrls(input, interactionData);
+  let attachedExternalUrls = extractExternalSourceUrls(rawInput, input, interactionData);
 
   // Detect and fetch tweet when input contains a tweet URL
   const tweetRef = extractTweetIdFromInput(input);
@@ -1110,7 +1440,7 @@ export const researchAndPreventHallucination = async (input, interactionData = '
         const tweetText = tweet.text.replace(/https?:\/\/\S+/g, '').trim();
         const author = tweet.author?.name || tweet.author?.username || tweetRef.username;
         interactionData = `[ORIGINAL TWEET SOURCE]\nAuthor: @${tweet.author?.username || tweetRef.username} (${author})\nContent: ${tweetText}\nLikes: ${tweet.like_count || 0} | Retweets: ${tweet.retweet_count || 0}`;
-        attachedExternalUrls = extractExternalSourceUrls(input, interactionData, tweet.text);
+        attachedExternalUrls = extractExternalSourceUrls(rawInput, input, interactionData, tweet.text);
       }
     } catch {
       // silently continue without tweet data
@@ -1118,8 +1448,10 @@ export const researchAndPreventHallucination = async (input, interactionData = '
   }
 
   let researchQuery = '';
+  const intentProfile = options.intentProfile || null;
   try {
-    const queryInput = tweetRef ? `${tweetRef.username} ${input.replace(TWEET_URL_PATTERN, '').trim()}`.trim() : input;
+    const normalizedInputSeed = intentProfile?.researchHint || input;
+    const queryInput = tweetRef ? `${tweetRef.username} ${normalizedInputSeed.replace(TWEET_URL_PATTERN, '').trim()}`.trim() : normalizedInputSeed;
     researchQuery = await deriveResearchQuery(queryInput, interactionData);
   } catch (err) {
     console.warn('[GrokService] Query derivation failed, using raw input:', err.message);
@@ -1129,18 +1461,20 @@ export const researchAndPreventHallucination = async (input, interactionData = '
   let xContext = '';
   let extractedSources = [];
   let attachedSourceContext = '';
+  let primaryLeadTitle = '';
+  const hasPrimaryLead = attachedExternalUrls.length > 0;
 
   try {
     console.log('[GrokService] Starting research with query:', researchQuery);
     if (options.onProgress) options.onProgress('fetching');
 
     // Query Gating: Only fetch X Latest if query seems time-sensitive
-    const isLatestNeeded = /ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update/i.test(input) || /ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update/i.test(interactionData);
+    const isLatestNeeded = /ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update/i.test(rawInput) || /ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update/i.test(interactionData);
     
     const [data, xTopResponse, xLatestResponse, attachedUrlResponses] = await Promise.all([
-      tavilySearch(researchQuery, false), // Force false here as research flow is general
-      searchEverything(researchQuery, '', false, 'Top').catch(() => ({ data: [] })),
-      isLatestNeeded ? searchEverything(researchQuery, '', false, 'Latest').catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
+      hasPrimaryLead ? Promise.resolve({ results: [], answer: '' }) : tavilySearch(researchQuery, false),
+      hasPrimaryLead ? Promise.resolve({ data: [] }) : searchEverything(researchQuery, '', false, 'Top').catch(() => ({ data: [] })),
+      hasPrimaryLead || !isLatestNeeded ? Promise.resolve({ data: [] }) : searchEverything(researchQuery, '', false, 'Latest').catch(() => ({ data: [] })),
       attachedExternalUrls.length
         ? Promise.all(
             attachedExternalUrls.map((url) =>
@@ -1199,31 +1533,33 @@ export const researchAndPreventHallucination = async (input, interactionData = '
 
           const matchedPrimarySource = (response.results || []).find((result) => result?.url === sourceUrl);
           if (matchedPrimarySource) {
+            if (!primaryLeadTitle) primaryLeadTitle = matchedPrimarySource.title || sourceUrl;
             extractedSources.push({
               title: matchedPrimarySource.title || sourceUrl,
               url: matchedPrimarySource.url || sourceUrl,
             });
           } else {
+            if (!primaryLeadTitle) primaryLeadTitle = sourceUrl;
             extractedSources.push({
               title: sourceUrl,
               url: sourceUrl,
             });
           }
 
-          return buildTavilyContextBlock(`PRIMARY SOURCE WEB ${index + 1}`, response);
+          return buildStrictPrimarySourceContext(`PRIMARY SOURCE WEB ${index + 1}`, response, sourceUrl, primaryLeadTitle || sourceUrl);
         })
         .filter(Boolean);
 
       attachedSourceContext = attachedBlocks.join('\n\n');
     }
 
-    const xTweets = dedupeByNormalizedText(
-      [...(xTopResponse?.data || []).slice(0, 4), ...(xLatestResponse?.data || []).slice(0, 4)],
-      (tweet) => tweet?.id || tweet?.text,
-    );
-    extractedSources.push(...extractSourcesFromTweets(xTweets, 6));
-
-    if (xTweets.length) {
+    const xTweets = hasPrimaryLead
+      ? []
+      : dedupeByNormalizedText(
+          [...(xTopResponse?.data || []).slice(0, 4), ...(xLatestResponse?.data || []).slice(0, 4)],
+          (tweet) => tweet?.id || tweet?.text,
+        );
+    if (!hasPrimaryLead && xTweets.length) {
       xContext = `[X EVIDENCE]\n${toTweetEvidence(xTweets, 6)}`;
     }
     console.log('[GrokService] Evidence gathering complete:', { web: !!webContext, x: xTweets.length });
@@ -1245,6 +1581,8 @@ export const researchAndPreventHallucination = async (input, interactionData = '
 - หากมี [PRIMARY LEAD / ORIGINAL SOURCE] ให้ถือว่านี่คือแกนกลางของเรื่องที่ต้องตรวจสอบและยืนยันเป็นอันดับแรก
 - ให้ลำดับความสำคัญอ้างอิงกับ [WEB SOURCES] (แหล่งข่าวทางการ) เป็นหลัก
 - ใช้ [X EVIDENCE] เพื่อสรุป "ความเคลื่อนไหว" หรือมิติทางสังคม
+- หากมีต้นทางเป็น URL ข่าวโดยตรง ห้ามเดาเส้นทางขนส่ง ผลกระทบต่อผู้บริโภค เจตนาคนร้าย มาตรการบริษัท หรือรายละเอียดแวดล้อมอื่นใด เว้นแต่มีระบุชัดในต้นทางหรือแหล่งข่าวหลักที่สอดคล้องกัน
+- ถ้าข้อมูลใดยังเป็นการอนุมานหรือขยายความจากบริบท ห้ามใส่ใน verified_facts ให้ย้ายไป open_questions หรือไม่ต้องใส่เลย
 
 [CITATIONS RULE]
 - ห้ามระบุชื่อบัญชี (@handle) ของผู้ใช้ทั่วไปที่ไม่มีอิมแพค ให้ใช้คำว่า "กลุ่มผู้ใช้" แทน
@@ -1263,6 +1601,7 @@ export const researchAndPreventHallucination = async (input, interactionData = '
         .join('\n\n'),
       schema: z.object({
         verified_facts: z.array(z.string()).describe("ข้อเท็จจริงที่ได้รับการยืนยันจากแหล่งข้อมูล ถ่ายทอดเป็นประโยคชัดเจน"),
+        reported_claims: z.array(z.string()).describe("ข้อกล่าวอ้างหรือสิ่งที่แหล่งข่าวรายงาน แต่ยังไม่ควรบิดให้เป็นข้อเท็จจริงแข็ง"),
         open_questions: z.array(z.string()).describe("ประเด็นที่ยังไม่แน่ชัด ขัดแย้งกัน หรือรอการยืนยัน"),
         community_signal: z.string().describe("กระแสตอบรับหรือมุมมองจากชุมชนชาว X สั้นๆ"),
         must_not_claim: z.array(z.string()).describe("สิ่งที่ห้ามเคลมหรือห้ามเขียนเด็ดขาดเนื่องจากไม่มีข้อมูลยืนยัน"),
@@ -1270,10 +1609,19 @@ export const researchAndPreventHallucination = async (input, interactionData = '
       }),
     });
 
-    const factSheet = JSON.parse(JSON.stringify(factSheetObj));
-    const factSheetText = `[VERIFIED FACTS]\n${factSheet.verified_facts.map(f => `- ${f}`).join('\n')}\n\n[OPEN QUESTIONS]\n${factSheet.open_questions.map(f => `- ${f}`).join('\n')}\n\n[COMMUNITY SIGNAL]\n${factSheet.community_signal}\n\n[MUST NOT CLAIM]\n${factSheet.must_not_claim.map(f => `- ${f}`).join('\n')}\n\n[KEY ENTITIES]\n${factSheet.named_entities.join(', ')}`;
+    const factSheet = hasPrimaryLead
+      ? strengthenPrimaryLeadFactSheet(JSON.parse(JSON.stringify(factSheetObj)), attachedExternalUrls[0] || '')
+      : JSON.parse(JSON.stringify(factSheetObj));
+    const factSheetText = `[VERIFIED FACTS]\n${factSheet.verified_facts.map(f => `- ${f}`).join('\n')}\n\n[REPORTED CLAIMS]\n${factSheet.reported_claims.map(f => `- ${f}`).join('\n')}\n\n[OPEN QUESTIONS]\n${factSheet.open_questions.map(f => `- ${f}`).join('\n')}\n\n[COMMUNITY SIGNAL]\n${factSheet.community_signal}\n\n[MUST NOT CLAIM]\n${factSheet.must_not_claim.map(f => `- ${f}`).join('\n')}\n\n[KEY ENTITIES]\n${factSheet.named_entities.join(', ')}`;
 
-    const finalSources = dedupeSources([...extractedSources]).slice(0, 8);
+    const primaryLeadUrl = attachedExternalUrls[0] || '';
+    const finalSources = hasPrimaryLead
+      ? getPrimaryLeadAwareSources(extractedSources, { primaryLeadUrl, primaryLeadTitle })
+      : rankAndFilterSources(extractedSources, {
+          primaryLeadUrl,
+          researchQuery,
+          input: rawInput,
+        });
 
     const resultPayload = {
       factSheet: factSheetText,
@@ -1393,24 +1741,25 @@ export const generateStructuredContentV2 = async (
   onStreamChunk,
   options = {},
 ) => {
-  const { allowEmoji = false, customInstructions = '' } = options;
+  const { allowEmoji = false, customInstructions = '', intentProfile = null } = options;
   const isViralTone = tone === 'กระตือรือร้น/ไวรัล';
   const prefersConversationalViralFlow = shouldPreferConversationalViralFlow(tone, format);
   const writerTemperature = isViralTone ? 0.85 : 0.7;
   const writerFrequencyPenalty = isViralTone ? 0.15 : 0.35;
   const lengthInstruction = getLengthInstruction(length);
   const profile = buildFormatProfile(format);
-  const brief = await buildContentBrief({ factSheet, length, tone, format, customInstructions });
+  const brief = await buildContentBrief({ factSheet, length, tone, format, customInstructions, intentProfile });
   const activeFactSheet = compressFactSheetForFormat(factSheet, format);
+  const skipReviewPass = shouldSkipReviewPass({ format, tone, intentProfile, customInstructions, factSheet: activeFactSheet });
 
   const draftSystemPrompt = `<global_system_instruction>
-คุณคือ Copywriter ตัวท็อปของไทยที่เชี่ยวชาญการเขียนคอนเทนต์และโพสต์ Social Media หน้าที่ของคุณคือการดึงดูดคนอ่านตั้งแต่บรรทัดแรก โดยต้องใช้หลักการ Bento-Box Prompting ในการรับคำสั่ง
+คุณคือ Copywriter ภาษาไทยที่เก่งเรื่องการเล่าให้เข้าใจง่าย อ่านลื่น และยังยึดข้อเท็จจริงอย่างเคร่งครัด หน้าที่ของคุณคือเขียนคอนเทนต์ที่คม ชัด และเป็นธรรมชาติ โดยห้ามแต่งมุมที่ไม่มีใน fact sheet
 </global_system_instruction>
 
 <tone_of_voice>
 - ${TONE_GUIDES[tone] || tone}
 ${tone === 'กระตือรือร้น/ไวรัล'
-  ? `- โทนนี้อนุญาตให้มีพลังงานสูง สร้าง FOMO และความตื่นเต้นได้ ตราบใดที่มีข้อเท็จจริงรองรับ ไม่จำเป็นต้อง "สุภาพ" หรือ "ระมัดระวัง" มากเกินไป${prefersConversationalViralFlow ? ' และควรให้น้ำหนักกับความเป็นธรรมชาติ จังหวะภาษา และอารมณ์ของโพสต์มากกว่าน้ำเสียงแบบรายงาน' : ''}`
+  ? `- โทนนี้อนุญาตให้มีพลังงานและจังหวะที่คมขึ้นได้ ตราบใดที่ยังยึดข้อเท็จจริง ห้ามสร้าง FOMO ปลอม ห้ามเว่อร์เกิน fact sheet${prefersConversationalViralFlow ? ' และควรให้น้ำหนักกับความเป็นธรรมชาติ จังหวะภาษา และอารมณ์ของโพสต์มากกว่าน้ำเสียงแบบรายงาน' : ''}`
   : '- เป็นมืออาชีพแต่ไม่ก้าวร้าว มั่นใจแต่ไม่โอ้อวด (Professional but not aggressive, confident but not boastful).'}
 - ห้ามใช้คำศัพท์ที่เป็นทางการเกินไป (Corporate jargon) หรือสำนวนที่แปลตรงตัวจากภาษาอังกฤษ
 </tone_of_voice>
@@ -1431,15 +1780,20 @@ ${format === 'สคริปต์วิดีโอสั้น'
 9. PERSPECTIVE RULE: คุณคือ "ผู้สร้างคอนเทนต์ต้นทาง" (Original Creator) ห้ามเขียนในเชิงรายงานข่าวว่า "โพสต์ของ X บอกว่า..." หรือ "X รายงานว่า..." ให้นำข้อมูลมาเล่าด้วยมุมมองที่มั่นใจ รู้จริง และเล่าเรื่องโดยตรงไปที่ผู้อ่านแทน
 10. NO FAKE THAI IDIOMS: ห้ามประดิษฐ์สำนวนภาษาไทยที่ไม่แน่ใจว่ามีจริง — ถ้าไม่มั่นใจ 100% ว่าสำนวนนั้นคนไทยใช้จริงในชีวิตประจำวัน ให้เขียนตรงๆ ด้วยภาษาธรรมดาแทน ดีกว่าใช้สำนวนปลอมที่ฟังดูแปลก
 11. NATURAL CODE-SWITCHING ONLY: คำภาษาอังกฤษที่ผสมได้ต้องเป็นคำที่คนไทยใช้ในชีวิตจริง เช่น "เซ็ต", "เทรนด์", "ฟีเจอร์" — ห้ามแปะคำอังกฤษกลางประโยคแบบสุ่ม เช่น "มันเป็น killer เลยนะ" หรือ "เจอ reality check ซะแล้ว" ถ้าฟังไม่เป็นธรรมชาติ ให้แทนด้วยภาษาไทยล้วน
-${prefersConversationalViralFlow ? '12. TONE REWRITE RULE: ถ้าผู้ใช้เลือกโทนกระตือรือร้นหรือไวรัลในรูปแบบโพสต์ แต่ร่างยังฟังเหมือนรายงานข่าวเกินไป ให้เรียบเรียงใหม่ให้เหมือนคนเล่าจริงโดยคงประเด็นสำคัญไว้' : ''}
+12. CUSTOM INSTRUCTION RULE: ถ้าผู้ใช้บอกว่า "เชื่อมโยงกับ..." ให้ตีความเป็นมุมเล่าหรือมุมเปรียบเทียบเท่านั้น ห้ามดัดเป็นเกม, quiz, challenge, icebreaker หรือกิจกรรม เว้นแต่ผู้ใช้ขอแบบนั้นชัดเจน
+13. CTA RULE: ห้ามชวนคอมเมนต์ ชวนเล่น ชวนทาย ชวนแชร์ ชวนเช็กรหัส หรือปิดด้วยคำถามปลายเปิด เว้นแต่ผู้ใช้สั่งโดยตรง
+${prefersConversationalViralFlow ? '14. TONE REWRITE RULE: ถ้าผู้ใช้เลือกโทนกระตือรือร้นหรือไวรัลในรูปแบบโพสต์ แต่ร่างยังฟังเหมือนรายงานข่าวเกินไป ให้เรียบเรียงใหม่ให้เหมือนคนเล่าจริงโดยคงประเด็นสำคัญไว้' : ''}
 </rules_and_constraints>
 
 <tasks>
 1. Think and outline the logical structure and core message internally first (Chain of Thought).
 2. Separate verified facts from interpretation or community reaction.
+2.5. Treat [REPORTED CLAIMS] as softer context only. Do not upgrade them into hard facts unless [VERIFIED FACTS] also support them.
 3. If uncertainty exists, state it plainly and briefly.
 4. Name people or accounts (@handle) only if they are highly influential (high followers/engagement), famous, or materially matter to the story. Never list random low-impact reposters.
 5. Write the final output in beautiful, natural Thai.
+6. If the fact sheet does not explicitly support a detail, do not write it as fact. Keep speculation as speculation, and omit unsupported details entirely if they do not help the user.
+7. If [MUST NOT CLAIM] forbids something, do not paraphrase around that ban.
 </tasks>
 
 <few_shot_examples>
@@ -1455,6 +1809,7 @@ ${prefersConversationalViralFlow ? '12. TONE REWRITE RULE: ถ้าผู้ใ
 
   const draftUserPrompt = [
     `<format_rules>\nFormat: ${format} (${profile.label})\nLength: ${lengthInstruction}\nStructure: ${profile.structure}\nGoals: ${profile.goals}\nWriting skill for this format: ${profile.skill || ''}\n</format_rules>`,
+    `<normalized_intent>\n${intentProfile ? JSON.stringify(intentProfile, null, 2) : 'None'}\n</normalized_intent>`,
     `<structured_brief>\n${JSON.stringify(brief, null, 2)}\n</structured_brief>`,
     `<fact_sheet>\n${activeFactSheet}\n</fact_sheet>`,
     `<extra_instructions>\n${customInstructions || 'None'}\n</extra_instructions>`,
@@ -1511,6 +1866,10 @@ ${prefersConversationalViralFlow ? '12. TONE REWRITE RULE: ถ้าผู้ใ
     allowEmoji,
   });
 
+  if (skipReviewPass) {
+    return { content: polishThaiContent(contentDraft, { format, customInstructions, allowEmoji, tone }), titleIdea: brief.titleIdea };
+  }
+
   try {
     const { object: evalResult } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
@@ -1520,12 +1879,11 @@ Set passed=true only if:
 - it matches the requested tone${tone === 'กระตือรือร้น/ไวรัล' ? ` (high energy and impactful language is EXPECTED and correct for this tone — do NOT penalize for strong language if facts support it${prefersConversationalViralFlow ? ', but fail the draft if it still reads like a stiff news recap instead of a natural human post' : ''})` : ' without overclaiming'}
 - it does not read like generic AI copy
 - it respects heading and CTA expectations for the format
+- it reads like natural Thai written by a native editor, not translated Thai
+- it does not drift into games, quizzes, audience prompts, or unrelated framing
 - it names people only when their identity or influence materially matters`,
-      prompt: `[FORMAT]\n${format}\n\n[TONE]\n${tone}\n\n[FACT SHEET]\n${activeFactSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[DRAFT]\n${contentDraft}`,
-      schema: z.object({
-        passed: z.boolean(),
-        reason: z.string().optional(),
-      }),
+      prompt: `[FORMAT]\n${format}\n\n[TONE]\n${tone}\n\n[NORMALIZED INTENT]\n${intentProfile ? JSON.stringify(intentProfile, null, 2) : 'None'}\n\n[FACT SHEET]\n${activeFactSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[DRAFT]\n${contentDraft}`,
+      schema: CONTENT_REVIEW_SCHEMA,
     });
 
     if (!evalResult.passed) {

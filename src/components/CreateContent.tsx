@@ -1,7 +1,7 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, Search, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, Bookmark, ExternalLink, RefreshCw } from 'lucide-react';
-import { researchAndPreventHallucination, generateStructuredContentV2 } from '../services/GrokService';
+import { researchAndPreventHallucination, generateStructuredContentV2, normalizeContentIntent } from '../services/GrokService';
 import { renderMarkdownToHtml } from '../utils/markdown';
 import ContentTabSwitcher from './ContentTabSwitcher';
 
@@ -303,7 +303,13 @@ const CreateContent = ({
     setPhase('researching');
 
     try {
-      let researchPrompt = input.trim();
+      const intentProfile = await normalizeContentIntent({
+        input,
+        customInstructions,
+        sourceContext: sourceNode?.text || sourceNode?.summary || sourceNode?.title || '',
+      });
+
+      let researchPrompt = intentProfile?.researchHint || input.trim();
       let factIntel = '';
       if (sourceNode) {
         const sourceUrl = buildAttachedTweetUrl(sourceNode);
@@ -327,6 +333,8 @@ const CreateContent = ({
 
       // 1. Research Phase
       const { factSheet: facts, sources: rawSources } = await researchAndPreventHallucination(researchPrompt, factIntel, {
+        intentProfile,
+        originalInput: input,
         signal: controller.signal,
       });
       setFactSheet(facts);
@@ -351,7 +359,7 @@ const CreateContent = ({
           }
           setGeneratedMarkdown(currentText);
         },
-        { allowEmoji, customInstructions, signal: controller.signal }
+        { allowEmoji, customInstructions: intentProfile?.rewrittenInstructions || customInstructions, intentProfile, signal: controller.signal }
       );
 
 
@@ -422,6 +430,12 @@ const CreateContent = ({
     setPhase('generating');
 
     try {
+      const intentProfile = await normalizeContentIntent({
+        input,
+        customInstructions,
+        sourceContext: sourceNode?.text || sourceNode?.summary || sourceNode?.title || '',
+      });
+
       const allowEmoji = EMOJI_REQUEST_PATTERN.test(customInstructions);
       const lengthIndex = LENGTH_OPTIONS.indexOf(length);
       const normalizedLength = lengthIndex === 0 ? 'short' : lengthIndex === 2 ? 'long' : 'medium';
@@ -432,7 +446,7 @@ const CreateContent = ({
         tone,
         format,
         (currentText) => setGeneratedMarkdown(currentText),
-        { allowEmoji, customInstructions, signal: controller.signal },
+        { allowEmoji, customInstructions: intentProfile?.rewrittenInstructions || customInstructions, intentProfile, signal: controller.signal },
       );
 
 
@@ -851,9 +865,12 @@ const CreateContent = ({
           {/* Native Source Cards Component */}
           {articleSources.length > 0 && (
             <div className="animate-fade-in" style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--glass-border)' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-dim)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <ExternalLink size={16} /> แหล่งข้อมูลอ้างอิงจริง (Zero-Hallucination Sources)
+              <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-dim)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <ExternalLink size={16} /> แหล่งอ้างอิงที่คัดแล้ว
               </h3>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: '1.5' }}>
+                แสดงเฉพาะต้นทางหลักและลิงก์ยืนยันที่เกี่ยวข้องกับเรื่องนี้มากที่สุด เพื่อลดลิงก์นอกประเด็น
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
                 {articleSources
                   .filter(s => s && s.url) // Hardening filter
