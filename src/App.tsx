@@ -1288,7 +1288,12 @@ const App = () => {
         .filter(t => validPicks.some(pick => String(pick.id) === String(t.id)))
         .map(t => {
           const matchingPick = validPicks.find(pick => String(pick.id) === String(t.id));
-          return { ...t, ai_reasoning: matchingPick?.reasoning };
+          return {
+            ...t,
+            ai_reasoning: matchingPick?.reasoning,
+            temporalTag: matchingPick?.temporalTag,
+            citation_id: matchingPick?.citation_id,
+          };
         });
       
       setFeed(filteredResult);
