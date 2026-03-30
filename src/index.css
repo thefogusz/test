@@ -38,7 +38,7 @@
 body {
   background-color: var(--bg-950);
   color: var(--text-main);
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "Inter", "Kanit", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.01em;
   overflow: hidden; /* Prevent body scroll, allow inner panels to scroll */
@@ -602,13 +602,37 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 48px;
   font-weight: 800;
   margin-bottom: 8px;
-  letter-spacing: -0.03em;
-  line-height: 1.4;
-  padding: 18px 0;
+  font-family: "Kanit", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  letter-spacing: 0;
+  line-height: 1.5;
+  padding: 20px 0 22px;
   background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  overflow: visible;
+}
+
+.dashboard-header h1,
+.reader-title,
+.reader-subtitle,
+.reader-empty-search-title,
+.home-empty-title,
+.home-splash-title,
+.hero-search-subtitle,
+.audience-hero-title,
+.audience-hero-subtitle,
+.home-feed-toolbar .section-title,
+.right-sidebar-title,
+.modal-title,
+.modal-subtitle,
+.audience-category-heading,
+.nav-item,
+.nav-text,
+.bookmark-tab-btn,
+.content-view-tab-btn,
+.audience-tab-btn {
+  font-family: "Kanit", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 .hero-search-subtitle {
@@ -999,7 +1023,7 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 36px;
   font-weight: 800;
   margin-bottom: 12px;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .reader-subtitle {
@@ -1815,7 +1839,7 @@ h1, h2, h3, h4, h5, h6 {
 
   .hero-search-title {
     font-size: 28px;
-    line-height: 1.2;
+    line-height: 1.35;
     margin-bottom: 6px;
     padding: 0;
   }
@@ -3126,7 +3150,7 @@ h1, h2, h3, h4, h5, h6 {
   margin: 0;
   font-size: 28px;
   font-weight: 800;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
   color: #f7fbff;
   display: inline-flex;
   align-items: center;
