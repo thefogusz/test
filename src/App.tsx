@@ -935,7 +935,7 @@ const App = () => {
                 ? 'Kept from the global-first ranked result set for this broad query.'
                 : 'Kept from the fallback broad-topic result set after the strict quality gate returned empty.'
             ),
-            temporalTag: tweet.temporalTag || (isLatestMode ? 'Breaking' : 'Background'),
+            temporalTag: tweet.temporalTag || (isLatestMode ? 'Breaking' : 'Related'),
             citation_id: tweet.citation_id || `[F${index + 1}]`,
           }));
 
@@ -968,7 +968,7 @@ const App = () => {
             : dedupedCurated.slice(0, Math.min(dedupedCurated.length, 12)).map((tweet, index) => ({
                 ...tweet,
                 ai_reasoning: tweet.ai_reasoning || 'Kept as a fallback result after passing the local quality checks.',
-                temporalTag: tweet.temporalTag || (isLatestMode ? 'Breaking' : 'Background'),
+                temporalTag: tweet.temporalTag || (isLatestMode ? 'Breaking' : 'Related'),
                 citation_id: tweet.citation_id || `[F${index + 1}]`,
               }));
         }

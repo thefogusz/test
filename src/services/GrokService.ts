@@ -738,14 +738,14 @@ Rules:
 - Do not default to "important news" unless the prompt explicitly asks for that.
 - For recreational topics: prefer posts that are actually funny, entertaining, interesting, or stylistically relevant to the request.
 ${preferCredibleSources ? '- Prioritize topic fit first, then strictly prefer credible/authority sources.' : ''}
-- Assign a 'temporalTag': "Breaking" (very new/urgent), "Trending" (currently popular), or "Background" (evergreen/context).
+- Assign a 'temporalTag': "Breaking" (very new/urgent), "Trending" (currently popular), or "Related" (relevant but not especially fresh or viral).
 - **Reasoning Language:** เขียน 'reasoning' เป็นภาษาไทยเท่านั้น โดยสรุปสั้นๆ (1 ประโยค) ว่าทำไมโพสต์นี้ถึงสำคัญหรือตรงกับความต้องการ สื่อสารให้เข้าใจง่ายเหมือนเพื่อนเล่าให้ฟัง`,
       prompt: JSON.stringify(compressedInput),
       schema: z.object({
         picks: z.array(z.object({
           id: z.string(),
           reasoning: z.string().describe('เหตุผลที่เลือกโพสต์นี้เป็นภาษาไทย'),
-          temporalTag: z.enum(['Breaking', 'Trending', 'Background']).describe('The temporal context of the post'),
+          temporalTag: z.enum(['Breaking', 'Trending', 'Related']).describe('The temporal context of the post'),
         })),
       }),
       temperature: 0,
