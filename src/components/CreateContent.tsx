@@ -359,7 +359,7 @@ const CreateContent = ({
           }
           setGeneratedMarkdown(currentText);
         },
-        { allowEmoji, customInstructions: intentProfile?.rewrittenInstructions || customInstructions, intentProfile, signal: controller.signal }
+        { allowEmoji, customInstructions, intentProfile, rawUserInput: input, signal: controller.signal }
       );
 
 
@@ -446,7 +446,7 @@ const CreateContent = ({
         tone,
         format,
         (currentText) => setGeneratedMarkdown(currentText),
-        { allowEmoji, customInstructions: intentProfile?.rewrittenInstructions || customInstructions, intentProfile, signal: controller.signal },
+        { allowEmoji, customInstructions, intentProfile, rawUserInput: input, signal: controller.signal },
       );
 
 
