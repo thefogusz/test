@@ -4293,3 +4293,21 @@ h1, h2, h3, h4, h5, h6 {
 .audience-manual-label {
   padding-left: 2px;
 }
+
+
+.markdown-body .reference-badge {
+  background: rgba(255, 255, 255, 0.9);
+  color: #000;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: text-top;
+  margin: 0 4px;
+  line-height: normal;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}

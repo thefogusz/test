@@ -54,7 +54,7 @@ import {
   analyzeSearchQueryIntent,
   clusterBySimilarity
 } from './services/TwitterService';
-import { agentFilterFeed, buildSearchPlan, discoverTopExperts, expandSearchQuery, generateExecutiveSummary, generateGrokBatch, generateGrokSummary, tavilySearch } from './services/GrokService';
+import { agentFilterFeed, buildSearchPlan, discoverTopExpertsStrict, expandSearchQuery, generateExecutiveSummary, generateGrokBatch, generateGrokSummary, tavilySearch } from './services/GrokService';
 import { renderMarkdownToHtml } from './utils/markdown';
 import './index.css';
 import { STORAGE_KEYS } from './constants/storageKeys';
@@ -749,7 +749,6 @@ const App = () => {
       const preferStrictSources = isComplexQuery && !effectiveBroadDiscoveryQuery;
       const rawDataChunks = [];
       let finalCursor = null;
-
       const getScopedQuery = (q, lane = 'default') => {
         let sq = q;
         if (isLatestMode) {
@@ -762,7 +761,7 @@ const App = () => {
           if (!q.includes('min_faves:')) {
             const latestMinFaves = effectiveBroadDiscoveryQuery
               ? (lane === 'exact' ? 10 : lane === 'broad' ? 25 : 40)
-              : 1;
+              : (isComplexQuery ? 5 : 2);
             sq = `${sq} min_faves:${latestMinFaves}`;
           }
         } else {
@@ -770,7 +769,7 @@ const App = () => {
           if (!q.includes('min_faves:')) {
             const topMinFaves = effectiveBroadDiscoveryQuery
               ? (lane === 'exact' ? 15 : lane === 'broad' ? 40 : 75)
-              : 2;
+              : (isComplexQuery ? 10 : 3);
             sq = `${sq} min_faves:${topMinFaves}`;
           }
         }
@@ -1377,7 +1376,7 @@ const App = () => {
         ...watchlist.map(u => u.username),
         ...(isMore ? aiSearchResults.map(u => u.username) : [])
       ];
-      const experts = await discoverTopExperts(query, excludes);
+      const experts = await discoverTopExpertsStrict(query, excludes);
       setAiSearchResults(prev => isMore ? [...prev, ...experts] : experts);
     } catch (err) {
       console.error(err);
