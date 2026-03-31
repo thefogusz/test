@@ -482,9 +482,13 @@ const getLowSignalPenalty = (tweet, queryTerms, rawQuery = '') => {
   } else {
     // For non-replies, we still want some validation for top/search results
     if (totalEngagement < 2 && !author.isVerified && followers < 500) {
-      penalty += 4.0; // Reduced from 8.0 — Significant but not fatal penalty for tiny 0-1 like accounts
+      penalty += 8.0; // Restored to 8.0 — fatal penalty for tiny accounts with no engagement
     } else if (totalEngagement < 5 && !author.isVerified) {
-      penalty += 1.0; // Reduced from 1.5 — Very mild penalty for low engagement
+      penalty += 3.5; // Increased penalty for low engagement
+    } else if (totalEngagement < 10 && !author.isVerified) {
+      penalty += 1.5; 
+    } else if (totalEngagement < 5 && author.isVerified) {
+      penalty += 1.5; // Mild penalty even for verified accounts if engagement is extremely low
     }
   }
 
@@ -958,10 +962,35 @@ export const searchEverythingDeep = async (
   };
 };
 
+let segmenter = null;
+try {
+  segmenter = new Intl.Segmenter('th-TH', { granularity: 'word' });
+} catch (e) {
+  // Graceful fallback if Intl.Segmenter is not supported
+}
+
 const getBigrams = (text = '') => {
-  const words = String(text || '').toLowerCase().replace(/[^\u0E00-\u0E7Fa-z0-9\s]/g, '').split(/\s+/).filter(Boolean);
+  const rawText = String(text || '').toLowerCase();
+  const words = [];
+  
+  if (segmenter) {
+    for (const { segment, isWordLike } of segmenter.segment(rawText)) {
+      if (isWordLike) words.push(segment);
+    }
+  } else {
+    // Fallback: simple character-level or space parsing if segmenter fails
+    const cleanText = rawText.replace(/[^\u0E00-\u0E7Fa-z0-9\s]/g, '');
+    const segments = cleanText.split(/\s+/).filter(Boolean);
+    for (const segment of segments) {
+      if (/[a-z0-9]/.test(segment)) words.push(segment);
+      else for (let i = 0; i < segment.length; i++) words.push(segment[i]);
+    }
+  }
+
   const bigrams = new Set();
-  for (let i = 0; i < words.length - 1; i++) bigrams.add(`${words[i]}_${words[i + 1]}`);
+  for (let i = 0; i < words.length - 1; i++) {
+    bigrams.add(`${words[i]}_${words[i + 1]}`);
+  }
   return bigrams;
 };
 

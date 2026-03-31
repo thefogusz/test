@@ -594,7 +594,6 @@ const polishThaiContent = (text = '', { format, customInstructions = '', allowEm
     customInstructions,
   );
 
-  const allowHighEnergyLanguage = shouldAllowHighEnergyLanguage(customInstructions, tone);
   let nextText = cleanGeneratedContent(text, { allowEmoji });
 
   if (!profile.allowHeadings) {
@@ -605,16 +604,11 @@ const polishThaiContent = (text = '', { format, customInstructions = '', allowEm
     nextText = stripEngagementBait(nextText);
   }
 
-  if (!allowHighEnergyLanguage) {
-    nextText = softenHypeLanguage(nextText);
-  } else {
-    // For Viral/Enthusiastic tones, allow more impact while still avoiding non-fact-based global scales
-    nextText = nextText.replace(/ครองโลก/gi, 'มีบทบาทสำคัญระดับโลก');
-    nextText = nextText.replace(/!!+/g, '!');
-    // Don't over-soften everything. Keep the hook-driven energy.
-  }
-
+  // Basic punctuation cleanup (no more blind hype word censorship)
   nextText = nextText
+    .replace(/ว้าว!?/gi, '')
+    .replace(/!\?/g, '?')
+    .replace(/!!+/g, '!')
     .replace(/(^|\n)(ลองเช็ครหัส batch .*?$)/gim, '')
     .replace(/(^|\n)(ถ้าเจอ .*?คอมเมนต์.*?$)/gim, '')
     .replace(/(^|\n)(ใครเคย.*เล่า.*?$)/gim, '');
@@ -799,6 +793,7 @@ ${prefersConversationalViralFlow ? '- For this format and tone, prioritize natur
 - ANTI-ROBOT RULE 2: DROP UNNECESSARY PRONOUNS. Native Thai drops "มัน" (it) and "พวกเขา" (they) when context is clear.
 - ANTI-ROBOT RULE 3: SEMANTIC SPACING. Use spacebars to separate independent clauses and ideas instead of rigid punctuation or massive text blocks.
 - ANTI-ROBOT RULE 4: NO LITERAL IDIOMS. Never translate "at the end of the day" or "game changer" literally. Find the Thai cultural equivalent.
+- ANTI-ROBOT RULE 5: HYPE PRESERVATION. Do not invent exaggerated hype words (e.g., "สะเทือนโลก", "พลิกโฉม") unless they are explicitly present in the source material. If the source uses them, you must preserve them to accurately reflect the original tone.
 - Keep verified facts separate from interpretation.
 - Avoid repetitive sentence structures (e.g., stopping starting 3 sentences in a row with the same word).
 - Choose either a natural Thai term or a professional English term (for technical names) - NEVER use dictionary-style pairs like "Artificial Intelligence (ปัญญาประดิษฐ์)".
@@ -1340,23 +1335,36 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
     try {
       const searchData = await searchEverything(categoryQuery, '', false, 'Top', false);
       if (searchData?.data?.length > 0) {
-        const uniqueAuthors = [];
-        const seenUsernames = new Set();
+        const seenUsernames = new Map();
+        
         for (const t of searchData.data) {
-          if (t.author && t.author.username && !seenUsernames.has(t.author.username.toLowerCase())) {
-            seenUsernames.add(t.author.username.toLowerCase());
-            uniqueAuthors.push(t.author);
+          if (t.author && t.author.username) {
+            const uname = t.author.username.toLowerCase();
+            const engagement = (Number(t.likeCount || t.like_count || 0) * 1) + 
+                               (Number(t.retweetCount || t.retweet_count || 0) * 2) + 
+                               (Number(t.replyCount || t.reply_count || 0) * 1.5);
+                               
+            if (!seenUsernames.has(uname)) {
+              seenUsernames.set(uname, {
+                ...t.author,
+                _engagementSignal: engagement
+              });
+            } else {
+              const existing = seenUsernames.get(uname);
+              existing._engagementSignal += engagement;
+            }
           }
         }
         
-        // Filter out small accounts
-        const qualifiedAuthors = uniqueAuthors
+        // Filter out small accounts and prioritize by real-time engagement impact!
+        const qualifiedAuthors = Array.from(seenUsernames.values())
           .filter(a => (a.followers || a.fastFollowersCount || 0) > 1000)
+          .sort((a, b) => b._engagementSignal - a._engagementSignal)
           .slice(0, 15);
           
         if (qualifiedAuthors.length > 0) {
-          activeContext = `\n[อัปเดตแบบ Real-time]: นี่คือรายชื่อบัญชีเทียร์สูงที่มีความเคลื่อนไหว (Active) และกำลังพูดถึงหัวข้อนี้ในช่วง 24 ชั่วโมงที่ผ่านมา จงพิจารณาบัญชีเหล่านี้เป็นพิเศษ:\n${
-            qualifiedAuthors.map(a => `- @${a.username} (${a.name}) | ผู้ติดตาม: ${a.followers || a.fastFollowersCount}`).join('\n')
+          activeContext = `\n[อัปเดตแบบ Real-time (Weighted Impact Signal)]: นี่คือรายชื่อบัญชีเทียร์สูงที่มีอิทธิพลต่อหัวข้อนี้ในช่วง 24 ชั่วโมงที่ผ่านมา จัดเรียงตาม Real-time Engagement Score:\n${
+            qualifiedAuthors.map(a => `- @${a.username} (${a.name}) | ผู้ติดตาม: ${a.followers || a.fastFollowersCount} | พลังการพูดคุยล่าสุด: สูงมาก (Score: ${a._engagementSignal})`).join('\n')
           }\n`;
         }
       }
@@ -1367,28 +1375,26 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
     const { object } = await generateObject({
       model: grok(MODEL_REASONING_FAST),
       system: `คุณคือ "นักล่าดาวรุ่งและปรมาจารย์ระดับโลก" (Global Headhunter AI)
-ภารกิจ: จงค้นหาและแนะนำสุดยอดบัญชี Twitter (X) จำนวน 6 บัญชี ที่เป็นผู้เชี่ยวชาญหรือเป็นแหล่งข้อมูลที่สำคัญที่สุดในหัวข้อ "${categoryQuery}" 
-${activeContext}
-คุณต้องใช้ "ความสามารถในการพิจารณาบริบทปัจจุบัน" ของคุณ เพื่อดึงตัวตนที่มีอิทธิพลในระดับโลกจริงๆ
+ภารกิจ: แนะนำบัญชี Twitter (X) สุดยอดผู้เชี่ยวชาญในหัวข้อ "${categoryQuery}" จำนวนสูงสุด 6 บัญชี
+${activeContext ? activeContext : '\n[คำเตือน: ไม่มีข้อมูลอัปเดตแบบ Real-time ในหัวข้อนี้ กรุณาอิงเฉพาะบัญชีระดับโลกของแท้เท่านั้น]\n'}
 
-[กฎการคัดเลือก - สำคัญมาก]:
-1. **Global Multi-Language Focus (เน้นระดับโลก):** ผู้ใช้ต้องการ "มุมมองระดับโลก" (Global Perspective) เป็นอันดับแรก 
-   - ให้ความสำคัญกับบัญชีภาษาอังกฤษ (English/International accounts) ที่เป็นต้นน้ำของข้อมูล
-   - บัญชีภาษาไทยอนุญาตให้มีได้ไม่เกิน 1-2 บัญชี และต้องเป็นตัวท็อปที่มีคุณภาพเท่านั้น
-   - หากผู้ใช้พิมพ์ค้นหาเป็นภาษาไทย (เช่น "วงการเกม") ให้คุณมองหา "Global Counterparts" (เช่น IGN, GameSpot, หรือนักพัฒนาเกมระดับโลก) มานำเสนอด้วยเสมอ
-2. **Diversity Enforcement (ความหลากหลาย):** ใน 6 บัญชีนี้ ห้ามมีบทบาทซ้ำกันเกิน 2 คน (เช่น ต้องมีทั้งนักวิจารณ์, สำนักข่าว, คนในวงการ, และผู้เล่นระดับโปร)
-3. **The Red Flag Filter (ไร้ขยะ):** ตัดบัญชีที่เป็น Bot, สแปม, ข่าวลือมั่ว, หรือบัญชีที่เอาแต่รีทวีต
-4. **Active & Public Only (บัญชีที่ยังหายใจ):** อาการ "ทวิตล้าง/ร้าง" คือปัญหาใหญ่ที่สุด ผู้ใช้เกลียดบัญชีที่ไม่แอคทีฟ จงพิจารณาผู้ใช้จาก [อัปเดตแบบ Real-time] ที่ให้ไปก่อนเป็นอันดับแรก หากจำเป็นต้องแนะนำคนนอกลิสต์ ต้องเป็นตัวท็อปในยุทธจักรที่โพสต์เป็นประจำทุกวันห้ามแนะนำบอทหรือคนที่เลิกเล่น X แล้วเด็ดขาด
-5. จัดลำดับความสำคัญให้ "บัญชีของคน/องค์กรระดับโลกที่มีผู้ติดตามจริงมหาศาล" เป็นกลุ่มแรก ๆ
-6. ตัดบัญชีที่มีชื่อผู้ใช้เหล่านี้ทิ้ง: [${excludeUsernames.join(', ')}]
-7. สำหรับ "reasoning": เขียนรีวิวภาษาไทยความยาว 1 ประโยคสั้นๆ เน้นความว้าวว่าทำไมต้องตามคนนี้ เขาเจ๋งแค่ไหนในสายนี้`,
-      prompt: `ค้นหายอดฝีมือ 6 คนที่เป็น The Best of the Best ในสาย "${categoryQuery}" อย่างเคร่งครัดตามกฎ ห้ามเอาบัญชีร้างมาเด็ดขาด (username ต้องไม่มี @ นำหน้า และ reasoning ต้องยาวแค่ 1 ประโยคในภาษาไทยเท่านั้น)`,
+[กฎการคัดเลือกขั้นเด็ดขาด (STRICT RULES)]:
+1. **The Core Ground Truth (ความจริงสูงสุด):** 
+   - หากมี [อัปเดตแบบ Real-time] ด้านบน คุณ **ต้อง** คัดเลือกบัญชีจากรายชื่อนั้นมาเป็นแกนหลักก่อนเสมอ! เพราะพวกเขาได้รับการพิสูจน์แล้วว่าแอคทีฟและมีค่า Engagement สูงสุดใน 24 ชั่วโมงที่ผ่านมา (ซึ่งมักจะรวมถึงอินฟลูเอนเซอร์ระดับกลางที่กำลังสร้างเทรนด์อยู่ด้วย)
+2. **Quality Mid-Tier & Legends Zone (พื้นที่สำหรับคนเก่งจริง):** 
+   - หากคุณจำเป็นต้องแนะนำบัญชีที่ *ไม่ได้อยู่ในลิสต์ Real-time* บัญชีนั้นต้องเป็น **"สำนักข่าวระดับโลก, บุคคลสำคัญระดับตำนาน, หรือ อินฟลูเอนเซอร์ระดับกลาง (Mid-tier/Niche Experts) ที่เก่งและทรงอิทธิพลเฉพาะทางจริงๆ"** (มีผู้ติดตามตั้งแต่หลักหมื่นไปจนถึงหลายล้าน)
+   - ห้ามแต่งชื่อบัญชีแบบสุ่มขึ้นมาเองเด็ดขาด (No random hallucinations) คุณต้องมั่นใจ 100% ว่าบัญชีนี้มีตัวตนจริง, ไม่ร้าง, และเป็นที่ยอมรับในสายนั้นจริงๆ เท่านั้น
+3. **Red Flag Penalty:** ข้ามบัญชีที่เป็นบอทก๊อปข่าว แฟนคลับ หรือบัญชีที่ดูเหมือนสแปมเด็ดขาด
+4. **ความหลากหลาย (Diversity):** ผสมผสานระหว่าง สำนักข่าว, บุคคลในวงการ (Insider/Dev/Niche Experts), และนักวิเคราะห์ ไม่ให้ซ้ำซากเกินไป
+5. **บัญชีที่ห้ามเลือก:** [${excludeUsernames.join(', ')}]
+6. **Reasoning:** เขียนภาษาไทยสั้นๆ 1 ประโยค รีวิวความสามารถว่าทำไมเขาถึงควรค่าแก่การติดตาม (ถ้าเป็นคนเก่งเฉพาะทาง ให้ระบุจุดเด่นชัดๆ)`,
+      prompt: `ค้นหาบัญชีที่ดีที่สุด 6 อันดับในสาย "${categoryQuery}" อิงตามโครงสร้าง Real-time ด้านบนเป็นหลัก ห้ามแต่งบัญชีโนเนมหรือบัญชีร้างขึ้นมาเองเด็ดขาด! (username ห้ามมี @ นำหน้า)`,
       schema: z.object({
         experts: z.array(
           z.object({
-            username: z.string(),
-            name: z.string(),
-            reasoning: z.string()
+            username: z.string().describe('ชื่อบัญชี x ไม่ต้องมี @'),
+            name: z.string().describe('ชื่อแสดงผล หรือชื่อองค์กร'),
+            reasoning: z.string().describe('เหตุผลที่ควรติดตาม ภาษาไทย 1 ประโยค')
           })
         ).max(6),
       }),
@@ -1830,12 +1836,22 @@ ${prefersConversationalViralFlow ? '14. TONE REWRITE RULE: ถ้าผู้ใ
       });
 
       let fullContent = '';
+      let nextPolishTime = Date.now() + 800; // Throttle heavy NLP regex down to ~1.2 FPS
+      
       for await (const textPart of textStream) {
         fullContent += textPart;
-        onStreamChunk(polishThaiContent(fullContent, { format, customInstructions, allowEmoji, tone }));
+        
+        if (Date.now() >= nextPolishTime) {
+          onStreamChunk(polishThaiContent(fullContent, { format, customInstructions, allowEmoji, tone }));
+          nextPolishTime = Date.now() + 800;
+        } else {
+          onStreamChunk(fullContent); // Just push unpolished raw text to UI to keep it smooth without O(N^2) CPU burn
+        }
       }
 
-      return { content: polishThaiContent(fullContent, { format, customInstructions, allowEmoji, tone }), titleIdea: brief.titleIdea };
+      const finalPolished = polishThaiContent(fullContent, { format, customInstructions, allowEmoji, tone });
+      onStreamChunk(finalPolished);
+      return { content: finalPolished, titleIdea: brief.titleIdea };
     } catch (error) {
       if (error.name === 'AbortError') throw error;
       console.error('[GrokService] Streaming error (v2), falling back to non-streaming:', error);

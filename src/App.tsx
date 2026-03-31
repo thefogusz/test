@@ -749,7 +749,6 @@ const App = () => {
       const preferStrictSources = isComplexQuery && !effectiveBroadDiscoveryQuery;
       const rawDataChunks = [];
       let finalCursor = null;
-
       const getScopedQuery = (q, lane = 'default') => {
         let sq = q;
         if (isLatestMode) {
@@ -762,7 +761,7 @@ const App = () => {
           if (!q.includes('min_faves:')) {
             const latestMinFaves = effectiveBroadDiscoveryQuery
               ? (lane === 'exact' ? 10 : lane === 'broad' ? 25 : 40)
-              : 1;
+              : (isComplexQuery ? 5 : 2);
             sq = `${sq} min_faves:${latestMinFaves}`;
           }
         } else {
@@ -770,7 +769,7 @@ const App = () => {
           if (!q.includes('min_faves:')) {
             const topMinFaves = effectiveBroadDiscoveryQuery
               ? (lane === 'exact' ? 15 : lane === 'broad' ? 40 : 75)
-              : 2;
+              : (isComplexQuery ? 10 : 3);
             sq = `${sq} min_faves:${topMinFaves}`;
           }
         }
