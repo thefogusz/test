@@ -18,7 +18,9 @@
       "Bash(python -:*)",
       "WebSearch",
       "Bash(node -e \":*)",
-      "Bash(wc -l /d/TEST/src/**/*.ts /d/TEST/src/**/*.tsx)"
+      "Bash(wc -l /d/TEST/src/**/*.ts /d/TEST/src/**/*.tsx)",
+      "Bash(find /d/TEST/src -name *.css -o -name index.css)",
+      "Bash(ls -la /d/TEST/src/*.css)"
     ]
   }
 }
