@@ -2,7 +2,7 @@
 import { createXai } from '@ai-sdk/xai';
 import { generateObject, generateText, streamText } from 'ai';
 import { z } from 'zod';
-import { searchEverything, fetchTweetById } from './TwitterService';
+import { curateSearchResults, searchEverything, fetchTweetById } from './TwitterService';
 import { apiFetch, INTERNAL_TOKEN } from '../utils/apiFetch';
 
 const MODEL_NEWS_FAST = 'grok-4-1-fast-non-reasoning';
@@ -1377,6 +1377,119 @@ ${activeContext ? activeContext : '\n[คำเตือน: ไม่มีข�
     console.error('[GrokService] Expert discovery LLM error:', error);
     if (error.status === 400) {
       console.warn('[GrokService] 400 Bad Request in discovery. Check parameters/reasoningEffort for model.');
+    }
+    return [];
+  }
+};
+
+export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames = []) => {
+  try {
+    let activeContext = '';
+
+    try {
+      const searchData = await searchEverything(categoryQuery, '', false, 'Top', false);
+      const curatedTweets = curateSearchResults(searchData?.data || [], categoryQuery, {
+        latestMode: false,
+        preferCredibleSources: true,
+      });
+
+      if (curatedTweets.length > 0) {
+        const authorsByUsername = new Map();
+
+        for (const tweet of curatedTweets) {
+          const username = (tweet?.author?.username || '').toLowerCase();
+          if (!username) continue;
+
+          const engagementSignal =
+            Number(tweet.likeCount || tweet.like_count || 0) +
+            Number(tweet.retweetCount || tweet.retweet_count || 0) * 2 +
+            Number(tweet.replyCount || tweet.reply_count || 0) * 1.5;
+          const topicSignal =
+            Number(tweet.broad_semantic_score || 0) +
+            Number(tweet.search_score || 0) +
+            (String(tweet.text || '').toLowerCase().includes(String(categoryQuery || '').toLowerCase()) ? 1.25 : 0);
+
+          if (!authorsByUsername.has(username)) {
+            authorsByUsername.set(username, {
+              ...tweet.author,
+              _engagementSignal: engagementSignal,
+              _topicSignal: topicSignal,
+            });
+            continue;
+          }
+
+          const existing = authorsByUsername.get(username);
+          existing._engagementSignal += engagementSignal;
+          existing._topicSignal += topicSignal;
+        }
+
+        const qualifiedAuthors = Array.from(authorsByUsername.values())
+          .filter((author) => (author.followers || author.fastFollowersCount || 0) > 1000)
+          .filter((author) => author._topicSignal >= 3)
+          .sort((a, b) => {
+            if (b._topicSignal !== a._topicSignal) return b._topicSignal - a._topicSignal;
+            return b._engagementSignal - a._engagementSignal;
+          })
+          .slice(0, 15);
+
+        if (qualifiedAuthors.length > 0) {
+          activeContext = [
+            '',
+            '[REAL-TIME TOPIC-VALIDATED SHORTLIST]',
+            `These accounts came from live search results for "${categoryQuery}", but only after relevance filtering.`,
+            'Treat this list as a strong hint, not automatic truth. Reject any account that only mentions the topic casually.',
+            ...qualifiedAuthors.map(
+              (author) =>
+                `- @${author.username} (${author.name}) | followers: ${author.followers || author.fastFollowersCount || 0} | topicScore: ${Math.round(author._topicSignal * 100) / 100} | engagementScore: ${Math.round(author._engagementSignal * 100) / 100}`,
+            ),
+            '',
+          ].join('\n');
+        }
+      }
+    } catch (e) {
+      console.warn('Could not fetch active context for strict expert discovery:', e);
+    }
+
+    const { object } = await generateObject({
+      model: grok(MODEL_REASONING_FAST),
+      system: `You are a strict Twitter/X account recommender for the topic "${categoryQuery}".
+
+Your job is to recommend up to 6 accounts that are genuinely worth following for this topic.
+${activeContext || '\n[No reliable real-time shortlist was available. Use only clearly relevant and well-known accounts.]\n'}
+
+Rules:
+1. Topic fit is mandatory. Never recommend an account only because it has high engagement.
+2. If an account appears in the shortlist but is only casually touching the topic, reject it.
+3. Prefer accounts whose identity, bio, or recent content clearly centers on the topic.
+4. Avoid fan accounts, meme aggregators, generic viral accounts, spam, and random creators with weak topical fit.
+5. Respect this exclude list exactly: [${excludeUsernames.join(', ')}]
+6. No hallucinations. Only recommend accounts you are confident are real.
+7. Write "reasoning" in Thai, one short sentence.`,
+      prompt: `Recommend the best Twitter/X accounts for "${categoryQuery}". Return only highly relevant accounts. Username must not start with @.`,
+      schema: z.object({
+        experts: z.array(
+          z.object({
+            username: z.string().describe('Twitter/X username without @'),
+            name: z.string().describe('Display name'),
+            reasoning: z.string().describe('Short Thai reason'),
+          }),
+        ).max(6),
+      }),
+    });
+
+    return (object.experts || [])
+      .map((expert) => ({
+        ...expert,
+        username: (expert.username || '').replace(/^@/, '').trim(),
+      }))
+      .filter((expert) => {
+        const username = (expert.username || '').toLowerCase();
+        return username && !excludeUsernames.some((item) => String(item || '').toLowerCase() === username);
+      });
+  } catch (error) {
+    console.error('[GrokService] Strict expert discovery LLM error:', error);
+    if (error.status === 400) {
+      console.warn('[GrokService] 400 Bad Request in strict discovery. Check parameters/reasoningEffort for model.');
     }
     return [];
   }

@@ -33,6 +33,14 @@ const SEARCH_STOPWORDS = new Set([
 
 const BROAD_TOPIC_HINTS = [
   {
+    triggers: TOPIC_TRIGGERS.ai,
+    hints: [
+      'artificial intelligence', 'machine learning', 'generative ai', 'genai', 'llm', 'gpt',
+      'openai', 'anthropic', 'claude', 'gemini', 'deepmind', 'mistral', 'prompt engineering',
+      'ai agent', 'reasoning model', 'multimodal', 'inference', 'fine-tuning', 'rag',
+    ],
+  },
+  {
     triggers: TOPIC_TRIGGERS.gaming,
     hints: [
       'nintendo', 'switch', 'switch 2', 'playstation', 'ps5', 'xbox', 'steam', 'pc gaming',
@@ -131,6 +139,26 @@ const buildQueryProfile = (rawQuery = '') => {
   const queryTerms = normalizeSearchTerms(rawQuery);
   const broadHints = getBroadTopicHints(rawQuery);
   const preferGlobal = broadIntent && !isExplicitlyLocalQuery(rawQuery);
+
+  if (
+    normalizedQuery === 'ai' ||
+    normalizedQuery.includes('artificial intelligence') ||
+    normalizedQuery.includes('machine learning') ||
+    normalizedQuery.includes('llm') ||
+    normalizedQuery.includes('gpt') ||
+    normalizedQuery.includes('genai')
+  ) {
+    return {
+      key: 'ai',
+      broadIntent: true,
+      preferGlobal,
+      queryTerms,
+      exactTerms: ['ai', 'artificial intelligence', 'machine learning', 'generative ai', 'genai', 'llm', 'gpt'],
+      primaryHints: ['openai', 'anthropic', 'claude', 'gemini', 'deepmind', 'mistral', 'chatgpt', 'copilot', 'ai model', 'foundation model', 'ai agent', 'prompt engineering'],
+      secondaryHints: broadHints,
+      softNegativeHints: ['giveaway', 'airdrop', 'follow', 'dm', 'telegram', 'whatsapp', 'casino', 'พนัน', 'หวย'],
+    };
+  }
 
   if (normalizedQuery.includes('เกม') || normalizedQuery.includes('gaming') || normalizedQuery.includes('games')) {
     return {
