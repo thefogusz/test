@@ -3713,6 +3713,70 @@ h1, h2, h3, h4, h5, h6 {
   color: #fff;
 }
 
+.article-reader-modal {
+  background:
+    linear-gradient(180deg, rgba(18, 20, 25, 0.98), rgba(13, 15, 19, 0.98)),
+    var(--bg-900);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 32px 72px rgba(0, 0, 0, 0.78), 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+}
+
+.article-reader-title {
+  padding-right: 36px;
+  line-height: 1.35;
+}
+
+.article-reader-title a {
+  color: rgba(110, 168, 255, 0.96) !important;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(110, 168, 255, 0.45);
+  transition: color 0.2s ease, border-color 0.2s ease;
+  word-break: break-word;
+}
+
+.article-reader-title a:hover {
+  color: #ffffff !important;
+  border-color: rgba(110, 168, 255, 0.9);
+}
+
+.article-reader-markdown {
+  color: rgba(241, 245, 249, 0.92);
+}
+
+.article-reader-markdown p {
+  color: rgba(241, 245, 249, 0.9);
+}
+
+.article-reader-markdown a {
+  color: rgba(132, 189, 255, 0.94);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(132, 189, 255, 0.35);
+  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.article-reader-markdown a:hover {
+  color: #ffffff;
+  border-bottom-color: rgba(132, 189, 255, 0.85);
+  background-color: rgba(132, 189, 255, 0.08);
+}
+
+.article-reader-markdown hr {
+  border: 0;
+  height: 1px;
+  margin: 28px 0;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(148, 163, 184, 0.7), rgba(255, 255, 255, 0.04));
+}
+
+.article-reader-markdown ul,
+.article-reader-markdown ol {
+  padding-left: 1.35rem;
+}
+
+.article-reader-markdown li {
+  color: rgba(226, 232, 240, 0.88);
+  margin-bottom: 14px;
+}
+
 .modal-subtitle {
   font-size: 13px;
   color: var(--text-dim);
