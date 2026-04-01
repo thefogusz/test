@@ -407,9 +407,6 @@ export const tavilySearch = async (query, isLatest = false, options = {}) => {
     return { results: [], answer: '' };
   }
 };
-
-
-
 const isMajorXAccount = (tweet) => {
   const followers = tweet.author?.followers || tweet.author?.fastFollowersCount || 0;
   const likes = tweet.like_count || tweet.likeCount || 0;
@@ -471,10 +468,10 @@ const CONTENT_FORMAT_PROFILES = {
     label: 'social post',
     allowHeadings: false,
     allowCta: false,
-    boldHeadline: true,
-    structure: 'เริ่มด้วยบรรทัดแรกที่เป็น headline hook ห่อด้วย **...** แล้วตามด้วย 3-5 ย่อหน้าสั้น แต่ละย่อหน้ามีไอเดียเดียวชัดเจน คั่นด้วย "." บรรทัดเดียว ไม่ใช้ markdown heading ใดๆ',
-    goals: 'headline บรรทัดแรก (bold) ต้อง hook ด้วยตัวเลขจริงหรือข้อเท็จจริงที่น่าสนใจที่สุดจาก fact sheet — เปิดทันที ไม่ต้องนำเข้า ปิดให้คมและจบพอดีโดยไม่ต้องฝืนใส่คำถามปลายเปิดหรือแฮชแท็กถ้าไม่จำเป็น',
-    skill: 'คนรู้เรื่องเล่าให้คนอื่นฟัง — ไม่ใช่ clickbait ไม่ใช่รายงานข่าว ให้ข้อมูลจริงก่อนแล้วค่อยมีมุมมอง ใช้ ครับ ลงท้ายตามธรรมชาติ',
+    boldHeadline: false,
+    structure: 'เขียนเป็นโพสต์สั้นหรือโพสต์ยาวตามเนื้อหาได้อย่างยืดหยุ่น จะเป็นย่อหน้าเดียว 2-3 ย่อหน้า หรือเปิดด้วยบรรทัดนำสั้นๆ ก็ได้ ถ้าเรื่องสั้นมากไม่ต้องฝืนแตกหลายย่อหน้า',
+    goals: 'ให้เหมือนคนไทยเขียนเล่าเรื่องหรือสรุปข่าวจริงๆ เปิดตรงประเด็น ไม่ต้องทำ headline ถ้าไม่ช่วยให้อ่านดีขึ้น หลีกเลี่ยงจังหวะประโยคแบบคอนเทนต์สำเร็จรูปหรือประโยคปิดที่ฝืนให้ดูคม',
+    skill: 'น้ำเสียงธรรมชาติ ชัด และเชื่อถือได้ เหมือนคนที่เข้าใจเรื่องนี้กำลังอธิบายให้ฟัง ไม่ต้องเล่นบทนักเขียนคอนเทนต์',
   },
   'สคริปต์วิดีโอสั้น': {
     label: 'short-form video script',
@@ -498,16 +495,16 @@ const CONTENT_FORMAT_PROFILES = {
     label: 'thread',
     allowHeadings: false,
     allowCta: false,
-    boldHeadline: true,
-    structure: 'เริ่มด้วยบรรทัดแรกที่เป็น headline hook ห่อด้วย **...** แล้วแต่ละ section ต่อเนื่องกันและอ่านได้ด้วยตัวเองในฐานะ standalone point ไม่ใช้ markdown heading',
-    goals: 'เรียงข้อมูลจากน่าสนใจที่สุดไปหาน้อยที่สุด (inverted pyramid) แต่ละ section มีไอเดียเดียวชัดเจน จบด้วย insight ที่ชัดพอดี ไม่ฝืนใส่คำถามปลายเปิดหรือ hashtag ถ้าไม่จำเป็น',
-    skill: 'thread ที่อ่านไปก็ได้ความรู้ไป — ไม่ใช่แค่ bullet points เฉยๆ มีเรื่องราวและ flow ที่ดึงดูด คนอ่านครึ่งทางก็ยังอยากอ่านต่อ',
+    boldHeadline: false,
+    structure: 'เขียนเป็นลำดับความคิดที่ต่อเนื่องกัน แต่ยืดหยุ่นได้ว่าจะเปิดด้วยบรรทัดสรุปหรือเข้าประเด็นทันที แต่ละช่วงควรต่อกันลื่น ไม่ต้องทำเหมือน template ของ thread ทุกครั้ง',
+    goals: 'ให้คนอ่านค่อยๆ เข้าใจประเด็นจากเรื่องจริงและข้อเท็จจริง ไม่ต้องฝืนทำ hook หรือ insight ปิดท้ายทุกครั้ง หลีกเลี่ยงน้ำเสียงสอนหรือขายเกินจำเป็น',
+    skill: 'เหมือนคนที่จัดประเด็นเก่งกำลังพาอ่านทีละจุด แบบอ่านแล้วไหล ไม่ใช่ bullet dump หรือ thread สำเร็จรูป',
   },
 };
 
 const TONE_GUIDES = {
   'ให้ข้อมูล/ปกติ': 'Calm, informed, editorial. Use professional but accessible Thai. Use particles like ครับ/ค่ะ appropriately. Avoid robotic transitions.',
-  'กระตือรือร้น/ไวรัล': 'เขียนแบบ Energetic และดึงดูด — ใช้ insight ที่แหลมคมเป็น hook บรรทัดแรกต้องดึงคนหยุดอ่านทันที ใช้คำลงท้าย นะ/น้า/สิ/ซะ/เลย ได้ตามธรรมชาติ ประโยคสั้น กระชับ มีจังหวะ ใช้ตัวเลขหรือข้อเท็จจริงที่น่าตกใจเป็น anchor เขียนให้ดึงดูดและมีชีวิตชีวา แต่ภาษาต้องเป็นภาษาไทยจริงๆ ที่คนใช้ในชีวิตประจำวัน — ห้ามประดิษฐ์สำนวนหรือใช้คำแสลงที่ฟังดูแปลกหรือไม่มีอยู่จริง ถ้าร่างยังฟังเหมือนรายงานข่าวหรือเรียงข้อมูลแข็งเกินไป ให้เรียบเรียงใหม่ให้กระชับและตรงประเด็นขึ้น ห้ามขึ้นต้นด้วย "สาย... ห้ามพลาด" หรือ "อัปเดตด่วน" — ให้ hook ด้วยสาระแทน',
+  'กระตือรือร้น/ไวรัล': 'Energetic but still natural. Prioritize clear, lively Thai over gimmicks. You may sound sharper and faster, but do not force bait phrasing, fake urgency, or artificial social-media cadence.',
   'ทางการ/วิชาการ': 'Precise, objective, and well-structured. No slang. Use ครับ/ค่ะ for standard politeness.',
   'เป็นกันเอง/เพื่อนเล่าให้ฟัง': 'Warm, conversational, dropping formal pronouns where implied. Flow like a natural speech. Use particles like เถอะ/หน่อย, นะ/น้า for closeness.',
   'ตลก/มีอารมณ์ขัน': 'Lightly playful, witty observations. No forced jokes.',
@@ -587,6 +584,45 @@ const softenHypeLanguage = (text = '') => {
 
 const shouldAllowHighEnergyLanguage = (customInstructions = '', tone = '') =>
   /ไวรัล|viral|energetic|high energy/i.test(`${tone} ${customInstructions}`);
+
+const ARTIFICIAL_THAI_PATTERNS = [
+  /นี่แหละที่ทำให้/i,
+  /เรียกว่าแทบ/i,
+  /สุดยอดจริง/i,
+  /แบบไม่ต้องกังวล/i,
+  /บอกเลยว่า/i,
+  /งานนี้มี/i,
+];
+
+const countContentParagraphs = (text = '') =>
+  String(text || '')
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean).length;
+
+const countShortParagraphs = (text = '') =>
+  String(text || '')
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter((block) => block && block.length <= 120).length;
+
+const shouldForceNaturalRewrite = (text = '', { format = '', tone = '' } = {}) => {
+  const normalized = normalizeCacheText(text);
+  if (!normalized) return false;
+
+  const hasArtificialPhrase = ARTIFICIAL_THAI_PATTERNS.some((pattern) => pattern.test(normalized));
+  const paragraphCount = countContentParagraphs(text);
+  const shortParagraphCount = countShortParagraphs(text);
+  const looksOverSegmentedSocial =
+    (format === 'โพสต์โซเชียล' || format === 'โพสต์ให้ความรู้ (Thread)') &&
+    paragraphCount >= 4 &&
+    shortParagraphCount >= 3;
+  const suspiciousBoldHeadline = /^\s*\*\*[^*]+\*\*\s*\n\s*\n/.test(String(text || ''));
+  const tooManyExclamations = (normalized.match(/!/g) || []).length >= 2;
+  const shouldBeCalmer = tone === 'ให้ข้อมูล/ปกติ' || tone === 'ทางการ/วิชาการ';
+
+  return hasArtificialPhrase || looksOverSegmentedSocial || suspiciousBoldHeadline || (shouldBeCalmer && tooManyExclamations);
+};
 
 const polishThaiContent = (text = '', { format, allowEmoji = false } = {}) => {
   const profile = buildFormatProfile(format);
@@ -784,6 +820,8 @@ ${factSheet}
 - If the fact sheet contains uncertainty, preserve it in caveats instead of forcing certainty.
 - Do not invent games, quizzes, activities, hashtags, or CTA unless the user explicitly asks.
 - Choose a structure that fits the requested format instead of forcing a fixed house style.
+- Prefer natural Thai over dramatic packaging. Avoid fake hooks, fake punchlines, or lines that sound like generic social-copy filler.
+- If the content works best as one compact paragraph, choose that. Do not force multiple short paragraphs unless they genuinely improve readability.
 `.trim();
 };
 
@@ -1898,7 +1936,7 @@ export const generateStructuredContentV2 = async (
 
   const draftSystemPrompt = `You are an expert Thai writer producing the final user-facing draft.
 
-Write in natural Thai that feels human, clear, and grounded.
+Write in natural Thai that feels human, clear, grounded, and not templated.
 
 Priority order:
 1. The fact sheet, especially verified facts and must-not-claim rules.
@@ -1912,6 +1950,8 @@ Hard rules:
 - Mention people or accounts only when they materially matter to the story.
 - Follow the requested format and tone, but do not force a rigid house voice when the source or user intent calls for a more source-forward framing.
 - Use natural Thai, not literal translation or unnecessary corporate jargon.
+- Avoid generic AI-sounding social phrasing, fake dramatic transitions, and forced concluding lines.
+- Do not force a bold headline, a hook line, or multiple short paragraphs unless the content truly benefits from them.
 - Do not add CTA or audience interaction unless the user explicitly asked for it.
 - For formats that do not want headings, avoid markdown headings instead of inventing extra scaffolding.`;
 
@@ -1923,6 +1963,8 @@ Hard rules:
     `<structured_brief_guidance>\n${JSON.stringify(brief, null, 2)}\n</structured_brief_guidance>`,
     `<fact_sheet>\n${activeFactSheet}\n</fact_sheet>`,
     'If raw user instructions and normalized guidance differ, follow the raw user instructions unless they conflict with the fact sheet.',
+    'Prefer the simplest structure that reads naturally. If one or two paragraphs are enough, do not pad the piece.',
+    'Avoid phrases that sound like filler or AI-generated social copy.',
     'Write the final Thai content now.',
   ].join('\n\n');
 
@@ -1986,7 +2028,7 @@ Hard rules:
     allowEmoji,
   });
 
-  if (skipReviewPass) {
+  if (skipReviewPass && !shouldForceNaturalRewrite(contentDraft, { format, tone })) {
     return { content: polishThaiContent(contentDraft, { format, customInstructions, allowEmoji, tone }), titleIdea: brief.titleIdea };
   }
 
@@ -1999,6 +2041,7 @@ Set passed=true only if:
 - it does not turn reported claims or open questions into hard facts
 - it follows the user's explicit request closely enough
 - it is natural Thai and broadly fits the requested format
+- it does not use forced hooks, filler transitions, or unnecessary paragraph splits that make the draft feel templated
 
 Do not fail a draft just because it chose a different but valid narrative stance.`,
       prompt: `[RAW USER REQUEST]\n${rawUserInput || 'None'}\n\n[RAW USER INSTRUCTIONS]\n${customInstructions || 'None'}\n\n[FORMAT]\n${format}\n\n[TONE]\n${tone}\n\n[NORMALIZED INTENT]\n${intentProfile ? JSON.stringify(intentProfile, null, 2) : 'None'}\n\n[FACT SHEET]\n${activeFactSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[DRAFT]\n${contentDraft}`,
@@ -2006,14 +2049,15 @@ Do not fail a draft just because it chose a different but valid narrative stance
     });
 
     const needsGroundingRewrite = !evalResult.groundingPassed || !evalResult.sourceDisciplinePassed;
+    const needsNaturalnessRewrite = !evalResult.thaiNaturalnessPassed || shouldForceNaturalRewrite(contentDraft, { format, tone });
 
-    if (!evalResult.passed && needsGroundingRewrite) {
+    if ((!evalResult.passed && (needsGroundingRewrite || needsNaturalnessRewrite)) || needsNaturalnessRewrite) {
       const evalFeedback = evalResult.reason ||
-        'Revise only the parts that are not fully grounded in the fact sheet or that overstate softer claims.';
+        'Revise the draft so it stays grounded in the fact sheet and reads like natural Thai written by a real person.';
       const revisedDraft = await callGrok({
         modelName: MODEL_WRITER,
         system: draftSystemPrompt,
-        prompt: `[RAW USER REQUEST]\n${rawUserInput || 'None'}\n\n[RAW USER INSTRUCTIONS]\n${customInstructions || 'None'}\n\n[FACT SHEET]\n${activeFactSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[CURRENT DRAFT]\n${contentDraft}\n\n[EDITOR FEEDBACK]\n${evalFeedback}\n\nRevise only the problematic parts. Preserve the existing structure and voice wherever they already work.`,
+        prompt: `[RAW USER REQUEST]\n${rawUserInput || 'None'}\n\n[RAW USER INSTRUCTIONS]\n${customInstructions || 'None'}\n\n[FACT SHEET]\n${activeFactSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[CURRENT DRAFT]\n${contentDraft}\n\n[EDITOR FEEDBACK]\n${evalFeedback}\n\nRewrite only where needed.\n- Keep the facts intact.\n- Remove AI-sounding phrasing, forced hooks, and filler conclusions.\n- Merge paragraphs if the draft feels over-segmented.\n- Keep the wording plain, natural, and specific.`,
         temperature: 0.4,
         allowEmoji,
       });
@@ -2026,4 +2070,6 @@ Do not fail a draft just because it chose a different but valid narrative stance
 
   return { content: polishThaiContent(contentDraft, { format, customInstructions, allowEmoji, tone }), titleIdea: brief.titleIdea };
 };
+
+
 
