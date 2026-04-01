@@ -586,7 +586,7 @@ const CreateContent = ({
               </div>
             )}
 
-            <div className="create-content-main-label">Prompt</div>
+            <div className="create-content-main-label">หัวข้อ / ไอเดีย</div>
             <textarea
               className="create-content-input"
               value={input}
