@@ -316,6 +316,8 @@ const CreateContent = ({
   const [isEditing, setIsEditing] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [thinkingStep, setThinkingStep] = useState(0);
+  const [generationStartedAt, setGenerationStartedAt] = useState(null);
+  const [progressNow, setProgressNow] = useState(() => Date.now());
   const abortRef = useRef(null);
   const activeFormatHint = FORMAT_HINTS[format] || FORMAT_HINTS['โพสต์โซเชียล'];
   useEffect(() => {
@@ -326,6 +328,35 @@ const CreateContent = ({
     }, 1000);
     return () => clearInterval(interval);
   }, [isGenerating, phase]);
+
+  useEffect(() => {
+    if (!isGenerating) {
+      setProgressNow(Date.now());
+      return;
+    }
+
+    if (!generationStartedAt) {
+      setGenerationStartedAt(Date.now());
+    }
+
+    const interval = setInterval(() => {
+      setProgressNow(Date.now());
+    }, 200);
+
+    return () => clearInterval(interval);
+  }, [generationStartedAt, isGenerating]);
+
+  useEffect(() => {
+    if (!isGenerating) {
+      setGenerationStartedAt(null);
+    }
+  }, [isGenerating]);
+
+  const progressElapsedMs = generationStartedAt ? Math.max(0, progressNow - generationStartedAt) : 0;
+  const crawlDurationMs = 60000;
+  const crawlProgressWidth = Math.min(95, (progressElapsedMs / crawlDurationMs) * 95);
+  const flowDurationMs = 1800;
+  const flowAnimationDelay = generationStartedAt ? `-${progressElapsedMs % flowDurationMs}ms` : '0ms';
 
   // Persistence effects
   useEffect(() => { localStorage.setItem('foro_gen_input_v1', input); }, [input]);
@@ -353,6 +384,8 @@ const CreateContent = ({
     abortRef.current = controller;
 
     setIsGenerating(true);
+    setGenerationStartedAt(Date.now());
+    setProgressNow(Date.now());
     setFactSheet(null);
     setArticleSources([]);
     setGeneratedMarkdown('');
@@ -485,6 +518,8 @@ const CreateContent = ({
     abortRef.current = controller;
 
     setIsGenerating(true);
+    setGenerationStartedAt(Date.now());
+    setProgressNow(Date.now());
     setGeneratedMarkdown('');
     setError(null);
     setPhase('generating');
@@ -562,7 +597,8 @@ const CreateContent = ({
         boxShadow: '0 20px 60px rgba(0,0,0,0.24)',
         display: 'flex',
         flexDirection: 'column',
-        position: 'relative'
+        position: 'relative',
+        overflow: 'hidden'
       }}>
         <div className="create-content-composer">
           <div className="create-content-main">
@@ -739,7 +775,7 @@ const CreateContent = ({
                 }}
               >
                 {isGenerating ? (
-                  <><Loader2 size={18} className="spinner" /> กำลังสร้าง...</>
+                  <><Loader2 size={18} className="animate-spin" /> กำลังสร้าง...</>
                 ) : (
                   <><SquarePen size={18} /> สร้างคอนเทนต์</>
                 )}
@@ -751,7 +787,7 @@ const CreateContent = ({
         {/* Progress Bar - indeterminate flowing animation */}
         {isGenerating && (
            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px', background: 'rgba(255,255,255,0.06)', borderBottomLeftRadius: '20px', borderBottomRightRadius: '20px', overflow: 'hidden' }}>
-             <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: '40%', background: 'linear-gradient(90deg, transparent, var(--accent-secondary), transparent)', animation: 'progress-flow 1.8s ease-in-out infinite' }} />
+             <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: '40%', background: 'linear-gradient(90deg, transparent, var(--accent-secondary), transparent)', animation: 'progress-flow 1.8s ease-in-out infinite', animationDelay: flowAnimationDelay }} />
            </div>
         )}
       </div>
@@ -809,8 +845,8 @@ const CreateContent = ({
               height: '100%', 
               background: 'linear-gradient(90deg, var(--accent-secondary), #a855f7)', 
               borderRadius: '999px', 
-              width: '0%', 
-              animation: isGenerating ? 'progress-crawl 60s cubic-bezier(0.1, 0, 0.4, 1) forwards' : 'none'
+              width: `${crawlProgressWidth}%`,
+              transition: 'width 200ms linear'
             }} />
           </div>
         </div>

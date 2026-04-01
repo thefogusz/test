@@ -135,7 +135,9 @@ const stripEmojiLikeSymbols = (text = '') =>
 
 const cleanGeneratedContent = (text = '', { allowEmoji = false } = {}) =>
   cleanMarkdown(allowEmoji ? text : stripEmojiLikeSymbols(text))
+    .replace(/—/g, ' ')
     .replace(/[ \t]+\n/g, '\n')
+    .replace(/ {2,}/g, ' ')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
@@ -2057,6 +2059,7 @@ Hard rules:
 - Mention people and accounts only when they materially matter to the story.
 - Follow the requested format and tone faithfully; do not substitute a "safer" house style.
 - Write natural Thai. Never literal translation. Never corporate jargon.
+- Never use the em dash character (â€” or —) anywhere in the final output.
 - Forbidden phrases: "นั่นหมายความว่า...", "จะเห็นได้ว่า...", "ที่สำคัญกว่านั้น...", "ซึ่งทำให้เราเห็นว่า...", "นับว่าเป็น...", "เรียกได้ว่า...", "สิ่งที่น่าสนใจคือ..." — these are filler that adds no information.
 - No forced bold headline, hook line, or paragraph splits unless the content genuinely needs them.
 - No CTA or audience interaction unless the user explicitly asked for it.
