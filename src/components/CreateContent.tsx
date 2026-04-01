@@ -172,7 +172,7 @@ const CustomDropdown = ({ icon, value, onChange, options, isObject }) => {
     <div
       ref={dropdownRef}
       className={`custom-dropdown ${isOpen ? 'open' : ''} ${isCompact ? 'inline-menu' : 'popover-menu'}`}
-      style={{ position: 'relative', display: 'inline-block', width: '100%' }}
+      style={{ position: 'relative', display: 'inline-block', width: '100%', zIndex: isOpen ? 50 : 1 }}
     >
       <button
         className="custom-dropdown-trigger"
