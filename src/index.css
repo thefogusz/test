@@ -4561,19 +4561,33 @@ h1, h2, h3, h4, h5, h6 {
 
 .create-content-generate-btn {
   border-radius: 14px !important;
-  border: 1px solid rgba(149, 177, 255, 0.42) !important;
-  background: linear-gradient(180deg, #79a0ff 0%, #4f79f7 100%) !important;
-  box-shadow: 0 14px 30px rgba(79, 108, 247, 0.26) !important;
+  border: 1px solid rgba(255, 255, 255, 0.11) !important;
+  background: linear-gradient(180deg, #4f79f7 0%, #3551e3 100%) !important;
+  box-shadow: 
+    0 1px 1px rgba(0, 0, 0, 0.12),
+    0 2px 4px rgba(0, 0, 0, 0.16),
+    0 12px 24px rgba(53, 81, 227, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
   font-size: 15px !important;
-  font-weight: 800 !important;
+  font-weight: 750 !important;
   letter-spacing: -0.01em;
-  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .create-content-generate-btn:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 14px 28px rgba(79, 108, 247, 0.28) !important;
-  filter: saturate(1.06);
+  box-shadow: 
+    0 1px 1px rgba(0, 0, 0, 0.12),
+    0 4px 8px rgba(0, 0, 0, 0.2),
+    0 16px 32px rgba(53, 81, 227, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  filter: saturate(1.05) brightness(1.05);
+}
+
+.create-content-generate-btn:active:not(:disabled) {
+  transform: translateY(0.5px);
+  filter: brightness(0.92);
+  box-shadow: none !important;
 }
 
 .create-content-generate-btn:disabled {
