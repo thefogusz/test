@@ -1,4 +1,4 @@
-import { Home, BookOpen, Users, Bookmark, PenTool, RefreshCw, Loader2 } from 'lucide-react';
+import { Bookmark, LibraryBig, Loader2, Newspaper, RefreshCw, SquarePen, UsersRound } from 'lucide-react';
 import { AI_WORKSPACES } from '../config/aiWorkspaces';
 import type { ActiveView } from '../types/domain';
 
@@ -7,6 +7,54 @@ type SidebarProps = {
   onNavClick: (view: ActiveView) => void;
   backgroundTasks?: Record<string, boolean>;
 };
+
+type NavItemConfig = {
+  view: ActiveView;
+  label: string;
+  Icon: typeof Newspaper;
+  isActive: (activeView?: ActiveView) => boolean;
+  isBusy?: (backgroundTasks: Record<string, boolean>) => boolean;
+  spinner?: 'refresh' | 'loader';
+};
+
+const NAV_ITEMS: NavItemConfig[] = [
+  {
+    view: 'home',
+    label: AI_WORKSPACES.langChain.title,
+    Icon: Newspaper,
+    isActive: (activeView) => activeView === 'home' || !activeView,
+    isBusy: (backgroundTasks) => Boolean(backgroundTasks.syncing),
+    spinner: 'refresh',
+  },
+  {
+    view: 'content',
+    label: AI_WORKSPACES.langGraph.shortTitle,
+    Icon: SquarePen,
+    isActive: (activeView) => activeView === 'content',
+    isBusy: (backgroundTasks) => Boolean(backgroundTasks.generating || backgroundTasks.searching),
+    spinner: 'loader',
+  },
+  {
+    view: 'read',
+    label: 'อ่านข่าว',
+    Icon: LibraryBig,
+    isActive: (activeView) => activeView === 'read',
+  },
+  {
+    view: 'audience',
+    label: 'กลุ่มเป้าหมาย',
+    Icon: UsersRound,
+    isActive: (activeView) => activeView === 'audience',
+    isBusy: (backgroundTasks) => Boolean(backgroundTasks.audienceSearch),
+    spinner: 'loader',
+  },
+  {
+    view: 'bookmarks',
+    label: 'Bookmarks',
+    Icon: Bookmark,
+    isActive: (activeView) => activeView === 'bookmarks',
+  },
+];
 
 const Sidebar = ({ activeView, onNavClick, backgroundTasks = {} }: SidebarProps) => {
   return (
@@ -21,48 +69,28 @@ const Sidebar = ({ activeView, onNavClick, backgroundTasks = {} }: SidebarProps)
       </div>
 
       <nav className="sidebar-nav">
-        <button
-          className={`nav-item ${activeView === 'home' || !activeView ? 'active' : ''}`}
-          onClick={() => onNavClick('home')}
-        >
-          <Home size={24} fill={activeView === 'home' || !activeView ? 'currentColor' : 'none'} />
-          <span className="nav-text">{AI_WORKSPACES.langChain.title}</span>
-          {backgroundTasks.syncing && <RefreshCw size={14} className="animate-spin nav-item-spinner" style={{ marginLeft: 'auto', color: 'var(--accent-secondary)' }} />}
-        </button>
+        {NAV_ITEMS.map(({ view, label, Icon, isActive, isBusy, spinner = 'loader' }) => {
+          const active = isActive(activeView);
+          const busy = isBusy?.(backgroundTasks);
 
-        <button
-          className={`nav-item ${activeView === 'content' ? 'active' : ''}`}
-          onClick={() => onNavClick('content')}
-        >
-          <PenTool size={24} />
-          <span className="nav-text">{AI_WORKSPACES.langGraph.shortTitle}</span>
-          {(backgroundTasks.generating || backgroundTasks.searching) && <Loader2 size={14} className="animate-spin nav-item-spinner" style={{ marginLeft: 'auto', color: 'var(--accent-secondary)' }} />}
-        </button>
-
-        <button
-          className={`nav-item ${activeView === 'read' ? 'active' : ''}`}
-          onClick={() => onNavClick('read')}
-        >
-          <BookOpen size={24} />
-          <span className="nav-text">อ่านข่าว</span>
-        </button>
-
-        <button
-          className={`nav-item ${activeView === 'audience' ? 'active' : ''}`}
-          onClick={() => onNavClick('audience')}
-        >
-          <Users size={24} />
-          <span className="nav-text">กลุ่มเป้าหมาย</span>
-          {backgroundTasks.audienceSearch && <Loader2 size={14} className="animate-spin nav-item-spinner" style={{ marginLeft: 'auto', color: 'var(--accent-secondary)' }} />}
-        </button>
-
-        <button
-          className={`nav-item ${activeView === 'bookmarks' ? 'active' : ''}`}
-          onClick={() => onNavClick('bookmarks')}
-        >
-          <Bookmark size={24} />
-          <span className="nav-text">Bookmarks</span>
-        </button>
+          return (
+            <button
+              key={view}
+              className={`nav-item ${active ? 'active' : ''}`}
+              onClick={() => onNavClick(view)}
+            >
+              <span className="nav-icon-shell" aria-hidden="true">
+                <Icon size={18} strokeWidth={1.9} />
+              </span>
+              <span className="nav-text">{label}</span>
+              {busy && (
+                spinner === 'refresh'
+                  ? <RefreshCw size={14} className="animate-spin nav-item-spinner" style={{ marginLeft: 'auto', color: 'var(--accent-secondary)' }} />
+                  : <Loader2 size={14} className="animate-spin nav-item-spinner" style={{ marginLeft: 'auto', color: 'var(--accent-secondary)' }} />
+              )}
+            </button>
+          );
+        })}
       </nav>
     </aside>
   );
