@@ -594,7 +594,7 @@ const CreateContent = ({
               placeholder={sourceNode ? "อยากให้เล่าเรื่องนี้ในมุมไหน หรือมีประเด็นอะไรที่อยากเน้นเป็นพิเศษ?" : "เริ่มจากหัวข้อเดียวหรือไอเดียสั้น ๆ แล้วระบบจะช่วยต่อยอดให้"}
               disabled={isGenerating}
               style={{ 
-                flex: 1, width: '100%', minHeight: sourceNode ? '240px' : '320px', resize: 'vertical', fontSize: '17px', lineHeight: '1.72',
+                flex: 1, width: '100%', minHeight: sourceNode ? '240px' : '320px', resize: 'none', fontSize: '17px', lineHeight: '1.72',
                 padding: sourceNode ? '10px 20px 20px' : '16px 20px 20px', background: 'transparent', border: 'none', color: '#ffffff', outline: 'none',
                 fontFamily: 'inherit'
               }}

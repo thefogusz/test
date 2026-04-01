@@ -4724,7 +4724,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .create-content-input {
-    min-height: 200px;
+    min-height: 200px !important;
     padding: 14px 16px 18px !important;
     font-size: 17px !important;
     line-height: 1.72 !important;
