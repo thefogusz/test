@@ -58,6 +58,37 @@ const buildAttachedTweetUrl = (sourceNode) => {
   return `https://x.com/${username}/status/${sourceNode.id}`;
 };
 
+const extractUrlsFromValue = (value, depth = 0, seen = new Set()) => {
+  if (!value || depth > 4) return [];
+  if (typeof value === 'string') {
+    return Array.from(value.match(/https?:\/\/[^\s)]+/gi) || []);
+  }
+  if (typeof value !== 'object') return [];
+  if (seen.has(value)) return [];
+
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => extractUrlsFromValue(item, depth + 1, seen));
+  }
+
+  return Object.values(value).flatMap((item) => extractUrlsFromValue(item, depth + 1, seen));
+};
+
+const isExternalArticleUrl = (url = '') => {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+    return !['x.com', 'twitter.com', 't.co'].includes(hostname);
+  } catch {
+    return false;
+  }
+};
+
+const extractPrimarySourceUrlsFromNode = (sourceNode) =>
+  Array.from(
+    new Set(extractUrlsFromValue(sourceNode).filter((url) => isExternalArticleUrl(url))),
+  ).slice(0, 3);
+
 const sanitizeBookmarkSources = (sources = []) =>
   sources
     .filter((source) => source && source.url)
@@ -339,6 +370,7 @@ const CreateContent = ({
       let factIntel = '';
       if (sourceNode) {
         const sourceUrl = buildAttachedTweetUrl(sourceNode);
+        const primarySourceUrls = extractPrimarySourceUrlsFromNode(sourceNode);
         const originalText = (sourceNode.text || '').trim();
         const translatedSummary = (sourceNode.summary || '').trim();
         const sourceLabel = sourceNode.title || originalText || 'Untitled source';
@@ -348,6 +380,7 @@ const CreateContent = ({
           `Title: ${sourceLabel}`,
           `Author: @${sourceNode.author?.username || 'Unknown'}`,
           sourceUrl ? `URL: ${sourceUrl}` : '',
+          ...primarySourceUrls.map((url, index) => `Primary External URL ${index + 1}: ${url}`),
           originalText ? `Original Content: ${originalText}` : '',
           translatedSummary ? `Thai Summary (reference only, do not use as source of truth): ${translatedSummary}` : '',
         ].filter(Boolean).join('\n') + '\n\n';
@@ -361,6 +394,7 @@ const CreateContent = ({
       const { factSheet: facts, sources: rawSources } = await researchAndPreventHallucination(researchPrompt, factIntel, {
         intentProfile,
         originalInput: input,
+        primarySourceUrls: sourceNode ? extractPrimarySourceUrlsFromNode(sourceNode) : [],
         signal: controller.signal,
       });
       setFactSheet(facts);

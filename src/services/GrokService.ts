@@ -1085,6 +1085,52 @@ const extractExternalSourceUrls = (...chunks) =>
     ),
   ).slice(0, 2);
 
+const URL_LIKE_KEY_PATTERN = /(url|urls|expanded|expanded_url|expandedurl|unwound|unwound_url|link|links|card|canonical)/i;
+
+const extractUrlsFromObject = (value, depth = 0, seen = new Set()) => {
+  if (!value || depth > 4) return [];
+  if (typeof value === 'string') return extractUrlsFromText(value);
+  if (typeof value !== 'object') return [];
+  if (seen.has(value)) return [];
+
+  seen.add(value);
+
+  const collected = [];
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collected.push(...extractUrlsFromObject(item, depth + 1, seen));
+    }
+    return collected;
+  }
+
+  for (const [key, nestedValue] of Object.entries(value)) {
+    if (typeof nestedValue === 'string') {
+      if (URL_LIKE_KEY_PATTERN.test(key) || /^https?:\/\//i.test(nestedValue) || /\b(?:t\.co|x\.com|twitter\.com)\//i.test(nestedValue)) {
+        collected.push(...extractUrlsFromText(nestedValue));
+      }
+      continue;
+    }
+
+    if (nestedValue && typeof nestedValue === 'object') {
+      collected.push(...extractUrlsFromObject(nestedValue, depth + 1, seen));
+    }
+  }
+
+  return collected;
+};
+
+const mergeExternalSourceUrls = (...collections) =>
+  Array.from(
+    new Set(
+      collections
+        .flat()
+        .filter(Boolean)
+        .flatMap((item) => (Array.isArray(item) ? item : [item]))
+        .filter((url) => !isSocialPlatformUrl(url)),
+    ),
+  ).slice(0, 3);
+
 const buildTavilyContextBlock = (label, data) => {
   if (!data || (!data.answer && !data.results?.length)) return '';
 
@@ -1516,18 +1562,26 @@ export const researchAndPreventHallucination = async (input, interactionData = '
   const cached = getCachedValue(responseCache, cacheKey);
   if (cached) return cached;
 
-  let attachedExternalUrls = extractExternalSourceUrls(rawInput, input, interactionData);
+  let attachedExternalUrls = mergeExternalSourceUrls(
+    options.primarySourceUrls || [],
+    extractExternalSourceUrls(rawInput, input, interactionData),
+  );
 
   // Detect and fetch tweet when input contains a tweet URL
   const tweetRef = extractTweetIdFromInput(input);
-  if (tweetRef && !interactionData) {
+  if (tweetRef) {
     try {
       const tweet = await fetchTweetById(tweetRef.tweetId);
       if (tweet?.text) {
         const tweetText = tweet.text.replace(/https?:\/\/\S+/g, '').trim();
         const author = tweet.author?.name || tweet.author?.username || tweetRef.username;
-        interactionData = `[ORIGINAL TWEET SOURCE]\nAuthor: @${tweet.author?.username || tweetRef.username} (${author})\nContent: ${tweetText}\nLikes: ${tweet.like_count || 0} | Retweets: ${tweet.retweet_count || 0}`;
-        attachedExternalUrls = extractExternalSourceUrls(rawInput, input, interactionData, tweet.text);
+        const fetchedTweetIntel = `[ORIGINAL TWEET SOURCE]\nAuthor: @${tweet.author?.username || tweetRef.username} (${author})\nContent: ${tweetText}\nLikes: ${tweet.like_count || 0} | Retweets: ${tweet.retweet_count || 0}`;
+        interactionData = [interactionData, fetchedTweetIntel].filter(Boolean).join('\n\n');
+        attachedExternalUrls = mergeExternalSourceUrls(
+          attachedExternalUrls,
+          extractExternalSourceUrls(rawInput, input, interactionData, tweet.text),
+          extractUrlsFromObject(tweet),
+        );
       }
     } catch {
       // silently continue without tweet data
@@ -1594,9 +1648,9 @@ export const researchAndPreventHallucination = async (input, interactionData = '
       );
 
       webContext = [
-        data.answer ? `[WEB ANSWER]\n${data.answer}` : '',
+        data.answer && !hasPrimaryLead ? `[WEB ANSWER]\n${data.answer}` : '',
         webResults.length
-          ? `[WEB SOURCES]\n${webResults
+          ? `[WEB SOURCES${hasPrimaryLead ? ' - SECONDARY CONTEXT ONLY' : ''}]\n${webResults
               .map((result, index) => {
                 const snippet = (result.content || result.raw_content || '')
                   .replace(/\s+/g, ' ')
