@@ -1,0 +1,2308 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FORO BLUEPRINT</title>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@500;700&display=swap');
+
+      :root {
+        --bg: #07131d;
+        --paper: rgba(10, 20, 31, 0.88);
+        --paper-strong: rgba(12, 24, 37, 0.96);
+        --ink: #eff7ff;
+        --ink-soft: #9eb4c8;
+        --line: rgba(168, 198, 224, 0.14);
+        --accent: #58d4ff;
+        --accent-soft: rgba(88, 212, 255, 0.14);
+        --accent-warm: #ff9d66;
+        --shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+        --radius-xl: 28px;
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: "IBM Plex Sans Thai", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(88, 212, 255, 0.12), transparent 24%),
+          radial-gradient(circle at right 15% top 18%, rgba(255, 157, 102, 0.12), transparent 18%),
+          radial-gradient(circle at center bottom, rgba(83, 105, 255, 0.1), transparent 24%),
+          linear-gradient(180deg, #07131d 0%, #091825 100%);
+        min-height: 100vh;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(173, 201, 226, 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(173, 201, 226, 0.05) 1px, transparent 1px);
+        background-size: 28px 28px;
+        mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.65), transparent 85%);
+      }
+
+      a { color: inherit; text-decoration: none; }
+
+      .page {
+        width: min(1500px, calc(100vw - 32px));
+        margin: 0 auto;
+        padding: 28px 0 48px;
+      }
+
+      .hero,
+      .surface {
+        background: var(--paper);
+        border: 1px solid rgba(172, 200, 225, 0.12);
+        border-radius: 34px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        backdrop-filter: blur(16px);
+      }
+
+      .hero {
+        position: relative;
+        padding: 34px;
+        background:
+          linear-gradient(135deg, rgba(12, 24, 37, 0.96), rgba(8, 17, 27, 0.94)),
+          var(--paper-strong);
+      }
+
+      .hero::after {
+        content: "";
+        position: absolute;
+        inset: auto -10% -42% auto;
+        width: 500px;
+        height: 500px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(88, 212, 255, 0.12), transparent 70%);
+      }
+
+      .hero-top,
+      .surface-head,
+      .flow-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: rgba(173, 201, 226, 0.08);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 0 6px rgba(88, 212, 255, 0.16);
+      }
+
+      h1 {
+        margin: 18px 0 10px;
+        max-width: 820px;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: clamp(36px, 6vw, 72px);
+        line-height: 0.96;
+        letter-spacing: -0.05em;
+      }
+
+      .hero p,
+      .surface-head p,
+      .flow-head p,
+      .inspector p,
+      .empty-state {
+        color: var(--ink-soft);
+        line-height: 1.75;
+      }
+
+      .hero p {
+        max-width: 780px;
+        margin: 0;
+        font-size: 17px;
+      }
+
+      .hero-stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 28px;
+      }
+
+      .stat,
+      .node,
+      .flow-step,
+      .flow-card,
+      .file-entry,
+      .snippet {
+        background: rgba(13, 26, 39, 0.88);
+        border: 1px solid rgba(172, 200, 225, 0.12);
+      }
+
+      .stat {
+        padding: 18px;
+        border-radius: 20px;
+      }
+
+      .stat strong {
+        display: block;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 28px;
+        margin-bottom: 6px;
+      }
+
+      .stat span {
+        display: block;
+        color: var(--ink-soft);
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.35fr) minmax(380px, 0.9fr);
+        gap: 24px;
+        margin-top: 24px;
+        align-items: start;
+      }
+
+      .surface-head,
+      .toolbar,
+      .search-wrap,
+      .overview,
+      .feature-section,
+      .inspector-body,
+      .legend,
+      .footer-note {
+        padding-left: 24px;
+        padding-right: 24px;
+      }
+
+      .surface-head {
+        padding-top: 22px;
+        padding-bottom: 22px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .surface-head h2,
+      .panel-title {
+        margin: 0;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 24px;
+        letter-spacing: -0.03em;
+      }
+
+      .surface-head p,
+      .panel-subtitle {
+        margin: 6px 0 0;
+        font-size: 14px;
+      }
+
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding-top: 18px;
+      }
+
+      .search-wrap {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-top: 18px;
+        padding-bottom: 24px;
+      }
+
+      .search-wrap input {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 14px 16px;
+        font: inherit;
+        font-size: 14px;
+        background: rgba(255, 255, 255, 0.8);
+        color: var(--ink);
+        outline: none;
+      }
+
+      .search-wrap input:focus {
+        border-color: rgba(88, 212, 255, 0.45);
+        box-shadow: 0 0 0 4px rgba(88, 212, 255, 0.12);
+      }
+
+      .chip,
+      .feature-tab,
+      .file-link,
+      .code-action,
+      .flow-jump,
+      .mini-chip {
+        border: 1px solid var(--line);
+        background: rgba(16, 30, 44, 0.92);
+        color: var(--ink);
+        border-radius: 999px;
+        padding: 10px 14px;
+        font: inherit;
+        font-size: 13px;
+        cursor: pointer;
+        transition: 180ms ease;
+      }
+
+      .chip:hover,
+      .feature-tab:hover,
+      .file-link:hover,
+      .code-action:hover,
+      .flow-jump:hover,
+      .mini-chip:hover {
+        transform: translateY(-1px);
+        border-color: rgba(88, 212, 255, 0.36);
+      }
+
+      .chip.is-active,
+      .feature-tab.is-active,
+      .mini-chip.is-active {
+        border-color: rgba(88, 212, 255, 0.34);
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding-bottom: 24px;
+      }
+
+      .legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--ink-soft);
+        font-size: 12px;
+      }
+
+      .legend span::before {
+        content: "";
+        width: 12px;
+        height: 12px;
+        border-radius: 4px;
+        background: rgba(88, 212, 255, 0.14);
+        border: 1px solid rgba(88, 212, 255, 0.24);
+      }
+
+      .legend span:last-child::before {
+        background: rgba(255, 157, 102, 0.14);
+        border-color: rgba(255, 157, 102, 0.24);
+      }
+
+      .overview { padding-bottom: 24px; }
+
+      .architecture-map {
+        position: relative;
+        display: grid;
+        gap: 16px;
+        padding: 22px;
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(13, 26, 39, 0.88), rgba(8, 17, 27, 0.98));
+        border: 1px solid rgba(172, 200, 225, 0.12);
+      }
+
+      .architecture-map::before {
+        content: "";
+        position: absolute;
+        left: 13%;
+        right: 13%;
+        top: 140px;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, rgba(88, 212, 255, 0.28), transparent);
+      }
+
+      .layer-row {
+        display: grid;
+        grid-template-columns: 150px minmax(0, 1fr);
+        gap: 14px;
+        align-items: stretch;
+      }
+
+      .layer-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+      }
+
+      .layer-label {
+        padding: 18px;
+        border-radius: 18px;
+        background: rgba(173, 201, 226, 0.08);
+        color: var(--ink-soft);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+      }
+
+      .node,
+      .flow-step {
+        position: relative;
+        padding: 18px;
+        border-radius: 22px;
+        cursor: pointer;
+        transition: 220ms ease;
+        min-height: 124px;
+      }
+
+      .node:hover,
+      .flow-step:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 18px 32px rgba(0, 0, 0, 0.28);
+        border-color: rgba(88, 212, 255, 0.3);
+      }
+
+      .node.is-active {
+        border-color: rgba(88, 212, 255, 0.35);
+        box-shadow: inset 0 0 0 1px rgba(88, 212, 255, 0.16), 0 22px 40px rgba(0, 0, 0, 0.3);
+        background: linear-gradient(180deg, rgba(88, 212, 255, 0.1), rgba(13, 26, 39, 0.94));
+      }
+
+      .node small,
+      .flow-step small {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--accent-warm);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .node h3,
+      .flow-step h3 {
+        margin: 12px 0 8px;
+        font-size: 18px;
+        line-height: 1.2;
+        color: var(--ink);
+      }
+
+      .node p,
+      .flow-step p {
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 13px;
+        line-height: 1.65;
+      }
+
+      .flow-card {
+        position: relative;
+        padding: 24px;
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(13, 26, 39, 0.86), rgba(8, 17, 27, 0.98));
+      }
+
+      .flow-card + .flow-card { margin-top: 18px; }
+
+      .flow-head { margin-bottom: 20px; }
+
+      .flow-head h3 {
+        margin: 0;
+        font-size: 28px;
+        letter-spacing: -0.03em;
+        font-family: "Space Grotesk", sans-serif;
+        color: var(--ink);
+      }
+
+      .flow-head p {
+        margin: 8px 0 0;
+        max-width: 760px;
+        font-size: 15px;
+      }
+
+      .flow-track {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+      }
+
+      .flow-step.is-active {
+        background: linear-gradient(180deg, rgba(255, 157, 102, 0.14), rgba(13, 26, 39, 0.96));
+        border-color: rgba(255, 157, 102, 0.3);
+      }
+
+      .flow-step::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        right: -14px;
+        width: 28px;
+        height: 2px;
+        background: linear-gradient(90deg, rgba(255, 157, 102, 0.4), rgba(255, 157, 102, 0));
+        transform: translateY(-50%);
+      }
+
+      .flow-step:last-child::after { display: none; }
+
+      .step-index {
+        display: inline-grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: rgba(88, 212, 255, 0.14);
+        color: var(--accent);
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .inspector {
+        position: sticky;
+        top: 18px;
+        max-height: calc(100vh - 36px);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .inspector-body {
+        padding-top: 22px;
+        padding-bottom: 24px;
+        overflow: auto;
+        min-height: 0;
+      }
+
+      .inspector-kicker {
+        display: inline-flex;
+        gap: 10px;
+        align-items: center;
+        color: var(--accent);
+        background: rgba(88, 212, 255, 0.12);
+        border-radius: 999px;
+        padding: 8px 12px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .inspector h3 {
+        margin: 16px 0 10px;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 30px;
+        line-height: 1.04;
+        letter-spacing: -0.04em;
+        color: var(--ink);
+      }
+
+      .detail-block + .detail-block { margin-top: 20px; }
+
+      .detail-block h4 {
+        margin: 0 0 10px;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--ink-soft);
+      }
+
+      .detail-list,
+      .file-grid,
+      .snippets {
+        display: grid;
+        gap: 10px;
+      }
+
+      .detail-item {
+        display: grid;
+        grid-template-columns: 18px minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+        font-size: 14px;
+        line-height: 1.65;
+      }
+
+      .detail-item::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent-warm);
+        margin-top: 8px;
+      }
+
+      .file-entry {
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(15, 28, 42, 0.94);
+      }
+
+      .file-entry strong {
+        display: block;
+        font-size: 14px;
+        margin-bottom: 6px;
+      }
+
+      .file-entry code,
+      .mono,
+      pre {
+        font-family: "IBM Plex Mono", monospace;
+      }
+
+      .file-actions,
+      .related-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .file-actions { margin-top: 12px; }
+
+      .snippet {
+        border-radius: 20px;
+        overflow: hidden;
+        background: #0f1d2b;
+      }
+
+      .snippet-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 14px 16px;
+        border-bottom: 1px solid rgba(172, 200, 225, 0.12);
+        background: rgba(88, 212, 255, 0.08);
+      }
+
+      .snippet-head strong {
+        display: block;
+        font-size: 14px;
+      }
+
+      .snippet-head span {
+        display: block;
+        margin-top: 4px;
+        color: var(--ink-soft);
+        font-size: 12px;
+      }
+
+      pre {
+        margin: 0;
+        overflow: auto;
+        padding: 16px;
+        background: #06111c;
+        color: #dff3ff;
+        font-size: 12px;
+        line-height: 1.65;
+      }
+
+      .surface-head:first-of-type {
+        background: linear-gradient(180deg, rgba(15, 28, 42, 0.98), rgba(10, 20, 31, 0.98));
+      }
+
+      .sim-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(255, 157, 102, 0.12);
+        color: var(--accent-warm);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .node.is-simulated,
+      .flow-step.is-simulated {
+        border-style: dashed;
+        border-color: rgba(255, 157, 102, 0.32);
+      }
+
+      .empty-state,
+      .footer-note {
+        padding-bottom: 24px;
+        font-size: 12px;
+      }
+
+      .doc-overlay {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: stretch;
+        justify-content: flex-end;
+        background: rgba(3, 8, 14, 0.68);
+        backdrop-filter: blur(8px);
+        z-index: 1000;
+      }
+
+      .doc-overlay.is-open {
+        display: flex;
+      }
+
+      .doc-panel {
+        width: min(860px, 100vw);
+        height: 100vh;
+        background: linear-gradient(180deg, rgba(10, 20, 31, 0.98), rgba(7, 19, 29, 1));
+        border-left: 1px solid rgba(172, 200, 225, 0.14);
+        box-shadow: -20px 0 60px rgba(0, 0, 0, 0.35);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .doc-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 22px 24px;
+        border-bottom: 1px solid rgba(172, 200, 225, 0.12);
+      }
+
+      .doc-head h3 {
+        margin: 0;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 28px;
+        letter-spacing: -0.03em;
+        color: var(--ink);
+      }
+
+      .doc-head p {
+        margin: 6px 0 0;
+        color: var(--ink-soft);
+        font-size: 14px;
+        line-height: 1.7;
+      }
+
+      .doc-body {
+        padding: 0 24px 24px;
+        overflow: auto;
+      }
+
+      .doc-status {
+        padding: 14px 0;
+        color: var(--ink-soft);
+        font-size: 13px;
+      }
+
+      .doc-content {
+        margin: 0;
+        padding: 20px;
+        border-radius: 22px;
+        border: 1px solid rgba(172, 200, 225, 0.12);
+        background: #06111c;
+        color: #dff3ff;
+        white-space: pre-wrap;
+        word-break: break-word;
+        font-size: 12.5px;
+        line-height: 1.72;
+        font-family: "IBM Plex Mono", monospace;
+      }
+
+      @media (max-width: 1180px) {
+        .layout { grid-template-columns: 1fr; }
+        .inspector { position: static; }
+      }
+
+      @media (max-width: 920px) {
+        .hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .layer-row { grid-template-columns: 1fr; }
+        .architecture-map::before { display: none; }
+      }
+
+      @media (max-width: 640px) {
+        .page { width: min(100vw - 16px, 100%); padding-top: 12px; }
+        h1 { font-size: clamp(32px, 12vw, 48px); }
+        .hero { padding: 24px; }
+        .hero-top,
+        .flow-head,
+        .surface-head { flex-direction: column; }
+        .hero-stats { grid-template-columns: 1fr; }
+        .flow-track { grid-template-columns: 1fr; }
+        .flow-step::after { display: none; }
+        .surface-head,
+        .toolbar,
+        .search-wrap,
+        .overview,
+        .feature-section,
+        .inspector-body,
+        .legend,
+        .footer-note { padding-left: 16px; padding-right: 16px; }
+        .doc-head,
+        .doc-body { padding-left: 16px; padding-right: 16px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <section class="hero">
+        <div class="hero-top">
+          <div>
+            <div class="eyebrow">FORO BLUEPRINT</div>
+            <h1>Interactive developer flow that stays readable while drilling all the way down to source code</h1>
+            <p>This single page explains Foro from the browser layer down to proxies, scoring, AI enrichment, and a simulated data layer. It is designed for developer handoff: clear big-picture structure first, then click any step to inspect files, snippets, and related flow edges.</p>
+          </div>
+          <div class="file-actions">
+            <a class="file-link" href="#overview">Jump to Map</a>
+            <a class="file-link" href="#features">Jump to Flows</a>
+            <button class="file-link" id="openArchitectureDoc" type="button">Open ARCHITECTURE.md</button>
+          </div>
+        </div>
+        <div class="hero-stats">
+          <div class="stat"><strong>5</strong><span>Core layers from React UI through proxy routing, service logic, persistence, and AI orchestration</span></div>
+          <div class="stat"><strong>7</strong><span>เส้นทางการทำงานของฟีเจอร์หลัก ครอบคลุมฟีด, การค้นหา, การสร้างคอนเทนต์, audience, คลังอ่าน, บุ๊กมาร์ก และลิสต์</span></div>
+          <div class="stat"><strong>20+</strong><span>node แบบกดดูต่อได้ พร้อมโค้ดตัวอย่าง, path ของไฟล์, ชั้นสถาปัตยกรรม และจุดเชื่อม implementation</span></div>
+          <div class="stat"><strong>HTML</strong><span>ไฟล์เดี่ยวแบบ standalone ส่งต่อให้ทีมดูได้ทันทีโดยไม่ต้องรัน server</span></div>
+        </div>
+      </section>
+      <div class="layout">
+        <main class="surface">
+          <div class="surface-head">
+            <div>
+              <h2 id="overview">แผนภาพสถาปัตยกรรม</h2>
+              <p>กดแต่ละ node เพื่อดูคำอธิบาย, โค้ดตัวอย่าง, ไฟล์ที่เกี่ยวข้อง และจุดเชื่อมต่อกับส่วนอื่นของระบบ</p>
+            </div>
+            <div class="file-actions">
+              <button class="chip is-active" data-filter="all">ทั้งหมด</button>
+              <button class="chip" data-filter="overview">ภาพรวม</button>
+              <button class="chip" data-filter="feature">ฟีเจอร์</button>
+            </div>
+          </div>
+          <div class="toolbar" id="featureTabs"></div>
+          <div class="search-wrap">
+            <input id="searchInput" type="search" placeholder="ค้นหาจากชื่อ node, path ไฟล์, ฟีเจอร์ หรือคีย์เวิร์ด..." />
+          </div>
+          <div class="legend">
+            <span>node ระดับภาพรวม</span>
+            <span>ลำดับขั้นของ flow</span>
+          </div>
+          <section class="overview">
+            <div class="architecture-map" id="overviewMap"></div>
+          </section>
+          <div class="surface-head" id="features">
+            <div>
+              <h2>ลำดับการทำงานของฟีเจอร์</h2>
+              <p>แต่ละ flow เรียงตาม runtime จริง เพื่อให้เห็นชัดว่า state, services, proxy, AI และชั้นข้อมูล เชื่อมกันตรงไหนบ้าง</p>
+            </div>
+          </div>
+          <section class="feature-section" id="featureFlows"></section>
+          <div class="footer-note">
+            วิธีไล่ดูที่แนะนำ: เริ่มจากแผนภาพภาพรวมเพื่อเห็นขอบเขตแต่ละ layer แล้วค่อยลงไปใน feature flow เพื่อดู execution order ก่อนเปิด inspector เพื่อไล่โค้ดและไฟล์ต่อ
+          </div>
+        </main>
+        <aside class="surface inspector">
+          <div class="surface-head">
+            <div>
+              <div class="panel-title">?????????????????</div>
+              <div class="panel-subtitle">node ??????????????????????? ?????????????????, path ??????? ????????????????????? implementation</div>
+            </div>
+          </div>
+          <div class="inspector-body" id="inspector"></div>
+        </aside>
+      </div>
+    </div>
+    <div class="doc-overlay" id="docOverlay" aria-hidden="true">
+      <div class="doc-panel">
+        <div class="doc-head">
+          <div>
+            <h3>ARCHITECTURE.md</h3>
+            <p>???????????????????????? HTML ??????????? ?????????????? blueprint ???????????????????????????</p>
+          </div>
+          <div class="file-actions">
+            <button class="file-link" id="copyArchitectureDoc" type="button">?????? Markdown</button>
+            <button class="code-action" id="closeArchitectureDoc" type="button">???</button>
+          </div>
+        </div>
+        <div class="doc-body">
+          <div class="doc-status" id="docStatus">????????? HTML ???????</div>
+          <pre class="doc-content" id="docContent">?????????????????...</pre>
+        </div>
+      </div>
+    </div>
+    <script id="architectureMarkdownData" type="text/plain">IyBTeXN0ZW0gQXJjaGl0ZWN0dXJlIOKAlCBGb3JvCgo+IOC5gOC4reC4geC4quC4suC4o+C4meC4teC5ieC4reC4mOC4tOC4muC4suC4oiBhcmNoaXRlY3R1cmUg4LiC4Lit4LiH4Lij4Liw4Lia4LiaIEZvcm8gKENvbnRlbnQgRGlzY292ZXJ5ICYgQ3VyYXRpb24gUGxhdGZvcm0pIOC5g+C4meC4o+C4sOC4lOC4seC4muC4l+C4teC5iCBkZXYKPiDguKrguLLguKHguLLguKPguJbguK3guYjguLLguJnguYHguKXguYnguKfguYDguILguYnguLLguYPguIjguKvguKXguLHguIHguIHguLLguKPguJfguLPguIfguLLguJnguJfguLjguIHguKrguYjguKfguJnguYTguJTguYnguJfguLHguJnguJfguLUg4LmC4LiU4Lii4Lit4LmJ4Liy4LiH4Lit4Li04LiH4LiW4Li24LiH4LmE4Lif4Lil4LmM4LmB4Lil4Liw4LmC4LiE4LmJ4LiU4LiI4Lij4Li04LiH4LiX4Li44LiB4LiI4Li44LiUCgotLS0KCiMjIOC4quC4suC4o+C4muC4seC4jQoKMS4gW0JpZyBQaWN0dXJlXSgjMS1iaWctcGljdHVyZSkKMi4gW0JhY2tlbmQgTGF5ZXIg4oCUIHNlcnZlci5janNdKCMyLWJhY2tlbmQtbGF5ZXItLXNlcnZlcmNqcykKMy4gW0FQSSBTZWN1cml0eSDigJQgYXBpRmV0Y2gudHNdKCMzLWFwaS1zZWN1cml0eS0tYXBpZmV0Y2h0cykKNC4gW1R3aXR0ZXIgU2VydmljZSDigJQg4Lij4Liw4Lia4Lia4LiU4Li24LiH4LiC4LmJ4Lit4Lih4Li54Lil4LmB4Lil4LiwIFNjb3JpbmddKCM0LXR3aXR0ZXItc2VydmljZS0tdHdpdHRlcnNlcnZpY2V0cykKNS4gW0dyb2sgQUkgU2VydmljZSDigJQg4Lij4Liw4Lia4LiaIEFJIOC5geC4peC4sCBDYWNoaW5nXSgjNS1ncm9rLWFpLXNlcnZpY2UtLWdyb2tzZXJ2aWNldHMpCjYuIFtTdGF0ZSBNYW5hZ2VtZW50IOKAlCBsb2NhbFN0b3JhZ2UgKyBIb29rc10oIzYtc3RhdGUtbWFuYWdlbWVudC0tbG9jYWxzdG9yYWdlLS1ob29rcykKNy4gW0RhdGEgVHlwZXMg4oCUIGRvbWFpbi50c10oIzctZGF0YS10eXBlcy0tZG9tYWludHMpCjguIFtGcm9udGVuZCBDb21wb25lbnRzXSgjOC1mcm9udGVuZC1jb21wb25lbnRzKQo5LiBbQnVpbGQgU3lzdGVtIOKAlCB2aXRlLmNvbmZpZy5qc10oIzktYnVpbGQtc3lzdGVtLS12aXRlY29uZmlnanMpCjEwLiBbRGVwbG95bWVudCAmIEVudmlyb25tZW50XSgjMTAtZGVwbG95bWVudC0tZW52aXJvbm1lbnQpCjExLiBbRmVhdHVyZSBNYXAg4oCUIEZsb3cg4LmB4LiV4LmI4Lil4Liw4Lif4Li14LmA4LiI4Lit4Lij4LmMXSgjMTEtZmVhdHVyZS1tYXAtLWZsb3ct4LmB4LiV4LmI4Lil4Liw4Lif4Li14LmA4LiI4Lit4Lij4LmMKQoKLS0tCgojIyAxLiBCaWcgUGljdHVyZQoKYGBgCuKUjOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUkArilIIgICAgICAgICAgICAgICAgICAgICAgICAgIEJST1dTRVIgKFJlYWN0IDE5KSAgICAgICAgICAgICAgICAgICAgICAgICAgICAg4pSCCuKUgiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg4pSCCuKUgiAg4pSM4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSQICDilIzilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilJAg4pSCCuKUgiAg4pSCIFNpZGViYXIgIOKUgiAg4pSCICAgICAgICAgICAgICAgICAgICBBcHAudHN4IChSb290KSAgICAgICAgICAgICAgICAgICAg4pSCIOKUggrilIIgIOKUgiAoTmF2KSAgICDilIIgIOKUgiAgYWN0aXZlVmlldzogaG9tZSB8IGNvbnRlbnQgfCByZWFkIHwgYXVkaWVuY2UgfCAgICAgIOKUgiDilIIK4pSCICDilIIgICAgICAgICAg4pSCICDilIIgICAgICAgICAgICAgIGJvb2ttYXJrcyAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICDilIIg4pSCCuKUgiAg4pSCIFJpZ2h0U2lkZeKUgiAg4pSCICBTdGF0ZTogd2F0Y2hsaXN0LCBob21lRmVlZCwgc2VhcmNoUmVzdWx0cywgICAgICAgICAg4pSCIOKUggrilIIgIOKUgiBiYXIgICAgICDilIIgIOKUgiAgICAgICAgIGJvb2ttYXJrcywgcmVhZEFyY2hpdmUsIHBvc3RMaXN0cyAgICAgICAgICAgIOKUgiDilIIK4pSCICDilIIgKExpc3RzKSAg4pSCICDilJTilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilJgg4pSCCuKUgiAg4pSU4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSYICAgICAgICAgIOKUgiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIOKUggrilIIgICAgICAgICAgICAgICAgICAgICAgICDilJzilIDilIAgSG9tZUNhbnZhcyAocGFydGljbGUgYmcpICAgICAgICAgICAgICAgICAgICAg4pSCCuKUgiAgICAgICAgICAgICAgICAgICAgICAgIOKUnOKUgOKUgCBGZWVkQ2FyZCAodHdlZXQgY2FyZHMpICAgICAgICAgICAgICAgICAgICAgICDilIIK4pSCICAgICAgICAgICAgICAgICAgICAgICAg4pSc4pSA4pSAIFtsYXp5XSBDb250ZW50V29ya3NwYWNlICAgICAgICAgICAgICAgICAgICAgIOKUggrilIIgICAgICAgICAgICAgICAgICAgICAgICDilJzilIDilIAgW2xhenldIFJlYWRXb3Jrc3BhY2UgICAgICAgICAgICAgICAgICAgICAgICAg4pSCCuKUgiAgICAgICAgICAgICAgICAgICAgICAgIOKUnOKUgOKUgCBbbGF6eV0gQXVkaWVuY2VXb3Jrc3BhY2UgICAgICAgICAgICAgICAgICAgICDilIIK4pSCICAgICAgICAgICAgICAgICAgICAgICAg4pSU4pSA4pSAIFtsYXp5XSBCb29rbWFya3NXb3Jrc3BhY2UgICAgICAgICAgICAgICAgICAgIOKUggrilJTilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilJgKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg4pSCICAvYXBpLyogICgrIHgtaW50ZXJuYWwtdG9rZW4gaGVhZGVyKQrilIzilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilJAK4pSCICAgICAgICAgICAgICAgICAgICAgRVhQUkVTUyBTRVJWRVIgKHNlcnZlci5janMpICAgICAgICAgICAgICAgICAgICAgICAgICDilIIK4pSCICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICDilIIK4pSCICBBdXRoIEd1YXJkOiB4LWludGVybmFsLXRva2VuIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgCAgICAg4pSCCuKUgiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg4pSCCuKUgiAgL2FwaS90d2l0dGVyLyog4pSA4pSAcHJveHnilIDilIDilrogaHR0cHM6Ly9hcGkudHdpdHRlcmFwaS5pbyAgKFgtQVBJLUtleSkgICAgICAg4pSCCuKUgiAgL2FwaS94YWkvKiAgICAg4pSA4pSAcHJveHnilIDilIDilrogaHR0cHM6Ly9hcGkueC5haSAgICAgICAgICAgKEJlYXJlciBYQUlfS0VZKSAg4pSCCuKUgiAgL2FwaS90YXZpbHkvc2VhcmNoIOKUgOKUgOKWuiBodHRwczovL2FwaS50YXZpbHkuY29tICAgICAgICAgKGFwaV9rZXkgYm9keSkgICDilIIK4pSCICAvdGVzdC8qICAgICAgICDilIDilIBzdGF0aWPilIDilIDilrogZGlzdC9pbmRleC5odG1sICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg4pSCCuKUlOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUmApgYGAKCiMjIyBUZWNoIFN0YWNrCgp8IExheWVyIHwgVGVjaG5vbG9neSB8IFZlcnNpb24gfAp8LS0tLS0tLXwtLS0tLS0tLS0tLXwtLS0tLS0tLS18CnwgVUkgRnJhbWV3b3JrIHwgUmVhY3QgfCAxOS4yLjQgfAp8IEJ1aWxkIFRvb2wgfCBWaXRlIHwgOC4wLjAgfAp8IExhbmd1YWdlIHwgVHlwZVNjcmlwdCB8IDUuOS4zIChzdHJpY3Q6IGZhbHNlKSB8CnwgQmFja2VuZCB8IEV4cHJlc3MgfCA0LjIyLjEgfAp8IEFJIFNESyB8IEBhaS1zZGsveGFpIHwgMy4wLjcyIHwKfCBBSSBTdHJlYW1pbmcgfCBWZXJjZWwgQUkgU0RLIChgYWlgKSB8IDYuMC4xMTYgfAp8IFZhbGlkYXRpb24gfCBab2QgfCA0LjMuNiB8CnwgSWNvbnMgfCBsdWNpZGUtcmVhY3QgfCAwLjU3NyB8CnwgTWFya2Rvd24gfCBtYXJrZWQgKyBET01QdXJpZnkgfCAxNy4wLjQgLyAzLjMuMyB8CnwgRTJFIFRlc3RpbmcgfCBQbGF5d3JpZ2h0IHwgMS41OC4yIHwKCi0tLQoKIyMgMi4gQmFja2VuZCBMYXllciDigJQgYHNlcnZlci5janNgCgrguYTguJ/guKXguYw6IGBzZXJ2ZXIuY2pzYAoKRXhwcmVzcyBzZXJ2ZXIg4LiX4Liz4Lir4LiZ4LmJ4Liy4LiX4Li14LmI4LmA4Lib4LmH4LiZICoqc2VjdXJlIEFQSSBwcm94eSoqIOC5gOC4l+C5iOC4suC4meC4seC5ieC4mSDigJQg4LmE4Lih4LmI4Lih4Li1IGJ1c2luZXNzIGxvZ2ljIOC4reC4ouC4ueC5iOC4l+C4teC5iOC4neC4seC5iOC4hyBzZXJ2ZXIKCiMjIyBTdGFydHVwICYgQ29uZmlnCgpgYGBqcwovLyBzZXJ2ZXIuY2pzOjYtMjQKY29uc3QgbG9hZEVudkZpbGUgPSAoKSA9PiB7CiAgY29uc3QgZW52UGF0aCA9IHBhdGguam9pbihfX2Rpcm5hbWUsICcuZW52Jyk7CiAgLy8g4Lit4LmI4Liy4LiZIC5lbnYg4LiU4LmJ4Lin4LiiIG1hbnVhbCBwYXJzZXIgKOC5hOC4oeC5iOC5g+C4iuC5iSBkb3RlbnYpCiAgLy8g4Lib4LmJ4Lit4LiH4LiB4Lix4LiZIG92ZXJyaWRlIGVudiB2YXJzIOC4l+C4teC5iOC4luC4ueC4gSBpbmplY3Qg4LiI4Liy4LiBIHBsYXRmb3JtIOC5geC4peC5ieC4pwogIGlmIChrZXkgJiYgcHJvY2Vzcy5lbnZba2V5XSA9PT0gdW5kZWZpbmVkKSB7CiAgICBwcm9jZXNzLmVudltrZXldID0gdmFsdWU7CiAgfQp9OwpgYGAKCiMjIyBBdXRoIEd1YXJkIChtaWRkbGV3YXJlIOC4peC4s+C4lOC4seC4miAxKQoKYGBganMKLy8gc2VydmVyLmNqczo0MC00NQphcHAudXNlKCcvYXBpJywgKHJlcSwgcmVzLCBuZXh0KSA9PiB7CiAgaWYgKElOVEVSTkFMX0FQSV9TRUNSRVQgJiYgcmVxLmhlYWRlcnNbJ3gtaW50ZXJuYWwtdG9rZW4nXSAhPT0gSU5URVJOQUxfQVBJX1NFQ1JFVCkgewogICAgcmV0dXJuIHJlcy5zdGF0dXMoNDAxKS5qc29uKHsgZXJyb3I6ICdVbmF1dGhvcml6ZWQnIH0pOwogIH0KICBuZXh0KCk7Cn0pOwpgYGAKCuC4l+C4uOC4gSBgL2FwaS8qYCByZXF1ZXN0ICoq4LiV4LmJ4Lit4LiH4Lih4Li1KiogaGVhZGVyIGB4LWludGVybmFsLXRva2VuYCDguJXguKPguIfguIHguLHguJogYElOVEVSTkFMX0FQSV9TRUNSRVRgIOC5g+C4mSBgLmVudmAK4oCUIOC4m+C5ieC4reC4h+C4geC4seC4meC4hOC4meC4meC4reC4geC5gOC4o+C4teC4ouC4gSBwcm94eSDguYLguJTguKLguJXguKPguIcKCiMjIyBMb2dnaW5nIE1pZGRsZXdhcmUgKOC4peC4s+C4lOC4seC4miAyKQoKYGBganMKLy8gc2VydmVyLmNqczo0Ny01OAphcHAudXNlKCcvYXBpJywgKHJlcSwgcmVzLCBuZXh0KSA9PiB7CiAgY29uc3Qgc3RhcnRlZEF0ID0gRGF0ZS5ub3coKTsKICByZXMub24oJ2ZpbmlzaCcsICgpID0+IHsKICAgIGNvbnN0IGR1cmF0aW9uTXMgPSBEYXRlLm5vdygpIC0gc3RhcnRlZEF0OwogICAgLy8gbG9nIOC5gOC4ieC4nuC4suC4sCByZXF1ZXN0IOC4l+C4teC5iOC4iuC5ieC4siAoPjI1MG1zKSDguKvguKPguLfguK0gZXJyb3IgKDR4eC81eHgpCiAgICBpZiAoZHVyYXRpb25NcyA+PSBBUElfTE9HX1RIUkVTSE9MRF9NUyB8fCByZXMuc3RhdHVzQ29kZSA+PSA0MDApIHsKICAgICAgY29uc29sZS5sb2coYFtzZXJ2ZXJdICR7cmVxLm1ldGhvZH0gJHtyZXEub3JpZ2luYWxVcmx9IC0+ICR7cmVzLnN0YXR1c0NvZGV9IGluICR7ZHVyYXRpb25Nc31tc2ApOwogICAgfQogIH0pOwogIG5leHQoKTsKfSk7CmBgYAoKIyMjIFR3aXR0ZXIgUHJveHkKCmBgYGpzCi8vIHNlcnZlci5janM6NjAtODQKYXBwLnVzZSgnL2FwaS90d2l0dGVyJywgYXN5bmMgKHJlcSwgcmVzKSA9PiB7CiAgY29uc3QgdXBzdHJlYW1VcmwgPSBgaHR0cHM6Ly9hcGkudHdpdHRlcmFwaS5pby90d2l0dGVyJHtyZXEub3JpZ2luYWxVcmwucmVwbGFjZSgvXlwvYXBpXC90d2l0dGVyLywgJycpfWA7CiAgY29uc3QgdXBzdHJlYW1SZXNwb25zZSA9IGF3YWl0IGZldGNoKHVwc3RyZWFtVXJsLCB7CiAgICBoZWFkZXJzOiB7ICdYLUFQSS1LZXknOiBUV0lUVEVSX0FQSV9LRVkgfSwKICAgIHNpZ25hbDogQWJvcnRTaWduYWwudGltZW91dChVUFNUUkVBTV9USU1FT1VUX01TKSwgLy8gMTIwcyBkZWZhdWx0CiAgICBib2R5OiByZXEubWV0aG9kID09PSAnR0VUJyA/IHVuZGVmaW5lZCA6IEpTT04uc3RyaW5naWZ5KHJlcS5ib2R5KSwKICB9KTsKICAvLyBwYXNzLXRocm91Z2ggc3RhdHVzICsgYm9keSDguJXguKPguIfguYYg4LmE4Lih4LmI4LmB4Lib4Lil4LiHCiAgcmVzLnN0YXR1cyh1cHN0cmVhbVJlc3BvbnNlLnN0YXR1cykuc2VuZChyZXNwb25zZVRleHQpOwp9KTsKYGBgCgpVUkwgbWFwcGluZzogYC9hcGkvdHdpdHRlci91c2VyL3R3ZWV0c2Ag4oaSIGBodHRwczovL2FwaS50d2l0dGVyYXBpLmlvL3R3aXR0ZXIvdXNlci90d2VldHNgCgojIyMgeEFJIChHcm9rKSBQcm94eQoKYGBganMKLy8gc2VydmVyLmNqczo4Ni0xMTAKYXBwLnVzZSgnL2FwaS94YWknLCBjcmVhdGVQcm94eU1pZGRsZXdhcmUoewogIHRhcmdldDogJ2h0dHBzOi8vYXBpLnguYWknLAogIHBhdGhSZXdyaXRlOiB7ICdeL2FwaS94YWknOiAnJyB9LCAgICAvLyAvYXBpL3hhaS92MS9jaGF0IOKGkiAvdjEvY2hhdAogIG9uOiB7CiAgICBwcm94eVJlcTogKHByb3h5UmVxKSA9PiB7CiAgICAgIHByb3h5UmVxLnNldEhlYWRlcignQXV0aG9yaXphdGlvbicsIGBCZWFyZXIgJHtYQUlfQVBJX0tFWX1gKTsKICAgIH0KICB9Cn0pKTsKYGBgCgrguYPguIrguYkgYGh0dHAtcHJveHktbWlkZGxld2FyZWAg4LmA4Lie4Lij4Liy4Liw4LiV4LmJ4Lit4LiH4Lij4Lit4LiH4Lij4Lix4LiaICoqc3RyZWFtaW5nIHJlc3BvbnNlKiogKFNTRSkg4LiI4Liy4LiBIEdyb2sKCiMjIyBUYXZpbHkgUHJveHkKCmBgYGpzCi8vIHNlcnZlci5janM6MTEyLTEzNwphcHAucG9zdCgnL2FwaS90YXZpbHkvc2VhcmNoJywgYXN5bmMgKHJlcSwgcmVzKSA9PiB7CiAgLy8gaW5qZWN0IGFwaV9rZXkg4Lil4LiH4LmD4LiZIGJvZHkg4LiB4LmI4Lit4LiZ4Liq4LmI4LiH4LiV4LmI4LitIOKAlCBrZXkg4LmE4Lih4LmI4LmA4LiE4Lii4LiW4Li24LiHIGJyb3dzZXIKICBib2R5OiBKU09OLnN0cmluZ2lmeSh7IC4uLnJlcS5ib2R5LCBhcGlfa2V5OiBUQVZJTFlfQVBJX0tFWSB9KSwKfSk7CmBgYAoKIyMjIFN0YXRpYyBGaWxlIFNlcnZpbmcKCmBgYGpzCi8vIHNlcnZlci5janM6MTM5LTE0NwphcHAudXNlKCcvdGVzdCcsIGV4cHJlc3Muc3RhdGljKHBhdGguam9pbihfX2Rpcm5hbWUsICdkaXN0JykpKTsKYXBwLmdldCgnL3Rlc3QvKicsIChyZXEsIHJlcykgPT4gcmVzLnNlbmRGaWxlKCdkaXN0L2luZGV4Lmh0bWwnKSk7ICAvLyBTUEEgZmFsbGJhY2sKYXBwLmdldCgnLycsIChyZXEsIHJlcykgPT4gcmVzLnJlZGlyZWN0KCcvdGVzdCcpKTsKYGBgCgpBcHAgc2VydmUg4Lit4Lii4Li54LmI4LiX4Li14LmIIHBhdGggYC90ZXN0L2AgKOC5hOC4oeC5iOC5g+C4iuC5iCBgL2ApIOKAlCDguJXguLHguYnguIfguYPguIjguYPguKvguYnguYTguKHguYjguIrguJnguIHguLHguJogcm91dGUg4Lit4Li34LmI4LiZ4LiW4LmJ4Liy4LmA4Lit4Liy4LmE4LibIGRlcGxveSDguYPguJkgc3ViZGlyZWN0b3J5CgotLS0KCiMjIDMuIEFQSSBTZWN1cml0eSDigJQgYGFwaUZldGNoLnRzYAoK4LmE4Lif4Lil4LmMOiBgc3JjL3V0aWxzL2FwaUZldGNoLnRzYAoKYGBgdHlwZXNjcmlwdAovLyBhcGlGZXRjaC50czoxNQpleHBvcnQgY29uc3QgSU5URVJOQUxfVE9LRU4gPSBpbXBvcnQubWV0YS5lbnYuVklURV9JTlRFUk5BTF9BUElfU0VDUkVUID8/ICcnOwoKLy8gYXBpRmV0Y2gudHM6MTktMzUKZXhwb3J0IGNvbnN0IGFwaUZldGNoID0gKHVybCwgb3B0aW9ucyA9IHt9KSA9PiB7CiAgY29uc3QgeyB0aW1lb3V0ID0gOTAwMDAsIC4uLmZldGNoT3B0aW9ucyB9ID0gb3B0aW9uczsgIC8vIDkwcyBkZWZhdWx0CgogIGNvbnN0IGNvbnRyb2xsZXIgPSBuZXcgQWJvcnRDb250cm9sbGVyKCk7CiAgY29uc3QgaWQgPSBzZXRUaW1lb3V0KCgpID0+IGNvbnRyb2xsZXIuYWJvcnQoKSwgdGltZW91dCk7CgogIGNvbnN0IGhlYWRlcnMgPSB7CiAgICAuLi4oZmV0Y2hPcHRpb25zLmhlYWRlcnMgfHwge30pLAogICAgLy8gaW5qZWN0IHRva2VuIOC4l+C4uOC4gSByZXF1ZXN0IOC4reC4seC4leC5guC4meC4oeC4seC4leC4tAogICAgLi4uKElOVEVSTkFMX1RPS0VOID8geyAneC1pbnRlcm5hbC10b2tlbic6IElOVEVSTkFMX1RPS0VOIH0gOiB7fSksCiAgfTsKCiAgcmV0dXJuIGZldGNoKHVybCwgeyAuLi5mZXRjaE9wdGlvbnMsIGhlYWRlcnMsIHNpZ25hbDogY29udHJvbGxlci5zaWduYWwgfSkKICAgIC5maW5hbGx5KCgpID0+IGNsZWFyVGltZW91dChpZCkpOwp9OwpgYGAKCioq4Lir4Lil4Lix4LiB4LiB4Liy4LijOioqCi0gYFZJVEVfSU5URVJOQUxfQVBJX1NFQ1JFVGAg4LmA4Lib4LmH4LiZICoqZW52IHZhciDguYDguJTguLXguKLguKcqKiDguJfguLXguYjguILguLbguYnguJnguJXguYnguJnguJTguYnguKfguKIgYFZJVEVfYCDigJQg4LiX4Liz4LmD4Lir4LmJIFZpdGUgYnVuZGxlIOC5gOC4guC5ieC4siBicm93c2VyIOC5hOC4lOC5iQotIFJlYWwgQVBJIGtleXMgKGBYQUlfQVBJX0tFWWAsIGBUV0lUVEVSX0FQSV9LRVlgLCBgVEFWSUxZX0FQSV9LRVlgKSAqKuC5hOC4oeC5iOC4oeC4tSoqIGBWSVRFX2AgcHJlZml4IOKGkiDguYTguKHguYjguJbguLbguIcgYnJvd3NlciDguYDguKXguKIKLSBgSU5URVJOQUxfVE9LRU5gIOC5hOC4oeC5iOC5g+C4iuC5iCBzZWNyZXQg4LiI4Lij4Li04LiH4LmGIOKAlCDguYHguITguYjguJvguYnguK3guIfguIHguLHguJkgYW5vbnltb3VzIGFidXNlIOC4guC4reC4hyBwcm94eQoKLS0tCgojIyA0LiBUd2l0dGVyIFNlcnZpY2Ug4oCUIGBUd2l0dGVyU2VydmljZS50c2AKCuC5hOC4n+C4peC5jDogYHNyYy9zZXJ2aWNlcy9Ud2l0dGVyU2VydmljZS50c2AgKH45MDAgbGluZXMpCgojIyMgQ29uc3RhbnRzICYgUGF0dGVybnMKCmBgYHR5cGVzY3JpcHQKLy8gVHdpdHRlclNlcnZpY2UudHM6Ni03CmNvbnN0IEJBU0VfVVJMID0gJy9hcGkvdHdpdHRlcic7CmV4cG9ydCBjb25zdCBSRUNFTlRfV0lORE9XX0hPVVJTID0gMjQ7CgovLyBMT1dfU0lHTkFMX1BBVFRFUk5TIOKAlCDguYPguIrguYnguIHguKPguK3guIcgc3BhbS9zY2FtIHR3ZWV0cwpjb25zdCBMT1dfU0lHTkFMX1BBVFRFUk5TID0gWwogIC9cYmFpcmRyb3BcYi9pLCAvXGJnaXZlYXdheVxiL2ksIC9cYnRlbGVncmFtXGIvaSwKICAvXGJ3aGF0c2FwcFxiL2ksIC9cYmRpc2NvcmRcYi9pLCAvXGJqb2luXGIvaSwKICAvXGJkbVxiL2ksIC9cYmNvbnRyYWN0XGIvaSwgL1xicHJlc2FsZVxiL2ksCiAgL1xicmVmZXJyYWxcYi9pLCAvXGJzaWduYWxcYi9pLCAvXGJjb3B5IHRyYWRlXGIvaSwKXTsKCi8vIEhZUEVfUEFUVEVSTlMg4oCUIOC4leC4o+C4p+C4iOC4iOC4seC4miBsb3ctcXVhbGl0eSBoeXBlIGNvbnRlbnQKY29uc3QgSFlQRV9QQVRURVJOUyA9IFsKICAvXGIxMDB4XGIvaSwgL1xiMTAwMHhcYi9pLCAvXGJtb25leSBwcmludGVyXGIvaSwKICAvXGJxdWl0IHlvdXIgam9iXGIvaSwgL1xiZm9sbG93IHlvdSBiYWNrXGIvaSwgL1xiZ2lnYSB2b2xhdGlsZVxiL2ksCl07CmBgYAoKIyMjIFNjb3JpbmcgQXJjaGl0ZWN0dXJlCgrguKPguLDguJrguJogc2NvcmluZyDguITguLfguK3guKvguLHguKfguYPguIjguILguK3guIcgVHdpdHRlclNlcnZpY2Ug4oCUIOC4l+C4uOC4gSB0d2VldCDguIjguLDguYTguJTguYkgYHNlYXJjaF9zY29yZWAg4LiI4Liy4LiB4Liq4Li54LiV4LijOgoKYGBgCmZpbmFsX3Njb3JlID0gc2lnbmFsU2NvcmUKICAgICAgICAgICAgKyBjcmVkaWJpbGl0eVNjb3JlCiAgICAgICAgICAgICsgcmVsZXZhbmNlU2NvcmUKICAgICAgICAgICAgKyBicm9hZFNlbWFudGljU2NvcmUKICAgICAgICAgICAgKyBicm9hZEdsb2JhbEF1dGhvcml0eVNjb3JlCiAgICAgICAgICAgICsgYnJvYWRWaXJhbE1vbWVudHVtU2NvcmUKICAgICAgICAgICAgKyBmcmVzaG5lc3NTY29yZQogICAgICAgICAgICArIHByb3ZpZGVyUmFua1Njb3JlCiAgICAgICAgICAgIC0gbG93U2lnbmFsUGVuYWx0eQogICAgICAgICAgICAtIGJyb2FkVG9waWNQZW5hbHR5CiAgICAgICAgICAgIC0gYnJvYWRUb3BpY0ZvY3VzUGVuYWx0eQogICAgICAgICAgICAtIGJyb2FkTG9jYWxDYXN1YWxQZW5hbHR5CmBgYAoKIyMjIyBgZ2V0U2lnbmFsU2NvcmUodHdlZXQpYCDigJQgRW5nYWdlbWVudFNjb3JlCgpgYGB0eXBlc2NyaXB0Ci8vIFR3aXR0ZXJTZXJ2aWNlLnRzOjM4Ni00MDAKY29uc3QgZ2V0U2lnbmFsU2NvcmUgPSAodHdlZXQpID0+IHsKICAvLyBsb2dTY29yZSA9IE1hdGgubG9nMTAodmFsdWUrMSkgLyBNYXRoLmxvZzEwKG1heElucHV0KzEpICogbXVsdGlwbGllcgogIHJldHVybiAoCiAgICBsb2dTY29yZSh2aWV3cywgICAgICAzLjUsIDVfMDAwXzAwMCkgKyAgIC8vIHZpZXdzIHNjb3JlCiAgICBsb2dTY29yZShlbmdhZ2VtZW50LCA2LjAsIDIwMF8wMDApICAgKyAgIC8vIGxpa2VzK1JUK3JlcGxpZXMrcXVvdGVzICjguYPguKvguI3guYjguKrguLjguJQpCiAgICBjbGFtcChlbmdhZ2VtZW50UmF0ZSAvIDAuMDQsIDAsIDEpICogMy41IC8vIGVuZ2FnZW1lbnQgcmF0ZSBib251cwogICk7Cn07CmBgYAoKIyMjIyBgZ2V0Q3JlZGliaWxpdHlTY29yZSh0d2VldClgIOKAlCBBdXRob3IgQXV0aG9yaXR5CgpgYGB0eXBlc2NyaXB0Ci8vIFR3aXR0ZXJTZXJ2aWNlLnRzOjM2MC0zODMKY29uc3QgZ2V0Q3JlZGliaWxpdHlTY29yZSA9ICh0d2VldCkgPT4gewogIGlmIChhdXRob3IuaXNWZXJpZmllZCkgICAgIHNjb3JlICs9IDMuNTsgIC8vIEdvbGQvT2ZmaWNpYWwg4pyTCiAgaWYgKGF1dGhvci5pc0JsdWVWZXJpZmllZCkgc2NvcmUgKz0gMS40OyAgLy8gQmx1ZSBQcmVtaXVtIOKckwogIGlmICh2ZXJpZmllZFR5cGUgPT09ICdCdXNpbmVzcycgfHwgJ0dvdmVybm1lbnQnKSBzY29yZSArPSAxLjI7CgogIHNjb3JlICs9IGxvZ1Njb3JlKGZvbGxvd2VycywgNS4wLCAxXzAwMF8wMDApOyAgLy8gZm9sbG93ZXIgc2NvcmUgKOC4quC4ueC4h+C4quC4uOC4lCkKICBzY29yZSArPSBsb2dTY29yZShzdGF0dXNlcywgIDEuMiwgNTAwXzAwMCk7ICAgIC8vIHR3ZWV0IGhpc3RvcnkKICBzY29yZSArPSBjbGFtcChhY2NvdW50QWdlRGF5cyAvIDM2NSwgMCwgNSkgKiAwLjU7IC8vIGFjY291bnQgYWdlCn07CmBgYAoKIyMjIyBgZ2V0UmVsZXZhbmNlU2NvcmUodHdlZXQsIHF1ZXJ5VGVybXMpYCDigJQgS2V5d29yZCBNYXRjaAoKYGBgdHlwZXNjcmlwdAovLyBUd2l0dGVyU2VydmljZS50czoxODYtMjExCi8vIOC4quC4s+C4q+C4o+C4seC4muC5geC4leC5iOC4peC4sCBxdWVyeSB0ZXJtOgovLyAgIG1hdGNoIOC5g+C4mSB0ZXh0IGJvZHkgIOKGkiArMS4yCi8vICAgbWF0Y2gg4LmD4LiZIGF1dGhvciBiaW8g4oaSICswLjQ1Ci8vICAgbXVsdGktdGVybSBib251cyAgICDihpIgKzAuNC90ZXJtIChtYXggKzEuNCkKLy8gICBleGFjdCBwaHJhc2UgbWF0Y2ggIOKGkiArMS4yNSAo4LiW4LmJ4LiyIHF1ZXJ5IOC4ouC4suC4p+C4geC4p+C5iOC4siA0IGNoYXJzKQpgYGAKCiMjIyMgYGdldFZlbG9jaXR5VGFnKHR3ZWV0KWAg4oCUIE1vbWVudHVtIERldGVjdGlvbgoKYGBgdHlwZXNjcmlwdAovLyBUd2l0dGVyU2VydmljZS50czo0MDItNDEzCmNvbnN0IGdldFZlbG9jaXR5VGFnID0gKHR3ZWV0KSA9PiB7CiAgY29uc3QgZW5nUGVySG91ciA9IChsaWtlcyArIHJldHdlZXRzKSAvIGFnZUhvdXJzOwogIGlmIChhZ2VIb3VycyA8PSA2ICAmJiBlbmdQZXJIb3VyID49IDIwMCkgcmV0dXJuICfwn5SlIOC4geC4s+C4peC4seC4h+C4o+C4sOC5gOC4muC4tOC4lCc7CiAgaWYgKGFnZUhvdXJzIDw9IDI0ICYmIGVuZ1BlckhvdXIgPj0gNTApICByZXR1cm4gJ/Cfk4gg4LiB4Liz4Lil4Lix4LiH4LiC4Li24LmJ4LiZJzsKICBpZiAoYWdlSG91cnMgPD0gNDggJiYgZW5nUGVySG91ciA+PSAxNSkgIHJldHVybiAn8J+TiiDguIHguLPguKXguLHguIfguKHguLInOwogIHJldHVybiBudWxsOwp9OwpgYGAKCiMjIyMgYGdldExvd1NpZ25hbFBlbmFsdHkodHdlZXQpYCDigJQgU3BhbS9Ob2lzZSBGaWx0ZXIKCmBgYHR5cGVzY3JpcHQKLy8gVHdpdHRlclNlcnZpY2UudHM6NDMzLTQ5MgovLyBMT1dfU0lHTkFMX1BBVFRFUk5TIG1hdGNoICDihpIgKzEuNSBwZXIgbWF0Y2gKLy8gSFlQRV9QQVRURVJOUyBtYXRjaCAgICAgICAg4oaSICswLjkgcGVyIG1hdGNoCi8vIGlzQXV0b21hdGVkIGFjY291bnQgICAgICAgIOKGkiArNS4wIChoZWF2eSkKLy8gbmV3IGFjY291bnQgKDwgMTAwMCBmb2xsb3dlcnMsIDwgMTgwIGRheXMpIOKGkiArMi41Ci8vIG5ld3MgcXVlcnkgKyBsb3cgY3JlZGliaWxpdHkg4oaSICsyLjAgKyAxLjUKLy8gbm8ga2V5d29yZCBtYXRjaCAobm9uLWJyb2FkKSDihpIgKzUuMCAoaGVhdnkpCi8vIHJlcGx5ICsgZW5nYWdlbWVudCA8IDUgICAgIOKGkiByZXR1cm4gODAgKGtpbGwpCi8vIHJlcGx5ICsgZW5nYWdlbWVudCA8IDMwICAgIOKGkiArNS4wCmBgYAoKIyMjIFF1ZXJ5IEludGVudCBEZXRlY3Rpb24KCmBgYHR5cGVzY3JpcHQKLy8gVHdpdHRlclNlcnZpY2UudHM6OTMtMTEyCmNvbnN0IGlzTmV3c0ludGVudCA9IChxdWVyeSkgPT4gL+C4guC5iOC4suC4p3xuZXdzfGxhdGVzdHx1cGRhdGV8YnJlYWtpbmcvaS50ZXN0KHF1ZXJ5KTsKCmNvbnN0IGlzQnJvYWREaXNjb3ZlcnlJbnRlbnQgPSAocXVlcnkpID0+IHsKICAvLyBzdHJpcHBlZCA9IHF1ZXJ5IOC4q+C4peC4seC4h+C5gOC4reC4siBuZXdzIGtleXdvcmRzIOC4reC4reC4gQogIC8vIGJyb2FkID0gdHJ1ZSDguJbguYnguLIgcXVlcnkgbWF0Y2gg4LiB4Lix4LiaIEJST0FEX1RPUElDX0hJTlRTIChnYW1pbmcvZm9vdGJhbGwvY3J5cHRvKQogIC8vIOC5geC4peC4sCB0b2tlbiBjb3VudCA8PSA2Cn07CmBgYAoKSW50ZW50IOC5geC4muC5iOC4h+C5gOC4m+C5h+C4mSAzIOC4m+C4o+C4sOC5gOC4oOC4lzoKLSAqKm5ld3MgaW50ZW50Kiog4oaSIOC5gOC4meC5ieC4mSBjcmVkaWJpbGl0eSwgZnJlc2huZXNzCi0gKipicm9hZCBkaXNjb3ZlcnkqKiDihpIg4LmD4LiK4LmJIHRvcGljIGJ1Y2tldHMgKyBkaXZlcnNpdHkgYWxnb3JpdGhtCi0gKipwcm9kdWN0L3NwZWNpZmljKiog4oaSIOC5gOC4meC5ieC4mSBleGFjdCBrZXl3b3JkIG1hdGNoCgojIyMgQnJvYWQgVG9waWMgRGl2ZXJzaWZpY2F0aW9uCgpgYGB0eXBlc2NyaXB0Ci8vIFR3aXR0ZXJTZXJ2aWNlLnRzOjU2NS02MTMKY29uc3QgZGl2ZXJzaWZ5QnJvYWRSZXN1bHRzID0gKHR3ZWV0cywgcXVlcnlQcm9maWxlLCBsaW1pdCA9IDMwKSA9PiB7CiAgLy8g4LmB4Lia4LmI4LiHIHR3ZWV0cyDguYDguJvguYfguJkgYnVja2V0czogZ2FtaW5nLW1haW4sIGdhbWluZy1nZW5lcmFsLCBnZW5lcmFsLCBlc3BvcnRzLCBwcm9tbwogIC8vIHJvdGF0ZSDguJTguLbguIfguIjguLLguIHguYHguJXguYjguKXguLAgYnVja2V0IOC4l+C4teC4peC4sOC4leC4seC4p+C4iOC4meC4hOC4o+C4miBsaW1pdAogIC8vIOC4guC5ieC4suC4oSBwcm9tbyBidWNrZXQg4LmA4Liq4Lih4LitICjguJbguYnguLIgcHJlZmVyR2xvYmFsKQogIC8vIGVzcG9ydHMg4LiI4Liz4LiB4Lix4LiU4LiX4Li14LmIIDIgdHdlZXRzCn07CmBgYAoKIyMjIEF1dGhvciBEaXZlcnNpZmljYXRpb24KCmBgYHR5cGVzY3JpcHQKLy8gVHdpdHRlclNlcnZpY2UudHM6NTMxLTU0OApjb25zdCBkaXZlcnNpZnlCeUF1dGhvciA9ICh0d2VldHMsIHByb3RlY3RlZFdpbmRvdyA9IDEyKSA9PiB7CiAgLy8g4LmD4LiZIHRvcC0xMiDguKvguYnguLLguKEgYXV0aG9yIOC5gOC4lOC4teC4ouC4p+C4geC4seC4meC4i+C5ieC4swogIC8vIHR3ZWV0IOC4l+C4teC5iOC4i+C5ieC4syBhdXRob3Ig4LiW4Li54LiB4LiU4Lix4LiZIG92ZXJmbG93IOC5hOC4m+C4l+C5ieC4suC4oiBsaXN0Cn07CmBgYAoKIyMjIFB1YmxpYyBBUEkgRnVuY3Rpb25zCgp8IEZ1bmN0aW9uIHwg4LmD4LiK4LmJ4LmD4LiZIHwg4Lir4LiZ4LmJ4Liy4LiX4Li14LmIIHwKfC0tLS0tLS0tLS18LS0tLS0tLXwtLS0tLS0tLS18CnwgYGdldFVzZXJJbmZvKHVzZXJuYW1lKWAgfCBBcHAudHN4IHdhdGNobGlzdCBhZGQgfCBHRVQgYC9hcGkvdHdpdHRlci91c2VyL2luZm8/dXNlcm5hbWU9YCB8CnwgYGZldGNoV2F0Y2hsaXN0RmVlZChoYW5kbGVzW10pYCB8IEFwcC50c3ggaG9tZSByZWZyZXNoIHwg4LiU4Li24LiHIHRpbWVsaW5lIOC4guC4reC4hyBoYW5kbGVzIOC4l+C4seC5ieC4h+C4q+C4oeC4lOC5geC4muC4miBwYXJhbGxlbCB8CnwgYHNlYXJjaEV2ZXJ5dGhpbmcocXVlcnksIG9wdHMpYCB8IENvbnRlbnRXb3Jrc3BhY2UgfCBzZWFyY2ggKyBzY29yZSArIGRlZHVwZSArIGRpdmVyc2lmeSB8CnwgYHNlYXJjaEV2ZXJ5dGhpbmdEZWVwKHF1ZXJ5LCBvcHRzKWAgfCBDb250ZW50V29ya3NwYWNlIHwg4LmA4Lir4Lih4Li34Lit4LiZIHNlYXJjaEV2ZXJ5dGhpbmcg4LmB4LiV4LmIIG11bHRpLXJvdW5kIHwKfCBgY3VyYXRlU2VhcmNoUmVzdWx0cyh0d2VldHMsIHF1ZXJ5KWAgfCBBcHAudHN4IHNlYXJjaCB8IHJlLXJhbmsgdHdlZXRzIOC4lOC5ieC4p+C4oiBjb21wb3NpdGUgc2NvcmUgfAp8IGBhbmFseXplU2VhcmNoUXVlcnlJbnRlbnQocXVlcnkpYCB8IEFwcC50c3ggc2VhcmNoIHwgcmV0dXJuIGB7IGlzTmV3cywgaXNCcm9hZCwgcXVlcnlQcm9maWxlIH1gIHwKfCBgY2x1c3RlckJ5U2ltaWxhcml0eSh0d2VldHMsIHRocmVzaG9sZClgIHwgQXBwLnRzeCB8IGdyb3VwIHR3ZWV0cyDguJfguLXguYjguITguKXguYnguLLguKLguIHguLHguJkgfAp8IGBmZXRjaFR3ZWV0QnlJZChpZClgIHwgR3Jva1NlcnZpY2UgfCBHRVQgYC9hcGkvdHdpdHRlci90d2VldC9kZXRhaWw/dHdlZXRfaWQ9YCB8CgotLS0KCiMjIDUuIEdyb2sgQUkgU2VydmljZSDigJQgYEdyb2tTZXJ2aWNlLnRzYAoK4LmE4Lif4Lil4LmMOiBgc3JjL3NlcnZpY2VzL0dyb2tTZXJ2aWNlLnRzYCAofjEsOTAwIGxpbmVzKQoKIyMjIE1vZGVscwoKYGBgdHlwZXNjcmlwdAovLyBHcm9rU2VydmljZS50czo4LTExCmNvbnN0IE1PREVMX05FV1NfRkFTVCAgICAgID0gJ2dyb2stNC0xLWZhc3Qtbm9uLXJlYXNvbmluZyc7ICAvLyBzdW1tYXJpemF0aW9uLCBmYXN0CmNvbnN0IE1PREVMX1JFQVNPTklOR19GQVNUID0gJ2dyb2stNC0xLWZhc3QtcmVhc29uaW5nJzsgICAgIC8vIGFuYWx5c2lzLCBwbGFubmluZwpjb25zdCBNT0RFTF9XUklURVIgICAgICAgICA9ICdncm9rLTQtMS1mYXN0LXJlYXNvbmluZyc7ICAgICAvLyBjb250ZW50IHdyaXRpbmcKY29uc3QgTU9ERUxfTVVMVElfQUdFTlQgICAgPSAnZ3Jvay00LTEtZmFzdC1yZWFzb25pbmcnOyAgICAgLy8gYWdlbnQgdGFza3MKYGBgCgojIyMgeEFJIENsaWVudCBTZXR1cAoKYGBgdHlwZXNjcmlwdAovLyBHcm9rU2VydmljZS50czoxMy0xOQpjb25zdCBncm9rID0gY3JlYXRlWGFpKHsKICBhcGlLZXk6ICdsb2NhbC1wcm94eScsICAgICAgIC8vIGR1bW15IGtleSDigJQg4LiI4Lij4Li04LiH4LmGIGluamVjdCDguJfguLXguYggc2VydmVyCiAgYmFzZVVSTDogJy9hcGkveGFpL3YxJywgICAgIC8vIOC4nOC5iOC4suC4mSBFeHByZXNzIHByb3h5CiAgaGVhZGVyczogewogICAgJ3gtaW50ZXJuYWwtdG9rZW4nOiBJTlRFUk5BTF9UT0tFTiwgIC8vIGF1dGggZ3VhcmQKICB9LAp9KTsKYGBgCgojIyMgSW4tTWVtb3J5IENhY2hlCgpgYGB0eXBlc2NyaXB0Ci8vIEdyb2tTZXJ2aWNlLnRzOjIxLTI4CmNvbnN0IHJlc3BvbnNlQ2FjaGUgPSBuZXcgTWFwKCk7CmNvbnN0IENBQ0hFX01BWF9FTlRSSUVTICAgICAgPSA0MDA7CgovLyBUVExzIOC4leC5iOC4suC4hyDguIHguLHguJkg4LiV4Liy4LihIHVzZSBjYXNlOgpjb25zdCBUQVZJTFlfQ0FDSEVfVFRMX01TICAgICAgICAgID0gIDUgKiA2MCAqIDEwMDA7ICAgLy8gNSBtaW4KY29uc3QgUVVFUllfQ0FDSEVfVFRMX01TICAgICAgICAgICA9IDE1ICogNjAgKiAxMDAwOyAgIC8vIDE1IG1pbgpjb25zdCBFWEVDVVRJVkVfU1VNTUFSWV9DQUNIRV9UVEwgID0gMTAgKiA2MCAqIDEwMDA7ICAgLy8gMTAgbWluCmNvbnN0IENPTlRFTlRfQlJJRUZfQ0FDSEVfVFRMICAgICAgPSAzMCAqIDYwICogMTAwMDsgICAvLyAzMCBtaW4KY29uc3QgU1VNTUFSWV9DQUNIRV9UVExfTVMgICAgICAgICA9IDEyICogNjAgKiA2MCAqIDEwMDA7IC8vIDEyIGhyCmNvbnN0IEZBQ1RfQ0FDSEVfVFRMX01TICAgICAgICAgICAgPSAzMCAqIDYwICogMTAwMDsgICAvLyAzMCBtaW4KYGBgCgojIyMjIENhY2hlIEtleSBHZW5lcmF0aW9uCgpgYGB0eXBlc2NyaXB0Ci8vIEdyb2tTZXJ2aWNlLnRzOjQ0LTU2CmNvbnN0IGhhc2hTdHJpbmcgPSAodmFsdWUpID0+IHsKICBsZXQgaGFzaCA9IDIxNjYxMzYyNjE7ICAvLyBGTlYtMWEgMzItYml0CiAgZm9yIChsZXQgaSA9IDA7IGkgPCB2YWx1ZS5sZW5ndGg7IGkrKykgewogICAgaGFzaCBePSB2YWx1ZS5jaGFyQ29kZUF0KGkpOwogICAgaGFzaCA9IE1hdGguaW11bChoYXNoLCAxNjc3NzYxOSk7CiAgfQogIHJldHVybiAoaGFzaCA+Pj4gMCkudG9TdHJpbmcoMzYpOwp9OwoKY29uc3QgYnVpbGRDYWNoZUtleSA9IChuYW1lc3BhY2UsIHZhbHVlKSA9PgogIGAke25hbWVzcGFjZX06JHtoYXNoU3RyaW5nKEpTT04uc3RyaW5naWZ5KHZhbHVlKSl9YDsKLy8g4LiV4Lix4Lin4Lit4Lii4LmI4Liy4LiHOiAidGF2aWx5OjNrOW0ycDEiCmBgYAoKIyMjIyBDYWNoZSBFdmljdGlvbiAoTFJVLWxpa2UpCgpgYGB0eXBlc2NyaXB0Ci8vIEdyb2tTZXJ2aWNlLnRzOjU4LTcxCmNvbnN0IHBydW5lQ2FjaGUgPSAoY2FjaGUpID0+IHsKICAvLyAxLiDguKXguJogZXhwaXJlZCBlbnRyaWVzIOC4geC5iOC4reC4mQogIGZvciAoY29uc3QgW2tleSwgZW50cnldIG9mIGNhY2hlLmVudHJpZXMoKSkgewogICAgaWYgKGVudHJ5LmV4cGlyZXNBdCA8PSBub3cpIGNhY2hlLmRlbGV0ZShrZXkpOwogIH0KICAvLyAyLiDguJbguYnguLLguKLguLHguIfguYDguIHguLTguJkgNDAwIGVudHJpZXMg4Lil4LiaIG9sZGVzdCAoTWFwIHByZXNlcnZlcyBpbnNlcnRpb24gb3JkZXIpCiAgd2hpbGUgKGNhY2hlLnNpemUgPj0gQ0FDSEVfTUFYX0VOVFJJRVMpIHsKICAgIGNhY2hlLmRlbGV0ZShjYWNoZS5rZXlzKCkubmV4dCgpLnZhbHVlKTsKICB9Cn07CmBgYAoKIyMjIFByb21wdCBJbmplY3Rpb24gUHJldmVudGlvbgoKYGBgdHlwZXNjcmlwdAovLyBHcm9rU2VydmljZS50czozMy00MQpjb25zdCBzYW5pdGl6ZUZvclByb21wdCA9ICh0ZXh0ID0gJycsIG1heExlbiA9IDUwMCkgPT4KICBTdHJpbmcodGV4dCkKICAgIC5yZXBsYWNlKC9gL2csICInIikgICAgICAgICAgIC8vIGJhY2t0aWNrIOKGkiBzaW5nbGUgcXVvdGUKICAgIC5yZXBsYWNlKC9cW0lOU1RcXS9naSwgJycpICAgIC8vIExMYU1BL01pc3RyYWwgaW5qZWN0aW9uIG1hcmtlcnMKICAgIC5yZXBsYWNlKC88PFNZUz4+L2dpLCAnJykKICAgIC5yZXBsYWNlKC9cW1wvSU5TVFxdL2dpLCAnJykKICAgIC50cmltKCkKICAgIC5zbGljZSgwLCBtYXhMZW4pOyAgICAgICAgICAgIC8vIGhhcmQgbGltaXQgNTAwIGNoYXJzCmBgYAoK4LmD4LiK4LmJ4LiX4Li44LiB4LiE4Lij4Lix4LmJ4LiH4LiX4Li14LmIIGVtYmVkIHR3ZWV0IHRleHQgLyB3ZWIgY29udGVudCDguKXguIcgcHJvbXB0CgojIyMgQ29udGVudCBTdW1tYXJpemF0aW9uCgojIyMjIGBnZW5lcmF0ZUdyb2tTdW1tYXJ5KHRleHQpYCDigJQgU2luZ2xlIFR3ZWV0CgpgYGAKUE9TVCAvYXBpL3hhaS92MS9jaGF0L2NvbXBsZXRpb25zCm1vZGVsOiBncm9rLTQtMS1mYXN0LW5vbi1yZWFzb25pbmcKc3lzdGVtOiBTVU1NQVJZX1JVTEVTIChUaGFpIHN1bW1hcml6YXRpb24gcnVsZXMpCnVzZXI6IHR3ZWV0IHRleHQK4oaSIGNhY2hlIFRUTDogMTIgaG91cnMKYGBgCgpTVU1NQVJZX1JVTEVTIChHcm9rU2VydmljZS50czoxMTMtMTI1KSDguIHguLPguKvguJnguJQ6Ci0g4LmA4LiC4Li14Lii4LiZ4Liq4Lij4Li44Lib4Lig4Liy4Lip4Liy4LmE4LiX4LiiIDEtMiDguJvguKPguLDguYLguKLguIQKLSDguITguIfguIrguLfguYjguK3guYDguInguJ7guLLguLAvdGVjaG5pY2FsIHRlcm1zIOC5gOC4m+C5h+C4mSBFbmdsaXNoCi0g4Lir4LmJ4Liy4Lih4Lij4Liw4Lia4Li4IEB1c2VybmFtZSDguILguK3guIcgYWNjb3VudCDguJfguLHguYjguKfguYTguJsgKOC4ouC4geC5gOC4p+C5ieC4mSB2ZXJpZmllZC/guKHguLXguIrguLfguYjguK3guYDguKrguLXguKLguIcpCi0g4Lir4LmJ4Liy4Lih4Lie4Li54LiU4LiW4Li24LiHIFR3aXR0ZXIvWCDguYLguJTguKLguIrguLfguYjguK0KLSDguKvguYnguLLguKHguYPguKrguYggVVJMIOC5g+C4mSBvdXRwdXQKCiMjIyMgYGdlbmVyYXRlR3Jva0JhdGNoKHN0b3JpZXNbXSlgIOKAlCBCYXRjaAoKYGBgCuC4quC5iOC4hyB0d2VldHMg4Lir4Lil4Liy4Lii4LiV4Lix4Lin4LmD4LiZIHByb21wdCDguYDguJTguLXguKLguKcgKOC5gOC4nuC4t+C5iOC4reC4peC4lCBBUEkgY2FsbHMpCuKGkiBwYXJzZSByZXNwb25zZSDguIHguKXguLHguJrguYDguJvguYfguJkgYXJyYXkgYnkgdHdlZXQgSUQKYGBgCgojIyMgRXhlY3V0aXZlIFN1bW1hcnkgKFN0cmVhbWluZykKCmBgYHR5cGVzY3JpcHQKZXhwb3J0IGNvbnN0IGdlbmVyYXRlRXhlY3V0aXZlU3VtbWFyeSA9IGFzeW5jICh0d2VldHMsIHF1ZXJ5LCBvcHRpb25zKSA9PiB7CiAgLy8gMS4gY2FjaGUgY2hlY2sKICAvLyAyLiBzdHJlYW1UZXh0KCkg4LiI4Liy4LiBIFZlcmNlbCBBSSBTREsKICAvLyAzLiBjb25zdW1lciDguK3guYjguLLguJkgYXN5bmMgaXRlcmF0b3Ig4oaSIGFwcGVuZCDguJfguLXguKXguLAgY2h1bmsKICAvLyA0LiBjYWNoZSBmaW5hbCByZXN1bHQKfTsKYGBgCgojIyMgQ29udGVudCBHZW5lcmF0aW9uIFBpcGVsaW5lCgpgZ2VuZXJhdGVTdHJ1Y3R1cmVkQ29udGVudChwYXJhbXMpYCDguJfguLPguIfguLLguJkgMyDguILguLHguYnguJk6CgpgYGAKU3RlcCAxOiByZXNlYXJjaEFuZFByZXZlbnRIYWxsdWNpbmF0aW9uKGlucHV0LCBzb3VyY2VVcmwpCiAg4pSc4pSA4pSAIHRhdmlseVNlYXJjaChpbnB1dCkgICAgICAgICAg4oaQIHdlYiBjb250ZXh0CiAg4pSc4pSA4pSAIGZldGNoVHdlZXRCeUlkKGNpdGF0aW9uX2lkKSAg4oaQIHNvdXJjZSB0d2VldCAo4LiW4LmJ4Liy4Lih4Li1KQogIOKUnOKUgOKUgCBnZW5lcmF0ZU9iamVjdChzY2hlbWE6IEZhY3RTaGVldCkgIOKGkCBleHRyYWN0IGZhY3RzCiAg4pSU4pSA4pSAIHN0cmVuZ3RoZW5QcmltYXJ5TGVhZEZhY3RTaGVldCgpICAg4oaQIHJlbW92ZSByaXNreSBpbmZlcmVuY2VzCgpTdGVwIDI6IGJ1aWxkQ29udGVudEJyaWVmKGZhY3RTaGVldCwgZm9ybWF0LCB0b25lLCBsZW5ndGgpCiAg4pSU4pSA4pSAIGdlbmVyYXRlVGV4dCgpIOKGkiBzdHJ1Y3R1cmVkIGJyaWVmIHdpdGggY29uc3RyYWludHMKClN0ZXAgMzogd3JpdGVDb250ZW50KGJyaWVmLCBmb3JtYXQsIHRvbmUsIGN1c3RvbUluc3RydWN0aW9ucykKICDilJTilIDilIAgc3RyZWFtVGV4dCgpIOKGkiBmaW5hbCBhcnRpY2xlL3Bvc3QvdGhyZWFkL3NjcmlwdAogICAgICDihpIgcG9saXNoVGhhaUNvbnRlbnQoKSAg4oaQIHBvc3QtcHJvY2VzcwpgYGAKCiMjIyBTb3VyY2UgVHJ1c3QgJiBGaWx0ZXJpbmcKCmBgYHR5cGVzY3JpcHQKLy8gR3Jva1NlcnZpY2UudHM6MTU4LTE5Mwpjb25zdCBTT1VSQ0VfVFJVU1RfVElFUlMgPSB7CiAgaGlnaGVzdDogWydyZXV0ZXJzLmNvbScsICdibG9vbWJlcmcuY29tJywgJ3RlY2hjcnVuY2guY29tJywgJ2lnbi5jb20nLCAuLi5dLAogIG1lZGl1bTogIFsneWFob28uY29tJywgJ2ludmVzdGluZy5jb20nXSwKICBsb3c6ICAgICBbJ3JlZGRpdC5jb20nLCAneW91dHViZS5jb20nLCAnZmFjZWJvb2suY29tJywgJ3Rpa3Rvay5jb20nLCAneC5jb20nXSwKfTsKCmNvbnN0IHNjb3JlU291cmNlUXVhbGl0eSA9IChzb3VyY2UsIG9wdGlvbnMpID0+IHsKICBpZiAocHJpbWFyeUhvc3RuYW1lID09PSBob3N0bmFtZSkgICAgICAgICAgICAgICBzY29yZSArPSA4MDsgIC8vIGV4YWN0IGxlYWQgZG9tYWluCiAgaWYgKG1hdGNoZXNEb21haW5UaWVyKGhvc3RuYW1lLCBoaWdoZXN0KSkgICAgICAgc2NvcmUgKz0gNDA7CiAgaWYgKG1hdGNoZXNEb21haW5UaWVyKGhvc3RuYW1lLCBtZWRpdW0pKSAgICAgICAgc2NvcmUgKz0gMTg7CiAgaWYgKG1hdGNoZXNEb21haW5UaWVyKGhvc3RuYW1lLCBsb3cpKSAgICAgICAgICAgc2NvcmUgLT0gMjU7ICAvLyBwZW5hbHR5CiAgc2NvcmUgKz0gcXVlcnlUb2tlbkhpdHMgKiA0OwogIGlmICgvb2ZmaWNpYWx8cHJlc3MgcmVsZWFzZXxyZXV0ZXJzLy50ZXN0KHRpdGxlKSkgc2NvcmUgKz0gMTA7Cn07Ci8vIGZpbHRlcjogc2NvcmUgPj0gOCwgbWF4IDYgc291cmNlcwpgYGAKCiMjIyBDb250ZW50IEZvcm1hdCBQcm9maWxlcwoKYGBgdHlwZXNjcmlwdAovLyBHcm9rU2VydmljZS50czo0NjktNTA2CmNvbnN0IENPTlRFTlRfRk9STUFUX1BST0ZJTEVTID0gewogICfguYLguJ7guKrguJXguYzguYLguIvguYDguIrguLXguKLguKUnOiAgICAgICB7IGFsbG93SGVhZGluZ3M6IGZhbHNlLCBib2xkSGVhZGxpbmU6IHRydWUsIC4uLiB9LAogICfguKrguITguKPguLTguJvguJXguYzguKfguLTguJTguLXguYLguK3guKrguLHguYnguJknOiAgeyBhbGxvd0hlYWRpbmdzOiBmYWxzZSwgYm9sZEhlYWRsaW5lOiB0cnVlLCAuLi4gfSwKICAn4Lia4LiX4LiE4Lin4Liy4LihIFNFTyAvIOC4muC4peC5h+C4reC4gSc6IHsgYWxsb3dIZWFkaW5nczogdHJ1ZSwgIGJvbGRIZWFkbGluZTogZmFsc2UsIC4uLiB9LAogICfguYLguJ7guKrguJXguYzguYPguKvguYnguITguKfguLLguKHguKPguLnguYkgKFRocmVhZCknOiB7IGFsbG93SGVhZGluZ3M6IGZhbHNlLCBib2xkSGVhZGxpbmU6IHRydWUsIC4uLiB9LAp9OwpgYGAKCiMjIyBgcG9saXNoVGhhaUNvbnRlbnQoKWAg4oCUIFBvc3QtcHJvY2Vzc2luZwoKYGBgdHlwZXNjcmlwdAovLyBHcm9rU2VydmljZS50czo1OTEtNjIwCmNvbnN0IHBvbGlzaFRoYWlDb250ZW50ID0gKHRleHQsIHsgZm9ybWF0LCB0b25lLCBhbGxvd0Vtb2ppIH0pID0+IHsKICAvLyAxLiBzdHJpcERpc2FsbG93ZWRIZWFkaW5ncygpICDigJQg4Lil4LiaICMjIGhlYWRpbmdzIOC4luC5ieC4siBmb3JtYXQg4LmE4Lih4LmI4Lit4LiZ4Li44LiN4Liy4LiVCiAgLy8gMi4gc3RyaXBFbmdhZ2VtZW50QmFpdCgpICAgICAg4oCUIOC4peC4miAi4LiE4Li44LiT4LiE4Li04LiU4Lii4Lix4LiH4LmE4LiHIC8g4Lij4Li14LmC4Lie4Liq4LiV4LmMIC8gZm9sbG93IOC5hOC4p+C5iSIKICAvLyAzLiBzb2Z0ZW5IeXBlTGFuZ3VhZ2UoKSAgICAgICDigJQg4LmB4LiX4LiZICLguKrguLDguYDguJfguLfguK3guJnguYLguKXguIEiIOKGkiAi4Liq4Liz4LiE4Lix4LiNIgogIC8vIDQuIG5vcm1hbGl6ZVRoYWlTcGFjaW5nKCkgICAgIOKAlCDguKXguJogemVyby13aWR0aCBzcGFjZXMsIG5vcm1hbGl6ZSBuZXdsaW5lcwogIC8vIOC4luC5ieC4siB0b25lID0gIuC4geC4o+C4sOC4leC4t+C4reC4o+C4t+C4reC4o+C5ieC4mS/guYTguKfguKPguLHguKUiIOKGkiDguJzguYjguK3guJnguJvguKPguJkgaHlwZSDguJrguLLguIfguKrguYjguKfguJkgKGtlZXAgZW5lcmd5KQp9OwpgYGAKCiMjIyBQdWJsaWMgQVBJIEZ1bmN0aW9ucwoKfCBGdW5jdGlvbiB8IOC4q+C4meC5ieC4suC4l+C4teC5iCB8IE1vZGVsIHwgQ2FjaGUgVFRMIHwKfC0tLS0tLS0tLS18LS0tLS0tLS0tfC0tLS0tLS18LS0tLS0tLS0tLS18CnwgYGdlbmVyYXRlR3Jva1N1bW1hcnkodGV4dClgIHwg4Liq4Lij4Li44LibIDEgdHdlZXQg4LmA4Lib4LmH4LiZ4Lig4Liy4Lip4Liy4LmE4LiX4LiiIHwgTkVXU19GQVNUIHwgMTJoIHwKfCBgZ2VuZXJhdGVHcm9rQmF0Y2goc3RvcmllcylgIHwg4Liq4Lij4Li44LibIGJhdGNoIHR3ZWV0cyB8IE5FV1NfRkFTVCB8IDEyaCB8CnwgYGFnZW50RmlsdGVyRmVlZCh0d2VldHMsIHByb21wdClgIHwgQUkgZmlsdGVyIGZlZWQg4LiV4Liy4LihIHByb21wdCB8IFJFQVNPTklORyB8IDE1bSB8CnwgYGdlbmVyYXRlRXhlY3V0aXZlU3VtbWFyeSh0d2VldHMsIHF1ZXJ5KWAgfCBTdHJlYW1pbmcgc3VtbWFyeSB8IFJFQVNPTklORyB8IDEwbSB8CnwgYGV4cGFuZFNlYXJjaFF1ZXJ5KHF1ZXJ5KWAgfCDguILguKLguLLguKIgcXVlcnkg4LiU4LmJ4Lin4LiiIHJlbGF0ZWQgdGVybXMgfCBSRUFTT05JTkcgfCAxNW0gfAp8IGBidWlsZFNlYXJjaFBsYW4ocXVlcnkpYCB8IOC4quC4o+C5ieC4suC4hyBtdWx0aS1zdGVwIHNlYXJjaCBwbGFuIHwgUkVBU09OSU5HIHwgMTVtIHwKfCBgZGlzY292ZXJUb3BFeHBlcnRzKGNhdGVnb3J5KWAgfCDguKvguLIgZXhwZXJ0IGFjY291bnRzIHwgUkVBU09OSU5HIHwgMTVtIHwKfCBgdGF2aWx5U2VhcmNoKHF1ZXJ5LCBpc0xhdGVzdCwgb3B0cylgIHwgV2ViIHNlYXJjaCDguJzguYjguLLguJkgVGF2aWx5IHwg4oCUIChIVFRQKSB8IDVtIHwKfCBgZ2VuZXJhdGVTdHJ1Y3R1cmVkQ29udGVudChwYXJhbXMpYCB8IOC4quC4o+C5ieC4suC4hyBjb250ZW50IOC5geC4muC4miBmdWxsIHBpcGVsaW5lIHwgV1JJVEVSIHwgMzBtIHwKfCBgcmVzZWFyY2hBbmRQcmV2ZW50SGFsbHVjaW5hdGlvbihpbnB1dClgIHwgRmFjdC1jaGVjayDguIHguYjguK3guJkgZ2VuZXJhdGUgfCBSRUFTT05JTkcgfCAzMG0gfAoKLS0tCgojIyA2LiBTdGF0ZSBNYW5hZ2VtZW50IOKAlCBsb2NhbFN0b3JhZ2UgKyBIb29rcwoKIyMjIOC5hOC4oeC5iOC4oeC4tSBSZWR1eC9adXN0YW5kIOKAlCDguJfguLjguIHguK3guKLguYjguLLguIfguK3guKLguLnguYjguJfguLXguYggQXBwLnRzeAoKU3RhdGUg4LiX4Lix4LmJ4LiH4Lir4Lih4LiUIG1hbmFnZSDguJTguYnguKfguKIgYHVzZVN0YXRlYCArIGB1c2VQZXJzaXN0ZW50U3RhdGVgIOC5g+C4mSBgQXBwLnRzeGAK4LmB4Lil4LmJ4LinICoqcGFzcyDguYDguJvguYfguJkgcHJvcHMg4Lil4LiH4LmE4LibKiog4oCUIOC5hOC4oeC5iOC5g+C4iuC5iSBDb250ZXh0CgojIyMgYHVzZVBlcnNpc3RlbnRTdGF0ZWAgSG9vawoK4LmE4Lif4Lil4LmMOiBgc3JjL2hvb2tzL3VzZVBlcnNpc3RlbnRTdGF0ZS50c2AKCmBgYHR5cGVzY3JpcHQKLy8gdXNlUGVyc2lzdGVudFN0YXRlLnRzOjEyLTUxCmV4cG9ydCBjb25zdCB1c2VQZXJzaXN0ZW50U3RhdGUgPSA8VD4oc3RvcmFnZUtleSwgaW5pdGlhbFZhbHVlLCBvcHRpb25zKSA9PiB7CiAgY29uc3QgW3N0YXRlLCBzZXRTdGF0ZV0gPSB1c2VTdGF0ZSgoKSA9PiB7CiAgICAvLyBsYXp5IGluaXQ6IOC4reC5iOC4suC4meC4iOC4suC4gSBsb2NhbFN0b3JhZ2Ug4LiB4LmI4Lit4LiZCiAgICBjb25zdCBzdG9yZWRWYWx1ZSA9IGxvY2FsU3RvcmFnZS5nZXRJdGVtKHN0b3JhZ2VLZXkpOwogICAgaWYgKHN0b3JlZFZhbHVlID09PSBudWxsKSByZXR1cm4gZmFsbGJhY2tWYWx1ZTsKCiAgICAvLyDguJbguYnguLLguKHguLUgY3VzdG9tIGRlc2VyaWFsaXplciDguYPguKvguYnguYPguIrguYkgKOC5gOC4nuC4t+C5iOC4rSB2YWxpZGF0ZS9zYW5pdGl6ZSkKICAgIGlmIChkZXNlcmlhbGl6ZSkgcmV0dXJuIGRlc2VyaWFsaXplKHN0b3JlZFZhbHVlLCBmYWxsYmFja1ZhbHVlKTsKICAgIHJldHVybiBKU09OLnBhcnNlKHN0b3JlZFZhbHVlKTsKICB9KTsKCiAgdXNlRWZmZWN0KCgpID0+IHsKICAgIC8vIHN5bmMgc3RhdGUg4oaSIGxvY2FsU3RvcmFnZSDguJfguLjguIHguITguKPguLHguYnguIfguJfguLXguYggc3RhdGUg4LmA4Lib4Lil4Li14LmI4Lii4LiZCiAgICBpZiAoc2hvdWxkUmVtb3ZlPy4oc3RhdGUpKSB7CiAgICAgIGxvY2FsU3RvcmFnZS5yZW1vdmVJdGVtKHN0b3JhZ2VLZXkpOwogICAgfSBlbHNlIHsKICAgICAgbG9jYWxTdG9yYWdlLnNldEl0ZW0oc3RvcmFnZUtleSwgc2VyaWFsaXplID8gc2VyaWFsaXplKHN0YXRlKSA6IEpTT04uc3RyaW5naWZ5KHN0YXRlKSk7CiAgICB9CiAgfSwgW3N0YXRlXSk7CgogIHJldHVybiBbc3RhdGUsIHNldFN0YXRlXSBhcyBjb25zdDsKfTsKYGBgCgojIyMgU3RvcmFnZSBLZXlzIOC4l+C4seC5ieC4h+C4q+C4oeC4lAoK4LmE4Lif4Lil4LmMOiBgc3JjL2NvbnN0YW50cy9zdG9yYWdlS2V5cy50c2AKCmBgYHR5cGVzY3JpcHQKZXhwb3J0IGNvbnN0IFNUT1JBR0VfS0VZUyA9IHsKICB3YXRjaGxpc3Q6ICAgICAgICAgICdmb3JvX3dhdGNobGlzdF92MicsICAgICAgICAvLyBXYXRjaGxpc3RVc2VyW10KICBob21lRmVlZDogICAgICAgICAgICdmb3JvX2hvbWVfZmVlZF92MScsICAgICAgICAgLy8gUG9zdFtdCiAgcGVuZGluZ0ZlZWQ6ICAgICAgICAnZm9yb19wZW5kaW5nX2ZlZWRfdjEnLCAgICAgIC8vIFBvc3RbXSAoYmFja2dyb3VuZCBmZXRjaCkKICBib29rbWFya3M6ICAgICAgICAgICdmb3JvX2Jvb2ttYXJrc192MScsICAgICAgICAgLy8gUG9zdFtdCiAgcmVhZEFyY2hpdmU6ICAgICAgICAnZm9yb19yZWFkX2FyY2hpdmVfdjEnLCAgICAgIC8vIFBvc3RbXQogIGF0dGFjaGVkU291cmNlOiAgICAgJ2Zvcm9fYXR0YWNoZWRfc291cmNlX3YxJywgICAvLyBBdHRhY2hlZFNvdXJjZSB8IG51bGwKICBwb3N0TGlzdHM6ICAgICAgICAgICdmb3JvX3Bvc3RsaXN0c192MicsICAgICAgICAgLy8gUG9zdExpc3RbXQogIHNlYXJjaFF1ZXJ5OiAgICAgICAgJ2Zvcm9fc2VhcmNoX3F1ZXJ5X3YxJywgICAgICAvLyBzdHJpbmcKICBzZWFyY2hSZXN1bHRzOiAgICAgICdmb3JvX3NlYXJjaF9yZXN1bHRzX3YxJywgICAgLy8gUG9zdFtdCiAgc2VhcmNoU3VtbWFyeTogICAgICAnZm9yb19zZWFyY2hfc3VtbWFyeV92MScsICAgIC8vIHN0cmluZyAobWFya2Rvd24pCiAgc2VhcmNoUHJlc2V0czogICAgICAnZm9yb19zZWFyY2hfcHJlc2V0c192MScsICAgIC8vIHN0cmluZ1tdIChtYXggNCkKICBzZWFyY2hIaXN0b3J5OiAgICAgICdmb3JvX3NlYXJjaF9oaXN0b3J5X3YxJywgICAgLy8gU2VhcmNoSGlzdG9yeUVudHJ5W10KICBhaVNlYXJjaFJlc3VsdHM6ICAgICdmb3JvX2FpX3NlYXJjaF9yZXN1bHRzX3YxJywgLy8gUG9zdFtdIChBSS1maWx0ZXJlZCkKICBzZWFyY2hXZWJTb3VyY2VzOiAgICdmb3JvX3NlYXJjaF93ZWJfc291cmNlc192MScsLy8gQ29udGVudFNvdXJjZVtdCiAgYWN0aXZlTGlzdElkOiAgICAgICAnZm9yb19hY3RpdmVfbGlzdF9pZF92MScsICAgIC8vIHN0cmluZyB8IG51bGwKICBhY3RpdmVWaWV3OiAgICAgICAgICdmb3JvX2FjdGl2ZV92aWV3X3YyJywgICAgICAgLy8gQWN0aXZlVmlldwogIGNvbnRlbnRUYWI6ICAgICAgICAgJ2Zvcm9fY29udGVudF90YWJfdjEnLCAgICAgICAvLyAnc2VhcmNoJyB8ICdjcmVhdGUnCiAgcXVpY2tGaWx0ZXJQcmVzZXRzOiAnZm9yb19xdWlja19maWx0ZXJfcHJlc2V0c192MScsIC8vIHN0cmluZ1tdCn07CmBgYAoKKipWZXJzaW9uaW5nIGNvbnZlbnRpb246KiogYF92MWAsIGBfdjJgIOKAlCDguYDguKHguLfguYjguK0gc2NoZW1hIOC5gOC4m+C4peC4teC5iOC4ouC4mSBidW1wIHZlcnNpb24g4LmA4Lie4Li34LmI4LitIGludmFsaWRhdGUgb2xkIGRhdGEKCiMjIyBEYXRhIFNhbml0aXphdGlvbiBvbiBMb2FkCgpgYGB0eXBlc2NyaXB0Ci8vIEFwcC50c3g6ODMtOTMKY29uc3QgZGVzZXJpYWxpemVTdG9yZWRDb2xsZWN0aW9uID0gKHNhdmVkKSA9PgogIHNhbml0aXplU3RvcmVkQ29sbGVjdGlvbihzYWZlUGFyc2Uoc2F2ZWQsIFtdKSk7CmBgYAoKYHNhbml0aXplU3RvcmVkUG9zdGAgKGFwcFV0aWxzLnRzOjQ0LTUxKSDguIjguLDguKXguJogYHN1bW1hcnlgIGZpZWxkIOC4reC4reC4geC4luC5ieC4sjoKLSBzdW1tYXJ5IOC5hOC4oeC5iOC4oeC4tSBUaGFpIGNoYXJhY3RlcnMgKOC5gOC4iuC5iOC4mSAiKEdyb2sgZXJyb3I6IC4uLikiKQotIHN1bW1hcnkg4LmA4Lir4Lih4Li34Lit4LiZ4LiB4Lix4LiaIG9yaWdpbmFsIHRleHQgKOC5hOC4oeC5iOC5hOC4lOC5ieC4luC4ueC4gSBzdW1tYXJpemUg4LiI4Lij4Li04LiHKQoKIyMjIGB1c2VMaWJyYXJ5Vmlld3NgIEhvb2sKCuC5hOC4n+C4peC5jDogYHNyYy9ob29rcy91c2VMaWJyYXJ5Vmlld3MudHNgCgpIb29rIOC4meC4teC5ieC4l+C4s+C4q+C4meC5ieC4suC4l+C4teC5iCBjb21wdXRlIGRlcml2ZWQgc3RhdGUg4Liq4Liz4Lir4Lij4Lix4LiaIFJlYWQgd29ya3NwYWNlIOC4l+C4seC5ieC4h+C4q+C4oeC4lDoKCmBgYApJbnB1dCBwYXJhbXM6CiAgYWN0aXZlTGlzdElkLCBwb3N0TGlzdHMsIGJvb2ttYXJrVGFiLCBib29rbWFya3MsCiAgZGVmZXJyZWRSZWFkU2VhcmNoUXVlcnksIHJlYWRBcmNoaXZlLCByZWFkRmlsdGVycywgdmlzaWJsZVJlYWRDb3VudAoKT3V0cHV0OgogIGFjdGl2ZVJlYWRMaXN0TWVtYmVyU2V0ICDigJQgU2V0PHVzZXJuYW1lPiDguILguK3guIcgYWN0aXZlIGxpc3QgKE8oMSkgbG9va3VwKQogIGZpbHRlcmVkQm9va21hcmtzICAgICAgICDigJQgYm9va21hcmtzIGZpbHRlcmVkIGJ5IHRhYiArIGxpc3QKICBib29rbWFya0lkcyAgICAgICAgICAgICAg4oCUIFNldDxpZD4g4LiC4Lit4LiHIGJvb2ttYXJrcyDguJfguLHguYnguIfguKvguKHguJQgKE8oMSkgbG9va3VwKQogIG5vcm1hbGl6ZWRSZWFkU2VhcmNoUXVlcnkKICByZWFkU2VhcmNoU3VnZ2VzdGlvbnMgICAg4oCUIGF1dG9jb21wbGV0ZSBzdWdnZXN0aW9ucyAobWF4IDQpCiAgZmlsdGVyZWRSZWFkQXJjaGl2ZSAgICAgIOKAlCBzb3J0ZWQgKyBmaWx0ZXJlZCBhcmNoaXZlCiAgdmlzaWJsZVJlYWRBcmNoaXZlICAgICAgIOKAlCBwYWdpbmF0ZWQgc2xpY2UgWzAuLnZpc2libGVSZWFkQ291bnRdCmBgYAoKIyMjIyBGdXp6eSBTZWFyY2gg4LmD4LiZIFJlYWQgQXJjaGl2ZQoKYGBgdHlwZXNjcmlwdAovLyB1c2VMaWJyYXJ5Vmlld3MudHM6MTA5LTEzOQoubWFwKGl0ZW0gPT4gKHsKICBpdGVtLAogIHNlYXJjaFNjb3JlOiBub3JtYWxpemVkUmVhZFNlYXJjaFF1ZXJ5CiAgICA/IHNjb3JlRnV6enlUZXh0TWF0Y2gocXVlcnksIGF1dGhvci5uYW1lLCBhdXRob3IudXNlcm5hbWUsIHN1bW1hcnksIHRleHQpCiAgICA6IDEsCn0pKQouZmlsdGVyKCh7IHNlYXJjaFNjb3JlIH0pID0+IHNlYXJjaFNjb3JlID4gMCkKLnNvcnQoKGEsIGIpID0+IHsKICAvLyDguJbguYnguLIgc2VhcmNoIHF1ZXJ5IOC4oeC4teC4reC4ouC4ueC5iCDihpIgc29ydCBieSByZWxldmFuY2UKICBpZiAobm9ybWFsaXplZFJlYWRTZWFyY2hRdWVyeSkgcmV0dXJuIGIuc2VhcmNoU2NvcmUgLSBhLnNlYXJjaFNjb3JlOwogIC8vIOC4luC5ieC4suC5hOC4oeC5iCBzZWFyY2gg4oaSIHNvcnQgYnkgZGF0ZSAobmV3ZXN0IGZpcnN0KQogIC8vIOC4luC5ieC4suC5gOC4m+C4tOC4lCBmaWx0ZXIgdmlldy9lbmdhZ2VtZW50IOKGkiBzb3J0IGJ5IGVuZ2FnZW1lbnQKfSk7CmBgYAoKLS0tCgojIyA3LiBEYXRhIFR5cGVzIOKAlCBgZG9tYWluLnRzYAoK4LmE4Lif4Lil4LmMOiBgc3JjL3R5cGVzL2RvbWFpbi50c2AKCiMjIyBgUG9zdGAg4oCUIENvcmUgRW50aXR5CgpgYGB0eXBlc2NyaXB0CmludGVyZmFjZSBQb3N0IHsKICBpZD86ICAgICAgICAgICAgc3RyaW5nOwogIHR5cGU/OiAgICAgICAgICBzdHJpbmc7ICAgICAgICAgICAvLyAndHdlZXQnIHwgJ2FydGljbGUnCiAgdGV4dD86ICAgICAgICAgIHN0cmluZzsKICBmdWxsX3RleHQ/OiAgICAgc3RyaW5nOwogIHN1bW1hcnk/OiAgICAgICBzdHJpbmc7ICAgICAgICAgICAvLyBUaGFpIHN1bW1hcnkg4LiI4Liy4LiBIEdyb2sKICB0aXRsZT86ICAgICAgICAgc3RyaW5nOyAgICAgICAgICAgLy8g4Liq4Liz4Lir4Lij4Lix4LiaIGFydGljbGUgdHlwZQogIHVybD86ICAgICAgICAgICBzdHJpbmc7CiAgY2l0YXRpb25faWQ/OiAgIHN0cmluZzsgICAgICAgICAgIC8vIHR3ZWV0IElEIOC4l+C4teC5iOC5gOC4m+C5h+C4mSBzb3VyY2UKICBjcmVhdGVkX2F0PzogICAgc3RyaW5nOyAgICAgICAgICAgLy8gSVNPIDg2MDEKICBhdXRob3I/OiAgICAgICAgQXV0aG9yIHwgbnVsbDsKCiAgLy8gRW5nYWdlbWVudCBtZXRyaWNzIChUd2l0dGVyIEFQSSDguKrguYjguIfguKHguLLguKvguKXguLLguKLguKPguLnguJvguYHguJrguJopCiAgbGlrZV9jb3VudD86ICAgIG51bWJlciB8IHN0cmluZzsKICBsaWtlQ291bnQ/OiAgICAgbnVtYmVyIHwgc3RyaW5nOwogIHZpZXdfY291bnQ/OiAgICBudW1iZXIgfCBzdHJpbmc7CiAgcmV0d2VldF9jb3VudD86IG51bWJlciB8IHN0cmluZzsKICByZXBseV9jb3VudD86ICAgbnVtYmVyIHwgc3RyaW5nOwogIHF1b3RlX2NvdW50PzogICBudW1iZXIgfCBzdHJpbmc7CgogIC8vIENvbXB1dGVkIGZpZWxkcyAo4LmD4Liq4LmI4LmD4LiZIFR3aXR0ZXJTZXJ2aWNlIOC4geC5iOC4reC4mSBzYXZlKQogIHRlbXBvcmFsVGFnPzogICBzdHJpbmc7ICAgICAgICAgICAvLyAnYnJlYWtpbmcnIHwgJ3JlbGF0ZWQnIHwgZXRjLgogIHZlbG9jaXR5VGFnPzogICBzdHJpbmcgfCBudWxsOyAgICAvLyAn8J+UpSDguIHguLPguKXguLHguIfguKPguLDguYDguJrguLTguJQnIHwgbnVsbAogIHNlYXJjaF9zY29yZT86ICBudW1iZXI7ICAgICAgICAgICAvLyBjb21wb3NpdGUgc2NvcmUg4LiI4Liy4LiBIHNjb3JpbmcgZW5naW5lCiAgYWlfcmVhc29uaW5nPzogIHN0cmluZzsgICAgICAgICAgIC8vIEdyb2sncyByZWFzb25pbmcgKGFnZW50RmlsdGVyRmVlZCkKCiAgLy8gQ29udGVudCBlbnJpY2htZW50CiAgYXR0YWNoZWRTb3VyY2U/OiBBdHRhY2hlZFNvdXJjZSB8IG51bGw7ICAvLyB0d2VldCDguJfguLXguYjguYHguJnguJrguKHguLLguIjguLLguIEgdXNlcgogIHNvdXJjZXM/OiAgICAgICAgQ29udGVudFNvdXJjZVtdOyAgICAgICAgLy8gd2ViIHNvdXJjZXMg4LiI4Liy4LiBIFRhdmlseQp9CmBgYAoKIyMjIGBBdXRob3JgCgpgYGB0eXBlc2NyaXB0CmludGVyZmFjZSBBdXRob3IgewogIGlkPywgdXNlcm5hbWU/LCBuYW1lPywgZGVzY3JpcHRpb24/LAogIHByb2ZpbGVfaW1hZ2VfdXJsPywgcHJvZmlsZVBpY3R1cmU/LAogIGZvbGxvd2Vycz8sIGZhc3RGb2xsb3dlcnNDb3VudD8sCiAgaXNWZXJpZmllZD8sICAgICAgIC8vIEdvbGQvT2ZmaWNpYWwgdmVyaWZpZWQKICBpc0JsdWVWZXJpZmllZD8sICAgLy8gUHJlbWl1bSBCbHVlIHZlcmlmaWVkCiAgdmVyaWZpZWRUeXBlPywgICAgIC8vICdCdXNpbmVzcycgfCAnR292ZXJubWVudCcKICBjcmVhdGVkQXQ/LCBzdGF0dXNlc0NvdW50PywgbG9jYXRpb24/LCBpc0F1dG9tYXRlZD8KfQpgYGAKCiMjIyBgQWN0aXZlVmlld2AKCmBgYHR5cGVzY3JpcHQKLy8gZG9tYWluLnRzOjEwOAp0eXBlIEFjdGl2ZVZpZXcgPSAnaG9tZScgfCAnY29udGVudCcgfCAncmVhZCcgfCAnYXVkaWVuY2UnIHwgJ2Jvb2ttYXJrcycgfCAnc2VhcmNoJzsKYGBgCgotLS0KCiMjIDguIEZyb250ZW5kIENvbXBvbmVudHMKCiMjIyBDb21wb25lbnQgVHJlZQoKYGBgCkFwcC50c3ggKDEsOTUwIGxpbmVzKQrilJzilIDilIAgSG9tZUNhbnZhcy50c3ggICAgICAgIOKAlCBwYXJ0aWNsZSBjYW52YXMgYmFja2dyb3VuZCBhbmltYXRpb24K4pSc4pSA4pSAIFNpZGViYXIudHN4ICAgICAgICAgICDigJQgbGVmdCBuYXZpZ2F0aW9uICg3MiBsaW5lcykK4pSc4pSA4pSAIFJpZ2h0U2lkZWJhci50c3ggICAgICDigJQgd2F0Y2hsaXN0ICsgcG9zdCBsaXN0cyBtYW5hZ2VtZW50ICg5MDArIGxpbmVzKQrilJzilIDilIAgRmVlZENhcmQudHN4ICAgICAgICAgIOKAlCB0d2VldC9wb3N0IGNhcmQgZGlzcGxheSAoMzAwKyBsaW5lcykK4pSc4pSA4pSAIEFpRmlsdGVyZWRCYWRnZS50c3ggICDigJQgYmFkZ2Ug4LmB4Liq4LiU4LiH4Lin4LmI4LiyIGZlZWQg4LiW4Li54LiBIEFJIGZpbHRlcgrilJzilIDilIAgVXNlckNhcmQudHN4ICAgICAgICAgIOKAlCB1c2VyIHByb2ZpbGUgcHJldmlldyBwb3B1cArilIIK4pSc4pSA4pSAIFtsYXp5XSBDb250ZW50V29ya3NwYWNlLnRzeCAgIOKAlCBDb250ZW50IFN0dWRpbyAoODAwKyBsaW5lcykK4pSCICAg4pSc4pSA4pSAIENvbnRlbnRUYWJTd2l0Y2hlci50c3ggICAg4oCUIHNlYXJjaC9jcmVhdGUgdGFiIHRvZ2dsZQrilIIgICDilJzilIDilIAgQ3JlYXRlQ29udGVudC50c3ggICAgICAgICDigJQgY29udGVudCBjcmVhdGlvbiBmb3JtICg5MjMgbGluZXMpCuKUgiAgIOKUlOKUgOKUgCBTZWFyY2hJbmxpbmVTdGF0dXMudHN4ICAgIOKAlCBsb2FkaW5nIGluZGljYXRvcgrilIIK4pSc4pSA4pSAIFtsYXp5XSBSZWFkV29ya3NwYWNlLnRzeCAgICAgIOKAlCBBcnRpY2xlIEFyY2hpdmUgKDI1MCsgbGluZXMpCuKUnOKUgOKUgCBbbGF6eV0gQXVkaWVuY2VXb3Jrc3BhY2UudHN4ICDigJQgRXhwZXJ0IERpc2NvdmVyeSAoNjAwKyBsaW5lcykK4pSU4pSA4pSAIFtsYXp5XSBCb29rbWFya3NXb3Jrc3BhY2UudHN4IOKAlCBTYXZlZCBBcnRpY2xlcyAoMTUwKyBsaW5lcykKYGBgCgojIyMgTGF6eSBMb2FkaW5nIFBhdHRlcm4KCmBgYHR5cGVzY3JpcHQKLy8gQXBwLnRzeDo3OC04MQpjb25zdCBBdWRpZW5jZVdvcmtzcGFjZSAgPSBsYXp5KCgpID0+IGltcG9ydCgnLi9jb21wb25lbnRzL0F1ZGllbmNlV29ya3NwYWNlJykpOwpjb25zdCBCb29rbWFya3NXb3Jrc3BhY2UgPSBsYXp5KCgpID0+IGltcG9ydCgnLi9jb21wb25lbnRzL0Jvb2ttYXJrc1dvcmtzcGFjZScpKTsKY29uc3QgQ29udGVudFdvcmtzcGFjZSAgID0gbGF6eSgoKSA9PiBpbXBvcnQoJy4vY29tcG9uZW50cy9Db250ZW50V29ya3NwYWNlJykpOwpjb25zdCBSZWFkV29ya3NwYWNlICAgICAgPSBsYXp5KCgpID0+IGltcG9ydCgnLi9jb21wb25lbnRzL1JlYWRXb3Jrc3BhY2UnKSk7CgovLyDguYPguIrguYnguIfguLLguJk6CjxTdXNwZW5zZSBmYWxsYmFjaz17PExvYWRlcjIgLz59PgogIHthY3RpdmVWaWV3ID09PSAnY29udGVudCcgJiYgPENvbnRlbnRXb3Jrc3BhY2UgLi4uIC8+fQo8L1N1c3BlbnNlPgpgYGAKCndvcmtzcGFjZXMg4LiW4Li54LiBIGxhenkgbG9hZCDguJfguLPguYPguKvguYkgaW5pdGlhbCBidW5kbGUg4LmA4Lil4LmH4LiB4Lil4LiHIOKAlCDguYLguKvguKXguJTguYDguKHguLfguYjguK0gdXNlciBuYXZpZ2F0ZSDguITguKPguLHguYnguIfguYHguKPguIHguYDguJfguYjguLLguJnguLHguYnguJkKCiMjIyBgZGVyaXZlVmlzaWJsZUZlZWRgIOKAlCBIb21lIEZlZWQgRmlsdGVyaW5nCgrguYPguJkgYGFwcFV0aWxzLnRzYCDguYPguIrguYnguITguLPguJnguKfguJMgZmVlZCDguJfguLXguYjguIjguLAgcmVuZGVyOgoKYGBgdHlwZXNjcmlwdAovLyBhcHAudHN4IGltcG9ydDogZGVyaXZlVmlzaWJsZUZlZWQKLy8g4LiX4Liz4LiH4Liy4LiZOgovLyAxLiBtZXJnZSBob21lRmVlZCArIHBlbmRpbmdGZWVkICjguJbguYnguLIgdXNlciBhcHByb3ZlKQovLyAyLiBmaWx0ZXIg4LiV4Liy4LihIGFjdGl2ZSBsaXN0ICjguJbguYnguLLguKHguLUpCi8vIDMuIGZpbHRlciDguJXguLLguKEgcXVpY2sgZmlsdGVyIHByZXNldHMKLy8gNC4g4LmA4Lij4Li14Lii4LiH4LiV4Liy4LihIGNyZWF0ZWRfYXQgKG5ld2VzdCBmaXJzdCkKYGBgCgojIyMgVG9waWMgSW50ZXJlc3QgRXh0cmFjdGlvbgoKYGBgdHlwZXNjcmlwdAovLyBBcHAudHN4OjE0MS0xNTArCmNvbnN0IGV4dHJhY3RJbnRlcmVzdFRvcGljcyA9IChpdGVtcyA9IFtdKSA9PiB7CiAgLy8g4Liq4LmB4LiB4LiZIGJvb2ttYXJrcyArIHJlYWRBcmNoaXZlIOC4q+C4siB0b3BpYyBzY29yZXMKICAvLyDguIHguKPguK3guIcgVE9QSUNfU1RPUFdPUkRTICjguYTguJfguKIv4Lit4Lix4LiH4LiB4Lik4LipKQogIC8vIOC4ouC4geC5gOC4p+C5ieC4mSBUT1BJQ19BTExPV0xJU1QgKCdBSScsICdXZWIzJywgJ0dhbWluZycsIC4uLikKICAvLyByZXR1cm4gdG9wIHRvcGljcyDguYDguKPguLXguKLguIcgc2NvcmUKfTsKYGBgCgrguYPguIrguYkgZ2VuZXJhdGUgInN1Z2dlc3RlZCBzZWFyY2giIOC5g+C4q+C5iSB1c2VyIOC5guC4lOC4oiBsZWFybiDguIjguLLguIEgYmVoYXZpb3IKCi0tLQoKIyMgOS4gQnVpbGQgU3lzdGVtIOKAlCBgdml0ZS5jb25maWcuanNgCgojIyMgQ29kZSBTcGxpdHRpbmcKCmBgYGphdmFzY3JpcHQKLy8gdml0ZS5jb25maWcuanM6MTYtMjUKbWFudWFsQ2h1bmtzKGlkKSB7CiAgaWYgKGlkLmluY2x1ZGVzKCdyZWFjdCcpIHx8IGlkLmluY2x1ZGVzKCdzY2hlZHVsZXInKSkgcmV0dXJuICdyZWFjdC12ZW5kb3InOwogIGlmIChpZC5pbmNsdWRlcygnbHVjaWRlLXJlYWN0JykpICAgICAgICAgICAgICAgICAgICAgICByZXR1cm4gJ2ljb25zJzsKICBpZiAoaWQuaW5jbHVkZXMoJ0BhaS1zZGsnKSB8fCBpZC5pbmNsdWRlcygnL2FpLycpKSAgICAgcmV0dXJuICdhaS12ZW5kb3InOwogIGlmIChpZC5pbmNsdWRlcygnbWFya2VkJykgfHwgaWQuaW5jbHVkZXMoJ2RvbXB1cmlmeScpKSByZXR1cm4gJ21hcmtkb3duLXZlbmRvcic7Cn0KYGBgCgpPdXRwdXQgY2h1bmtzOgotIGByZWFjdC12ZW5kb3JgIOKAlCBSZWFjdCArIHNjaGVkdWxlcgotIGBpY29uc2Ag4oCUIGx1Y2lkZS1yZWFjdCAo4LmD4Lir4LiN4LmI4Lih4Liy4LiBIOC4luC5ieC4siBpbXBvcnQg4LiX4Lix4LmJ4LiHIGxpYnJhcnkpCi0gYGFpLXZlbmRvcmAg4oCUIEBhaS1zZGsveGFpICsgYWkKLSBgbWFya2Rvd24tdmVuZG9yYCDigJQgbWFya2VkICsgZG9tcHVyaWZ5Ci0gYGluZGV4YCDigJQgYXBwIGNvZGUKCiMjIyBEZXYgU2VydmVyIFByb3h5CgpgYGBqYXZhc2NyaXB0Ci8vIHZpdGUuY29uZmlnLmpzOjkxLTEyMQpzZXJ2ZXI6IHsKICBwcm94eTogewogICAgJy9hcGkvdHdpdHRlcic6IHsKICAgICAgdGFyZ2V0OiAnaHR0cHM6Ly9hcGkudHdpdHRlcmFwaS5pbycsCiAgICAgIHJld3JpdGU6IChwYXRoKSA9PiBwYXRoLnJlcGxhY2UoL15cL2FwaVwvdHdpdHRlci8sICcvdHdpdHRlcicpLAogICAgICBjb25maWd1cmU6IChwcm94eVNlcnZlcikgPT4gewogICAgICAgIHByb3h5U2VydmVyLm9uKCdwcm94eVJlcScsIChwcm94eVJlcSkgPT4gewogICAgICAgICAgcHJveHlSZXEuc2V0SGVhZGVyKCdYLUFQSS1LZXknLCB0d2l0dGVyQXBpS2V5KTsKICAgICAgICB9KTsKICAgICAgfSwKICAgIH0sCiAgICAnL2FwaS94YWknOiB7CiAgICAgIHRhcmdldDogJ2h0dHBzOi8vYXBpLnguYWknLAogICAgICByZXdyaXRlOiAocGF0aCkgPT4gcGF0aC5yZXBsYWNlKC9eXC9hcGlcL3hhaS8sICcnKSwKICAgICAgLy8gaW5qZWN0IEJlYXJlciB0b2tlbgogICAgfSwKICB9LAp9LApgYGAKCkRldiBzZXJ2ZXIg4LiX4LizIHByb3h5IOC5gOC4q+C4oeC4t+C4reC4mSBwcm9kdWN0aW9uIGBzZXJ2ZXIuY2pzYCDigJQgZW52aXJvbm1lbnQg4LmA4Lir4Lih4Li34Lit4LiZ4LiB4Lix4LiZCgojIyMgVGF2aWx5IERldiBNaWRkbGV3YXJlCgpgYGBqYXZhc2NyaXB0Ci8vIHZpdGUuY29uZmlnLmpzOjQzLTg2Ci8vIFZpdGUgY3VzdG9tIHBsdWdpbjogaW5qZWN0IFRhdmlseSBhcGlfa2V5IOC5g+C4mSBkZXYgbW9kZQovLyDguYDguJ7guKPguLLguLAgVml0ZSBwcm94eSDguYTguKHguYjguKPguK3guIfguKPguLHguJogbW9kaWZ5IHJlcXVlc3QgYm9keQovLyDguJXguYnguK3guIcgcGFyc2UgYm9keSDguYDguK3guIcg4LmB4Lil4LmJ4Lin4LmA4Lie4Li04LmI4LihIGFwaV9rZXkg4LiB4LmI4Lit4LiZ4Liq4LmI4LiH4LiV4LmI4LitCmBgYAoKIyMjIEJhc2UgUGF0aAoKYGBgamF2YXNjcmlwdApiYXNlOiAnL3Rlc3QvJyAgLy8g4LiX4Li44LiBIGFzc2V0IFVSTCBwcmVmaXgg4LiU4LmJ4Lin4LiiIC90ZXN0LwpgYGAKCi0tLQoKIyMgMTAuIERlcGxveW1lbnQgJiBFbnZpcm9ubWVudAoKIyMjIEVudmlyb25tZW50IFZhcmlhYmxlcwoKfCBWYXJpYWJsZSB8IOC5g+C4iuC5ieC5guC4lOC4oiB8IOC5gOC4m+C4tOC4lOC5gOC4nOC4ouC4leC5iOC4rSBicm93c2VyPyB8CnwtLS0tLS0tLS0tfC0tLS0tLS0tfC0tLS0tLS0tLS0tLS0tLS0tLS0tLXwKfCBgVFdJVFRFUl9BUElfS0VZYCB8IHNlcnZlci5janMgcHJveHkgfCDinYwg4LmE4Lih4LmIIHwKfCBgWEFJX0FQSV9LRVlgIHwgc2VydmVyLmNqcyBwcm94eSB8IOKdjCDguYTguKHguYggfAp8IGBUQVZJTFlfQVBJX0tFWWAgfCBzZXJ2ZXIuY2pzIHByb3h5IHwg4p2MIOC5hOC4oeC5iCB8CnwgYElOVEVSTkFMX0FQSV9TRUNSRVRgIHwgc2VydmVyLmNqcyBhdXRoIGd1YXJkIHwg4p2MIOC5hOC4oeC5iCB8CnwgYFZJVEVfSU5URVJOQUxfQVBJX1NFQ1JFVGAgfCBhcGlGZXRjaC50cyBoZWFkZXIgfCDinIUg4LmE4LiU4LmJICjguYTguKHguYjguYPguIrguYggcmVhbCBzZWNyZXQpIHwKfCBgUE9SVGAgfCBzZXJ2ZXIuY2pzIGxpc3RlbiB8IOKdjCDguYTguKHguYggfAp8IGBVUFNUUkVBTV9USU1FT1VUX01TYCB8IHNlcnZlci5janMgdGltZW91dCB8IOKdjCDguYTguKHguYggfAoKIyMjIFNjcmlwdHMKCmBgYGpzb24KImRldiI6ICAgICAgICAidml0ZSIgICAgICAgICAgIC8vIERldiBzZXJ2ZXIgOjUxNzMgKyBITVIKImJ1aWxkIjogICAgICAidml0ZSBidWlsZCIgICAgIC8vIE91dHB1dCDihpIgZGlzdC8KInN0YXJ0IjogICAgICAibm9kZSBzZXJ2ZXIuY2pzIi8vIFByb2R1Y3Rpb24KInR5cGVjaGVjayI6ICAidHNjIC0tbm9FbWl0IiAgIC8vIFR5cGUgY2hlY2sgKG5vIHN0cmljdCkKInByZXZpZXciOiAgICAidml0ZSBwcmV2aWV3IiAgIC8vIFByZXZpZXcgYnVpbHQgZmlsZXMKImRvY3M6ZGV2IjogICAidml0ZXByZXNzIGRldiBkb2NzIgpgYGAKCiMjIyBEZXBsb3ltZW50IChSYWlsd2F5KQoKYGBgdG9tbAojIG5peHBhY2tzLnRvbWwgKyByYWlsd2F5LnRvbWwKIyBCdWlsZDogbnBtIHJ1biBidWlsZAojIFN0YXJ0OiBub2RlIHNlcnZlci5janMKIyBQb3J0OiAkUE9SVCAoZGVmYXVsdCA4MDAwKQpgYGAKCiMjIyBSZXF1ZXN0IFRpbWVvdXQgQ2hhaW4KCmBgYApCcm93c2VyIChhcGlGZXRjaDogOTBzKQogIOKUlOKUgOKUgCBFeHByZXNzIHNlcnZlci5janMgKFVQU1RSRUFNX1RJTUVPVVRfTVM6IDEyMHMpCiAgICAgICAg4pSU4pSA4pSAIEV4dGVybmFsIEFQSXMgKEFib3J0U2lnbmFsLnRpbWVvdXQ6IDEyMHMpCmBgYAoKYnJvd3NlciB0aW1lb3V0IDwgc2VydmVyIHRpbWVvdXQg4oCUIOC4m+C5ieC4reC4h+C4geC4seC4mSBoYW5naW5nIGNvbm5lY3Rpb24g4LiX4Li14LmIIHNlcnZlcgoKLS0tCgojIyAxMS4gRmVhdHVyZSBNYXAg4oCUIEZsb3cg4LmB4LiV4LmI4Lil4Liw4Lif4Li14LmA4LiI4Lit4Lij4LmMCgojIyMgMTEuMSBIb21lIEZlZWQgUmVmcmVzaAoKYGBgClVzZXIg4LiE4Lil4Li04LiBIFJlZnJlc2gKICDilJTilIDilIAgQXBwLnRzeDogZmV0Y2hXYXRjaGxpc3RGZWVkKHdhdGNobGlzdC5tYXAodSA9PiB1LnVzZXJuYW1lKSkKICAgICAgICDilJTilIDilIAgVHdpdHRlclNlcnZpY2U6IHBhcmFsbGVsIGZldGNoIHRpbWVsaW5lcwogICAgICAgICAgICAgIOKUlOKUgOKUgCBHRVQgL2FwaS90d2l0dGVyL3VzZXIvdHdlZXRzP3VzZXJuYW1lPVggKHBlciB1c2VyKQogICAgICAgICAgICAgICAgICAgIOKUlOKUgOKUgCBzZXJ2ZXIuY2pzIOKGkiBhcGkudHdpdHRlcmFwaS5pbwogIOKUlOKUgOKUgCDguYTguJTguYkgdHdlZXRzIHJhdyDihpIgZGVkdXBlVHdlZXRzQnlJZCgpIOKGkiBzb3J0IGJ5IGRhdGUKICDilJTilIDilIAgZ2VuZXJhdGVHcm9rQmF0Y2gobmV3VHdlZXRzKSAg4oaQIOC4luC5ieC4siB0d2VldCDguYTguKHguYjguKHguLUgVGhhaSBzdW1tYXJ5CiAgICAgICAg4pSU4pSA4pSAIFBPU1QgL2FwaS94YWkvdjEvY2hhdC9jb21wbGV0aW9ucyAoR3JvaykKICDilJTilIDilIAgc2F2ZSDihpIgbG9jYWxTdG9yYWdlW2hvbWVGZWVkXQogIOKUlOKUgOKUgCBzZXRTdGF0ZShob21lRmVlZCkg4oaSIHJlLXJlbmRlciBGZWVkQ2FyZCBsaXN0CmBgYAoKIyMjIDExLjIgQ29udGVudCBTZWFyY2gKCmBgYApVc2VyIOC4nuC4tOC4oeC4nuC5jCBxdWVyeSDihpIgc3VibWl0CiAg4pSU4pSA4pSAIEFwcC50c3g6IGFuYWx5emVTZWFyY2hRdWVyeUludGVudChxdWVyeSkKICAgICAgICDilJTilIDilIAgZGV0ZWN0OiBpc05ld3MgfCBpc0Jyb2FkIHwgaXNQcm9kdWN0CiAg4pSU4pSA4pSAIHNlYXJjaEV2ZXJ5dGhpbmcocXVlcnksIHsgaW50ZW50IH0pCiAgICAgICAg4pSc4pSA4pSAIOC4quC4o+C5ieC4suC4hyBzZWFyY2ggdmFyaWFudHMgKFR3aXR0ZXIgc2VhcmNoIG9wZXJhdG9ycykKICAgICAgICDilJzilIDilIAgcGFyYWxsZWwgZmV0Y2gg4Lir4Lil4Liy4LiiIGVuZHBvaW50CiAgICAgICAg4pSc4pSA4pSAIGRlZHVwZVR3ZWV0c0J5SWQoKQogICAgICAgIOKUnOKUgOKUgCBzY29yZUFsbFR3ZWV0cygpIOKGkiBjb21wb3NpdGUgc2NvcmUKICAgICAgICDilJzilIDilIAgZGl2ZXJzaWZ5QnlBdXRob3IoKQogICAgICAgIOKUlOKUgOKUgCBkaXZlcnNpZnlCcm9hZFJlc3VsdHMoKSAo4LiW4LmJ4LiyIGJyb2FkIGludGVudCkKICDilJTilIDilIAgcGFyYWxsZWw6CiAgICAgIOKUnOKUgOKUgCBnZW5lcmF0ZUV4ZWN1dGl2ZVN1bW1hcnkodHdlZXRzLCBxdWVyeSkgIOKGkCBzdHJlYW1pbmcKICAgICAg4pSU4pSA4pSAIHRhdmlseVNlYXJjaChxdWVyeSkgIOKGkCB3ZWIgY29udGV4dAogIOKUlOKUgOKUgCBhZ2VudEZpbHRlckZlZWQodHdlZXRzLCBxdWVyeSkgIOKGkCBHcm9rIHJlLXJhbmsgKG9wdGlvbmFsKQogIOKUlOKUgOKUgCBzYXZlIGFsbCDihpIgbG9jYWxTdG9yYWdlW3NlYXJjaFJlc3VsdHMsIHNlYXJjaFN1bW1hcnksIHNlYXJjaFdlYlNvdXJjZXNdCmBgYAoKIyMjIDExLjMgQ29udGVudCBDcmVhdGlvbgoKYGBgClVzZXIg4LiB4Lij4Lit4LiBIHRvcGljICsg4LmA4Lil4Li34Lit4LiBIGZvcm1hdC90b25lL2xlbmd0aCDihpIgR2VuZXJhdGUKICDilJTilIDilIAgQ3JlYXRlQ29udGVudC50c3gg4oaSIEdyb2tTZXJ2aWNlLmdlbmVyYXRlU3RydWN0dXJlZENvbnRlbnQoewogICAgICAgIHRvcGljLCBmb3JtYXQsIHRvbmUsIGxlbmd0aCwgY3VzdG9tSW5zdHJ1Y3Rpb25zLAogICAgICAgIHNvdXJjZVBvc3QgKG9wdGlvbmFsKSwgYXR0YWNoZWRTb3VyY2UgKG9wdGlvbmFsKQogICAgICB9KQogICAgICAgIOKUnOKUgOKUgCBTdGVwIDE6IHJlc2VhcmNoQW5kUHJldmVudEhhbGx1Y2luYXRpb24oKQogICAgICAgIOKUgiAgICAg4pSc4pSA4pSAIHRhdmlseVNlYXJjaCh0b3BpYykgIOKGkCB3ZWIgZmFjdHMKICAgICAgICDilIIgICAgIOKUnOKUgOKUgCBmZXRjaFR3ZWV0QnlJZChjaXRhdGlvbl9pZCkgIOKGkCBzb3VyY2UgdHdlZXQKICAgICAgICDilIIgICAgIOKUlOKUgOKUgCBnZW5lcmF0ZU9iamVjdChGYWN0U2hlZXRTY2hlbWEpICDihpAgZXh0cmFjdCBzdHJ1Y3R1cmVkIGZhY3RzCiAgICAgICAg4pSCICAgICAgICAgICDihpIgc3RyZW5ndGhlblByaW1hcnlMZWFkRmFjdFNoZWV0KCkgIOKGkCB0aWdodGVuIGNvbnN0cmFpbnRzCiAgICAgICAg4pSc4pSA4pSAIFN0ZXAgMjogYnVpbGRDb250ZW50QnJpZWYoZmFjdFNoZWV0LCBmb3JtYXQsIHRvbmUsIGxlbmd0aCkKICAgICAgICDilIIgICAgIOKUlOKUgOKUgCBnZW5lcmF0ZVRleHQoKSAg4oaQIGJyaWVmIHdpdGggZm9ybWF0IGluc3RydWN0aW9ucwogICAgICAgIOKUlOKUgOKUgCBTdGVwIDM6IHN0cmVhbVRleHQoKSAg4oaQIHdyaXRlIGZpbmFsIGNvbnRlbnQKICAgICAgICAgICAgICDihpIgcG9saXNoVGhhaUNvbnRlbnQoKSAg4oaQIHBvc3QtcHJvY2VzcwogICAgICAgICAgICAgIOKGkiBzdHJpcEVuZ2FnZW1lbnRCYWl0KCksIHNvZnRlbkh5cGVMYW5ndWFnZSgpCiAg4pSU4pSA4pSAIHN0cmVhbSBjaHVua3Mg4oaSIGFwcGVuZCB0byB0ZXh0YXJlYSBpbiByZWFsLXRpbWUKYGBgCgojIyMgMTEuNCBBdWRpZW5jZSBEaXNjb3ZlcnkKCmBgYApVc2VyIOC5gOC4peC4t+C4reC4gSBjYXRlZ29yeSAoVGVjaC9BSS9CdXNpbmVzcy9GaW5hbmNlL0dhbWluZy9DcnlwdG8vLi4uKQogIOKUlOKUgOKUgCBBdWRpZW5jZVdvcmtzcGFjZSDihpIgZGlzY292ZXJUb3BFeHBlcnRzKGNhdGVnb3J5KQogICAgICAgIOKUlOKUgOKUgCBHcm9rOiAibGlzdCB0b3AgVHdpdHRlciBleHBlcnRzIGluIHtjYXRlZ29yeX0iCiAgICAgICAgICAgICAg4oaSIGdlbmVyYXRlT2JqZWN0KEV4cGVydExpc3RTY2hlbWEpCiAgICAgICAg4oaSIHJldHVybiB7IHVzZXJuYW1lLCBuYW1lLCBiaW8sIHdoeSB9W10KICDilJTilIDilIAgcmVuZGVyIFVzZXJDYXJkIGxpc3QKICDilJTilIDilIAgVXNlciDguITguKXguLTguIEgIkFkZCB0byBXYXRjaGxpc3QiIOKGkiBBcHAudHN4LmFkZFRvV2F0Y2hsaXN0KCkKYGBgCgojIyMgMTEuNSBSZWFkIEFyY2hpdmUKCmBgYApVc2VyIGRyYWcgdHdlZXQg4oaSICJTYXZlIHRvIFJlYWQiCiAg4pSU4pSA4pSAIEFwcC50c3g6IHNldFJlYWRBcmNoaXZlKFsuLi5yZWFkQXJjaGl2ZSwgcG9zdF0pCiAgICAgICAg4pSU4pSA4pSAIHNhdmUg4oaSIGxvY2FsU3RvcmFnZVtyZWFkQXJjaGl2ZV0KClJlYWRXb3Jrc3BhY2UgcmVuZGVyOgogIOKUlOKUgOKUgCB1c2VMaWJyYXJ5Vmlld3MoeyByZWFkQXJjaGl2ZSwgYWN0aXZlTGlzdElkLCBkZWZlcnJlZFJlYWRTZWFyY2hRdWVyeSwgLi4uIH0pCiAgICAgICAg4pSc4pSA4pSAIGZpbHRlciBieSBhY3RpdmVMaXN0IG1lbWJlcnNoaXAKICAgICAgICDilJzilIDilIAgZnV6enkgc2VhcmNoIChzY29yZUZ1enp5VGV4dE1hdGNoKQogICAgICAgIOKUnOKUgOKUgCBzb3J0OiBkYXRlIHwgdmlld19jb3VudCB8IGVuZ2FnZW1lbnQKICAgICAgICDilJTilIDilIAgcGFnaW5hdGU6IHZpc2libGVSZWFkQXJjaGl2ZVswLi52aXNpYmxlUmVhZENvdW50XQoKVXNlciBzY3JvbGwgdG8gYm90dG9tIOKGkiB2aXNpYmxlUmVhZENvdW50ICs9IFJFQURfQVJDSElWRV9SRU5ERVJfQkFUQ0ggKDI0KQpgYGAKCiMjIyAxMS42IEJvb2ttYXJrIE1hbmFnZW1lbnQKCmBgYApVc2VyIOC4hOC4peC4tOC4gSBCb29rbWFyayDguJrguJkgRmVlZENhcmQKICDilJTilIDilIAgQXBwLnRzeDogc2V0Qm9va21hcmtzKFsuLi5ib29rbWFya3MsIHBvc3RdKQogICAgICAgIOKUlOKUgOKUgCBzYXZlIOKGkiBsb2NhbFN0b3JhZ2VbYm9va21hcmtzXQoKQm9va21hcmtzV29ya3NwYWNlOgogIOKUlOKUgOKUgCB1c2VMaWJyYXJ5Vmlld3MoeyBib29rbWFya3MsIGJvb2ttYXJrVGFiOiAnbmV3cyd8J2FydGljbGUnLCBhY3RpdmVMaXN0SWQgfSkKICAgICAgICDilJzilIDilIAgdGFiICduZXdzJyAgICDihpIgZmlsdGVyOiB0eXBlICE9PSAnYXJ0aWNsZScKICAgICAgICDilJzilIDilIAgdGFiICdhcnRpY2xlJyDihpIgZmlsdGVyOiB0eXBlID09PSAnYXJ0aWNsZScKICAgICAgICDilJTilIDilIAgZmlsdGVyIGJ5IGxpc3QgbWVtYmVyc2hpcCAoYm9va21hcmtJZHMgU2V0IGZvciBPKDEpKQpgYGAKCiMjIyAxMS43IFBvc3QgTGlzdHMgKENvbGxlY3Rpb25zKQoKYGBgClVzZXIg4Liq4Lij4LmJ4Liy4LiHIExpc3Qg4LmD4Lir4Lih4LmICiAg4pSU4pSA4pSAIFJpZ2h0U2lkZWJhciDihpIgQXBwLnRzeDogc2V0UG9zdExpc3RzKFsuLi5wb3N0TGlzdHMsIHsgaWQsIG5hbWUsIG1lbWJlcnM6IFtdLCBjb2xvciB9XSkKClVzZXIg4LmA4Lie4Li04LmI4LihIG1lbWJlciAodXNlcm5hbWUpIOC4peC4hyBsaXN0CiAg4pSU4pSA4pSAIHVwZGF0ZSBwb3N0TGlzdHNbaWRdLm1lbWJlcnMg4oaSIHNhdmUgbG9jYWxTdG9yYWdlW3Bvc3RMaXN0c10KCkFjdGl2ZSBMaXN0IOC5g+C4iuC5ieC4geC4o+C4reC4hyBmZWVkOgogIOKUlOKUgOKUgCB1c2VMaWJyYXJ5Vmlld3M6IGFjdGl2ZVJlYWRMaXN0TWVtYmVyU2V0ID0gbmV3IFNldChsaXN0Lm1lbWJlcnMpCiAgICAgICAg4oaSIGZpbHRlciBib29rbWFya3MvcmVhZEFyY2hpdmUg4LmD4Lir4LmJ4LmB4Liq4LiU4LiH4LmA4LiJ4Lie4Liy4LiwIHBvc3RzIOC4guC4reC4hyBtZW1iZXJzCmBgYAoKLS0tCgojIyBTZWN1cml0eSBTdW1tYXJ5Cgp8IFRocmVhdCB8IE1pdGlnYXRpb24gfCBGaWxlIHwKfC0tLS0tLS0tfC0tLS0tLS0tLS0tfC0tLS0tLXwKfCBEaXJlY3QgQVBJIGtleSBleHBvc3VyZSB8IEtleXMg4LmE4Lih4LmI4Lih4Li1IGBWSVRFX2AgcHJlZml4IOKGkiDguYTguKHguYggYnVuZGxlIOC4peC4hyBicm93c2VyIHwgYC5lbnZgIHwKfCBVbmF1dGhvcml6ZWQgcHJveHkgYWNjZXNzIHwgYHgtaW50ZXJuYWwtdG9rZW5gIGF1dGggZ3VhcmQgfCBgc2VydmVyLmNqczo0MGAgfAp8IFByb21wdCBpbmplY3Rpb24gfCBgc2FuaXRpemVGb3JQcm9tcHQoKWAgc3RyaXAgaW5qZWN0aW9uIG1hcmtlcnMgfCBgR3Jva1NlcnZpY2UudHM6MzNgIHwKfCBYU1MgdmlhIG1hcmtkb3duIHwgRE9NUHVyaWZ5IHNhbml0aXplIEhUTUwgfCBgdXRpbHMvbWFya2Rvd24udHNgIHwKfCBTU1JGIHZpYSBUYXZpbHkgfCBGaXhlZCB1cHN0cmVhbSBVUkwsIG5vIHVzZXItY29udHJvbGxlZCB0YXJnZXQgfCBgc2VydmVyLmNqczoxMTlgIHwKfCBTdGFsZSBsb2NhbFN0b3JhZ2UgZGF0YSB8IEN1c3RvbSBkZXNlcmlhbGl6ZXJzICsgc2FuaXRpemVTdG9yZWRQb3N0KCkgfCBgYXBwVXRpbHMudHM6NDRgIHwKCi0tLQoKKuC4quC4o+C5ieC4suC4h+C5guC4lOC4oiBDbGF1ZGUgQ29kZSDigJQg4Lit4LmJ4Liy4LiH4Lit4Li04LiH4LiI4Liy4LiBIHNvdXJjZSBjb2RlIOC4iOC4o+C4tOC4hyDguJMg4Lin4Lix4LiZ4LiX4Li14LmIIDIwMjYtMDQtMDEqCg==</script>
+    <script>
+      const features = [
+        { id: "all", label: "ทุกฟีเจอร์" },
+        { id: "overview", label: "ภาพรวม" },
+        { id: "db", label: "ชั้นข้อมูลจำลอง" },
+        { id: "home", label: "ฟีดหน้าแรก" },
+        { id: "search", label: "ค้นหาเนื้อหา" },
+        { id: "create", label: "สร้างคอนเทนต์" },
+        { id: "audience", label: "ค้นหา audience" },
+        { id: "read", label: "คลังอ่านทีหลัง" },
+        { id: "bookmark", label: "บุ๊กมาร์ก" },
+        { id: "lists", label: "รายการคัดแยก" }
+      ];
+
+      const nodes = [
+        {
+          id: "browser-root",
+          kind: "overview",
+          feature: "overview",
+          layer: "ชั้น Browser",
+          title: "ศูนย์กลางการคุมหน้าจอและสถานะ",
+          summary: "App.tsx ทำหน้าที่เป็นตัวคุมหลักของสถานะที่บันทึกไว้, การสลับพื้นที่ทำงาน, การโหลดแบบ lazy และ action ที่เชื่อมข้ามฟีเจอร์",
+          why: [
+            "รวม watchlist, home feed, bookmarks, read archive, post lists และ search state ไว้ในจุด orchestration เดียว",
+            "ตัดสินใจว่าจะ render workspace ไหนผ่าน activeView และ lazy import",
+            "เชื่อม action จาก UI กลับไปหา TwitterService, GrokService และ hook ฝั่ง client"
+          ],
+          outputs: [
+            "UI tree ของหน้า home, content, read, audience และ bookmarks ตามมุมมองที่กำลังเปิด",
+            "การเปลี่ยน state ที่ถูกบันทึกลง localStorage และสะท้อนกลับมาทั้งแอป"
+          ],
+          files: [
+            { label: "App Root", path: "D:/TEST/src/App.tsx" },
+            { label: "Storage Keys", path: "D:/TEST/src/constants/storageKeys.ts" }
+          ],
+          snippets: [
+            {
+              label: "Lazy workspace loading",
+              path: "src/App.tsx",
+              code: `const AudienceWorkspace = lazy(() => import('./components/AudienceWorkspace'));
+const BookmarksWorkspace = lazy(() => import('./components/BookmarksWorkspace'));
+const ContentWorkspace = lazy(() => import('./components/ContentWorkspace'));
+const ReadWorkspace = lazy(() => import('./components/ReadWorkspace'));`
+            },
+            {
+              label: "Persisted app state",
+              path: "src/App.tsx",
+              code: `const [watchlist, setWatchlist] = usePersistentState(STORAGE_KEYS.watchlist, [], {
+  deserialize: deserializeWatchlist,
+});
+
+const [searchResults, setSearchResults] = usePersistentState(STORAGE_KEYS.searchResults, [], {
+  deserialize: deserializeStoredCollection,
+});
+
+const [activeView, setActiveView] = usePersistentState(STORAGE_KEYS.activeView, 'home');`
+            }
+          ],
+          related: ["storage-layer", "home-refresh-fetch", "search-intent"]
+        },
+        {
+          id: "proxy-server",
+          kind: "overview",
+          feature: "overview",
+          layer: "ชั้น Server",
+          title: "Proxy API ที่คุมความปลอดภัย",
+          summary: "server.cjs เป็น proxy ที่คั่นระหว่าง browser กับ upstream API ทำหน้าที่ซ่อน secret, เช็ก internal auth, คุม timeout และส่งคำขอไปยังปลายทางจริง",
+          why: [
+            "ป้องกันไม่ให้ TWITTER_API_KEY, XAI_API_KEY และ TAVILY_API_KEY หลุดไปฝั่ง browser",
+            "คุมเส้นทาง /api/* ด้วย x-internal-token",
+            "รองรับ response แบบ stream จาก xAI ผ่าน http-proxy-middleware"
+          ],
+          outputs: [
+            "proxy routes สำหรับ /api/twitter, /api/xai และ /api/tavily/search",
+            "เสิร์ฟไฟล์ build แบบ static เมื่อรันผ่าน server ภายใน"
+          ],
+          files: [
+            { label: "Proxy Server", path: "D:/TEST/server.cjs" },
+            { label: "Client Fetch Wrapper", path: "D:/TEST/src/utils/apiFetch.ts" }
+          ],
+          snippets: [
+            {
+              label: "Internal auth guard",
+              path: "server.cjs",
+              code: `app.use('/api', (req, res, next) => {
+  if (INTERNAL_API_SECRET && req.headers['x-internal-token'] !== INTERNAL_API_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+});`
+            },
+            {
+              label: "xAI proxy with streaming support",
+              path: "server.cjs",
+              code: `app.use('/api/xai', createProxyMiddleware({
+  target: 'https://api.x.ai',
+  changeOrigin: true,
+  proxyTimeout: UPSTREAM_TIMEOUT_MS,
+  timeout: UPSTREAM_TIMEOUT_MS,
+  pathRewrite: { '^/api/xai': '' },
+  on: {
+    proxyReq: (proxyReq, req) => {
+      if (XAI_API_KEY) proxyReq.setHeader('Authorization', \`Bearer \${XAI_API_KEY}\`);
+      if (req.body) fixRequestBody(proxyReq, req);
+    }
+  },
+}));`
+            }
+          ],
+          related: ["api-fetch", "twitter-service", "grok-service"]
+        },
+        {
+          id: "api-fetch",
+          kind: "overview",
+          feature: "overview",
+          layer: "ชั้นความปลอดภัยฝั่ง Client",
+          title: "ตัวห่อคำขอ apiFetch",
+          summary: "ทุกคำขอจาก browser ที่ยิงไป /api/* จะผ่าน wrapper กลางตัวนี้เพื่อแนบ internal token และตัดคำขอที่ช้าเกินเวลา",
+          why: [
+            "ลดการเขียนซ้ำเรื่อง header และ timeout ในหลายจุดของ client",
+            "แยก VITE_INTERNAL_API_SECRET ฝั่ง browser ออกจาก secret จริงที่ใช้บน server"
+          ],
+          outputs: [
+            "wrapper กลางของ fetch ที่ใช้ AbortController และ x-internal-token",
+            "เส้นตาย 90 วินาทีสำหรับคำขอที่ออกจาก browser"
+          ],
+          files: [
+            { label: "apiFetch", path: "D:/TEST/src/utils/apiFetch.ts" }
+          ],
+          snippets: [
+            {
+              label: "Shared client fetch",
+              path: "src/utils/apiFetch.ts",
+              code: `export const INTERNAL_TOKEN = import.meta.env.VITE_INTERNAL_API_SECRET ?? '';
+
+export const apiFetch = (url, options = {}) => {
+  const { timeout = DEFAULT_TIMEOUT_MS, ...fetchOptions } = options;
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
+  const headers = {
+    ...(fetchOptions.headers || {}),
+    ...(INTERNAL_TOKEN ? { 'x-internal-token': INTERNAL_TOKEN } : {}),
+  };
+
+  return fetch(url, {
+    ...fetchOptions,
+    headers,
+    signal: fetchOptions.signal || controller.signal
+  }).finally(() => clearTimeout(id));
+};`
+            }
+          ],
+          related: ["proxy-server", "twitter-service", "grok-service"]
+        },
+        {
+          id: "twitter-service",
+          kind: "overview",
+          feature: "overview",
+          layer: "ชั้น Domain Service",
+          title: "แกนค้นหาและจัดอันดับข้อมูลจาก Twitter",
+          summary: "TwitterService.ts ดูแลตั้งแต่ดึงข้อมูล, normalize, dedupe, ให้คะแนน และกระจายผลลัพธ์ tweet ให้เหมาะกับแต่ละ use case",
+          why: [
+            "ตีความว่าคำค้นเป็นข่าว, การค้นกว้าง หรือคำค้นเฉพาะทาง",
+            "คำนวณคะแนนรวมจาก relevance, credibility, signal, freshness และ penalty ต่าง ๆ",
+            "ป้อนผลลัพธ์ให้หลายจุดของระบบ เช่น home refresh, content search และ flow รายละเอียดโพสต์"
+          ],
+          outputs: [
+            "ชุด tweet ที่ผ่านการคัดและมี metadata อย่าง search_score กับ velocityTag",
+            "ผลลัพธ์ที่ dedupe และ diversify แล้วก่อนส่งต่อไปยัง UI หรือ AI layer"
+          ],
+          files: [
+            { label: "Twitter Service", path: "D:/TEST/src/services/TwitterService.ts" }
+          ],
+          snippets: [
+            {
+              label: "Signal score",
+              path: "src/services/TwitterService.ts",
+              code: `const getSignalScore = (tweet) => {
+  const likes = toNumber(tweet?.like_count || tweet?.likeCount);
+  const retweets = toNumber(tweet?.retweet_count || tweet?.retweetCount);
+  const replies = toNumber(tweet?.reply_count || tweet?.replyCount);
+  const quotes = toNumber(tweet?.quote_count || tweet?.quoteCount);
+  const views = toNumber(tweet?.view_count || tweet?.viewCount);
+  const engagement = likes + retweets + replies + quotes;
+  const engagementRate = views > 0 ? engagement / views : 0;
+
+  return (
+    logScore(views, 3.5, 5_000_000) +
+    logScore(engagement, 6.0, 200_000) +
+    clamp(engagementRate / 0.04, 0, 1) * 3.5
+  );
+};`
+            }
+          ],
+          related: ["home-refresh-fetch", "search-fetch", "content-research"]
+        },
+        {
+          id: "grok-service",
+          kind: "overview",
+          feature: "overview",
+          layer: "ชั้น AI",
+          title: "ชั้นประมวลผล Grok + Tavily",
+          summary: "GrokService.ts รับผิดชอบงานสรุป, rerank, web research, ดึง fact, สร้าง brief และ pipeline สำหรับเขียนคอนเทนต์ขั้นสุดท้าย",
+          why: [
+            "รวมหน้าที่ด้าน AI ที่ต้องคุยกับ xAI และ Tavily ไว้ใน service เดียว",
+            "มี cache หลายชั้นเพื่อลดค่าใช้จ่ายและ latency",
+            "จัดการ prompt และระเบียบการอ้างอิงแหล่งข้อมูลก่อนให้ model สรุปหรือเขียน"
+          ],
+          outputs: [
+            "บทสรุปภาษาไทย, executive summary, AI-filtered feed, รายชื่อ expert และคอนเทนต์ที่สร้างขึ้น"
+          ],
+          files: [
+            { label: "Grok Service", path: "D:/TEST/src/services/GrokService.ts" }
+          ],
+          snippets: [
+            {
+              label: "xAI client bound to local proxy",
+              path: "src/services/GrokService.ts",
+              code: `const grok = createXai({
+  apiKey: 'local-proxy',
+  baseURL: '/api/xai/v1',
+  headers: {
+    'x-internal-token': INTERNAL_TOKEN,
+  },
+});`
+            },
+            {
+              label: "Tavily search through proxy",
+              path: "src/services/GrokService.ts",
+              code: `const response = await apiFetch('/api/tavily/search', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    query: normalizedQuery,
+    search_depth: searchOptions.search_depth,
+    include_answer: searchOptions.include_answer,
+    max_results: searchOptions.max_results
+  }),
+});`
+            }
+          ],
+          related: ["proxy-server", "search-summary", "content-facts", "content-write"]
+        },
+        {
+          id: "storage-layer",
+          kind: "overview",
+          feature: "overview",
+          layer: "ชั้นจัดเก็บข้อมูล",
+          title: "localStorage และมุมมองคำนวณต่อ",
+          summary: "สถานะหลักของแอปถูกบันทึกด้วย usePersistentState แล้วค่อยนำมาทำความสะอาดและคำนวณต่อ เพื่อให้มุมมองประเภทคลังข้อมูลทำงานไวและเสถียร",
+          why: [
+            "ทำให้ feed, archive, bookmarks, preset และ active view กลับมาสภาพเดิมได้ข้าม session",
+            "แยก raw state ที่เก็บจริงออกจาก derived view เช่น filteredBookmarks, visibleReadArchive และ bookmarkIds"
+          ],
+          outputs: [
+            "storage key ที่มี version และกระบวนการ sanitize ข้อมูลก่อนใช้",
+            "มุมมอง read ที่ค้นหาแบบ fuzzy ได้ และชุดข้อมูลสำหรับ lookup แบบ O(1)"
+          ],
+          files: [
+            { label: "Storage Keys", path: "D:/TEST/src/constants/storageKeys.ts" },
+            { label: "Library Views Hook", path: "D:/TEST/src/hooks/useLibraryViews.ts" }
+          ],
+          snippets: [
+            {
+              label: "Storage key catalog",
+              path: "src/constants/storageKeys.ts",
+              code: `export const STORAGE_KEYS = {
+  watchlist: 'foro_watchlist_v2',
+  homeFeed: 'foro_home_feed_v1',
+  bookmarks: 'foro_bookmarks_v1',
+  readArchive: 'foro_read_archive_v1',
+  postLists: 'foro_postlists_v2',
+  searchResults: 'foro_search_results_v1',
+  searchSummary: 'foro_search_summary_v1',
+  activeView: 'foro_active_view_v2',
+};`
+            },
+            {
+              label: "Derived read/bookmark views",
+              path: "src/hooks/useLibraryViews.ts",
+              code: `const bookmarkIds = useMemo(
+  () => new Set(bookmarks.map((item) => item?.id).filter(Boolean)),
+  [bookmarks],
+);
+
+const visibleReadArchive = useMemo(
+  () => filteredReadArchive.slice(0, visibleReadCount),
+  [filteredReadArchive, visibleReadCount],
+);`
+            }
+          ],
+          related: ["read-compute", "bookmark-filter", "lists-filter"]
+        },
+        {
+          id: "db-sim-store",
+          kind: "overview",
+          feature: "db",
+          layer: "ฐานข้อมูลเชิงแนวคิด",
+          simulated: true,
+          title: "คลังข้อมูลปฏิบัติการ (จำลอง)",
+          summary: "ภาพจำลองว่าถ้า Foro ย้ายจาก localStorage ไปมีฐานข้อมูลจริง จะมีคลังข้อมูลหลักคั่นกลางสำหรับ users, posts, lists, bookmarks และ generated content",
+          why: [
+            "ช่วยคุยกับ dev คนอื่นได้ว่าข้อมูลหลักควรถูก normalize และเก็บแยก entity ยังไง",
+            "ทำให้เห็น boundary ระหว่าง client state ชั่วคราวกับ source of truth ถาวร"
+          ],
+          outputs: [
+            "ตาราง/collection กลุ่ม users, posts, post_lists, bookmarks, read_archive, generated_articles",
+            "จุดศูนย์กลางสำหรับ sync ระหว่าง client, AI jobs และ analytics ภายหลัง"
+          ],
+          files: [
+            { label: "Conceptual only", path: "D:/TEST/public/architecture-flow.html" }
+          ],
+          snippets: [
+            {
+              label: "Suggested entity groups",
+              path: "conceptual",
+              code: `users
+posts
+post_lists
+post_list_members
+bookmarks
+read_archive
+generated_articles
+source_snapshots`
+            }
+          ],
+          related: ["storage-layer", "db-sim-readmodel", "db-sim-sync"]
+        },
+        {
+          id: "db-sim-readmodel",
+          kind: "feature",
+          feature: "db",
+          flow: "ชั้นข้อมูลจำลอง",
+          step: 1,
+          simulated: true,
+          title: "รีดโมเดลสำหรับอ่านข้อมูล (จำลอง)",
+          summary: "จำลอง read model สำหรับหน้า Home, การค้นหาเนื้อหา และหน้า library เพื่อให้ query อ่านเร็วกว่าไล่สแกน entity หลายก้อนตรง ๆ",
+          why: [
+            "ช่วยอธิบายกับเพื่อน dev ว่าถ้ามี DB แล้ว derived views ที่ตอนนี้อยู่ใน hooks ควรถูกย้ายไปชั้นไหน",
+            "เหมาะกับ cache/feed snapshot, bookmark library summary และ search result history"
+          ],
+          outputs: [
+            "home_feed_snapshot",
+            "library_view_by_user",
+            "search_session_results"
+          ],
+          files: [
+            { label: "Conceptual only", path: "D:/TEST/public/architecture-flow.html" }
+          ],
+          snippets: [
+            {
+              label: "Read model idea",
+              path: "conceptual",
+              code: `home_feed_snapshot(user_id, post_id, score, summarized_text, fetched_at)
+library_view_by_user(user_id, post_id, bucket, author_username, last_seen_at)
+search_session_results(session_id, query, post_id, rank, ai_reasoning)`
+            }
+          ],
+          related: ["db-sim-store", "read-compute", "search-rerank"]
+        },
+        {
+          id: "db-sim-sync",
+          kind: "feature",
+          feature: "db",
+          flow: "ชั้นข้อมูลจำลอง",
+          step: 2,
+          simulated: true,
+          title: "รอยต่อระหว่าง client cache กับ DB (จำลอง)",
+          summary: "ภาพจำลองว่าถ้ามี backend persistence จริง localStorage จะกลายเป็น offline/client cache ส่วน source of truth ย้ายไป DB พร้อมงาน sync",
+          why: [
+            "ช่วยแยกบทบาทระหว่าง optimistic UI กับ persisted domain state",
+            "ทำให้เห็นว่าฟังก์ชันอย่าง summarize, curateSearchResults, generateStructuredContent จะเขียนผลลัพธ์กลับจุดไหน"
+          ],
+          outputs: [
+            "client cache สำหรับเร็วและ offline",
+            "background sync / job queue สำหรับ AI summary และ content generation"
+          ],
+          files: [
+            { label: "Conceptual only", path: "D:/TEST/public/architecture-flow.html" }
+          ],
+          snippets: [
+            {
+              label: "Possible write pipeline",
+              path: "conceptual",
+              code: `UI action
+-> optimistic client state
+-> API write
+-> DB commit
+-> async enrichment job
+-> read model refresh
+-> client revalidate`
+            }
+          ],
+          related: ["db-sim-store", "grok-service", "proxy-server"]
+        },
+        {
+          id: "home-refresh-fetch",
+          kind: "feature",
+          feature: "home",
+          flow: "รีเฟรชฟีดหน้าแรก",
+          step: 1,
+          title: "ดึงไทม์ไลน์จาก watchlist",
+          summary: "เมื่อผู้ใช้กดรีเฟรช App.tsx จะรวบรวม username จาก watchlist แล้วเรียก TwitterService.fetchWatchlistFeed เพื่อดึงโพสต์ชุดล่าสุด",
+          why: [
+            "ลดปัญหา fan-out แบบหนึ่งคำขอต่อหนึ่งบัญชี ด้วยการ batch ในชั้น service",
+            "ทำให้ฟีดยังสดใหม่ด้วยการจำกัดช่วงเวลาที่ดึงข้อมูล"
+          ],
+          outputs: ["ได้โพสต์ที่ normalize แล้วจากหลายบัญชี", "ได้ค่า next_cursor สำหรับ pagination รอบถัดไป"],
+          files: [
+            { label: "App", path: "D:/TEST/src/App.tsx" },
+            { label: "TwitterService", path: "D:/TEST/src/services/TwitterService.ts" }
+          ],
+          snippets: [
+            {
+              label: "Feed batching",
+              path: "src/services/TwitterService.ts",
+              code: `export const fetchForoFeed = async (watchlistHandles, cursor = '', queryType = 'Latest') => {
+  const validHandles = (watchlistHandles || [])
+    .map((handle) => (typeof handle === 'string' ? handle : handle?.username))
+    .filter((handle) => handle && handle !== 'undefined');
+
+  const batches = [];
+  for (let index = 0; index < validHandles.length; index += 15) {
+    batches.push(validHandles.slice(index, index + 15));
+  }
+};`
+            }
+          ],
+          related: ["twitter-service", "home-refresh-translate"]
+        },
+        {
+          id: "home-refresh-translate",
+          kind: "feature",
+          feature: "home",
+          flow: "รีเฟรชฟีดหน้าแรก",
+          step: 2,
+          title: "เติมสรุปภาษาไทยย้อนหลัง",
+          summary: "โพสต์ใหม่ที่ยังไม่มีสรุปจะถูกสรุปแบบ batch ด้วย Grok ก่อน แล้วค่อย retry รายตัวเมื่อจำเป็น",
+          why: [
+            "ช่วยให้ผู้ใช้ที่อ่านไทยสแกนฟีดได้เร็วขึ้น",
+            "กันความล้มเหลวซ้ำด้วยการจดจำโพสต์ที่เคยสรุปไม่สำเร็จ"
+          ],
+          outputs: ["ได้สรุปภาษาไทยคุณภาพดีใน post.summary", "มี fallback เมื่อผลแบบ batch ใช้งานไม่ได้"],
+          files: [
+            { label: "App", path: "D:/TEST/src/App.tsx" },
+            { label: "GrokService", path: "D:/TEST/src/services/GrokService.ts" }
+          ],
+          snippets: [
+            {
+              label: "Translate + fallback",
+              path: "src/App.tsx",
+              code: `const translatePostsToThai = async (posts = []) => {
+  const batchSummaries = await generateGrokBatch(posts.map((post) => post.text));
+
+  return Promise.all(
+    posts.map(async (post, idx) => {
+      const batchSummary = batchSummaries[idx] || '';
+      if (hasUsefulThaiSummary(batchSummary, post.text)) return { ...post, summary: batchSummary };
+      const retrySummary = await generateGrokSummary(post.text);
+      return hasUsefulThaiSummary(retrySummary, post.text) ? { ...post, summary: retrySummary } : post;
+    }),
+  );
+};`
+            }
+          ],
+          related: ["grok-service", "home-refresh-save"]
+        },
+        {
+          id: "home-refresh-save",
+          kind: "feature",
+          feature: "home",
+          flow: "รีเฟรชฟีดหน้าแรก",
+          step: 3,
+          title: "บันทึกฟีดและเรนเดอร์การ์ดใหม่",
+          summary: "ผลลัพธ์สุดท้ายจะถูกทำความสะอาด แล้วเก็บลงสถานะและ localStorage ก่อนนำกลับมาเรนเดอร์ผ่าน FeedCard",
+          why: [
+            "ทำให้ผู้ใช้ปิดแล้วเปิดแอปใหม่ยังเห็นฟีดล่าสุดได้",
+            "คงรูปทรงข้อมูล post เดียวกันให้ใช้ซ้ำได้ใน home, read และ bookmark"
+          ],
+          outputs: ["ได้ state homeFeed และ pendingFeed ที่ถูกบันทึกไว้", "FeedCard ในหน้า home ถูกอัปเดตตามข้อมูลใหม่"],
+          files: [
+            { label: "App", path: "D:/TEST/src/App.tsx" },
+            { label: "Feed Card", path: "D:/TEST/src/components/FeedCard.tsx" }
+          ],
+          snippets: [
+            {
+              label: "Visible feed derivation",
+              path: "src/App.tsx",
+              code: `useEffect(() => {
+  if (activeView === 'search' || isFiltered) return;
+  setFeed(deriveVisibleFeed({
+    activeFilters,
+    activeListId,
+    activeView,
+    originalFeed,
+    postLists,
+    watchlist,
+  }));
+}, [activeListId, originalFeed, activeView, postLists, watchlist, isFiltered, activeFilters]);`
+            }
+          ],
+          related: ["storage-layer", "lists-filter"]
+        },
+        {
+          id: "search-intent",
+          kind: "feature",
+          feature: "search",
+          flow: "การค้นหาเนื้อหา",
+          step: 1,
+          title: "วิเคราะห์เจตนาของคำค้น",
+          summary: "ก่อนเริ่มค้นหา ระบบจะตีความคำค้นก่อนว่าเป็นโหมดข่าวล่าสุด, โหมดที่ควรเริ่มจาก Tavily หรือโหมดค้นหาแบบกว้าง เพื่อเลือกลำดับการทำงานที่เหมาะที่สุด",
+          why: [
+            "คำค้นประเภทข่าว, อีเวนต์, ราคา และการเปรียบเทียบ ต้องใช้กลยุทธ์ค้นหาคนละแบบ",
+            "ช่วยลดข้อมูลรบกวนเมื่อเทียบกับการใช้ pipeline เดียวกับทุกคำค้น"
+          ],
+          outputs: ["ได้ค่า intentType, forceLatestMode, tavilyFirst และ broadDiscoveryIntent สำหรับตัดสินใจขั้นถัดไป"],
+          files: [{ label: "Twitter Service", path: "D:/TEST/src/services/TwitterService.ts" }],
+          snippets: [
+            {
+              label: "Intent classification",
+              path: "src/services/TwitterService.ts",
+              code: `export const analyzeSearchQueryIntent = (rawQuery = '') => {
+  const queryProfile = buildQueryProfile(rawQuery);
+  const q = String(rawQuery || '').toLowerCase();
+  let intentType = 'general';
+  if (/price|btc|eth|bitcoin|ethereum|\\$/.test(q)) intentType = 'price';
+  else if (/breaking|event|launch/.test(q)) intentType = 'event';
+  else if (/vs|comparison/.test(q)) intentType = 'comparison';
+  return {
+    broadDiscoveryIntent: Boolean(queryProfile.broadIntent),
+    preferGlobal: Boolean(queryProfile.preferGlobal),
+    intentType,
+    forceLatestMode: intentType === 'price' || intentType === 'event',
+    tavilyFirst: intentType === 'event' || (intentType === 'general' && /news|update/.test(q)),
+  };
+};`
+            }
+          ],
+          related: ["search-fetch", "twitter-service"]
+        },
+        {
+          id: "search-fetch",
+          kind: "feature",
+          feature: "search",
+          flow: "การค้นหาเนื้อหา",
+          step: 2,
+          title: "ดึงผลลัพธ์, ลบข้อมูลซ้ำ และจัดอันดับโพสต์",
+          summary: "searchEverything และ searchEverythingDeep จะดึงผลลัพธ์ดิบมาก่อน จากนั้น curateSearchResults จึงลบรายการซ้ำ ให้คะแนน ตัด threshold และกระจายผลลัพธ์ให้สมดุลขึ้น",
+          why: [
+            "แยกขั้นดึงข้อมูลดิบออกจากขั้นจัดอันดับอย่างชัดเจน",
+            "ทำให้หัวข้อกว้างและหัวข้อเฉพาะทางใช้ heuristic คนละชุดได้"
+          ],
+          outputs: ["ได้ searchResults ที่ผ่านการ dedupe, scoring, thresholding และ diversify แล้ว"],
+          files: [{ label: "Twitter Service", path: "D:/TEST/src/services/TwitterService.ts" }],
+          snippets: [
+            {
+              label: "Search retrieval",
+              path: "src/services/TwitterService.ts",
+              code: `export const searchEverything = async (query, cursor = '', onlyNews = true, queryType = 'Latest') => {
+  const fullQuery = appendNewsFilter(query, onlyNews);
+  const url = \`\${BASE_URL}/tweet/advanced_search?query=\${encodeURIComponent(fullQuery)}&queryType=\${queryType}\`;
+  const response = await apiFetch(url, { method: 'GET' });
+  const data1 = await safeJson(response, { tweets: [], next_cursor: null });
+  return { data: normalizeTweets(data1.tweets), meta: { next_cursor: data1.next_cursor || null } };
+};`
+            },
+            {
+              label: "Broad diversification",
+              path: "src/services/TwitterService.ts",
+              code: `const diversifyBroadResults = (tweets, queryProfile, limit = 30) => {
+  if (!queryProfile?.broadIntent) return tweets.slice(0, limit);
+  const buckets = new Map();
+  for (const tweet of tweets) {
+    const bucket = getTopicBucket(tweet, queryProfile);
+    if (!buckets.has(bucket)) buckets.set(bucket, []);
+    buckets.get(bucket).push(tweet);
+  }
+  return result.slice(0, limit);
+};`
+            }
+          ],
+          related: ["search-summary", "search-rerank", "twitter-service"]
+        },
+        {
+          id: "search-summary",
+          kind: "feature",
+          feature: "search",
+          flow: "การค้นหาเนื้อหา",
+          step: 3,
+          title: "สรุปด้วย AI พร้อมเติมบริบทจากเว็บแบบขนาน",
+          summary: "เมื่อได้ชุดโพสต์แล้ว ระบบจะสั่งให้สร้างบทสรุประดับผู้บริหารและค้นเว็บผ่าน Tavily พร้อมกัน เพื่อเติมบริบทให้ผลค้นหาอ่านง่ายและครบขึ้น",
+          why: [
+            "บทสรุปช่วยให้ผู้ใช้กวาดผลลัพธ์จำนวนมากได้เร็วขึ้น",
+            "แหล่งข้อมูลจากเว็บช่วยเติมบริบทนอกเหนือจากข้อมูลบน X/Twitter"
+          ],
+          outputs: ["ได้ searchSummary ในรูป markdown และ searchWebSources สำหรับอ้างอิงเพิ่มเติม"],
+          files: [
+            { label: "Grok Service", path: "D:/TEST/src/services/GrokService.ts" },
+            { label: "App", path: "D:/TEST/src/App.tsx" }
+          ],
+          snippets: [
+            {
+              label: "Tavily proxy call",
+              path: "src/services/GrokService.ts",
+              code: `const response = await apiFetch('/api/tavily/search', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    query: normalizedQuery,
+    search_depth: searchOptions.search_depth,
+    include_answer: searchOptions.include_answer,
+    max_results: searchOptions.max_results,
+    include_raw_content: searchOptions.include_raw_content,
+  }),
+});`
+            }
+          ],
+          related: ["grok-service", "search-rerank", "proxy-server"]
+        },
+        {
+          id: "search-rerank",
+          kind: "feature",
+          feature: "search",
+          flow: "การค้นหาเนื้อหา",
+          step: 4,
+          title: "จัดอันดับซ้ำด้วย AI และบันทึกผลลัพธ์",
+          summary: "ผลค้นหาสามารถถูกจัดอันดับซ้ำเพิ่มด้วย agentFilterFeed ก่อนจะถูกบันทึกร่วมกับบทสรุปและข้อมูลกำกับของแหล่งที่มา",
+          why: [
+            "เพิ่มการตัดสินเชิงความหมายของ AI ทับบนชั้น ranking เชิงสถิติ",
+            "เก็บ session การค้นหาไว้ครบ เพื่อให้กลับมาเปิดหน้าเดิมต่อได้"
+          ],
+          outputs: ["บันทึก aiSearchResults, searchResults, searchSummary และ searchWebSources ลง state ที่เปิดกลับมาใช้ต่อได้"],
+          files: [
+            { label: "App", path: "D:/TEST/src/App.tsx" },
+            { label: "Storage Keys", path: "D:/TEST/src/constants/storageKeys.ts" }
+          ],
+          snippets: [
+            {
+              label: "Search storage keys",
+              path: "src/constants/storageKeys.ts",
+              code: `searchResults: 'foro_search_results_v1',
+searchSummary: 'foro_search_summary_v1',
+aiSearchResults: 'foro_ai_search_results_v1',
+searchWebSources: 'foro_search_web_sources_v1',`
+            }
+          ],
+          related: ["storage-layer", "search-summary"]
+        },
+        {
+          id: "content-research",
+          kind: "feature",
+          feature: "create",
+          flow: "การสร้างคอนเทนต์",
+          step: 1,
+          title: "ค้นคว้าและกันการหลอนข้อมูล",
+          summary: "ก่อนเริ่มเขียน ระบบจะรวมผลจาก Tavily, ทวีตต้นทาง และแหล่งข้อมูลที่แนบมาให้เป็นชุดหลักฐานที่โมเดลอ้างอิงได้อย่างปลอดภัย",
+          why: [
+            "ลดความเสี่ยงเรื่องการหลอนข้อมูลด้วยการยึดขั้นเขียนไว้กับข้อมูลต้นทาง",
+            "รองรับทั้งงานเขียนที่เริ่มจากแหล่งข้อมูลและงานที่เริ่มจากหัวข้อ"
+          ],
+          outputs: ["ได้บริบทงานค้นคว้าที่ทำความสะอาดแล้วและพร้อมใช้กับ prompt"],
+          files: [
+            { label: "Grok Service", path: "D:/TEST/src/services/GrokService.ts" },
+            { label: "Twitter Service", path: "D:/TEST/src/services/TwitterService.ts" }
+          ],
+          snippets: [
+            {
+              label: "Prompt sanitization",
+              path: "src/services/GrokService.ts",
+              code: `const sanitizeForPrompt = (text = '', maxLen = 500) =>
+  String(text || '')
+    .replace(/\`/g, "'")
+    .replace(/\[INST\]/gi, '')
+    .replace(/<<SYS>>/gi, '')
+    .replace(/\[\/INST\]/gi, '')
+    .trim()
+    .slice(0, maxLen);`
+            }
+          ],
+          related: ["content-facts", "grok-service"]
+        },
+        {
+          id: "content-facts",
+          kind: "feature",
+          feature: "create",
+          flow: "การสร้างคอนเทนต์",
+          step: 2,
+          title: "สร้างชีตข้อเท็จจริงและบรีฟ",
+          summary: "หลักฐานดิบจะถูกแปลงเป็นชีตข้อเท็จจริงแบบมีโครงสร้าง ก่อนต่อยอดเป็นบรีฟที่ปรับตามรูปแบบ, น้ำเสียง และความยาวที่ต้องการ",
+          why: [
+            "ช่วยแยกข้อเท็จจริงที่ยืนยันได้, ข้ออ้างที่อ้างอิงจากแหล่งข่าว และกติกาห้ามกล่าวอ้างออกจากกันให้ชัด",
+            "ลดภาระของขั้นเขียนที่ไม่ต้องกลับไปอ่าน source ดิบซ้ำ ๆ"
+          ],
+          outputs: ["ได้ข้อความชีตข้อเท็จจริง", "ได้บรีฟแบบมีโครงสร้างสำหรับ writer model"],
+          files: [{ label: "Grok Service", path: "D:/TEST/src/services/GrokService.ts" }],
+          snippets: [
+            {
+              label: "Fact sheet schema excerpt",
+              path: "src/services/GrokService.ts",
+              code: `schema: z.object({
+  verified_facts: z.array(z.string()),
+  reported_claims: z.array(z.string()),
+  open_questions: z.array(z.string()),
+  community_signal: z.string(),
+  must_not_claim: z.array(z.string()),
+  named_entities: z.array(z.string())
+})`
+            },
+            {
+              label: "Primary-source hardening",
+              path: "src/services/GrokService.ts",
+              code: `const strengthenPrimaryLeadFactSheet = (factSheet = {}, primaryLeadUrl = '') => {
+  const next = { verified_facts: [], reported_claims: [], open_questions: [], community_signal: '', must_not_claim: [], named_entities: [], ...factSheet };
+  next.must_not_claim = dedupeByNormalizedText([
+    ...next.must_not_claim,
+    'Do not claim user impact or delivery status unless the source explicitly confirms it.',
+    primaryLeadUrl ? \`Do not write beyond what is directly supported by \${primaryLeadUrl}\` : 'Do not write beyond what is directly supported by the cited source.',
+  ]);
+  return next;
+};`
+            }
+          ],
+          related: ["content-write", "grok-service"]
+        },
+        {
+          id: "content-write",
+          kind: "feature",
+          feature: "create",
+          flow: "การสร้างคอนเทนต์",
+          step: 3,
+          title: "สตรีมคอนเทนต์ไทยฉบับสุดท้าย",
+          summary: "writer model จะสตรีมร่างภาษาไทยเข้า UI แบบเรียลไทม์ แล้วค่อยรันรอบเกลาและตรวจทานเพิ่มได้เมื่อจำเป็น",
+          why: [
+            "ทำให้ผู้ใช้เห็นความคืบหน้าทันที แทนที่จะต้องรอ draft ทั้งก้อน",
+            "เพิ่ม quality gate ให้ draft ที่ยังอ้างอิงข้อมูลไม่แน่นพอ"
+          ],
+          outputs: ["ได้คอนเทนต์ฉบับสุดท้าย", "ได้ titleIdea สำหรับใช้ต่อใน UI"],
+          files: [
+            { label: "Grok Service", path: "D:/TEST/src/services/GrokService.ts" },
+            { label: "Create Content UI", path: "D:/TEST/src/components/CreateContent.tsx" }
+          ],
+          snippets: [
+            {
+              label: "Streaming content writer",
+              path: "src/services/GrokService.ts",
+              code: `const { textStream } = await streamText({
+  model: grok(MODEL_WRITER),
+  system: draftSystemPrompt,
+  prompt: draftUserPrompt,
+  temperature: writerTemperature,
+  topP: 0.85,
+  frequencyPenalty: writerFrequencyPenalty,
+  presencePenalty: 0.1,
+  abortSignal: options.signal,
+});
+
+for await (const textPart of textStream) {
+  fullContent += textPart;
+  onStreamChunk(fullContent);
+}`
+            }
+          ],
+          related: ["content-facts", "grok-service"]
+        },
+        {
+          id: "audience-discover",
+          kind: "feature",
+          feature: "audience",
+          flow: "การค้นหา audience",
+          step: 1,
+          title: "ให้ Grok หา expert ที่น่าสนใจ",
+          summary: "AudienceWorkspace ใช้การค้นหาแบบขับเคลื่อนด้วยพรอมป์เพื่อขอให้ Grok เสนอผู้เชี่ยวชาญที่น่าติดตามตามหมวดหมู่หรือคำค้นอิสระ",
+          why: [
+            "ช่วยคัดรายชื่อคนที่ควรติดตามโดยไม่ต้องเริ่มจากการค้นมือทั้งหมด",
+            "เหมาะกับกรณีใช้งานเชิง discovery ที่ไม่ได้เน้นการดึงข้อมูลแบบตายตัวเป็นหลัก"
+          ],
+          outputs: ["ได้รายชื่อ expert พร้อม username, name, bio และเหตุผลประกอบ"],
+          files: [
+            { label: "Audience Workspace", path: "D:/TEST/src/components/AudienceWorkspace.tsx" },
+            { label: "Grok Service", path: "D:/TEST/src/services/GrokService.ts" }
+          ],
+          snippets: [
+            {
+              label: "Architecture reference",
+              path: "ARCHITECTURE.md",
+              code: `User selects a category
+  -> AudienceWorkspace calls discoverTopExperts(category)
+    -> Grok generates: "list top Twitter experts in {category}"
+    -> generateObject(ExpertListSchema)
+  -> return { username, name, bio, why }[]`
+            }
+          ],
+          related: ["audience-watchlist", "grok-service"]
+        },
+        {
+          id: "audience-watchlist",
+          kind: "feature",
+          feature: "audience",
+          flow: "การค้นหา audience",
+          step: 2,
+          title: "ดัน expert ที่เลือกเข้า watchlist",
+          summary: "หลังเลือกแล้ว App.tsx จะอัปเดต watchlist และ postLists เพื่อให้ผู้เชี่ยวชาญที่ค้นพบใช้งานต่อกับฟีดและระบบกรองได้ทันที",
+          why: [
+            "ทำให้การค้นหา audience จบที่การบันทึกผล ไม่ใช่แค่เสนอรายชื่อ",
+            "เชื่อมโมดูล audience กลับไปยังหน้า home, read และ bookmark"
+          ],
+          outputs: ["ได้รายการใหม่ใน watchlist", "ได้การผูกเข้าลิสต์เพิ่มเติมถ้ามี"],
+          files: [
+            { label: "App", path: "D:/TEST/src/App.tsx" },
+            { label: "Right Sidebar", path: "D:/TEST/src/components/RightSidebar.tsx" }
+          ],
+          snippets: [
+            {
+              label: "Watchlist persistence",
+              path: "src/App.tsx",
+              code: `const [watchlist, setWatchlist] = usePersistentState(STORAGE_KEYS.watchlist, [], {
+  deserialize: deserializeWatchlist,
+});`
+            }
+          ],
+          related: ["home-refresh-fetch", "lists-create"]
+        },
+        {
+          id: "read-save",
+          kind: "feature",
+          feature: "read",
+          flow: "คลังอ่านทีหลัง",
+          step: 1,
+          title: "บันทึกโพสต์เข้า read archive",
+          summary: "โพสต์สามารถถูกส่งจากฟีดหรือบุ๊กมาร์กเข้า readArchive ได้ทันที และจะถูกบันทึกถาวรทันทีเช่นกัน",
+          why: [
+            "ทำหน้าที่เป็นคลังระยะยาวสำหรับสิ่งที่ผู้ใช้อยากกลับมาอ่านภายหลัง",
+            "ใช้โครงสร้าง Post เดียวกันซ้ำข้ามหลาย surface"
+          ],
+          outputs: ["ได้ state readArchive ที่บันทึกไว้ใน localStorage"],
+          files: [
+            { label: "App", path: "D:/TEST/src/App.tsx" },
+            { label: "Read Workspace", path: "D:/TEST/src/components/ReadWorkspace.tsx" }
+          ],
+          snippets: [
+            {
+              label: "Read archive state",
+              path: "src/App.tsx",
+              code: `const [readArchive, setReadArchive] = usePersistentState(STORAGE_KEYS.readArchive, [], {
+  deserialize: deserializeStoredCollection,
+});`
+            }
+          ],
+          related: ["read-compute", "storage-layer"]
+        },
+        {
+          id: "read-compute",
+          kind: "feature",
+          feature: "read",
+          flow: "คลังอ่านทีหลัง",
+          step: 2,
+          title: "คำนวณตัวกรอง, fuzzy search และ pagination",
+          summary: "useLibraryViews จะคำนวณสถานะต่อยอดของหน้า read สำหรับการกรองตามลิสต์, fuzzy search, การจัดเรียง และ pagination",
+          why: [
+            "ย้าย logic การคำนวณหนักออกจาก UI component",
+            "ใช้ memoization และ set-based lookup เพื่อให้การเรนเดอร์ยังลื่น"
+          ],
+          outputs: ["ได้ readSearchSuggestions, filteredReadArchive และ visibleReadArchive"],
+          files: [{ label: "useLibraryViews", path: "D:/TEST/src/hooks/useLibraryViews.ts" }],
+          snippets: [
+            {
+              label: "Read archive fuzzy ranking",
+              path: "src/hooks/useLibraryViews.ts",
+              code: `const filtered = readArchive
+  .map((item) => ({
+    item,
+    searchScore: normalizedReadSearchQuery
+      ? scoreFuzzyTextMatch(normalizedReadSearchQuery, item?.author?.name, item?.author?.username, item?.summary, item?.text)
+      : 1,
+  }))
+  .filter(({ searchScore }) => searchScore > 0)
+  .sort((left, right) => normalizedReadSearchQuery
+    ? right.searchScore - left.searchScore
+    : new Date(right.item.created_at || 0) - new Date(left.item.created_at || 0))
+  .map(({ item }) => item);`
+            }
+          ],
+          related: ["storage-layer", "lists-filter", "bookmark-filter"]
+        },
+        {
+          id: "bookmark-save",
+          kind: "feature",
+          feature: "bookmark",
+          flow: "การจัดการบุ๊กมาร์ก",
+          step: 1,
+          title: "บันทึกโพสต์จาก FeedCard เป็นบุ๊กมาร์ก",
+          summary: "เมื่อกด bookmark บนรายการในฟีด โพสต์นั้นจะถูกเพิ่มเข้า collection ของบุ๊กมาร์กที่ถูกบันทึกไว้",
+          why: [
+            "สร้างคลังเข้าถึงเร็วที่แยกจาก read archive",
+            "ทำให้โพสต์นำกลับไปใช้ต่อใน flow สร้างคอนเทนต์และอ่านบทความได้"
+          ],
+          outputs: ["ได้ state bookmarks และ bookmarkIds set ที่ถูกบันทึกไว้"],
+          files: [
+            { label: "App", path: "D:/TEST/src/App.tsx" },
+            { label: "FeedCard", path: "D:/TEST/src/components/FeedCard.tsx" }
+          ],
+          snippets: [
+            {
+              label: "Bookmark state",
+              path: "src/App.tsx",
+              code: `const [bookmarks, setBookmarks] = usePersistentState(STORAGE_KEYS.bookmarks, [], {
+  deserialize: deserializeStoredCollection,
+});
+
+const [bookmarkTab, setBookmarkTab] = useState('news');`
+            }
+          ],
+          related: ["bookmark-filter", "storage-layer"]
+        },
+        {
+          id: "bookmark-filter",
+          kind: "feature",
+          feature: "bookmark",
+          flow: "การจัดการบุ๊กมาร์ก",
+          step: 2,
+          title: "กรองตามแท็บและสมาชิกของลิสต์",
+          summary: "ระบบจะกรอง bookmarks ตาม bookmarkTab และ active list membership เพื่อให้ผู้ใช้แยกข่าวออกจากบทความ และจำกัดตามกลุ่มแหล่งที่มาได้",
+          why: [
+            "ใช้แนวคิด derived state แบบเดียวกับ read archive",
+            "รองรับการกรองแบบ list-aware ทั้งกับโพสต์ตรงและรายการที่ผูกกับบทความ"
+          ],
+          outputs: ["ได้ filteredBookmarks ที่ถูกจำกัดตาม type และสมาชิกของลิสต์"],
+          files: [
+            { label: "useLibraryViews", path: "D:/TEST/src/hooks/useLibraryViews.ts" },
+            { label: "Bookmarks Workspace", path: "D:/TEST/src/components/BookmarksWorkspace.tsx" }
+          ],
+          snippets: [
+            {
+              label: "Bookmark filtering",
+              path: "src/hooks/useLibraryViews.ts",
+              code: `const filteredBookmarks = useMemo(() => {
+  return bookmarks.filter((item) => {
+    const isArticle = item?.type === 'article';
+    const matchesTab = bookmarkTab === 'news' ? !isArticle : isArticle;
+    if (!matchesTab) return false;
+    if (!activeReadListMemberSet) return true;
+    return item?.author?.username && activeReadListMemberSet.has(item.author.username.toLowerCase());
+  });
+}, [activeReadListMemberSet, bookmarkTab, bookmarks]);`
+            }
+          ],
+          related: ["read-compute", "lists-filter"]
+        },
+        {
+          id: "lists-create",
+          kind: "feature",
+          feature: "lists",
+          flow: "ลิสต์คัดแยกโพสต์",
+          step: 1,
+          title: "สร้างและจัดการคอลเลกชัน",
+          summary: "RightSidebar เปิดขั้นตอนสำหรับสร้าง, แก้ไข และนำเข้าลิสต์โพสต์ ก่อนที่ App.tsx จะบันทึกคำนิยามของลิสต์ลงใน postLists",
+          why: [
+            "post lists คือแกนหลักของการแบ่งกลุ่มในแอป",
+            "ลิสต์เดียวกันสามารถใช้กรอง home feed, bookmarks และ read archive ได้"
+          ],
+          outputs: ["ได้ collection ของ postLists ที่ถูกบันทึกไว้", "ได้ activeListId สำหรับการกรองข้ามหลาย surface"],
+          files: [
+            { label: "App", path: "D:/TEST/src/App.tsx" },
+            { label: "Right Sidebar", path: "D:/TEST/src/components/RightSidebar.tsx" }
+          ],
+          snippets: [
+            {
+              label: "Post list state",
+              path: "src/App.tsx",
+              code: `const [postLists, setPostLists] = usePersistentState(STORAGE_KEYS.postLists, [], {
+  deserialize: deserializePostLists,
+});
+const [activeListId, setActiveListId] = usePersistentState(STORAGE_KEYS.activeListId, null);`
+            }
+          ],
+          related: ["lists-filter", "storage-layer"]
+        },
+        {
+          id: "lists-filter",
+          kind: "feature",
+          feature: "lists",
+          flow: "ลิสต์คัดแยกโพสต์",
+          step: 2,
+          title: "ใช้ตัวกรองจากคอลเลกชันข้ามหลาย surface",
+          summary: "activeListId จะถูกแปลงเป็นชุด username แล้วนำกลับไปใช้กรองหลายหน้าจอ ต่อด้วยการเช็กสมาชิกแบบ O(1)",
+          why: [
+            "ลดการวนสมาชิกของลิสต์ซ้ำทุกครั้งที่ lookup",
+            "ทำให้คอลเลกชันเดียวส่งผลกับหลาย workspace อย่างสม่ำเสมอ"
+          ],
+          outputs: ["ได้ activeReadListMemberSet", "ได้มุมมอง home, bookmark และ read ที่ผ่านการกรองแล้ว"],
+          files: [
+            { label: "useLibraryViews", path: "D:/TEST/src/hooks/useLibraryViews.ts" },
+            { label: "App", path: "D:/TEST/src/App.tsx" }
+          ],
+          snippets: [
+            {
+              label: "Active list member set",
+              path: "src/hooks/useLibraryViews.ts",
+              code: `const activeReadListMemberSet = useMemo(() => {
+  if (!activeListId) return null;
+  const activeList = postLists.find((list) => list.id === activeListId);
+  if (!activeList) return null;
+  return new Set(
+    (Array.isArray(activeList.members) ? activeList.members : [])
+      .map((member) => member?.toLowerCase())
+      .filter(Boolean),
+  );
+}, [activeListId, postLists]);`
+            }
+          ],
+          related: ["home-refresh-save", "read-compute", "bookmark-filter"]
+        }
+      ];
+
+      const flowGroups = [
+        { id: "db", title: "ชั้นข้อมูลจำลอง", description: "ชั้นเชิงแนวคิดสำหรับคุยเรื่องการเก็บถาวร, รีดโมเดล และการซิงก์ ว่าจะหน้าตาอย่างไรถ้ามีฐานข้อมูลจริง", nodes: ["db-sim-readmodel", "db-sim-sync"] },
+        { id: "home", title: "รีเฟรชฟีดหน้าแรก", description: "ตั้งแต่ดึง watchlist ไปจนถึงสรุปและบันทึกการ์ดฟีดที่พร้อมแสดงผล", nodes: ["home-refresh-fetch", "home-refresh-translate", "home-refresh-save"] },
+        { id: "search", title: "การค้นหาเนื้อหา", description: "ตั้งแต่วิเคราะห์คำค้น ไปจนถึงดึงข้อมูล, จัดอันดับ, เติมบริบทจากเว็บ และบันทึก session การค้นหา", nodes: ["search-intent", "search-fetch", "search-summary", "search-rerank"] },
+        { id: "create", title: "การสร้างคอนเทนต์", description: "ลำดับการทำงานสำหรับเขียนคอนเทนต์ที่ยึดกับแหล่งข้อมูลจริง: การค้นคว้า, ชีตข้อเท็จจริง, บรีฟ และร่างแบบสตรีม", nodes: ["content-research", "content-facts", "content-write"] },
+        { id: "audience", title: "การค้นหา audience", description: "ใช้ AI ช่วยหาผู้เชี่ยวชาญ แล้วเชื่อมผลกลับเข้า watchlist และลิสต์ของระบบ", nodes: ["audience-discover", "audience-watchlist"] },
+        { id: "read", title: "คลังอ่านทีหลัง", description: "ลำดับการทำงานแบบบันทึกก่อน พร้อมการกรอง, fuzzy search และ pagination", nodes: ["read-save", "read-compute"] },
+        { id: "bookmark", title: "การจัดการบุ๊กมาร์ก", description: "คลังเนื้อหาที่บันทึกไว้แยกจาก read archive แต่ใช้แนวคิดการกรองร่วมกัน", nodes: ["bookmark-save", "bookmark-filter"] },
+        { id: "lists", title: "ลิสต์คัดแยกโพสต์", description: "ชุดคอลเลกชันที่ใช้แบ่งกลุ่มคนและคอนเทนต์ให้สอดคล้องกันหลายหน้าจอ", nodes: ["lists-create", "lists-filter"] }
+      ];
+
+      const overviewRows = [
+        { label: "Browser", nodes: ["browser-root"] },
+        { label: "Security", nodes: ["api-fetch"] },
+        { label: "Server", nodes: ["proxy-server"] },
+        { label: "Services", nodes: ["twitter-service", "grok-service", "storage-layer"] },
+        { label: "Conceptual DB", nodes: ["db-sim-store"] }
+      ];
+
+      const nodesById = new Map(nodes.map((node) => [node.id, node]));
+      const overviewMap = document.getElementById("overviewMap");
+      const featureFlows = document.getElementById("featureFlows");
+      const inspector = document.getElementById("inspector");
+      const featureTabs = document.getElementById("featureTabs");
+      const searchInput = document.getElementById("searchInput");
+      const openArchitectureDoc = document.getElementById("openArchitectureDoc");
+      const closeArchitectureDoc = document.getElementById("closeArchitectureDoc");
+      const copyArchitectureDoc = document.getElementById("copyArchitectureDoc");
+      const docOverlay = document.getElementById("docOverlay");
+      const docStatus = document.getElementById("docStatus");
+      const docContent = document.getElementById("docContent");
+      const architectureMarkdownData = document.getElementById("architectureMarkdownData");
+      const chips = Array.from(document.querySelectorAll(".chip"));
+
+      let activeNodeId = "browser-root";
+      let activeFeatureId = "all";
+      let activeFilterKind = "all";
+      let query = "";
+      let architectureDocLoaded = false;
+      let architectureDocText = "";
+      const featureLabelById = new Map(features.map((feature) => [feature.id, feature.label]));
+
+      const uiText = {
+        heroTitle: "\u0e41\u0e1c\u0e19\u0e20\u0e32\u0e1e developer flow \u0e17\u0e35\u0e48\u0e2d\u0e48\u0e32\u0e19\u0e07\u0e48\u0e32\u0e22 \u0e41\u0e25\u0e30\u0e44\u0e25\u0e48\u0e25\u0e07\u0e44\u0e1b\u0e16\u0e36\u0e07\u0e42\u0e04\u0e49\u0e14\u0e44\u0e14\u0e49\u0e17\u0e38\u0e01\u0e08\u0e38\u0e14",
+        heroBody: "\u0e2b\u0e19\u0e49\u0e32\u0e40\u0e14\u0e35\u0e22\u0e27\u0e19\u0e35\u0e49\u0e2d\u0e18\u0e34\u0e1a\u0e32\u0e22 Foro \u0e15\u0e31\u0e49\u0e07\u0e41\u0e15\u0e48\u0e0a\u0e31\u0e49\u0e19 browser, proxy, service logic, AI enrichment \u0e44\u0e1b\u0e08\u0e19\u0e16\u0e36\u0e07\u0e0a\u0e31\u0e49\u0e19\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e08\u0e33\u0e25\u0e2d\u0e07 \u0e41\u0e1a\u0e1a\u0e17\u0e35\u0e48\u0e2d\u0e2d\u0e01\u0e41\u0e1a\u0e1a\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e43\u0e2b\u0e49 dev \u0e43\u0e0a\u0e49\u0e15\u0e48\u0e2d\u0e23\u0e30\u0e2b\u0e27\u0e48\u0e32\u0e07 handoff \u0e44\u0e14\u0e49\u0e07\u0e48\u0e32\u0e22: \u0e40\u0e2b\u0e47\u0e19\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21\u0e01\u0e48\u0e2d\u0e19 \u0e41\u0e25\u0e49\u0e27\u0e04\u0e48\u0e2d\u0e22\u0e01\u0e14\u0e25\u0e07\u0e44\u0e1b\u0e14\u0e39\u0e44\u0e1f\u0e25\u0e4c, snippet \u0e41\u0e25\u0e30\u0e08\u0e38\u0e14\u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e02\u0e2d\u0e07 flow \u0e44\u0e14\u0e49\u0e17\u0e31\u0e19\u0e17\u0e35",
+        jumpMap: "\u0e44\u0e1b\u0e17\u0e35\u0e48 Map",
+        jumpFlows: "\u0e44\u0e1b\u0e17\u0e35\u0e48 Flows",
+        stats: [
+          "\u0e0a\u0e31\u0e49\u0e19\u0e2b\u0e25\u0e31\u0e01\u0e15\u0e31\u0e49\u0e07\u0e41\u0e15\u0e48 React UI \u0e44\u0e1b\u0e08\u0e19\u0e16\u0e36\u0e07 proxy routing, service logic, persistence \u0e41\u0e25\u0e30 AI orchestration",
+          "\u0e40\u0e2a\u0e49\u0e19\u0e17\u0e32\u0e07\u0e01\u0e32\u0e23\u0e17\u0e33\u0e07\u0e32\u0e19\u0e02\u0e2d\u0e07\u0e1f\u0e35\u0e40\u0e08\u0e2d\u0e23\u0e4c\u0e2b\u0e25\u0e31\u0e01 \u0e04\u0e23\u0e2d\u0e1a\u0e04\u0e25\u0e38\u0e21\u0e1f\u0e35\u0e14, \u0e01\u0e32\u0e23\u0e04\u0e49\u0e19\u0e2b\u0e32, \u0e01\u0e32\u0e23\u0e2a\u0e23\u0e49\u0e32\u0e07\u0e04\u0e2d\u0e19\u0e40\u0e17\u0e19\u0e15\u0e4c, audience, \u0e04\u0e25\u0e31\u0e07\u0e2d\u0e48\u0e32\u0e19, \u0e1a\u0e38\u0e4a\u0e01\u0e21\u0e32\u0e23\u0e4c\u0e01 \u0e41\u0e25\u0e30\u0e25\u0e34\u0e2a\u0e15\u0e4c",
+          "node \u0e41\u0e1a\u0e1a\u0e01\u0e14\u0e14\u0e39\u0e15\u0e48\u0e2d\u0e44\u0e14\u0e49 \u0e1e\u0e23\u0e49\u0e2d\u0e21\u0e42\u0e04\u0e49\u0e14\u0e15\u0e31\u0e27\u0e2d\u0e22\u0e48\u0e32\u0e07, path \u0e02\u0e2d\u0e07\u0e44\u0e1f\u0e25\u0e4c, \u0e0a\u0e31\u0e49\u0e19\u0e2a\u0e16\u0e32\u0e1b\u0e31\u0e15\u0e22\u0e01\u0e23\u0e23\u0e21 \u0e41\u0e25\u0e30\u0e08\u0e38\u0e14\u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21 implementation",
+          "\u0e44\u0e1f\u0e25\u0e4c\u0e40\u0e14\u0e35\u0e48\u0e22\u0e27\u0e41\u0e1a\u0e1a standalone \u0e2a\u0e48\u0e07\u0e15\u0e48\u0e2d\u0e43\u0e2b\u0e49\u0e17\u0e35\u0e21\u0e14\u0e39\u0e44\u0e14\u0e49\u0e17\u0e31\u0e19\u0e17\u0e35 \u0e42\u0e14\u0e22\u0e44\u0e21\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e23\u0e31\u0e19 server"
+        ],
+        overviewTitle: "\u0e41\u0e1c\u0e19\u0e20\u0e32\u0e1e\u0e2a\u0e16\u0e32\u0e1b\u0e31\u0e15\u0e22\u0e01\u0e23\u0e23\u0e21",
+        overviewBody: "\u0e01\u0e14\u0e41\u0e15\u0e48\u0e25\u0e30 node \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e14\u0e39\u0e04\u0e33\u0e2d\u0e18\u0e34\u0e1a\u0e32\u0e22, \u0e42\u0e04\u0e49\u0e14\u0e15\u0e31\u0e27\u0e2d\u0e22\u0e48\u0e32\u0e07, \u0e44\u0e1f\u0e25\u0e4c\u0e17\u0e35\u0e48\u0e40\u0e01\u0e35\u0e48\u0e22\u0e27\u0e02\u0e49\u0e2d\u0e07 \u0e41\u0e25\u0e30\u0e08\u0e38\u0e14\u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e15\u0e48\u0e2d\u0e01\u0e31\u0e1a\u0e2a\u0e48\u0e27\u0e19\u0e2d\u0e37\u0e48\u0e19\u0e02\u0e2d\u0e07\u0e23\u0e30\u0e1a\u0e1a",
+        chips: ["\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14", "\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21", "\u0e1f\u0e35\u0e40\u0e08\u0e2d\u0e23\u0e4c"],
+        searchPlaceholder: "\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e08\u0e32\u0e01\u0e0a\u0e37\u0e48\u0e2d node, path \u0e44\u0e1f\u0e25\u0e4c, \u0e1f\u0e35\u0e40\u0e08\u0e2d\u0e23\u0e4c \u0e2b\u0e23\u0e37\u0e2d\u0e04\u0e35\u0e22\u0e4c\u0e40\u0e27\u0e34\u0e23\u0e4c\u0e14...",
+        legend: ["node \u0e23\u0e30\u0e14\u0e31\u0e1a\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21", "\u0e25\u0e33\u0e14\u0e31\u0e1a\u0e02\u0e31\u0e49\u0e19\u0e02\u0e2d\u0e07 flow"],
+        featuresTitle: "\u0e25\u0e33\u0e14\u0e31\u0e1a\u0e01\u0e32\u0e23\u0e17\u0e33\u0e07\u0e32\u0e19\u0e02\u0e2d\u0e07\u0e1f\u0e35\u0e40\u0e08\u0e2d\u0e23\u0e4c",
+        featuresBody: "\u0e41\u0e15\u0e48\u0e25\u0e30 flow \u0e40\u0e23\u0e35\u0e22\u0e07\u0e15\u0e32\u0e21 runtime \u0e08\u0e23\u0e34\u0e07 \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e43\u0e2b\u0e49\u0e40\u0e2b\u0e47\u0e19\u0e0a\u0e31\u0e14\u0e27\u0e48\u0e32 state, services, proxy, AI \u0e41\u0e25\u0e30\u0e0a\u0e31\u0e49\u0e19\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25 \u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e01\u0e31\u0e19\u0e15\u0e23\u0e07\u0e44\u0e2b\u0e19\u0e1a\u0e49\u0e32\u0e07",
+        footer: "\u0e27\u0e34\u0e18\u0e35\u0e44\u0e25\u0e48\u0e14\u0e39\u0e17\u0e35\u0e48\u0e41\u0e19\u0e30\u0e19\u0e33: \u0e40\u0e23\u0e34\u0e48\u0e21\u0e08\u0e32\u0e01\u0e41\u0e1c\u0e19\u0e20\u0e32\u0e1e\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e40\u0e2b\u0e47\u0e19\u0e02\u0e2d\u0e1a\u0e40\u0e02\u0e15\u0e41\u0e15\u0e48\u0e25\u0e30 layer \u0e41\u0e25\u0e49\u0e27\u0e04\u0e48\u0e2d\u0e22\u0e25\u0e07\u0e44\u0e1b\u0e43\u0e19 feature flow \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e14\u0e39 execution order \u0e01\u0e48\u0e2d\u0e19\u0e40\u0e1b\u0e34\u0e14 inspector \u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e44\u0e25\u0e48\u0e42\u0e04\u0e49\u0e14\u0e41\u0e25\u0e30\u0e44\u0e1f\u0e25\u0e4c\u0e15\u0e48\u0e2d",
+        panelTitle: "\u0e15\u0e31\u0e27\u0e15\u0e23\u0e27\u0e08\u0e23\u0e32\u0e22\u0e25\u0e30\u0e40\u0e2d\u0e35\u0e22\u0e14",
+        panelSubtitle: "node \u0e17\u0e35\u0e48\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e08\u0e30\u0e16\u0e39\u0e01\u0e02\u0e22\u0e32\u0e22\u0e15\u0e23\u0e07\u0e19\u0e35\u0e49 \u0e1e\u0e23\u0e49\u0e2d\u0e21\u0e42\u0e04\u0e49\u0e14\u0e15\u0e31\u0e27\u0e2d\u0e22\u0e48\u0e32\u0e07, path \u0e02\u0e2d\u0e07\u0e44\u0e1f\u0e25\u0e4c \u0e41\u0e25\u0e30\u0e08\u0e38\u0e14\u0e17\u0e35\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e15\u0e32\u0e21\u0e15\u0e48\u0e2d\u0e43\u0e19 implementation",
+        docIntro: "\u0e40\u0e2d\u0e01\u0e2a\u0e32\u0e23\u0e15\u0e49\u0e19\u0e09\u0e1a\u0e31\u0e1a\u0e16\u0e39\u0e01\u0e1d\u0e31\u0e07\u0e44\u0e27\u0e49\u0e43\u0e19 HTML \u0e44\u0e1f\u0e25\u0e4c\u0e19\u0e35\u0e49\u0e41\u0e25\u0e49\u0e27 \u0e40\u0e1b\u0e34\u0e14\u0e2d\u0e48\u0e32\u0e19\u0e04\u0e39\u0e48\u0e01\u0e31\u0e1a blueprint \u0e44\u0e14\u0e49\u0e17\u0e31\u0e19\u0e17\u0e35\u0e41\u0e21\u0e49\u0e2a\u0e48\u0e07\u0e40\u0e1b\u0e47\u0e19\u0e44\u0e1f\u0e25\u0e4c\u0e40\u0e14\u0e35\u0e48\u0e22\u0e27",
+        copyMarkdown: "\u0e04\u0e31\u0e14\u0e25\u0e2d\u0e01 Markdown",
+        close: "\u0e1b\u0e34\u0e14",
+        docEmbedded: "\u0e1d\u0e31\u0e07\u0e2d\u0e22\u0e39\u0e48\u0e43\u0e19 HTML \u0e44\u0e1f\u0e25\u0e4c\u0e19\u0e35\u0e49",
+        docPreparing: "\u0e01\u0e33\u0e25\u0e31\u0e07\u0e40\u0e15\u0e23\u0e35\u0e22\u0e21\u0e40\u0e2d\u0e01\u0e2a\u0e32\u0e23...",
+        emptyState: "\u0e44\u0e21\u0e48\u0e1e\u0e1a node \u0e17\u0e35\u0e48\u0e15\u0e23\u0e07\u0e01\u0e31\u0e1a filter \u0e1b\u0e31\u0e08\u0e08\u0e38\u0e1a\u0e31\u0e19",
+        noMatch: "\u0e44\u0e21\u0e48\u0e21\u0e35 node \u0e17\u0e35\u0e48\u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e15\u0e48\u0e2d\u0e44\u0e27\u0e49",
+        steps: "\u0e02\u0e31\u0e49\u0e19",
+        openInVsCode: "\u0e40\u0e1b\u0e34\u0e14\u0e43\u0e19 VS Code",
+        copyPath: "\u0e04\u0e31\u0e14\u0e25\u0e2d\u0e01 path",
+        overviewNode: "\u0e42\u0e2b\u0e19\u0e14\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21",
+        featureStep: "\u0e02\u0e31\u0e49\u0e19\u0e15\u0e2d\u0e19\u0e02\u0e2d\u0e07\u0e1f\u0e35\u0e40\u0e08\u0e2d\u0e23\u0e4c",
+        simulated: "\u0e40\u0e1b\u0e47\u0e19\u0e0a\u0e31\u0e49\u0e19\u0e08\u0e33\u0e25\u0e2d\u0e07 \u00b7 \u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e44\u0e14\u0e49\u0e25\u0e07\u0e21\u0e37\u0e2d\u0e17\u0e33\u0e43\u0e19 repo",
+        why: "\u0e40\u0e2b\u0e15\u0e38\u0e1c\u0e25\u0e17\u0e35\u0e48\u0e2a\u0e48\u0e27\u0e19\u0e19\u0e35\u0e49\u0e21\u0e35\u0e2d\u0e22\u0e39\u0e48",
+        outputs: "\u0e1c\u0e25\u0e25\u0e31\u0e1e\u0e18\u0e4c / state \u0e17\u0e35\u0e48\u0e44\u0e14\u0e49",
+        files: "\u0e44\u0e1f\u0e25\u0e4c\u0e17\u0e35\u0e48\u0e04\u0e27\u0e23\u0e15\u0e32\u0e21\u0e15\u0e48\u0e2d",
+        snippets: "\u0e42\u0e04\u0e49\u0e14\u0e15\u0e31\u0e27\u0e2d\u0e22\u0e48\u0e32\u0e07",
+        related: "node \u0e17\u0e35\u0e48\u0e40\u0e01\u0e35\u0e48\u0e22\u0e27\u0e02\u0e49\u0e2d\u0e07",
+        copyCode: "\u0e04\u0e31\u0e14\u0e25\u0e2d\u0e01\u0e42\u0e04\u0e49\u0e14",
+        copied: "\u0e04\u0e31\u0e14\u0e25\u0e2d\u0e01\u0e41\u0e25\u0e49\u0e27",
+        copyFailed: "\u0e04\u0e31\u0e14\u0e25\u0e2d\u0e01\u0e44\u0e21\u0e48\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08"
+      };
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      function localizeStaticChrome() {
+        const heroTitle = document.querySelector(".hero-top h1");
+        const heroBody = document.querySelector(".hero-top p");
+        const heroLinks = document.querySelectorAll(".hero-top .file-actions .file-link");
+        const stats = document.querySelectorAll(".hero-stats .stat span");
+        const surfaceHeads = document.querySelectorAll("main.surface > .surface-head");
+        const legendItems = document.querySelectorAll(".legend span");
+        const panelTitle = document.querySelector(".panel-title");
+        const panelSubtitle = document.querySelector(".panel-subtitle");
+        const docIntro = document.querySelector(".doc-head p");
+        const footer = document.querySelector(".footer-note");
+
+        if (heroTitle) heroTitle.textContent = uiText.heroTitle;
+        if (heroBody) heroBody.textContent = uiText.heroBody;
+        if (heroLinks[0]) heroLinks[0].textContent = uiText.jumpMap;
+        if (heroLinks[1]) heroLinks[1].textContent = uiText.jumpFlows;
+        stats.forEach((item, index) => {
+          if (uiText.stats[index]) item.textContent = uiText.stats[index];
+        });
+
+        if (surfaceHeads[0]) {
+          const title = surfaceHeads[0].querySelector("h2");
+          const body = surfaceHeads[0].querySelector("p");
+          if (title) title.textContent = uiText.overviewTitle;
+          if (body) body.textContent = uiText.overviewBody;
+        }
+        if (surfaceHeads[1]) {
+          const title = surfaceHeads[1].querySelector("h2");
+          const body = surfaceHeads[1].querySelector("p");
+          if (title) title.textContent = uiText.featuresTitle;
+          if (body) body.textContent = uiText.featuresBody;
+        }
+
+        chips.forEach((chip, index) => {
+          if (uiText.chips[index]) chip.textContent = uiText.chips[index];
+        });
+        searchInput.placeholder = uiText.searchPlaceholder;
+        legendItems.forEach((item, index) => {
+          if (uiText.legend[index]) item.textContent = uiText.legend[index];
+        });
+        if (footer) footer.textContent = uiText.footer;
+        if (panelTitle) panelTitle.textContent = uiText.panelTitle;
+        if (panelSubtitle) panelSubtitle.textContent = uiText.panelSubtitle;
+        if (docIntro) docIntro.textContent = uiText.docIntro;
+        copyArchitectureDoc.textContent = uiText.copyMarkdown;
+        closeArchitectureDoc.textContent = uiText.close;
+        docStatus.textContent = uiText.docEmbedded;
+        docContent.textContent = uiText.docPreparing;
+      }
+
+      function buildTabs() {
+        features.forEach((feature) => {
+          const button = document.createElement("button");
+          button.className = `feature-tab${feature.id === "all" ? " is-active" : ""}`;
+          button.dataset.feature = feature.id;
+          button.textContent = feature.label;
+          button.addEventListener("click", () => {
+            activeFeatureId = feature.id;
+            document.querySelectorAll(".feature-tab").forEach((tab) => tab.classList.toggle("is-active", tab.dataset.feature === feature.id));
+            render();
+          });
+          featureTabs.appendChild(button);
+        });
+      }
+
+      function matchNode(node) {
+        const featureMatch = activeFeatureId === "all" || node.feature === activeFeatureId || (activeFeatureId === "overview" && node.kind === "overview");
+        const kindMatch = activeFilterKind === "all" || node.kind === activeFilterKind;
+        const haystack = [
+          node.title,
+          node.summary,
+          node.layer,
+          node.flow,
+          node.feature,
+          ...(node.files || []).map((file) => file.path),
+          ...(node.why || []),
+          ...(node.outputs || [])
+        ].join(" ").toLowerCase();
+        const searchMatch = !query || haystack.includes(query);
+        return featureMatch && kindMatch && searchMatch;
+      }
+
+      function createNodeCard(node) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `${node.kind === "overview" ? "node" : "flow-step"}${node.id === activeNodeId ? " is-active" : ""}${node.simulated ? " is-simulated" : ""}`;
+        button.dataset.nodeId = node.id;
+        button.innerHTML = `
+          ${node.simulated ? `<div class="sim-badge">Simulated Layer</div>` : ""}
+          ${node.step ? `<span class="step-index">${node.step}</span>` : ""}
+          <small>${node.layer || node.flow || "Flow Node"}</small>
+          <h3>${node.title}</h3>
+          <p>${node.summary}</p>
+        `;
+        button.addEventListener("click", () => {
+          activeNodeId = node.id;
+          render();
+        });
+        return button;
+      }
+
+      function renderOverview() {
+        overviewMap.innerHTML = "";
+        overviewRows.forEach((row) => {
+          const rowEl = document.createElement("div");
+          rowEl.className = "layer-row";
+          const label = document.createElement("div");
+          label.className = "layer-label";
+          label.textContent = row.label;
+          rowEl.appendChild(label);
+
+          const visibleNodes = row.nodes.map((nodeId) => nodesById.get(nodeId)).filter((node) => node && matchNode(node));
+          const grid = document.createElement("div");
+          grid.className = "layer-grid";
+          if (!visibleNodes.length) {
+            const empty = document.createElement("div");
+            empty.className = "empty-state";
+            empty.textContent = uiText.emptyState;
+            grid.appendChild(empty);
+          } else {
+            visibleNodes.forEach((node) => grid.appendChild(createNodeCard(node)));
+          }
+          rowEl.appendChild(grid);
+          overviewMap.appendChild(rowEl);
+        });
+      }
+
+      function renderFlows() {
+        featureFlows.innerHTML = "";
+        flowGroups
+          .filter((group) => activeFeatureId === "all" || activeFeatureId === group.id)
+          .forEach((group) => {
+            const visibleNodes = group.nodes.map((id) => nodesById.get(id)).filter((node) => node && matchNode(node));
+            if (!visibleNodes.length) return;
+
+            const card = document.createElement("section");
+            card.className = "flow-card";
+            card.innerHTML = `
+              <div class="flow-head">
+                <div>
+                  <h3>${group.title}</h3>
+                  <p>${group.description}</p>
+                </div>
+                <button class="mini-chip${activeFeatureId === group.id ? " is-active" : ""}" data-jump="${group.id}">${visibleNodes.length} ${uiText.steps}</button>
+              </div>
+            `;
+            const track = document.createElement("div");
+            track.className = "flow-track";
+            visibleNodes.forEach((node) => track.appendChild(createNodeCard(node)));
+            card.appendChild(track);
+            featureFlows.appendChild(card);
+          });
+
+        document.querySelectorAll("[data-jump]").forEach((button) => {
+          button.addEventListener("click", () => {
+            activeFeatureId = button.dataset.jump;
+            document.querySelectorAll(".feature-tab").forEach((tab) => tab.classList.toggle("is-active", tab.dataset.feature === activeFeatureId));
+            render();
+          });
+        });
+      }
+
+      function buildFileActions(file) {
+        const href = `vscode://file/${file.path.replace(/\\/g, "/")}`;
+        return `
+          <div class="file-actions">
+            <a class="file-link" href="${href}">${uiText.openInVsCode}</a>
+            <button class="code-action" data-copy="${file.path}">${uiText.copyPath}</button>
+          </div>
+        `;
+      }
+
+      function renderInspector() {
+        const node = nodesById.get(activeNodeId) || nodes.find(matchNode) || nodes[0];
+        if (!node) {
+          inspector.innerHTML = `<div class="empty-state">${uiText.emptyState}</div>`;
+          return;
+        }
+        activeNodeId = node.id;
+        const related = (node.related || [])
+          .map((id) => nodesById.get(id))
+          .filter(Boolean)
+          .map((item) => `<button class="flow-jump" data-node-jump="${item.id}">${item.title}</button>`)
+          .join("");
+
+        inspector.innerHTML = `
+          <div class="inspector-kicker">${node.kind === "overview" ? "โหนดภาพรวม" : "ขั้นตอนของฟีเจอร์"} · ${node.feature}</div>
+          ${node.simulated ? `<div class="sim-badge">เป็นสถาปัตยกรรมจำลอง · ยังไม่ได้ implement ใน repo</div>` : ""}
+          <h3>${node.title}</h3>
+          <p>${node.summary}</p>
+
+          <div class="detail-block">
+            <h4>เหตุผลที่ส่วนนี้มีอยู่</h4>
+            <div class="detail-list">
+              ${(node.why || []).map((item) => `<div class="detail-item"><div>${item}</div></div>`).join("")}
+            </div>
+          </div>
+
+          <div class="detail-block">
+            <h4>ผลลัพธ์ / state ที่ได้</h4>
+            <div class="detail-list">
+              ${(node.outputs || []).map((item) => `<div class="detail-item"><div>${item}</div></div>`).join("")}
+            </div>
+          </div>
+
+          <div class="detail-block">
+            <h4>ไฟล์ที่ควรตามต่อ</h4>
+            <div class="file-grid">
+              ${(node.files || []).map((file) => `
+                <div class="file-entry">
+                  <strong>${file.label}</strong>
+                  <code>${file.path}</code>
+                  ${buildFileActions(file)}
+                </div>
+              `).join("")}
+            </div>
+          </div>
+
+          <div class="detail-block">
+            <h4>โค้ดตัวอย่าง</h4>
+            <div class="snippets">
+              ${(node.snippets || []).map((snippet) => `
+                <div class="snippet">
+                  <div class="snippet-head">
+                    <div>
+                      <strong>${snippet.label}</strong>
+                      <span>${snippet.path}</span>
+                    </div>
+                    <button class="code-action" data-copy="${snippet.code.replace(/"/g, "&quot;")}">คัดลอกโค้ด</button>
+                  </div>
+                  <pre><code>${escapeHtml(snippet.code)}</code></pre>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+
+          <div class="detail-block">
+            <h4>node ที่เกี่ยวข้อง</h4>
+            <div class="related-grid">${related || "<span class='mono'>ไม่มี node ที่เชื่อมต่อไว้</span>"}</div>
+          </div>
+        `;
+
+        const kicker = inspector.querySelector(".inspector-kicker");
+        const simBadge = inspector.querySelector(".sim-badge");
+        const sectionTitles = inspector.querySelectorAll("h4");
+        const copyButtons = inspector.querySelectorAll(".snippet .code-action");
+        const relatedFallback = inspector.querySelector(".related-grid .mono");
+
+        if (kicker) kicker.textContent = `${node.kind === "overview" ? uiText.overviewNode : uiText.featureStep} · ${featureLabelById.get(node.feature) || node.feature}`;
+        if (simBadge) simBadge.textContent = uiText.simulated;
+        if (sectionTitles[0]) sectionTitles[0].textContent = uiText.why;
+        if (sectionTitles[1]) sectionTitles[1].textContent = uiText.outputs;
+        if (sectionTitles[2]) sectionTitles[2].textContent = uiText.files;
+        if (sectionTitles[3]) sectionTitles[3].textContent = uiText.snippets;
+        if (sectionTitles[4]) sectionTitles[4].textContent = uiText.related;
+        copyButtons.forEach((button) => {
+          button.textContent = uiText.copyCode;
+        });
+        if (relatedFallback) relatedFallback.textContent = uiText.noMatch;
+
+        inspector.querySelectorAll("[data-node-jump]").forEach((button) => {
+          button.addEventListener("click", () => {
+            activeNodeId = button.dataset.nodeJump;
+            render();
+          });
+        });
+
+        inspector.querySelectorAll("[data-copy]").forEach((button) => {
+          button.addEventListener("click", async () => {
+            try {
+              await navigator.clipboard.writeText(button.dataset.copy);
+              const original = button.textContent;
+              button.textContent = uiText.copied;
+              setTimeout(() => { button.textContent = original; }, 1200);
+            } catch {
+              button.textContent = uiText.copyFailed;
+            }
+          });
+        });
+      }
+
+      function render() {
+        chips.forEach((chip) => chip.classList.toggle("is-active", chip.dataset.filter === activeFilterKind));
+        if (!nodesById.has(activeNodeId) || !matchNode(nodesById.get(activeNodeId))) {
+          const fallback = nodes.find(matchNode);
+          if (fallback) activeNodeId = fallback.id;
+        }
+        renderOverview();
+        renderFlows();
+        renderInspector();
+      }
+
+      async function loadArchitectureDoc() {
+        if (architectureDocLoaded) return;
+        const embeddedBase64 = architectureMarkdownData?.textContent?.trim();
+        if (embeddedBase64 && embeddedBase64 !== "__ARCHITECTURE_MD_BASE64__") {
+          architectureDocText = decodeURIComponent(escape(atob(embeddedBase64)));
+          docContent.textContent = architectureDocText;
+          docStatus.textContent = "\u0e1d\u0e31\u0e07\u0e2d\u0e22\u0e39\u0e48\u0e43\u0e19 HTML \u0e44\u0e1f\u0e25\u0e4c\u0e19\u0e35\u0e49";
+          architectureDocLoaded = true;
+          return;
+        }
+        docContent.textContent = "\u0e44\u0e21\u0e48\u0e1e\u0e1a ARCHITECTURE.md \u0e17\u0e35\u0e48\u0e1d\u0e31\u0e07\u0e2d\u0e22\u0e39\u0e48\u0e43\u0e19\u0e44\u0e1f\u0e25\u0e4c\u0e19\u0e35\u0e49";
+        docStatus.textContent = "\u0e44\u0e21\u0e48\u0e1e\u0e1a\u0e40\u0e2d\u0e01\u0e2a\u0e32\u0e23\u0e17\u0e35\u0e48\u0e1d\u0e31\u0e07\u0e44\u0e27\u0e49";
+      }
+
+      function openDocPanel() {
+        docOverlay.classList.add("is-open");
+        docOverlay.setAttribute("aria-hidden", "false");
+        loadArchitectureDoc();
+      }
+
+      function closeDocPanel() {
+        docOverlay.classList.remove("is-open");
+        docOverlay.setAttribute("aria-hidden", "true");
+      }
+
+      chips.forEach((chip) => {
+        chip.addEventListener("click", () => {
+          activeFilterKind = chip.dataset.filter;
+          render();
+        });
+      });
+
+      searchInput.addEventListener("input", (event) => {
+        query = event.target.value.trim().toLowerCase();
+        render();
+      });
+
+      openArchitectureDoc.addEventListener("click", openDocPanel);
+      closeArchitectureDoc.addEventListener("click", closeDocPanel);
+      copyArchitectureDoc.addEventListener("click", async () => {
+        if (!architectureDocLoaded) {
+          await loadArchitectureDoc();
+        }
+        try {
+          await navigator.clipboard.writeText(architectureDocText || docContent.textContent || "");
+          const original = copyArchitectureDoc.textContent;
+          copyArchitectureDoc.textContent = uiText.copied;
+          setTimeout(() => { copyArchitectureDoc.textContent = original; }, 1200);
+        } catch {
+          copyArchitectureDoc.textContent = uiText.copyFailed;
+          setTimeout(() => { copyArchitectureDoc.textContent = uiText.copyMarkdown; }, 1200);
+        }
+      });
+      docOverlay.addEventListener("click", (event) => {
+        if (event.target === docOverlay) closeDocPanel();
+      });
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && docOverlay.classList.contains("is-open")) {
+          closeDocPanel();
+        }
+      });
+
+      localizeStaticChrome();
+      buildTabs();
+      render();
+    </script>
+  </body>
+</html>
+
+
+
