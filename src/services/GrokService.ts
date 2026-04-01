@@ -469,47 +469,105 @@ const CONTENT_FORMAT_PROFILES = {
     allowHeadings: false,
     allowCta: false,
     boldHeadline: false,
-    structure: 'เขียนเป็นโพสต์สั้นหรือโพสต์ยาวตามเนื้อหาได้อย่างยืดหยุ่น จะเป็นย่อหน้าเดียว 2-3 ย่อหน้า หรือเปิดด้วยบรรทัดนำสั้นๆ ก็ได้ ถ้าเรื่องสั้นมากไม่ต้องฝืนแตกหลายย่อหน้า',
-    goals: 'ให้เหมือนคนไทยเขียนเล่าเรื่องหรือสรุปข่าวจริงๆ เปิดตรงประเด็น ไม่ต้องทำ headline ถ้าไม่ช่วยให้อ่านดีขึ้น หลีกเลี่ยงจังหวะประโยคแบบคอนเทนต์สำเร็จรูปหรือประโยคปิดที่ฝืนให้ดูคม',
-    skill: 'น้ำเสียงธรรมชาติ ชัด และเชื่อถือได้ เหมือนคนที่เข้าใจเรื่องนี้กำลังอธิบายให้ฟัง ไม่ต้องเล่นบทนักเขียนคอนเทนต์',
+    structure: 'ความยาวยืดหยุ่นตามเนื้อหา — ย่อหน้าเดียว, 2-3 ย่อหน้า, หรือเปิดด้วยบรรทัดนำก็ได้ ถ้าเรื่องสั้นมากไม่ต้องฝืนแตก ห้ามขึ้นต้นด้วย "ในยุคที่...", "ปฏิเสธไม่ได้ว่า...", "เชื่อหรือไม่...", หรือประโยค context-setting ที่ไม่จำเป็น ประโยคแรกต้องเป็นประเด็นหลักทันที',
+    goals: 'เขียนเหมือนคนไทยที่เข้าใจเรื่องกำลังเล่าให้ฟัง ไม่ใช่ AI กำลัง summarize ข่าว เปิดตรงประเด็น เนื้อหาเดินหน้าด้วยข้อมูลที่เฉพาะเจาะจง ไม่ใช่ adjective ทั่วๆ ไป หลีกเลี่ยงโครงสร้างประโยคซ้ำๆ และประโยคปิดที่ฝืนให้ดูคม',
+    skill: 'ทดสอบด้วยคำถาม: "คนที่ scroll ผ่านจะหยุดอ่านไหม?" — ถ้าประโยคแรกไม่ตอบ yes ให้เขียนใหม่ ตัวเลขและชื่อเฉพาะ เป็น hook ที่ดีกว่าคำโฆษณา ความ specific เสมอดีกว่าความ general',
   },
   'สคริปต์วิดีโอสั้น': {
     label: 'short-form video script',
     allowHeadings: false,
     allowCta: false,
     boldHeadline: true,
-    structure: 'เริ่มด้วย **[ชื่อเรื่อง/hook line]** หนึ่งบรรทัด แล้วแบ่งเป็น 3 ส่วน: [HOOK 3-5 วินาที] → [เนื้อหาหลัก] → [ปิดจบ] ประโยคละไม่เกิน 12-15 คำ มีจังหวะหายใจ ไม่ใช้ markdown heading',
-    goals: 'เขียนให้ฟังเหมือนคนพูดจริงๆ ไม่ใช่อ่านบทความ ใช้คำลงท้ายพูด (ครับ/นะ/น้า) เพื่อจังหวะธรรมชาติ hook ต้องดึงความสนใจใน 3 วินาทีแรก',
-    skill: 'สคริปต์ที่ใช้ได้จริงในวิดีโอ TikTok/Shorts — ฟังแล้วไม่รู้สึกว่ากำลังอ่านอยู่ มีพลังงานและจังหวะที่ดี ประโยคสั้นกว่าการเขียนปกติ',
+    structure: 'เริ่มด้วย **[Hook Line]** หนึ่งบรรทัด จากนั้นแบ่งเป็น 3 ส่วนชัดเจน:\n[HOOK — 3-5 วิ]: ประโยคเดียวที่ทำให้คนไม่เลื่อนผ่าน\n[เนื้อหาหลัก]: เล่าเป็นก้อนๆ ประโยคละ 8-12 คำ มีจังหวะหายใจ\n[ปิดจบ]: ข้อสรุปหรือ insight สั้นๆ ที่จำได้\nไม่ใช้ markdown heading ระหว่างส่วน',
+    goals: 'อ่านออกเสียงแล้วต้องฟังเป็นธรรมชาติ ไม่ใช่อ่านบทความ ใช้คำลงท้ายพูด (ครับ/นะ/น้า) สร้างจังหวะ hook 3 วินาทีแรกต้องดึงให้หยุดได้จริง ทดสอบโดยอ่านออกเสียง — ถ้าสะดุด แสดงว่าต้องแก้',
+    skill: 'เขียนเพื่อหู ไม่ใช่ตา — ประโยคที่ดูดีบนกระดาษแต่พูดแล้วงุ่มง่ามต้องตัดออก ความเงียบ (line break) คือ pause ที่ช่วยเน้น ใช้มันเป็นเครื่องมือ',
   },
   'บทความ SEO / บล็อก': {
     label: 'blog article',
     allowHeadings: true,
     allowCta: false,
     boldHeadline: false,
-    structure: 'เขียนบทความที่มีโครงสร้างชัดเจน บรรทัดแรกสุดเป็น # Headline (H1) ที่ชัดเจน ใช้ ## subheading เมื่อจำเป็นจริงๆ เท่านั้น แต่ละ section ต้องมีเนื้อหาที่มีน้ำหนัก ไม่ใช่แค่ subheading แล้วสองสามประโยค',
-    goals: 'ให้ข้อมูลครบ ลึก น่าเชื่อถือ — อ่านจบแล้วผู้อ่านรู้สึกว่าได้ความรู้จริงๆ เน้น clarity และ information density ไม่มี hype เกินข้อเท็จจริง',
-    skill: 'บทความที่ค้นหาแล้วเจอและอ่านแล้วไม่รู้สึกเสียเวลา — ข้อมูลถูกต้อง ลำดับดี ภาษาเป็นทางการแต่ไม่น่าเบื่อ ใช้ ครับ ได้ตามธรรมชาติ',
+    structure: 'บรรทัดแรกเป็น # H1 ที่บอกว่าบทความนี้เกี่ยวกับอะไรและผู้อ่านได้อะไร ย่อหน้านำ (lede) สรุปประเด็นสำคัญก่อนขยายความ (inverted pyramid) ใช้ ## subheading เฉพาะเมื่อเนื้อหาต่างจุดประสงค์กันชัดเจน แต่ละ section ต้องมีน้ำหนักพอที่จะยืนเองได้ ไม่ใช่ subheading + 2 ประโยค',
+    goals: 'ผู้อ่านอ่านจบแล้วรู้สึกว่าได้ความรู้จริงๆ และไม่เสียเวลา — information density สูง ไม่มี padding ข้อมูลแม่นยำและอ้างอิงได้ ภาษาเป็นทางการแต่ไม่แข็ง อธิบายสิ่งที่ซับซ้อนให้เข้าใจง่ายโดยไม่ลดความถูกต้อง',
+    skill: 'H1 ที่ดีต้องมี keyword และ benefit ในประโยคเดียว lede ที่ดีทำให้คนอยากอ่านต่อ ย่อหน้าที่ดีมี topic sentence ชัดเจน ไม่เกิน 5-6 บรรทัด ปิดด้วย takeaway ที่จำได้ ไม่ใช่ "สรุปดังกล่าว"',
   },
   'โพสต์ให้ความรู้ (Thread)': {
     label: 'thread',
     allowHeadings: false,
     allowCta: false,
     boldHeadline: false,
-    structure: 'เขียนเป็นลำดับความคิดที่ต่อเนื่องกัน แต่ยืดหยุ่นได้ว่าจะเปิดด้วยบรรทัดสรุปหรือเข้าประเด็นทันที แต่ละช่วงควรต่อกันลื่น ไม่ต้องทำเหมือน template ของ thread ทุกครั้ง',
-    goals: 'ให้คนอ่านค่อยๆ เข้าใจประเด็นจากเรื่องจริงและข้อเท็จจริง ไม่ต้องฝืนทำ hook หรือ insight ปิดท้ายทุกครั้ง หลีกเลี่ยงน้ำเสียงสอนหรือขายเกินจำเป็น',
-    skill: 'เหมือนคนที่จัดประเด็นเก่งกำลังพาอ่านทีละจุด แบบอ่านแล้วไหล ไม่ใช่ bullet dump หรือ thread สำเร็จรูป',
+    structure: 'เปิดด้วย hook ที่บอกว่าจะเรียนรู้อะไร หรือเข้าประเด็นทันทีก็ได้ถ้าข้อมูลแข็งแรงพอ แบ่งเป็นช่วงความคิดที่แต่ละช่วงสมบูรณ์ในตัวเอง แต่ต่อเนื่องกัน ใช้ตัวเลขนำหน้าแต่ละช่วง (1/, 2/ หรือ •) ได้ถ้าช่วยให้ติดตามง่ายขึ้น ไม่บังคับ',
+    goals: 'แต่ละช่วงต้องให้ข้อมูลหรือ insight ที่มีคุณค่าในตัวเอง ไม่ใช่แค่ teaser ให้อ่านต่อ ผู้อ่านค่อยๆ เข้าใจประเด็นที่ซับซ้อนผ่านข้อมูลจริง ไม่ใช่ผ่าน assertion หลีกเลี่ยงน้ำเสียงสอน หรือ "lesson #X คือ..." ที่ฟังดู template',
+    skill: 'Thread ที่ดีอ่านแล้วรู้สึกว่าคนเขียนเข้าใจเรื่องจริงๆ ไม่ใช่แค่รวบรวมข้อมูล ทดสอบด้วยการอ่านแต่ละช่วงแยก: ถ้าแต่ละช่วงยังมีคุณค่าในตัวเอง thread นั้น work',
   },
 };
 
 const TONE_GUIDES = {
-  'ให้ข้อมูล/ปกติ': 'Calm, informed, editorial. Use professional but accessible Thai. Use particles like ครับ/ค่ะ appropriately. Avoid robotic transitions.',
-  'กระตือรือร้น/ไวรัล': 'Energetic but still natural. Prioritize clear, lively Thai over gimmicks. You may sound sharper and faster, but do not force bait phrasing, fake urgency, or artificial social-media cadence.',
-  'ทางการ/วิชาการ': 'Precise, objective, and well-structured. No slang. Use ครับ/ค่ะ for standard politeness.',
-  'เป็นกันเอง/เพื่อนเล่าให้ฟัง': 'Warm, conversational, dropping formal pronouns where implied. Flow like a natural speech. Use particles like เถอะ/หน่อย, นะ/น้า for closeness.',
-  'ตลก/มีอารมณ์ขัน': 'Lightly playful, witty observations. No forced jokes.',
-  'ดุดัน/วิจารณ์เชิงลึก': 'Direct, analytical, pulling no punches. Evidence-driven.',
-  'ฮาร์ดเซลล์/ขายของ': 'Persuasive, value-oriented, clear CTA.',
+  'ให้ข้อมูล/ปกติ': `น้ำเสียงบรรณาธิการ — เขียนเหมือนนักข่าวที่เข้าใจเรื่องกำลังสรุปให้ฟัง ไม่ใช่ AI ที่กำลังรวบรวมข้อมูล
+เทคนิคหลัก:
+- เปิดด้วยข้อเท็จจริงที่สำคัญที่สุดทันที ไม่มีอารัมภบทหรือ context-setting ที่ไม่จำเป็น
+- ใช้ประโยคกระชับ เรียงข้อมูลจากสำคัญมากไปน้อย (inverted pyramid)
+- ตัวเลขและชื่อเฉพาะทำให้น่าเชื่อถือกว่าคำคุณศัพท์ เช่น "3.2 ล้านบาท" ดีกว่า "จำนวนมาก"
+- ใช้ "ครับ" ได้ตามธรรมชาติ แต่ไม่จำเป็นต้องใช้ทุกย่อหน้า
+- คำเชื่อมที่ดีมาจากเนื้อหา ไม่ใช่สูตร เช่น ห้าม "นั่นหมายความว่า..." "ซึ่งทำให้เราเห็นว่า..."
+- ปิดด้วยบริบทหรือผลที่ตามมาที่ผู้อ่านอยากรู้ ไม่ใช่ summary ซ้ำๆ หรือ CTA`,
+
+  'กระตือรือร้น/ไวรัล': `น้ำเสียงมีพลัง ดึงดูด — ความเร่งด่วนต้องมาจากข้อเท็จจริง ไม่ใช่คำโฆษณา
+เทคนิคหลัก:
+- ประโยคเปิดต้องทำให้คนหยุดเลื่อน feed ได้จริง: ใช้ตัวเลขที่น่าตกใจ, contrast ที่ชัดเจน, หรือคำถามที่คนสงสัยอยู่แล้ว
+- สลับประโยคสั้น-ยาวเพื่อสร้างจังหวะ — ประโยคสั้นตามหลังข้อมูลสำคัญให้น้ำหนัก
+- เลือกคำ "active voice" มากกว่า "passive" — "ทำลายสถิติ" ดีกว่า "สถิติถูกทำลาย"
+- ความเร่งด่วนจริงๆ มาจากข้อเท็จจริงในเรื่อง ไม่ใช่คำเช่น "ต้องรู้!", "ด่วน!", "แชร์ทันที!"
+- ห้ามเด็ดขาด: "นี่คือเหตุผลว่าทำไม...", "สิ่งที่คุณต้องรู้คือ...", "ไม่น่าเชื่อว่า...", "จับตาดูให้ดี"
+- ปิดด้วยประโยคที่ทิ้งค้างได้จริง — ข้อเท็จจริงที่น่าคิดต่อ ไม่ใช่ "คิดยังไงคอมเมนต์มาได้เลย"`,
+
+  'ทางการ/วิชาการ': `น้ำเสียงเป็นทางการ วิเคราะห์ อ้างอิงได้ — เหมาะกับผู้อ่านที่ต้องการความแม่นยำ
+เทคนิคหลัก:
+- สร้างข้อโต้แย้งเป็นลำดับ: premise → evidence → conclusion ในแต่ละย่อหน้า
+- ใช้ hedging ที่ถูกต้อง: "ข้อมูลชี้ให้เห็นว่า...", "จากหลักฐานที่มี..." เมื่อยังไม่ยืนยัน 100%
+- ระบุที่มาและบริบทของข้อมูล อย่าให้ตัวเลขลอยอยู่โดดๆ
+- หลีกเลี่ยงคำแสลง, คำย่อ, และการเขียนแบบพูด
+- อธิบายศัพท์เฉพาะทางเมื่อใช้ครั้งแรก อย่าสมมติว่าผู้อ่านรู้ทุกคำ
+- ย่อหน้าแต่ละย่อต้องมี topic sentence ที่ชัดเจน
+- งดแสดงความเห็นส่วนตัวที่ไม่มีหลักฐานรองรับ`,
+
+  'เป็นกันเอง/เพื่อนเล่าให้ฟัง': `น้ำเสียงอบอุ่น ใกล้ชิด — เหมือนเพื่อนที่เชี่ยวชาญกำลังเล่าให้ฟังในคาเฟ่ ไม่ใช่อ่านรายงาน
+เทคนิคหลัก:
+- เขียนเหมือนคุยกับคนรู้จัก ใช้ "เรา" หรือ "เราๆ" ได้ตามความเหมาะสม
+- ใช้ particle ตามธรรมชาติ: "นะ", "น้า", "อะ", "เนอะ" — เลือกตามบุคลิก อย่าใส่ทุกประโยค
+- เล่าเรื่องด้วย personal framing — "ที่น่าสนใจคือ..." แทน "ข้อมูลระบุว่า..."
+- ตั้งคำถามกับตัวเองแล้วตอบ ในแบบที่คนพูดจริงๆ ทำ
+- ถ้าต้องใช้ศัพท์วิชาการ อธิบายด้วยภาษาง่ายทันทีหลังจากนั้น
+- จบแบบธรรมชาติได้ — ไม่จำเป็นต้องมีข้อสรุปสวยงามหรือ moral of the story`,
+
+  'ตลก/มีอารมณ์ขัน': `น้ำเสียงเบาสมอง มีมุก — แต่ข้อมูลต้องถูกต้อง และตลกต้องมาจากความจริง ไม่ใช่การพยายามตลก
+เทคนิคหลัก:
+- Comedy timing ในงานเขียนมาจาก setup → unexpected punchline — สร้างความคาดหวังแล้วหักมุมด้วยข้อเท็จจริง
+- เรื่องจริงมักตลกกว่าเรื่องแต่ง: ตัวเลขที่ไม่น่าเชื่อ, contradiction ที่เกิดขึ้นจริง, irony ในข่าว
+- Deadpan delivery: เล่าเรื่องน่าขำด้วยน้ำเสียงจริงจัง ได้ผลมากกว่าพยายามตลกออกนอกหน้า
+- Self-aware humor ทำงานได้ดี เช่น "ใช่ครับ เรื่องจริง" หรือ "ไม่ได้ล้อเล่น"
+- ห้ามมุกที่ต้องอธิบาย ถ้าต้องบอก "แค่ล้อเล่นนะ" แสดงว่ามุกไม่ work
+- เล่นกับ contrast ระหว่างภาษาทางการกับภาษาพูดได้ผลดีในภาษาไทย`,
+
+  'ดุดัน/วิจารณ์เชิงลึก': `น้ำเสียงตรงไปตรงมา วิเคราะห์เชิงลึก ไม่มีน้ำตาล — แต่ต้องมีหลักฐานรองรับทุกจุด
+เทคนิคหลัก:
+- เปิดด้วย thesis ที่ชัดเจน: กำลังวิจารณ์อะไร เพราะอะไร
+- ใช้หลักฐานจาก fact sheet ขับเคลื่อนทุกข้อโต้แย้ง — ความดุดันที่ไม่มีข้อมูลคือแค่อารมณ์
+- ระบุ contradiction, conflict of interest, หรือ pattern ที่น่าสังเกต
+- ไม่ใช้ hedging ที่ไม่จำเป็น เช่น "อาจจะ..." เมื่อข้อมูลชัดเจนแล้ว
+- ภาษาควรคมและตรง ไม่ใช่ aggressive เพื่อดูดุ
+- ปิดด้วย implication ที่ชัดเจน: เรื่องนี้บอกอะไรกับเรา บทเรียนคืออะไร
+- ห้าม: วิจารณ์โดยไม่มีหลักฐาน, hyperbole เกินข้อเท็จจริง`,
+
+  'ฮาร์ดเซลล์/ขายของ': `น้ำเสียงโน้มน้าว มุ่งสู่ action — ทุกประโยคต้องทำงานเพื่อสร้าง desire หรือ remove objection
+เทคนิคหลัก:
+- เปิดด้วย pain point หรือ desire ที่ผู้อ่าน relate ได้จริง ไม่ใช่ "สินค้าของเราดีมาก"
+- Benefit-driven: บอกว่า "ได้อะไร" และ "ชีวิตเปลี่ยนยังไง" ไม่ใช่แค่ "มีอะไร"
+- ใช้ proof จาก fact sheet: ตัวเลขผลลัพธ์, การรับรอง, ข้อมูลจริง — เพิ่ม credibility ทันที
+- Scarcity และ urgency ใส่ได้เฉพาะเมื่อมีจริงในข้อมูล ห้ามสร้างขึ้นเอง
+- CTA ต้องชัดเจนและบอก next step เป็นรูปธรรม ไม่ใช่แค่ "สนใจติดต่อได้เลย"
+- ลำดับที่ proven: Hook → Problem → Solution → Proof → CTA
+- ห้าม superlatives ที่ไม่สามารถ back up ได้: "ดีที่สุด", "ไม่มีใครเทียบ"`,
 };
 
 const HYPE_PHRASES = [
@@ -586,12 +644,39 @@ const shouldAllowHighEnergyLanguage = (customInstructions = '', tone = '') =>
   /ไวรัล|viral|energetic|high energy/i.test(`${tone} ${customInstructions}`);
 
 const ARTIFICIAL_THAI_PATTERNS = [
+  // Original patterns
   /นี่แหละที่ทำให้/i,
   /เรียกว่าแทบ/i,
   /สุดยอดจริง/i,
   /แบบไม่ต้องกังวล/i,
   /บอกเลยว่า/i,
   /งานนี้มี/i,
+  // Generic AI openers
+  /^ในยุคที่/im,
+  /^ปฏิเสธไม่ได้ว่า/im,
+  /^เชื่อหรือไม่/im,
+  /^ไม่ว่าจะ.*ก็ตาม/im,
+  // Filler transitions
+  /นั่นหมายความว่า/i,
+  /ซึ่งทำให้เราเห็นว่า/i,
+  /จะเห็นได้ว่า/i,
+  /ที่สำคัญกว่านั้น/i,
+  /ทั้งนี้ทั้งนั้น/i,
+  /คงต้องบอกว่า/i,
+  /นับว่าเป็น/i,
+  // Weak intensifiers
+  /น่าจับตามอง/i,
+  /แบบจัดเต็ม/i,
+  /เรียกได้ว่า/i,
+  /มาดูกัน(?:ว่า|เลย|ดีกว่า)/i,
+  // Hollow summary phrases
+  /โดยรวมแล้ว.*ถือว่า/i,
+  /สรุปได้ว่า.*ไม่ธรรมดา/i,
+  /เรื่องนี้.*น่าสนใจ(?:มาก)?$/im,
+  // Fake curiosity hooks
+  /สิ่งที่หลายคนอาจไม่รู้/i,
+  /ความจริงที่น่าตกใจ/i,
+  /ทำไมถึงเป็นแบบนี้/i,
 ];
 
 const countContentParagraphs = (text = '') =>
@@ -1925,35 +2010,57 @@ export const generateStructuredContentV2 = async (
   options = {},
 ) => {
   const { allowEmoji = false, customInstructions = '', intentProfile = null, rawUserInput = '' } = options;
+  // Temperature matrix: format sets the base creative range, tone fine-tunes within it
+  const FORMAT_BASE_TEMP: Record<string, number> = {
+    'โพสต์โซเชียล': 0.82,
+    'สคริปต์วิดีโอสั้น': 0.85,
+    'บทความ SEO / บล็อก': 0.68,
+    'โพสต์ให้ความรู้ (Thread)': 0.75,
+  };
+  const TONE_TEMP_DELTA: Record<string, number> = {
+    'ให้ข้อมูล/ปกติ': 0,
+    'กระตือรือร้น/ไวรัล': 0.07,
+    'ทางการ/วิชาการ': -0.09,
+    'เป็นกันเอง/เพื่อนเล่าให้ฟัง': 0.04,
+    'ตลก/มีอารมณ์ขัน': 0.1,
+    'ดุดัน/วิจารณ์เชิงลึก': 0.03,
+    'ฮาร์ดเซลล์/ขายของ': -0.03,
+  };
+  const writerTemperature = Math.min(0.95, Math.max(0.56, (FORMAT_BASE_TEMP[format] ?? 0.76) + (TONE_TEMP_DELTA[tone] ?? 0)));
   const isViralTone = tone === 'กระตือรือร้น/ไวรัล';
-  const writerTemperature = isViralTone ? 0.85 : 0.7;
-  const writerFrequencyPenalty = isViralTone ? 0.15 : 0.35;
+  // Lower frequency penalty: Thai writing naturally repeats key terms for clarity;
+  // over-penalising causes unnatural vocabulary substitutions that break flow
+  const writerFrequencyPenalty = isViralTone ? 0.12 : 0.18;
   const lengthInstruction = getLengthInstruction(length);
   const profile = buildFormatProfile(format);
   const brief = await buildContentBrief({ factSheet, length, tone, format, customInstructions, intentProfile });
   const activeFactSheet = compressFactSheetForFormat(factSheet, format);
   const skipReviewPass = shouldSkipReviewPass({ format, tone, intentProfile, customInstructions, factSheet: activeFactSheet });
 
-  const draftSystemPrompt = `You are an expert Thai writer producing the final user-facing draft.
+  const draftSystemPrompt = `You are a senior Thai writer — not an AI assistant, not a content template engine. You write the way skilled Thai journalists and editors write: specific, grounded, with a distinct voice shaped by the requested tone and format.
 
-Write in natural Thai that feels human, clear, grounded, and not templated.
+Core craft principles:
+- Specificity beats vagueness: "1.2 แสนตัน" is better than "ปริมาณมหาศาล", "แพทย์ 3 คน" is better than "ผู้เชี่ยวชาญหลายราย"
+- Show through facts, not adjectives: let the data and events carry the emotional weight
+- Rhythm is meaning: vary sentence length deliberately — a short sentence after a long one creates emphasis
+- The best opening line earns attention with a specific fact, a contradiction, or a number — never with "ในยุคที่...", "ปฏิเสธไม่ได้ว่า...", or a rhetorical question that the reader doesn't care about yet
+- The best closing line leaves the reader with something to think about, not a summary of what they just read
 
-Priority order:
-1. The fact sheet, especially verified facts and must-not-claim rules.
-2. The user's raw request and raw instructions.
-3. The normalized intent and structured brief as guidance.
+Priority order (strict):
+1. Fact sheet verified facts and must-not-claim rules — these are absolute
+2. The user's raw request and raw instructions — follow these over everything else
+3. Normalized intent and structured brief — treat as creative guidance only
 
 Hard rules:
-- Do not state unsupported details as facts.
-- Treat reported claims and open questions as softer context.
-- If uncertainty matters, acknowledge it briefly instead of forcing certainty.
-- Mention people or accounts only when they materially matter to the story.
-- Follow the requested format and tone, but do not force a rigid house voice when the source or user intent calls for a more source-forward framing.
-- Use natural Thai, not literal translation or unnecessary corporate jargon.
-- Avoid generic AI-sounding social phrasing, fake dramatic transitions, and forced concluding lines.
-- Do not force a bold headline, a hook line, or multiple short paragraphs unless the content truly benefits from them.
-- Do not add CTA or audience interaction unless the user explicitly asked for it.
-- For formats that do not want headings, avoid markdown headings instead of inventing extra scaffolding.`;
+- Do not state unsupported details as facts. Treat reported claims and open questions as softer context.
+- If uncertainty exists, acknowledge it naturally — do not force certainty or hedge with useless filler phrases.
+- Mention people and accounts only when they materially matter to the story.
+- Follow the requested format and tone faithfully; do not substitute a "safer" house style.
+- Write natural Thai. Never literal translation. Never corporate jargon.
+- Forbidden phrases: "นั่นหมายความว่า...", "จะเห็นได้ว่า...", "ที่สำคัญกว่านั้น...", "ซึ่งทำให้เราเห็นว่า...", "นับว่าเป็น...", "เรียกได้ว่า...", "สิ่งที่น่าสนใจคือ..." — these are filler that adds no information.
+- No forced bold headline, hook line, or paragraph splits unless the content genuinely needs them.
+- No CTA or audience interaction unless the user explicitly asked for it.
+- For formats that do not use headings: never invent markdown headings as scaffolding.`;
 
   const draftUserPrompt = [
     `<format_rules>\nFormat: ${format} (${profile.label})\nLength: ${lengthInstruction}\nStructure: ${profile.structure}\nGoals: ${profile.goals}\nWriting skill for this format: ${profile.skill || ''}\n</format_rules>`,
@@ -2058,7 +2165,7 @@ Do not fail a draft just because it chose a different but valid narrative stance
         modelName: MODEL_WRITER,
         system: draftSystemPrompt,
         prompt: `[RAW USER REQUEST]\n${rawUserInput || 'None'}\n\n[RAW USER INSTRUCTIONS]\n${customInstructions || 'None'}\n\n[FACT SHEET]\n${activeFactSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[CURRENT DRAFT]\n${contentDraft}\n\n[EDITOR FEEDBACK]\n${evalFeedback}\n\nRewrite only where needed.\n- Keep the facts intact.\n- Remove AI-sounding phrasing, forced hooks, and filler conclusions.\n- Merge paragraphs if the draft feels over-segmented.\n- Keep the wording plain, natural, and specific.`,
-        temperature: 0.4,
+        temperature: 0.62,
         allowEmoji,
       });
 
