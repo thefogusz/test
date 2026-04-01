@@ -1,4 +1,4 @@
-import { Bookmark, LibraryBig, Loader2, Newspaper, RefreshCw, SquarePen, UsersRound } from 'lucide-react';
+import { Bookmark, BookOpen, House, Loader2, RefreshCw, SquarePen, UsersRound } from 'lucide-react';
 import { AI_WORKSPACES } from '../config/aiWorkspaces';
 import type { ActiveView } from '../types/domain';
 
@@ -11,20 +11,22 @@ type SidebarProps = {
 type NavItemConfig = {
   view: ActiveView;
   label: string;
-  Icon: typeof Newspaper;
+  Icon: typeof House;
   isActive: (activeView?: ActiveView) => boolean;
   isBusy?: (backgroundTasks: Record<string, boolean>) => boolean;
   spinner?: 'refresh' | 'loader';
+  fillActive?: boolean;
 };
 
 const NAV_ITEMS: NavItemConfig[] = [
   {
     view: 'home',
     label: AI_WORKSPACES.langChain.title,
-    Icon: Newspaper,
+    Icon: House,
     isActive: (activeView) => activeView === 'home' || !activeView,
     isBusy: (backgroundTasks) => Boolean(backgroundTasks.syncing),
     spinner: 'refresh',
+    fillActive: true,
   },
   {
     view: 'content',
@@ -37,7 +39,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   {
     view: 'read',
     label: 'อ่านข่าว',
-    Icon: LibraryBig,
+    Icon: BookOpen,
     isActive: (activeView) => activeView === 'read',
   },
   {
@@ -69,7 +71,7 @@ const Sidebar = ({ activeView, onNavClick, backgroundTasks = {} }: SidebarProps)
       </div>
 
       <nav className="sidebar-nav">
-        {NAV_ITEMS.map(({ view, label, Icon, isActive, isBusy, spinner = 'loader' }) => {
+        {NAV_ITEMS.map(({ view, label, Icon, isActive, isBusy, spinner = 'loader', fillActive = false }) => {
           const active = isActive(activeView);
           const busy = isBusy?.(backgroundTasks);
 
@@ -80,7 +82,11 @@ const Sidebar = ({ activeView, onNavClick, backgroundTasks = {} }: SidebarProps)
               onClick={() => onNavClick(view)}
             >
               <span className="nav-icon-shell" aria-hidden="true">
-                <Icon size={18} strokeWidth={1.9} />
+                <Icon
+                  size={20}
+                  strokeWidth={active ? 2.15 : 1.95}
+                  fill={active && fillActive ? 'currentColor' : 'none'}
+                />
               </span>
               <span className="nav-text">{label}</span>
               {busy && (

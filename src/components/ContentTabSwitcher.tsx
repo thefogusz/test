@@ -1,4 +1,4 @@
-import { Search, Sparkles } from 'lucide-react';
+import { Search, SquarePen } from 'lucide-react';
 import type { ContentTab } from '../types/domain';
 
 type ContentTabSwitcherProps = {
@@ -29,7 +29,7 @@ const ContentTabSwitcher = ({
         className={`btn-pill content-view-tab-btn ${contentTab === 'create' ? 'primary' : ''}`}
         onClick={() => setContentTab('create')}
       >
-        <Sparkles size={16} /> สร้างคอนเทนต์
+        <SquarePen size={16} /> สร้างคอนเทนต์
       </button>
     </div>
   );

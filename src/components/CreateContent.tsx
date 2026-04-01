@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, Search, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, Bookmark, ExternalLink, RefreshCw } from 'lucide-react';
+import { Search, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, SquarePen, Bookmark, ExternalLink, RefreshCw } from 'lucide-react';
 import { researchAndPreventHallucination, generateStructuredContentV2, normalizeContentIntent } from '../services/GrokService';
 import { renderMarkdownToHtml } from '../utils/markdown';
 import ContentTabSwitcher from './ContentTabSwitcher';
@@ -135,6 +135,7 @@ const FORMAT_HINTS = {
 
 const CustomDropdown = ({ icon, value, onChange, options, isObject }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isCompact, setIsCompact] = useState(false);
   const dropdownRef = useRef(null);
   const IconComponent = icon;
 
@@ -148,10 +149,31 @@ const CustomDropdown = ({ icon, value, onChange, options, isObject }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const mediaQuery = window.matchMedia('(max-width: 1024px), (hover: none), (pointer: coarse)');
+    const handleChange = (event) => setIsCompact(event.matches);
+
+    setIsCompact(mediaQuery.matches);
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    }
+
+    mediaQuery.addListener(handleChange);
+    return () => mediaQuery.removeListener(handleChange);
+  }, []);
+
   const selectedTitle = isObject ? options.find(o => o.id === value)?.title : value;
 
   return (
-    <div ref={dropdownRef} className="custom-dropdown" style={{ position: 'relative', display: 'inline-block' }}>
+    <div
+      ref={dropdownRef}
+      className={`custom-dropdown ${isOpen ? 'open' : ''} ${isCompact ? 'inline-menu' : 'popover-menu'}`}
+      style={{ position: 'relative', display: 'inline-block', width: '100%' }}
+    >
       <button
         className="custom-dropdown-trigger"
         onClick={() => setIsOpen(!isOpen)}
@@ -185,12 +207,16 @@ const CustomDropdown = ({ icon, value, onChange, options, isObject }) => {
 
       {isOpen && (
         <div className="custom-dropdown-menu" style={{
-          position: 'absolute', top: 'calc(100% + 8px)', left: 0,
+          position: isCompact ? 'static' : 'absolute',
+          top: isCompact ? 'auto' : 'calc(100% + 8px)',
+          left: isCompact ? 'auto' : 0,
           background: 'var(--bg-800)', border: '1px solid var(--glass-border)',
-          borderRadius: '16px', padding: '8px', minWidth: '220px',
+          borderRadius: '16px', padding: isCompact ? '6px' : '8px', minWidth: isCompact ? '100%' : '220px',
           boxShadow: '0 12px 40px rgba(0,0,0,0.6)', zIndex: 100,
           display: 'flex', flexDirection: 'column', gap: '4px',
-          animation: 'fadeIn 0.15s ease-out'
+          animation: 'fadeIn 0.15s ease-out',
+          marginTop: isCompact ? '8px' : 0,
+          width: isCompact ? '100%' : 'max-content'
         }}>
           {options.map(opt => {
             const optValue = isObject ? opt.id : opt;
@@ -204,11 +230,11 @@ const CustomDropdown = ({ icon, value, onChange, options, isObject }) => {
                 onClick={() => { onChange(optValue); setIsOpen(false); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '8px',
-                  width: '100%', padding: '10px 12px',
+                  width: '100%', padding: isCompact ? '11px 12px' : '10px 12px',
                   background: isSelected ? 'rgba(41, 151, 255, 0.1)' : 'transparent',
                   color: isSelected ? 'var(--accent-secondary)' : '#fff',
                   border: 'none', borderRadius: '8px',
-                  fontSize: '13px', fontWeight: isSelected ? '700' : '500',
+                  fontSize: isCompact ? '14px' : '13px', fontWeight: isSelected ? '700' : '500',
                   cursor: 'pointer', textAlign: 'left', transition: 'background 0.2s',
                   fontFamily: 'inherit'
                 }}
@@ -470,16 +496,17 @@ const CreateContent = ({
   };
 
   return (
-    <div className="create-content-shell" style={{ padding: '0 20px 40px', maxWidth: '840px', margin: '0 auto', color: '#fff', animation: 'fadeIn 0.3s ease-out' }}>
+    <div className="create-content-shell create-content-shell-modern" style={{ padding: '0 20px 40px', maxWidth: '920px', margin: '0 auto', color: '#fff', animation: 'fadeIn 0.3s ease-out' }}>
       
       {/* Compact Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', marginTop: '10px' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '800', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Sparkles className="text-accent" size={24} /> สร้างคอนเทนต์
+      <div className="create-content-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', marginTop: '10px' }}>
+        <div className="create-content-header-copy">
+          <div className="create-content-eyebrow">Editor</div>
+          <h1 className="create-content-title" style={{ margin: 0, fontSize: '28px', fontWeight: '800', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <SquarePen size={22} strokeWidth={2.05} /> สร้างคอนเทนต์
           </h1>
-          <p style={{ color: 'var(--text-dim)', margin: '4px 0 0', fontSize: '14px' }}>
-            เปลี่ยนไอเดียให้เป็นคอนเทนต์ระดับมืออาชีพ พร้อม Zero-Hallucination
+          <p className="create-content-subtitle" style={{ color: 'var(--text-dim)', margin: '6px 0 0', fontSize: '14px' }}>
+            เริ่มจากหัวข้อเดียว แล้วค่อยกำหนดรูปแบบ น้ำเสียง และความยาวภายหลัง
           </p>
         </div>
         {generatedMarkdown && (
@@ -494,202 +521,197 @@ const CreateContent = ({
         className="content-view-tabs-mobile-inline"
       />
 
-      {/* Unified Editor Interface */}
-      <div style={{ 
-        background: 'var(--bg-800)', 
-        borderRadius: '20px',
-        border: '1px solid var(--card-border)',
-        boxShadow: '0 12px 40px rgba(0,0,0,0.3)',
-        /* Removed overflow: hidden because it clips the dropdown menus */
+      <div className="create-content-panel" style={{ 
+        background: 'linear-gradient(180deg, rgba(22, 22, 25, 0.98), rgba(14, 14, 17, 0.98))', 
+        borderRadius: '24px',
+        border: '1px solid rgba(255,255,255,0.06)',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.24)',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative'
       }}>
-        
-        {/* Attached Source Notification Area */}
-        {sourceNode && (
-          <div style={{ 
-            background: 'linear-gradient(90deg, rgba(41, 151, 255, 0.1), transparent)', 
-            borderBottom: '1px solid var(--glass-border)', 
-            padding: '16px 24px', 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'flex-start',
-            animation: 'fadeIn 0.3s ease-out'
-          }}>
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-              <div style={{ 
-                background: 'rgba(41, 151, 255, 0.2)', padding: '10px', 
-                borderRadius: '12px', color: 'var(--accent-secondary)' 
+        <div className="create-content-composer">
+          <div className="create-content-main">
+            {sourceNode && (
+              <div className="create-content-source-pill" style={{ 
+                padding: '20px 20px 0',
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'flex-start',
+                animation: 'fadeIn 0.3s ease-out'
               }}>
-                <Sparkles size={20} />
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', minWidth: 0 }}>
+                  <div style={{ 
+                    background: 'rgba(255,255,255,0.04)', padding: '9px', 
+                    borderRadius: '12px', color: 'var(--text-dim)',
+                    border: '1px solid rgba(255,255,255,0.06)'
+                  }}>
+                    <FileText size={16} />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-dim)', letterSpacing: '0.08em', marginBottom: '4px', textTransform: 'uppercase' }}>
+                      อ้างอิงจากแหล่งข้อมูล
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                      <img 
+                        src={sourceNode.author?.profile_image_url} 
+                        alt="" 
+                        style={{ width: '18px', height: '18px', borderRadius: '50%' }}
+                        onError={e => { e.target.style.display = 'none'; }}
+                      />
+                      <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', whiteSpace: 'nowrap' }}>@{sourceNode.author?.username}</div>
+                      <div style={{ color: 'var(--text-dim)', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {sourceNode.summary || sourceNode.text}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <button 
+                  onClick={onRemoveSource} 
+                  className="icon-hover" 
+                  style={{ 
+                    padding: '8px', 
+                    color: 'rgba(255,255,255,0.4)', 
+                    background: 'rgba(255,255,255,0.05)',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
+                  onMouseOut={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                >
+                  <X size={18} />
+                </button>
               </div>
-              <div>
-                <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--accent-secondary)', letterSpacing: '0.05em', marginBottom: '4px' }}>
-                  แหล่งข้อมูลอ้างอิงแนบมาแล้ว (ATTACHED INTEL)
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <img 
-                    src={sourceNode.author?.profile_image_url} 
-                    alt="" 
-                    style={{ width: '20px', height: '20px', borderRadius: '50%' }}
-                    onError={e => { e.target.style.display = 'none'; }}
-                  />
-                  <div style={{ fontSize: '14px', color: '#fff', fontWeight: '500' }}>@{sourceNode.author?.username}</div>
-                </div>
-                <div style={{ color: 'var(--text-dim)', fontSize: '13px', marginTop: '4px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                  "{sourceNode.summary || sourceNode.text}"
-                </div>
-              </div>
-            </div>
-            <button 
-              onClick={onRemoveSource} 
-              className="icon-hover" 
+            )}
+
+            <div className="create-content-main-label">Prompt</div>
+            <textarea
+              className="create-content-input"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={sourceNode ? "อยากให้เล่าเรื่องนี้ในมุมไหน หรือมีประเด็นอะไรที่อยากเน้นเป็นพิเศษ?" : "เริ่มจากหัวข้อเดียวหรือไอเดียสั้น ๆ แล้วระบบจะช่วยต่อยอดให้"}
+              disabled={isGenerating}
               style={{ 
-                padding: '8px', 
-                color: 'rgba(255,255,255,0.4)', 
-                background: 'rgba(255,255,255,0.05)',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
+                width: '100%', minHeight: sourceNode ? '240px' : '320px', resize: 'vertical', fontSize: '17px', lineHeight: '1.72',
+                padding: sourceNode ? '10px 20px 20px' : '16px 20px 20px', background: 'transparent', border: 'none', color: '#ffffff', outline: 'none',
+                fontFamily: 'inherit'
               }}
-              onMouseOver={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
-              onMouseOut={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-            >
-              <X size={18} />
-            </button>
+            />
+
+            {showAdvanced && (
+               <div style={{ padding: '0 20px 20px', animation: 'fadeIn 0.2s ease-out', position: 'relative' }}>
+                 <input
+                   className="create-content-advanced-input"
+                   type="text"
+                   placeholder="คำสั่งเพิ่มเติม เช่น โทนที่ต้องการ, มุมเล่าเรื่อง, ข้อห้าม"
+                   value={customInstructions}
+                   onChange={(e) => setCustomInstructions(e.target.value)}
+                   disabled={isGenerating}
+                   autoFocus
+                   style={{
+                     width: '100%', padding: '12px 40px 12px 16px', background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)',
+                     borderRadius: '12px', color: '#fff', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s'
+                   }}
+                   onFocus={(e) => e.target.style.borderColor = 'var(--accent-secondary)'}
+                   onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.06)'}
+                 />
+                 <button 
+                   onClick={() => { setShowAdvanced(false); setCustomInstructions(''); }}
+                   style={{ position: 'absolute', right: '32px', top: '10px', background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}
+                 >
+                   <X size={16} />
+                 </button>
+               </div>
+            )}
           </div>
-        )}
 
-        {/* Huge Main Input Area */}
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder={sourceNode ? "คุณต้องการให้สร้างคอนเทนต์รูปแบบไหน หรือเน้นย้ำประเด็นใดเป็นพิเศษ? (ระบุเพิ่มเติมได้)..." : "คุณอยากเล่าเรื่องอะไร? (วางลิงก์ข่าว, เรื่องย่อ, หรือพิมพ์ไอเดียที่นี่หัวข้อเดียวจบ...)"}
-          disabled={isGenerating}
-          style={{ 
-            width: '100%', minHeight: sourceNode ? '160px' : '240px', resize: 'vertical', fontSize: '16px', lineHeight: '1.6',
-            padding: '24px', background: 'transparent', border: 'none', color: '#ffffff', outline: 'none',
-            fontFamily: 'inherit'
-          }}
-        />
-
-        {/* Optional Custom Instructions Ribbon */}
-        {showAdvanced && (
-           <div style={{ padding: '0 24px 16px', animation: 'fadeIn 0.2s ease-out', position: 'relative' }}>
-             <input
-               type="text"
-               placeholder="คำสั่งเพิ่มเติม (เช่น เน้นคำพาดหัวแรงๆ, ไม่ใช้อีโมจิ, เพิ่มช่องทางติดต่อ...)"
-               value={customInstructions}
-               onChange={(e) => setCustomInstructions(e.target.value)}
-               disabled={isGenerating}
-               autoFocus
-               style={{
-                 width: '100%', padding: '12px 40px 12px 16px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)',
-                 borderRadius: '12px', color: '#fff', fontSize: '14px', outline: 'none', transition: 'border-color 0.2s'
-               }}
-               onFocus={(e) => e.target.style.borderColor = 'var(--accent-secondary)'}
-               onBlur={(e) => e.target.style.borderColor = 'var(--glass-border)'}
-             />
-             <button 
-               onClick={() => { setShowAdvanced(false); setCustomInstructions(''); }}
-               style={{ position: 'absolute', right: '36px', top: '12px', background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer' }}
-             >
-               <X size={16} />
-             </button>
-           </div>
-        )}
-
-        {/* Powerful Compact Toolbar */}
-        <div className="create-content-toolbar" style={{ 
-          background: 'var(--bg-900)', 
-          borderTop: '1px solid var(--glass-border)', 
-          borderRadius: '0 0 20px 20px',
-          padding: '16px 24px', 
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '16px'
-        }}>
-          {/* Left: Settings Group & Actions */}
-          <div className="create-content-toolbar-left" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-            <div className="create-content-toolbar-controls" style={{ 
-              display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center',
-              background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '100px',
-              border: '1px solid rgba(255,255,255,0.03)'
-            }}>
+          <aside className="create-content-sidebar">
+            <div className="create-content-sidebar-section">
+              <div className="create-content-sidebar-label">รูปแบบงาน</div>
               <CustomDropdown icon={FileText} value={format} onChange={setFormat} options={FORMAT_OPTIONS} isObject={true} />
+            </div>
+
+            <div className="create-content-sidebar-section">
+              <div className="create-content-sidebar-label">น้ำเสียง</div>
               <CustomDropdown icon={Smile} value={tone} onChange={setTone} options={TONE_OPTIONS} />
+            </div>
+
+            <div className="create-content-sidebar-section">
+              <div className="create-content-sidebar-label">ความยาว</div>
               <CustomDropdown icon={Maximize2} value={length} onChange={setLength} options={LENGTH_OPTIONS} />
             </div>
-            
+
             {!showAdvanced && (
-              <button 
+              <button
+                className="create-content-secondary-action"
                 onClick={() => setShowAdvanced(true)}
                 style={{
                   background: 'transparent', border: 'none', color: 'var(--text-dim)',
                   fontSize: '13px', fontWeight: '600', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: '6px',
-                  padding: '8px 12px', borderRadius: '100px', transition: 'all 0.2s'
+                  padding: '10px 8px', borderRadius: '12px', transition: 'all 0.2s', width: 'fit-content'
                 }}
                 onMouseOver={(e) => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
                 onMouseOut={(e) => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.background = 'transparent'; }}
               >
-                <Plus size={14} /> คำสั่งพิเศษ
+                <Plus size={14} /> ตัวเลือกเพิ่มเติม
               </button>
             )}
-          </div>
 
-          <div style={{ width: '100%', fontSize: '12px', color: 'var(--text-dim)', lineHeight: '1.5' }}>
-            {activeFormatHint}
-          </div>
-          
-          {/* Right: Stop + Generate Buttons */}
-          <div className="create-content-toolbar-right" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {isGenerating && (
-              <button
-                onClick={handleStop}
-                style={{
-                  background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-                  borderRadius: '100px', color: '#ef4444', padding: '12px 20px',
-                  fontSize: '14px', fontWeight: '700', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)'; }}
-                onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
-              >
-                <X size={16} /> หยุด
-              </button>
-            )}
-            <button
-              className="create-content-generate-btn"
-              onClick={handleGenerate}
-              disabled={isGenerating || (!input.trim() && !sourceNode)}
-              style={{
-                background: (isGenerating || (!input.trim() && !sourceNode)) ? 'transparent' : 'var(--accent-secondary)',
-                color: (isGenerating || (!input.trim() && !sourceNode)) ? 'var(--text-muted)' : '#ffffff',
-                border: (isGenerating || (!input.trim() && !sourceNode)) ? '1px solid var(--glass-border)' : '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '100px',
-                padding: '12px 32px',
-                fontSize: '15px',
-                fontWeight: '800',
-                cursor: (isGenerating || (!input.trim() && !sourceNode)) ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                boxShadow: (isGenerating || (!input.trim() && !sourceNode)) ? 'none' : '0 8px 24px rgba(41, 151, 255, 0.4)',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              {isGenerating ? (
-                <><Loader2 size={18} className="spinner" /> กำลังสร้าง...</>
-              ) : (
-                <><Sparkles size={18} /> สร้างคอนเทนต์</>
+            <div className="create-content-hint">
+              {activeFormatHint}
+            </div>
+
+            <div className="create-content-sidebar-actions">
+              {isGenerating && (
+                <button
+                  className="create-content-stop-btn"
+                  onClick={handleStop}
+                  style={{
+                    background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+                    borderRadius: '12px', color: '#ef4444', padding: '12px 18px',
+                    fontSize: '14px', fontWeight: '700', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s', width: '100%'
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
+                >
+                  <X size={16} /> หยุด
+                </button>
               )}
-            </button>
-          </div>
+
+              <button
+                className="create-content-generate-btn"
+                onClick={handleGenerate}
+                disabled={isGenerating || (!input.trim() && !sourceNode)}
+                style={{
+                  background: (isGenerating || (!input.trim() && !sourceNode)) ? 'rgba(255,255,255,0.02)' : 'linear-gradient(180deg, #6d8dff 0%, #4f6cf7 100%)',
+                  color: (isGenerating || (!input.trim() && !sourceNode)) ? 'var(--text-muted)' : '#ffffff',
+                  border: (isGenerating || (!input.trim() && !sourceNode)) ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(149,177,255,0.42)',
+                  borderRadius: '14px',
+                  padding: '12px 22px',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  cursor: (isGenerating || (!input.trim() && !sourceNode)) ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px',
+                  boxShadow: (isGenerating || (!input.trim() && !sourceNode)) ? 'none' : '0 10px 24px rgba(79, 108, 247, 0.22)',
+                  transition: 'all 0.3s ease',
+                  width: '100%'
+                }}
+              >
+                {isGenerating ? (
+                  <><Loader2 size={18} className="spinner" /> กำลังสร้าง...</>
+                ) : (
+                  <><SquarePen size={18} /> สร้างคอนเทนต์</>
+                )}
+              </button>
+            </div>
+          </aside>
         </div>
         
         {/* Progress Bar - indeterminate flowing animation */}
