@@ -1553,12 +1553,30 @@ ${activeContext ? activeContext : '\n[คำเตือน: ไม่มีข�
   }
 };
 
+// Query expansion map: same single API call, broader initial results — zero extra cost
+const CATEGORY_QUERY_EXPANSION: Record<string, string> = {
+  'AI': 'AI OR "artificial intelligence" OR LLM OR ChatGPT OR "machine learning"',
+  'เทคโนโลยี': 'เทคโนโลยี OR technology OR tech OR software',
+  'ธุรกิจ': 'ธุรกิจ OR startup OR business OR entrepreneur',
+  'การตลาด': 'การตลาด OR marketing OR "digital marketing" OR branding',
+  'การเงิน': 'การเงิน OR finance OR "personal finance" OR fintech',
+  'การลงทุน': 'การลงทุน OR investing OR investment OR stocks OR equity',
+  'คริปโต': 'คริปโต OR crypto OR bitcoin OR ethereum OR DeFi OR web3',
+  'สุขภาพ': 'สุขภาพ OR health OR wellness OR fitness OR nutrition',
+  'ไลฟ์สไตล์': 'ไลฟ์สไตล์ OR lifestyle OR productivity OR mindset',
+  'เศรษฐกิจ': 'เศรษฐกิจ OR economy OR economics OR macro',
+  'การเมือง': 'การเมือง OR politics OR policy OR geopolitics',
+  'การพัฒนาตัวเอง': 'การพัฒนาตัวเอง OR "self improvement" OR productivity OR habits',
+};
+
 export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames = []) => {
   try {
     let activeContext = '';
 
     try {
-      const searchData = await searchEverything(categoryQuery, '', false, 'Top', false);
+      // Use expanded query for better signal breadth — still a single API call
+      const expandedQuery = CATEGORY_QUERY_EXPANSION[categoryQuery] || categoryQuery;
+      const searchData = await searchEverything(expandedQuery, '', false, 'Top', false);
       const curatedTweets = curateSearchResults(searchData?.data || [], categoryQuery, {
         latestMode: false,
         preferCredibleSources: true,
@@ -1566,25 +1584,37 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
 
       if (curatedTweets.length > 0) {
         const authorsByUsername = new Map();
+        const queryLower = String(categoryQuery || '').toLowerCase();
+        const nowMs = Date.now();
 
         for (const tweet of curatedTweets) {
           const username = (tweet?.author?.username || '').toLowerCase();
           if (!username) continue;
 
-          const engagementSignal =
+          const tweetAgeMs = tweet.created_at ? nowMs - new Date(tweet.created_at).getTime() : Infinity;
+          const tweetAgeDays = tweetAgeMs / 86_400_000;
+
+          // Recency multiplier: tweets from last 7 days worth more, >90 days worth less
+          const recencyMult = tweetAgeDays <= 7 ? 1.8 : tweetAgeDays <= 30 ? 1.2 : tweetAgeDays <= 90 ? 0.8 : 0.4;
+
+          const rawEngagement =
             Number(tweet.likeCount || tweet.like_count || 0) +
             Number(tweet.retweetCount || tweet.retweet_count || 0) * 2 +
             Number(tweet.replyCount || tweet.reply_count || 0) * 1.5;
+          const engagementSignal = rawEngagement * recencyMult;
+
           const topicSignal =
-            Number(tweet.broad_semantic_score || 0) +
+            (Number(tweet.broad_semantic_score || 0) +
             Number(tweet.search_score || 0) +
-            (String(tweet.text || '').toLowerCase().includes(String(categoryQuery || '').toLowerCase()) ? 1.25 : 0);
+            (String(tweet.text || '').toLowerCase().includes(queryLower) ? 1.25 : 0)) * recencyMult;
 
           if (!authorsByUsername.has(username)) {
             authorsByUsername.set(username, {
               ...tweet.author,
               _engagementSignal: engagementSignal,
               _topicSignal: topicSignal,
+              _topicTweetCount: 1,
+              _latestTweetAgeDays: tweetAgeDays,
             });
             continue;
           }
@@ -1592,27 +1622,72 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
           const existing = authorsByUsername.get(username);
           existing._engagementSignal += engagementSignal;
           existing._topicSignal += topicSignal;
+          existing._topicTweetCount += 1;
+          if (tweetAgeDays < existing._latestTweetAgeDays) {
+            existing._latestTweetAgeDays = tweetAgeDays;
+          }
         }
 
-        const qualifiedAuthors = Array.from(authorsByUsername.values())
-          .filter((author) => (author.followers || author.fastFollowersCount || 0) > 1000)
-          .filter((author) => author._topicSignal >= 3)
-          .sort((a, b) => {
-            if (b._topicSignal !== a._topicSignal) return b._topicSignal - a._topicSignal;
-            return b._engagementSignal - a._engagementSignal;
-          })
-          .slice(0, 15);
+        // Compute composite score per author using data already in hand — zero extra calls
+        const scoredAuthors = Array.from(authorsByUsername.values()).map((author) => {
+          const followers = Number(author.followers || author.fastFollowersCount || 0);
+
+          // Engagement rate: normalize raw engagement against follower size
+          // Caps at 5% rate so micro-accounts don't dominate unfairly
+          const engRate = followers > 0 ? (author._engagementSignal / followers) * 100 : 0;
+          const normalizedEngRate = Math.min(1, engRate / 5) * 50; // scale to 0-50 pts
+
+          // Followers score: log-scaled so 10K and 1M aren't wildly apart
+          const followersScore = followers > 0 ? Math.min(30, Math.log10(followers + 1) * 7) : 0;
+
+          // Authority: verified badge + bio presence + account age
+          const hasBio = (author.description || '').length > 20;
+          const accountAgeDays = author.createdAt
+            ? (nowMs - new Date(author.createdAt).getTime()) / 86_400_000
+            : 365;
+          const verifiedBonus = author.isVerified ? 15 : author.isBlueVerified ? 6 : 0;
+          const authorityScore = verifiedBonus + (hasBio ? 4 : 0) + Math.min(8, accountAgeDays / 180);
+
+          // Activity signal: most recent tweet age — heavily penalise inactive accounts
+          const activityScore =
+            author._latestTweetAgeDays <= 7 ? 20 :
+            author._latestTweetAgeDays <= 30 ? 12 :
+            author._latestTweetAgeDays <= 90 ? 4 : 0;
+
+          // Topic concentration: how many of this author's tweets in results are about the topic
+          const topicConcentrationBonus = Math.min(15, author._topicTweetCount * 3);
+
+          const compositeScore =
+            author._topicSignal * 2.5 +   // relevance is king
+            normalizedEngRate +            // engagement per follower
+            followersScore +               // raw reach
+            authorityScore +               // credibility signals
+            activityScore +                // recency of activity
+            topicConcentrationBonus;       // topic focus depth
+
+          return { ...author, _compositeScore: compositeScore, _engRate: engRate, _activityDays: author._latestTweetAgeDays };
+        });
+
+        const qualifiedAuthors = scoredAuthors
+          .filter((author) => (author.followers || author.fastFollowersCount || 0) >= 500)
+          .filter((author) => author._topicSignal >= 2)         // relevance gate
+          .filter((author) => author._latestTweetAgeDays <= 90) // activity gate: must have tweeted in 90 days
+          .sort((a, b) => b._compositeScore - a._compositeScore)
+          .slice(0, 18); // wider shortlist so LLM has better candidates to pick from
 
         if (qualifiedAuthors.length > 0) {
           activeContext = [
             '',
-            '[REAL-TIME TOPIC-VALIDATED SHORTLIST]',
-            `These accounts came from live search results for "${categoryQuery}", but only after relevance filtering.`,
-            'Treat this list as a strong hint, not automatic truth. Reject any account that only mentions the topic casually.',
-            ...qualifiedAuthors.map(
-              (author) =>
-                `- @${author.username} (${author.name}) | followers: ${author.followers || author.fastFollowersCount || 0} | topicScore: ${Math.round(author._topicSignal * 100) / 100} | engagementScore: ${Math.round(author._engagementSignal * 100) / 100}`,
-            ),
+            '[REAL-TIME SCORED SHORTLIST]',
+            `Live results for "${categoryQuery}" — pre-scored by topic relevance, engagement rate, recency, and authority.`,
+            'Prioritise accounts with high engRate% (engaged per follower), low activityDays (recently active), and high topicTweets.',
+            'Reject any account that only mentions the topic in passing. Reject accounts with 0 recency signal.',
+            ...qualifiedAuthors.map((author) => {
+              const followers = author.followers || author.fastFollowersCount || 0;
+              const engRateLabel = author._engRate >= 3 ? '🔥 high' : author._engRate >= 1 ? 'mid' : 'low';
+              const activityLabel = author._activityDays <= 7 ? 'active this week' : author._activityDays <= 30 ? 'active this month' : `${Math.round(author._activityDays)}d ago`;
+              return `- @${author.username} (${author.name}) | followers: ${followers.toLocaleString()} | engRate: ${author._engRate.toFixed(2)}% (${engRateLabel}) | lastSeen: ${activityLabel} | topicTweets: ${author._topicTweetCount} | composite: ${Math.round(author._compositeScore)}`;
+            }),
             '',
           ].join('\n');
         }
@@ -1626,23 +1701,28 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
       system: `You are a strict Twitter/X account recommender for the topic "${categoryQuery}".
 
 Your job is to recommend up to 6 accounts that are genuinely worth following for this topic.
-${activeContext || '\n[No reliable real-time shortlist was available. Use only clearly relevant and well-known accounts.]\n'}
+${activeContext || '\n[No real-time shortlist available. Only recommend accounts you are 100% confident are real, active, and topic-focused.]\n'}
 
-Rules:
-1. Topic fit is mandatory. Never recommend an account only because it has high engagement.
-2. If an account appears in the shortlist but is only casually touching the topic, reject it.
-3. Prefer accounts whose identity, bio, or recent content clearly centers on the topic.
-4. Avoid fan accounts, meme aggregators, generic viral accounts, spam, and random creators with weak topical fit.
-5. Respect this exclude list exactly: [${excludeUsernames.join(', ')}]
-6. No hallucinations. Only recommend accounts you are confident are real.
-7. Write "reasoning" in Thai, one short sentence.`,
-      prompt: `Recommend the best Twitter/X accounts for "${categoryQuery}". Return only highly relevant accounts. Username must not start with @.`,
+Selection criteria (in order of importance):
+1. TOPIC FIT — account's identity and content must genuinely center on "${categoryQuery}". Casual mentions do not qualify.
+2. ACTIVITY — prefer accounts with "active this week" or "active this month". Penalise accounts last seen >60 days ago.
+3. ENGAGEMENT QUALITY — high engRate% (engagement per follower) signals real audience connection. An account with 10K followers and 🔥 high engRate beats a 500K account with low engRate.
+4. CREDIBILITY — verified accounts, long-standing accounts, accounts with clear bios.
+5. REACH — follower count matters, but it's the last tiebreaker, not the primary signal.
+
+Hard rules:
+- Never recommend an account only because of high follower count.
+- Reject fan accounts, news aggregators, meme accounts, and multi-topic viral accounts.
+- Exclude list (do not recommend any of these): [${excludeUsernames.join(', ')}]
+- No hallucinations. Only accounts you are confident exist and are active.
+- Write "reasoning" in Thai, one concise sentence explaining WHY this account is the best for this topic.`,
+      prompt: `Select the best 6 Twitter/X accounts for someone who wants to learn from the top voices in "${categoryQuery}". Use the shortlist above as primary signal. Username must not start with @.`,
       schema: z.object({
         experts: z.array(
           z.object({
             username: z.string().describe('Twitter/X username without @'),
             name: z.string().describe('Display name'),
-            reasoning: z.string().describe('Short Thai reason'),
+            reasoning: z.string().describe('Short Thai reason — 1 sentence on WHY this account is top for this topic'),
           }),
         ).max(6),
       }),
