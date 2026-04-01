@@ -1572,11 +1572,46 @@ const CATEGORY_QUERY_EXPANSION: Record<string, string> = {
 export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames = []) => {
   try {
     let activeContext = '';
+    let canonicalContext = '';
 
+    const expandedQuery = CATEGORY_QUERY_EXPANSION[categoryQuery] || categoryQuery;
+    const nowMs = Date.now();
+
+    // Run X search + Tavily in parallel — no extra latency vs sequential
+    const [searchData, tavilyData] = await Promise.all([
+      searchEverything(expandedQuery, '', false, 'Top', false).catch(() => ({ data: [] })),
+      tavilySearch(
+        `best ${categoryQuery} twitter accounts experts to follow`,
+        false,
+        { max_results: 3, include_answer: true, search_depth: 'basic' },
+      ).catch(() => ({ results: [], answer: '' })),
+    ]);
+
+    // ── Signal A: Tavily canonical context ──────────────────────────────────
+    // Web articles & journalism = who the internet agrees are the canonical experts
     try {
-      // Use expanded query for better signal breadth — still a single API call
-      const expandedQuery = CATEGORY_QUERY_EXPANSION[categoryQuery] || categoryQuery;
-      const searchData = await searchEverything(expandedQuery, '', false, 'Top', false);
+      const tavilyAnswer = (tavilyData?.answer || '').trim();
+      const tavilySnippets = (tavilyData?.results || [])
+        .map((r) => (r.content || '').slice(0, 300))
+        .filter(Boolean)
+        .join('\n');
+      const rawCanonical = [tavilyAnswer, tavilySnippets].filter(Boolean).join('\n').trim();
+      if (rawCanonical) {
+        canonicalContext = [
+          '[WEB-CURATED CANONICAL LIST]',
+          `From web articles, journalism, and expert lists about "${categoryQuery}":`,
+          rawCanonical,
+          'Extract any Twitter/X usernames or names mentioned. These are accounts the broader internet considers canonical authorities.',
+          '',
+        ].join('\n');
+      }
+    } catch (e) {
+      console.warn('Could not build canonical context:', e);
+    }
+
+    // ── Signal B: X real-time shortlist ────────────────────────────────────
+    // Twitter search = who is actively posting about the topic right now
+    try {
       const curatedTweets = curateSearchResults(searchData?.data || [], categoryQuery, {
         latestMode: false,
         preferCredibleSources: true,
@@ -1585,7 +1620,6 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
       if (curatedTweets.length > 0) {
         const authorsByUsername = new Map();
         const queryLower = String(categoryQuery || '').toLowerCase();
-        const nowMs = Date.now();
 
         for (const tweet of curatedTweets) {
           const username = (tweet?.author?.username || '').toLowerCase();
@@ -1593,25 +1627,22 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
 
           const tweetAgeMs = tweet.created_at ? nowMs - new Date(tweet.created_at).getTime() : Infinity;
           const tweetAgeDays = tweetAgeMs / 86_400_000;
-
-          // Recency multiplier: tweets from last 7 days worth more, >90 days worth less
           const recencyMult = tweetAgeDays <= 7 ? 1.8 : tweetAgeDays <= 30 ? 1.2 : tweetAgeDays <= 90 ? 0.8 : 0.4;
 
           const rawEngagement =
             Number(tweet.likeCount || tweet.like_count || 0) +
             Number(tweet.retweetCount || tweet.retweet_count || 0) * 2 +
             Number(tweet.replyCount || tweet.reply_count || 0) * 1.5;
-          const engagementSignal = rawEngagement * recencyMult;
 
           const topicSignal =
             (Number(tweet.broad_semantic_score || 0) +
-            Number(tweet.search_score || 0) +
-            (String(tweet.text || '').toLowerCase().includes(queryLower) ? 1.25 : 0)) * recencyMult;
+              Number(tweet.search_score || 0) +
+              (String(tweet.text || '').toLowerCase().includes(queryLower) ? 1.25 : 0)) * recencyMult;
 
           if (!authorsByUsername.has(username)) {
             authorsByUsername.set(username, {
               ...tweet.author,
-              _engagementSignal: engagementSignal,
+              _engagementSignal: rawEngagement * recencyMult,
               _topicSignal: topicSignal,
               _topicTweetCount: 1,
               _latestTweetAgeDays: tweetAgeDays,
@@ -1620,119 +1651,102 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
           }
 
           const existing = authorsByUsername.get(username);
-          existing._engagementSignal += engagementSignal;
+          existing._engagementSignal += rawEngagement * recencyMult;
           existing._topicSignal += topicSignal;
           existing._topicTweetCount += 1;
-          if (tweetAgeDays < existing._latestTweetAgeDays) {
-            existing._latestTweetAgeDays = tweetAgeDays;
-          }
+          if (tweetAgeDays < existing._latestTweetAgeDays) existing._latestTweetAgeDays = tweetAgeDays;
         }
 
-        // Compute composite score per author using data already in hand — zero extra calls
         const scoredAuthors = Array.from(authorsByUsername.values()).map((author) => {
           const followers = Number(author.followers || author.fastFollowersCount || 0);
-
-          // Engagement rate: normalize raw engagement against follower size
-          // Caps at 5% rate so micro-accounts don't dominate unfairly
           const engRate = followers > 0 ? (author._engagementSignal / followers) * 100 : 0;
-          const normalizedEngRate = Math.min(1, engRate / 5) * 50; // scale to 0-50 pts
-
-          // Followers score: log-scaled so 10K and 1M aren't wildly apart
           const followersScore = followers > 0 ? Math.min(30, Math.log10(followers + 1) * 7) : 0;
-
-          // Authority: verified badge + bio presence + account age
           const hasBio = (author.description || '').length > 20;
-          const accountAgeDays = author.createdAt
-            ? (nowMs - new Date(author.createdAt).getTime()) / 86_400_000
-            : 365;
+          const accountAgeDays = author.createdAt ? (nowMs - new Date(author.createdAt).getTime()) / 86_400_000 : 365;
           const verifiedBonus = author.isVerified ? 15 : author.isBlueVerified ? 6 : 0;
-          const authorityScore = verifiedBonus + (hasBio ? 4 : 0) + Math.min(8, accountAgeDays / 180);
+          const activityScore = author._latestTweetAgeDays <= 7 ? 20 : author._latestTweetAgeDays <= 30 ? 12 : author._latestTweetAgeDays <= 90 ? 4 : 0;
 
-          // Activity signal: most recent tweet age — heavily penalise inactive accounts
-          const activityScore =
-            author._latestTweetAgeDays <= 7 ? 20 :
-            author._latestTweetAgeDays <= 30 ? 12 :
-            author._latestTweetAgeDays <= 90 ? 4 : 0;
-
-          // Topic concentration: how many of this author's tweets in results are about the topic
-          const topicConcentrationBonus = Math.min(15, author._topicTweetCount * 3);
-
-          const compositeScore =
-            author._topicSignal * 2.5 +   // relevance is king
-            normalizedEngRate +            // engagement per follower
-            followersScore +               // raw reach
-            authorityScore +               // credibility signals
-            activityScore +                // recency of activity
-            topicConcentrationBonus;       // topic focus depth
-
-          return { ...author, _compositeScore: compositeScore, _engRate: engRate, _activityDays: author._latestTweetAgeDays };
+          return {
+            ...author,
+            _compositeScore:
+              author._topicSignal * 2.5 +
+              Math.min(1, engRate / 5) * 50 +
+              followersScore +
+              verifiedBonus + (hasBio ? 4 : 0) + Math.min(8, accountAgeDays / 180) +
+              activityScore +
+              Math.min(15, author._topicTweetCount * 3),
+            _engRate: engRate,
+            _activityDays: author._latestTweetAgeDays,
+          };
         });
 
         const qualifiedAuthors = scoredAuthors
-          .filter((author) => (author.followers || author.fastFollowersCount || 0) >= 500)
-          .filter((author) => author._topicSignal >= 2)         // relevance gate
-          .filter((author) => author._latestTweetAgeDays <= 90) // activity gate: must have tweeted in 90 days
+          .filter((a) => (a.followers || a.fastFollowersCount || 0) >= 500)
+          .filter((a) => a._topicSignal >= 2)
+          .filter((a) => a._latestTweetAgeDays <= 90)
           .sort((a, b) => b._compositeScore - a._compositeScore)
-          .slice(0, 18); // wider shortlist so LLM has better candidates to pick from
+          .slice(0, 18);
 
         if (qualifiedAuthors.length > 0) {
           activeContext = [
-            '',
-            '[REAL-TIME SCORED SHORTLIST]',
-            `Live results for "${categoryQuery}" — pre-scored by topic relevance, engagement rate, recency, and authority.`,
-            'Prioritise accounts with high engRate% (engaged per follower), low activityDays (recently active), and high topicTweets.',
-            'Reject any account that only mentions the topic in passing. Reject accounts with 0 recency signal.',
-            ...qualifiedAuthors.map((author) => {
-              const followers = author.followers || author.fastFollowersCount || 0;
-              const engRateLabel = author._engRate >= 3 ? '🔥 high' : author._engRate >= 1 ? 'mid' : 'low';
-              const activityLabel = author._activityDays <= 7 ? 'active this week' : author._activityDays <= 30 ? 'active this month' : `${Math.round(author._activityDays)}d ago`;
-              return `- @${author.username} (${author.name}) | followers: ${followers.toLocaleString()} | engRate: ${author._engRate.toFixed(2)}% (${engRateLabel}) | lastSeen: ${activityLabel} | topicTweets: ${author._topicTweetCount} | composite: ${Math.round(author._compositeScore)}`;
+            '[X REAL-TIME ACTIVITY SHORTLIST]',
+            `Accounts currently active on "${categoryQuery}" — scored by recency, engagement rate, and topic focus.`,
+            'Use this to validate that a recommended account is still posting. High composite + active this week = strong signal.',
+            ...qualifiedAuthors.map((a) => {
+              const followers = a.followers || a.fastFollowersCount || 0;
+              const engLabel = a._engRate >= 3 ? 'high' : a._engRate >= 1 ? 'mid' : 'low';
+              const actLabel = a._activityDays <= 7 ? 'active this week' : a._activityDays <= 30 ? 'active this month' : `${Math.round(a._activityDays)}d ago`;
+              return `- @${a.username} (${a.name}) | followers: ${Number(followers).toLocaleString()} | engRate: ${a._engRate.toFixed(2)}% (${engLabel}) | lastSeen: ${actLabel} | topicTweets: ${a._topicTweetCount}`;
             }),
             '',
           ].join('\n');
         }
       }
     } catch (e) {
-      console.warn('Could not fetch active context for strict expert discovery:', e);
+      console.warn('Could not build real-time context:', e);
     }
 
     const { object } = await generateObject({
       model: grok(MODEL_REASONING_FAST),
-      system: `You are a strict Twitter/X account recommender for the topic "${categoryQuery}".
+      system: `You are the world's best Twitter/X account recommender for the topic "${categoryQuery}".
 
-Your job is to recommend up to 6 accounts that are genuinely worth following for this topic.
-${activeContext || '\n[No real-time shortlist available. Only recommend accounts you are 100% confident are real, active, and topic-focused.]\n'}
+Your goal: recommend the 6 accounts that ANY serious follower of "${categoryQuery}" would regret not following.
 
-Selection criteria (in order of importance):
-1. TOPIC FIT — account's identity and content must genuinely center on "${categoryQuery}". Casual mentions do not qualify.
-2. ACTIVITY — prefer accounts with "active this week" or "active this month". Penalise accounts last seen >60 days ago.
-3. ENGAGEMENT QUALITY — high engRate% (engagement per follower) signals real audience connection. An account with 10K followers and 🔥 high engRate beats a 500K account with low engRate.
-4. CREDIBILITY — verified accounts, long-standing accounts, accounts with clear bios.
-5. REACH — follower count matters, but it's the last tiebreaker, not the primary signal.
+You have THREE signals. Use them together:
+
+${canonicalContext || '[No web canonical list available — rely on your training knowledge and real-time data.]'}
+
+${activeContext || '[No real-time data available — rely on your training knowledge and canonical list.]'}
+
+[YOUR TRAINING KNOWLEDGE]
+You were trained on the web. You know who the canonical authorities, researchers, journalists, investors, and practitioners are for "${categoryQuery}". This is your most reliable signal for well-known topics.
+
+Priority logic:
+1. HIGHEST CONFIDENCE: account appears in BOTH canonical list AND real-time shortlist → definitely recommend
+2. HIGH CONFIDENCE: account is in canonical list OR your training knowledge, AND is plausibly still active → recommend
+3. MEDIUM: account is only in real-time shortlist → recommend only if topic fit is clearly strong, not just trending
+4. REJECT: account you are not confident about, fan accounts, aggregators, spam, meme accounts
 
 Hard rules:
-- Never recommend an account only because of high follower count.
-- Reject fan accounts, news aggregators, meme accounts, and multi-topic viral accounts.
-- Exclude list (do not recommend any of these): [${excludeUsernames.join(', ')}]
-- No hallucinations. Only accounts you are confident exist and are active.
-- Write "reasoning" in Thai, one concise sentence explaining WHY this account is the best for this topic.`,
-      prompt: `Select the best 6 Twitter/X accounts for someone who wants to learn from the top voices in "${categoryQuery}". Use the shortlist above as primary signal. Username must not start with @.`,
+- Topic fit is non-negotiable. Never recommend based on follower count alone.
+- Do not hallucinate usernames. If you are not confident a username is real and active, skip it.
+- Prefer diversity: mix practitioners, analysts, journalists, researchers — not 6 accounts of the same type.
+- Exclude list — never recommend these: [${excludeUsernames.join(', ')}]
+- Write "reasoning" in Thai, 1 sentence — state specifically WHY this account is a must-follow for "${categoryQuery}".`,
+      prompt: `Recommend the best 6 Twitter/X accounts for "${categoryQuery}". Username must not start with @.`,
       schema: z.object({
         experts: z.array(
           z.object({
             username: z.string().describe('Twitter/X username without @'),
             name: z.string().describe('Display name'),
-            reasoning: z.string().describe('Short Thai reason — 1 sentence on WHY this account is top for this topic'),
+            reasoning: z.string().describe('Thai — 1 sentence on why this account is a must-follow for this topic'),
           }),
         ).max(6),
       }),
     });
 
     return (object.experts || [])
-      .map((expert) => ({
-        ...expert,
-        username: (expert.username || '').replace(/^@/, '').trim(),
-      }))
+      .map((expert) => ({ ...expert, username: (expert.username || '').replace(/^@/, '').trim() }))
       .filter((expert) => {
         const username = (expert.username || '').toLowerCase();
         return username && !excludeUsernames.some((item) => String(item || '').toLowerCase() === username);
