@@ -595,7 +595,7 @@ const CreateContent = ({
               disabled={isGenerating}
               style={{ 
                 flex: 1, width: '100%', minHeight: sourceNode ? '240px' : '320px', resize: 'none', fontSize: '17px', lineHeight: '1.72',
-                padding: sourceNode ? '10px 20px 20px' : '16px 20px 20px', background: 'transparent', border: 'none', color: '#ffffff', outline: 'none',
+                padding: sourceNode ? '10px 24px 24px' : '16px 24px 24px', background: 'transparent', border: 'none', color: '#ffffff', outline: 'none',
                 fontFamily: 'inherit'
               }}
             />
