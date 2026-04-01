@@ -628,17 +628,17 @@ const CreateContent = ({
           </div>
 
           <aside className="create-content-sidebar">
-            <div className="create-content-sidebar-section">
+            <div className="create-content-sidebar-section" style={{ position: 'relative', zIndex: 10 }}>
               <div className="create-content-sidebar-label">รูปแบบงาน</div>
               <CustomDropdown icon={FileText} value={format} onChange={setFormat} options={FORMAT_OPTIONS} isObject={true} />
             </div>
 
-            <div className="create-content-sidebar-section">
+            <div className="create-content-sidebar-section" style={{ position: 'relative', zIndex: 9 }}>
               <div className="create-content-sidebar-label">น้ำเสียง</div>
               <CustomDropdown icon={Smile} value={tone} onChange={setTone} options={TONE_OPTIONS} />
             </div>
 
-            <div className="create-content-sidebar-section">
+            <div className="create-content-sidebar-section" style={{ position: 'relative', zIndex: 8 }}>
               <div className="create-content-sidebar-label">ความยาว</div>
               <CustomDropdown icon={Maximize2} value={length} onChange={setLength} options={LENGTH_OPTIONS} />
             </div>
