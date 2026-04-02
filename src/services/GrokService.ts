@@ -2,13 +2,14 @@
 import { createXai } from '@ai-sdk/xai';
 import { generateObject, generateText, streamText } from 'ai';
 import { z } from 'zod';
+import {
+  MODEL_MULTI_AGENT,
+  MODEL_NEWS_FAST,
+  MODEL_REASONING_FAST,
+  MODEL_WRITER,
+} from '../config/aiModels';
 import { curateSearchResults, searchEverything, fetchTweetById } from './TwitterService';
 import { apiFetch, INTERNAL_TOKEN } from '../utils/apiFetch';
-
-const MODEL_NEWS_FAST = 'grok-4-1-fast-non-reasoning';
-const MODEL_REASONING_FAST = 'grok-4-1-fast-reasoning';
-const MODEL_WRITER = 'grok-4-1-fast-reasoning';
-const MODEL_MULTI_AGENT = 'grok-4-1-fast-reasoning'; // Temporarily downgraded to save costs
 
 const grok = createXai({
   apiKey: 'local-proxy',
@@ -26,7 +27,6 @@ const SUMMARY_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const EXECUTIVE_SUMMARY_CACHE_TTL_MS = 10 * 60 * 1000;
 const CONTENT_BRIEF_CACHE_TTL_MS = 30 * 60 * 1000;
 const FACT_CACHE_TTL_MS = 30 * 60 * 1000;
-
 const normalizeCacheText = (value = '') => String(value || '').replace(/\s+/g, ' ').trim();
 
 // Strip characters commonly used for prompt injection from third-party content
@@ -300,7 +300,12 @@ const rankAndFilterSources = (sources = [], options = {}) => {
 
   return filtered
     .sort((a, b) => b._score - a._score)
-    .map(({ _score, _hostname, ...source }) => source)
+    .map((entry) => {
+      const source = { ...entry };
+      delete source._score;
+      delete source._hostname;
+      return source;
+    })
     .slice(0, 6);
 };
 
@@ -415,7 +420,7 @@ const isMajorXAccount = (tweet) => {
   return followers > 10000 || likes > 500 || tweet.author?.isVerified || tweet.author?.isBlueVerified;
 };
 
-const extractSourcesFromTweets = (tweets, limit = 4) => {
+const _extractSourcesFromTweets = (tweets, limit = 4) => {
   const validSources = (tweets || [])
     .filter(t => isMajorXAccount(t))
     .slice(0, limit)
@@ -596,7 +601,7 @@ const HYPE_PHRASES = [
 const buildFormatProfile = (format) =>
   CONTENT_FORMAT_PROFILES[format] || CONTENT_FORMAT_PROFILES['โพสต์โซเชียล'];
 
-const shouldPreferConversationalViralFlow = (tone = '', format = '') =>
+const _shouldPreferConversationalViralFlow = (tone = '', format = '') =>
   tone === 'กระตือรือร้น/ไวรัล' && ['โพสต์โซเชียล', 'โพสต์ให้ความรู้ (Thread)'].includes(format);
 
 const normalizeThaiSpacing = (text = '') =>
@@ -611,7 +616,7 @@ const normalizeThaiSpacing = (text = '') =>
 const normalizeDisallowedHeadings = (text = '') =>
   text.replace(/^\s{0,3}#{1,6}\s+(.+)$/gm, '**$1**').replace(/\n{3,}/g, '\n\n').trim();
 
-const stripEngagementBait = (text = '') =>
+const _stripEngagementBait = (text = '') =>
   text
     .replace(/(^|\n)(คุณคิดยังไง.*)$/gim, '')
     .replace(/(^|\n)(แชร์ความเห็น.*)$/gim, '')
@@ -624,7 +629,7 @@ const stripEngagementBait = (text = '') =>
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
-const softenHypeLanguage = (text = '') => {
+const _softenHypeLanguage = (text = '') => {
   let nextText = text;
 
   for (const phrase of HYPE_PHRASES) {
@@ -642,7 +647,7 @@ const softenHypeLanguage = (text = '') => {
     .trim();
 };
 
-const shouldAllowHighEnergyLanguage = (customInstructions = '', tone = '') =>
+const _shouldAllowHighEnergyLanguage = (customInstructions = '', tone = '') =>
   /ไวรัล|viral|energetic|high energy/i.test(`${tone} ${customInstructions}`);
 
 const ARTIFICIAL_THAI_PATTERNS = [
@@ -1256,7 +1261,7 @@ const mergeExternalSourceUrls = (...collections) =>
     ),
   ).slice(0, 3);
 
-const buildTavilyContextBlock = (label, data) => {
+const _buildTavilyContextBlock = (label, data) => {
   if (!data || (!data.answer && !data.results?.length)) return '';
 
   const results = Array.isArray(data.results) ? data.results : [];

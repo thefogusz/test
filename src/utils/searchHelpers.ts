@@ -160,7 +160,10 @@ export const extractInterestTopics = (items = []) => {
     const authorName = normalizeSearchText(item?.author?.name);
     const authorUsername = normalizeSearchText(item?.author?.username);
 
-    const hashtags = text.match(/#([\p{L}\p{N}_]{3,30})/gu) || [];
+    const hashtags = Array.from(
+      text.matchAll(/#([\p{L}\p{N}_]{3,30})/gu),
+      (match) => match[0],
+    );
     hashtags.forEach((hashtag) => pushTopic(hashtag.replace(/^#/, ''), 3));
 
     const uppercasePhrases = text.match(/\b(?:AI|Web3|Crypto|Gaming|Esports?|Netflix|YouTube|Steam|Xbox|PS5|OpenAI|Bitcoin|Ethereum|Dune|Epic Games(?: Store)?)\b/gi) || [];

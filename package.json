@@ -19,11 +19,13 @@
   },
   "dependencies": {
     "@ai-sdk/xai": "^3.0.72",
+    "@tanstack/react-query": "^5.96.1",
     "ai": "^6.0.116",
     "clsx": "^2.1.1",
     "dompurify": "^3.3.3",
     "express": "^4.22.1",
     "http-proxy-middleware": "^3.0.5",
+    "idb": "^8.0.3",
     "lucide-react": "^0.577.0",
     "marked": "^17.0.4",
     "react": "^19.2.4",
@@ -42,6 +44,7 @@
     "globals": "^17.4.0",
     "playwright": "^1.58.2",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.58.0",
     "vite": "^8.0.0",
     "vitepress": "^1.6.4"
   }

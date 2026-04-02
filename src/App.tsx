@@ -1,5 +1,5 @@
 ﻿// @ts-nocheck
-import React, { Suspense, lazy, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, lazy, startTransition, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import AiFilterModal from './components/AiFilterModal';
 import HomeView from './components/HomeView';
@@ -9,29 +9,20 @@ import StatusToast from './components/StatusToast';
 import RightSidebar from './components/RightSidebar';
 import {
   getUserInfo,
-  fetchWatchlistFeed,
-  searchEverything,
-  searchEverythingDeep,
-  curateSearchResults,
-  analyzeSearchQueryIntent,
-  clusterBySimilarity
 } from './services/TwitterService';
-import { agentFilterFeed, buildSearchPlan, discoverTopExpertsStrict, expandSearchQuery, generateExecutiveSummary, generateGrokBatch, generateGrokSummary, tavilySearch } from './services/GrokService';
+import { discoverTopExpertsStrict } from './services/GrokService';
 import { getSummaryDateLabel } from './utils/summaryDates';
 import './index.css';
 import { STORAGE_KEYS } from './constants/storageKeys';
+import { useHomeFeedWorkspace } from './hooks/useHomeFeedWorkspace';
+import { useIndexedDbState } from './hooks/useIndexedDbState';
 import useLibraryViews from './hooks/useLibraryViews';
 import { usePersistentState } from './hooks/usePersistentState';
+import { useSearchWorkspace } from './hooks/useSearchWorkspace';
 import useSearchSuggestions from './hooks/useSearchSuggestions';
 import {
-  deriveVisibleFeed,
-  mergeUniquePostsById,
-  hasUsefulThaiSummary,
-  sanitizeStoredPost,
   sanitizeCollectionState,
   sanitizeStoredSingle,
-  normalizeSearchText,
-  mergePlanLabelsIntoQuery
 } from './utils/appUtils';
 import {
   deserializeAttachedSource,
@@ -39,17 +30,6 @@ import {
   deserializeStoredCollection,
   deserializeWatchlist,
 } from './utils/appPersistence';
-import {
-  buildDynamicSearchTags,
-  COMMON_KEYWORDS,
-  deserializeSearchHistory,
-  deserializeSearchPresets,
-  extractInterestTopics,
-  getBroadFallbackQueries,
-  getBroadQueryBlueprint,
-  MAX_SEARCH_PRESETS,
-  normalizeSearchLabel,
-} from './utils/searchHelpers';
 
 const AudienceWorkspace = lazy(() => import('./components/AudienceWorkspace'));
 const BookmarksWorkspace = lazy(() => import('./components/BookmarksWorkspace'));
@@ -66,46 +46,15 @@ const App = () => {
     deserialize: deserializeWatchlist,
   });
   
-  const [feed, setFeed] = useState([]);
-  const [originalFeed, setOriginalFeed] = usePersistentState(STORAGE_KEYS.homeFeed, [], {
+  const [originalFeed, setOriginalFeed] = useIndexedDbState(STORAGE_KEYS.homeFeed, [], {
     deserialize: deserializeStoredCollection,
   });
-  const [deletedFeed, setDeletedFeed] = useState([]);
-  const [pendingFeed, setPendingFeed] = usePersistentState(STORAGE_KEYS.pendingFeed, [], {
+  const [pendingFeed, setPendingFeed] = useIndexedDbState(STORAGE_KEYS.pendingFeed, [], {
     deserialize: deserializeStoredCollection,
   });
-  const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
-  const [activeFilters, setActiveFilters] = useState({ view: false, engagement: false });
-  
-  const [searchQuery, setSearchQuery] = usePersistentState(STORAGE_KEYS.searchQuery, '');
-  const [searchResults, setSearchResults] = usePersistentState(STORAGE_KEYS.searchResults, [], {
-    deserialize: deserializeStoredCollection,
-  });
-  const [searchSummary, setSearchSummary] = usePersistentState(STORAGE_KEYS.searchSummary, '');
-  const [searchPresets, setSearchPresets] = usePersistentState(STORAGE_KEYS.searchPresets, [], {
-    deserialize: deserializeSearchPresets,
-  });
-  const [searchHistory, setSearchHistory] = usePersistentState(STORAGE_KEYS.searchHistory, [], {
-    deserialize: deserializeSearchHistory,
-  });
-  const [searchWebSources, setSearchWebSources] = usePersistentState(STORAGE_KEYS.searchWebSources, [], {
-    deserialize: deserializeStoredCollection,
-  });
-  const [isSearching, setIsSearching] = useState(false);
-  const [lastSubmittedSearchQuery, setLastSubmittedSearchQuery] = useState('');
-  const [searchOverflowResults, setSearchOverflowResults] = useState([]);
-  const [isSourcesExpanded, setIsSourcesExpanded] = useState(false);
-  const [searchCursor, setSearchCursor] = useState(null);
-  const [activeSearchPlan, setActiveSearchPlan] = useState(null);
-  const onlyNews = true;
-  const [nextCursor, setNextCursor] = useState(null);
-  const [isLatestMode, setIsLatestMode] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
-  const [isLiveSearching, setIsLiveSearching] = useState(false);
 
-  const [bookmarks, setBookmarks] = usePersistentState(STORAGE_KEYS.bookmarks, [], {
+  const [bookmarks, setBookmarks] = useIndexedDbState(STORAGE_KEYS.bookmarks, [], {
     deserialize: deserializeStoredCollection,
   });
   const [bookmarkTab, setBookmarkTab] = useState('news');
@@ -119,7 +68,7 @@ const App = () => {
     document.body.style.overflow = isMobilePostListOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [isMobilePostListOpen]);
-  const [readArchive, setReadArchive] = usePersistentState(STORAGE_KEYS.readArchive, [], {
+  const [readArchive, setReadArchive] = useIndexedDbState(STORAGE_KEYS.readArchive, [], {
     deserialize: deserializeStoredCollection,
   });
   const [readSearchQuery, setReadSearchQuery] = usePersistentState(STORAGE_KEYS.readSearchQuery, '');
@@ -154,16 +103,83 @@ const App = () => {
   const [manualQuery, setManualQuery] = useState('');
   const [manualPreview, setManualPreview] = useState(null);
 
-  const [isFiltered, setIsFiltered] = useState(false);
-  const [aiFilterSummary, setAiFilterSummary] = useState('');
+  const {
+    activeFilters,
+    aiFilterSummary,
+    applyAiFilter,
+    clearAiFilter,
+    deletedFeed,
+    feed,
+    handleDeleteAll,
+    handleLoadMore,
+    handleSort,
+    handleSync,
+    handleUndo,
+    isFiltered,
+    isFiltering,
+    loading,
+    nextCursor,
+  } = useHomeFeedWorkspace({
+    activeListId,
+    activeView,
+    originalFeed,
+    pendingFeed,
+    postLists,
+    watchlist,
+    setOriginalFeed,
+    setPendingFeed,
+    setReadArchive,
+    setStatus,
+  });
+  const {
+    activeSuggestionIndex,
+    addSearchPreset,
+    canSaveCurrentSearchAsPreset,
+    dynamicSearchTags,
+    handleSearch,
+    interestSeedLabels,
+    isLatestMode,
+    isLiveSearching,
+    isSearching,
+    isSourcesExpanded,
+    lastSubmittedSearchQuery,
+    maxSearchPresets,
+    removeSearchPreset,
+    searchCursor,
+    searchHistory,
+    searchHistoryLabels,
+    searchOverflowResults,
+    searchPresets,
+    searchQuery,
+    searchResults,
+    searchStatusMessage,
+    searchSummary,
+    searchWebSources,
+    setActiveSuggestionIndex,
+    setIsLatestMode,
+    setIsSourcesExpanded,
+    setSearchCursor,
+    setSearchOverflowResults,
+    setSearchQuery,
+    setSearchResults,
+    setSearchSummary,
+    setSearchWebSources,
+    setShowSuggestions,
+    shouldInlineSearchStatus,
+    showSuggestions,
+  } = useSearchWorkspace({
+    activeView,
+    contentTab,
+    originalFeed,
+    readArchive,
+    setStatus,
+    status,
+  });
   const aiFilterSummaryDateLabel = getSummaryDateLabel(feed, 8);
 
   // Global Background Tasks Persistence
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [genPhase, setGenPhase] = useState('idle');
-  const isSummarizingRef = useRef(false);
-  const isBackfillingThaiRef = useRef(false);
-  const failedThaiSummaryIdsRef = useRef(new Set());
 
   useEffect(() => {
     if (status) {
@@ -197,201 +213,6 @@ const App = () => {
     setReadArchive,
   ]);
 
-  useEffect(() => {
-    setNextCursor(null);
-    setPendingFeed([]);
-  }, [activeListId, activeView, setPendingFeed]);
-
-  useEffect(() => {
-    if (activeView === 'search' || isFiltered) return; 
-
-    setFeed(deriveVisibleFeed({
-      activeFilters,
-      activeListId,
-      activeView,
-      originalFeed,
-      postLists,
-      watchlist,
-    }));
-  }, [activeListId, originalFeed, activeView, postLists, watchlist, isFiltered, activeFilters]);
-
-  const translatePostsToThai = async (posts = []) => {
-    if (!posts.length) return [];
-
-    const batchSummaries = await generateGrokBatch(posts.map((post) => post.text));
-
-    return Promise.all(
-      posts.map(async (post, idx) => {
-        const batchSummary = batchSummaries[idx] || '';
-        if (hasUsefulThaiSummary(batchSummary, post.text)) {
-          failedThaiSummaryIdsRef.current.delete(post.id);
-          return { ...post, summary: batchSummary };
-        }
-
-        try {
-          const retrySummary = await generateGrokSummary(post.text);
-          if (hasUsefulThaiSummary(retrySummary, post.text)) {
-            failedThaiSummaryIdsRef.current.delete(post.id);
-            return { ...post, summary: retrySummary };
-          }
-        } catch (retryError) {
-          console.warn('[Thai Summary Retry Failed]', retryError);
-        }
-
-        failedThaiSummaryIdsRef.current.add(post.id);
-        return post;
-      }),
-    );
-  };
-
-  useEffect(() => {
-    const candidates = originalFeed
-      .filter((post) => post?.id && !hasUsefulThaiSummary(post.summary, post.text) && !failedThaiSummaryIdsRef.current.has(post.id))
-      .slice(0, 6);
-
-    if (!candidates.length || isSummarizingRef.current || isBackfillingThaiRef.current) return undefined;
-
-    const timer = setTimeout(async () => {
-      isBackfillingThaiRef.current = true;
-      try {
-        const translatedPosts = await translatePostsToThai(candidates);
-        const translatedSummaryMap = new Map(
-          translatedPosts
-            .filter((post) => hasUsefulThaiSummary(post.summary, post.text))
-            .map((post) => [post.id, post.summary]),
-        );
-
-        if (!translatedSummaryMap.size) return;
-
-        setOriginalFeed((prev) =>
-          prev.map((post) => (
-            translatedSummaryMap.has(post.id)
-              ? { ...post, summary: translatedSummaryMap.get(post.id) }
-              : post
-          )),
-        );
-        setReadArchive((prev) =>
-          prev.map((post) => (
-            translatedSummaryMap.has(post.id)
-              ? { ...post, summary: translatedSummaryMap.get(post.id) }
-              : post
-          )),
-        );
-      } finally {
-        isBackfillingThaiRef.current = false;
-      }
-    }, 600);
-
-    return () => clearTimeout(timer);
-  }, [originalFeed, setOriginalFeed, setReadArchive]);
-
-  const processAndSummarizeFeed = async (newBatch, statusPrefix = 'พบ') => {
-    if (newBatch.length === 0) return;
-    if (isSummarizingRef.current) return;
-    isSummarizingRef.current = true;
-
-    const CHUNK_SIZE = 10;
-    const totalChunks = Math.ceil(newBatch.length / CHUNK_SIZE);
-    let runningFeed = [...originalFeed];
-
-    try {
-    for (let i = 0; i < newBatch.length; i += CHUNK_SIZE) {
-      const chunkIndex = Math.floor(i / CHUNK_SIZE) + 1;
-      setStatus(`${statusPrefix} ${newBatch.length} โพสต์ — กำลังสรุป ${chunkIndex}/${totalChunks}...`);
-
-      const chunk = newBatch.slice(i, i + CHUNK_SIZE);
-      const toSummarize = chunk.filter(t => {
-        const existing = runningFeed.find(p => p.id === t.id);
-        return !hasUsefulThaiSummary(existing?.summary || t.summary, existing?.text || t.text);
-      });
-
-      if (toSummarize.length > 0) {
-        const translatedPosts = await translatePostsToThai(toSummarize);
-        const translatedSummaryMap = new Map(
-          translatedPosts
-            .filter((post) => hasUsefulThaiSummary(post.summary, post.text))
-            .map((post) => [post.id, post.summary]),
-        );
-
-        toSummarize.forEach((post) => {
-          if (translatedSummaryMap.has(post.id)) {
-            post.summary = translatedSummaryMap.get(post.id);
-          }
-        });
-      }
-
-      setOriginalFeed(prev => {
-        const postMap = new Map(prev.map(p => [p.id, p]));
-        chunk.forEach(newPost => {
-          const normalizedNewPost = sanitizeStoredPost(newPost);
-          if (postMap.has(newPost.id)) {
-            postMap.set(newPost.id, { ...sanitizeStoredPost(postMap.get(newPost.id)), ...normalizedNewPost });
-          } else {
-            postMap.set(newPost.id, normalizedNewPost);
-          }
-        });
-        const nextList = Array.from(postMap.values()).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        runningFeed = nextList;
-        return nextList;
-      });
-
-      setReadArchive(prev => {
-        const existingIds = new Set(prev.map(p => p.id));
-        const newItems = chunk.filter(p => !existingIds.has(p.id));
-        if (newItems.length > 0) return [...newItems, ...prev];
-        return prev;
-      });
-    }
-    } finally {
-      isSummarizingRef.current = false;
-    }
-  };
-
-  const handleSync = async () => {
-    if (watchlist.length === 0) {
-      setStatus('กรุณาเพิ่มบัญชีที่ต้องการติดตามก่อนซิงค์ข้อมูล');
-      return;
-    }
-    setLoading(true);
-    setStatus('กำลังเชื่อมต่อฐานข้อมูล... ดึงฟีดข่าวล่าสุด');
-
-    try {
-      const activeList = activeListId ? postLists.find(l => l.id === activeListId) : null;
-      const rawAccounts = activeList ? activeList.members : watchlist;
-      const targetAccounts = Array.isArray(rawAccounts) 
-        ? rawAccounts.map(u => typeof u === 'string' ? u : u.username).filter(Boolean)
-        : [];
-
-      if (targetAccounts.length === 0) {
-        setStatus(activeList ? 'Post List นี้ยังไม่มีสมาชิกให้ซิงค์' : 'กรุณาเพิ่มบัญชีที่ต้องการติดตามก่อนซิงค์ข้อมูล');
-        return;
-      }
-      
-      const { data, meta } = await fetchWatchlistFeed(targetAccounts, '', 'Latest');
-      setNextCursor(meta.next_cursor);
-      
-      const MAX_SYNC = 20;
-      const displayData = data.slice(0, MAX_SYNC);
-      const remainingData = data.slice(MAX_SYNC);
-      
-      setPendingFeed(remainingData);
-      
-      if (displayData.length > 0) {
-        await processAndSummarizeFeed(displayData, `ดึงข้อมูลสำเร็จ! ได้มา ${data.length} โพสต์ กำลังแปลและแสดงผล`);
-      }
-      setStatus('อัปเดตข้อมูลเรียบร้อย');
-    } catch (err) {
-      console.error(err);
-      if (err.message?.includes('401')) {
-        setStatus('❌ ผิดพลาด (401): กุญแจ API ไม่ถูกต้อง กรุณาเช็ค Railway Environment Variables');
-      } else {
-        setStatus('เกิดข้อผิดพลาดในการซิงค์ข้อมูล');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleBookmark = (tweet, isSaving) => {
     if (isSaving) {
       setBookmarks(prev => {
@@ -403,460 +224,10 @@ const App = () => {
     }
   };
 
-  const handleLoadMore = async () => {
-    if ((!nextCursor && pendingFeed.length === 0) || loading) return;
-    setLoading(true);
-    try {
-      let nextBatch = [];
-      const MAX_SYNC = 20;
-
-      if (pendingFeed.length > 0) {
-        nextBatch = pendingFeed.slice(0, MAX_SYNC);
-        setPendingFeed(pendingFeed.slice(MAX_SYNC));
-      } else {
-        const activeList = activeListId ? postLists.find(l => l.id === activeListId) : null;
-        const targetAccounts = activeList ? activeList.members : watchlist;
-        const { data, meta } = await fetchWatchlistFeed(targetAccounts, nextCursor, 'Latest');
-        setNextCursor(meta.next_cursor);
-        
-        nextBatch = data.slice(0, MAX_SYNC);
-        setPendingFeed(data.slice(MAX_SYNC));
-      }
-
-      if (nextBatch.length > 0) {
-        await processAndSummarizeFeed(nextBatch, `กำลังดึงข้อมูลเพิ่มอีก`);
-        setStatus('อัปเดตข้อมูลเพิ่มเติมเรียบร้อย');
-      } else {
-        setStatus('ไม่มีข้อมูลเพิ่มเติม');
-      }
-    } catch (err) {
-      console.error(err);
-      if (err.message?.includes('401')) {
-        setStatus('❌ ผิดพลาด (401): กุญแจ API ไม่ถูกต้อง กรุณาเช็ค Railway Environment Variables');
-      } else {
-        setStatus('เกิดข้อผิดพลาดในการโหลดข้อมูลเพิ่มเติม');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const recordSearchInterest = (rawQuery) => {
-    const normalizedQuery = normalizeSearchLabel(rawQuery);
-    if (!normalizedQuery) return;
-
-    setSearchHistory((prev) => {
-      const now = new Date().toISOString();
-      const next = Array.isArray(prev) ? [...prev] : [];
-      const existingIndex = next.findIndex(
-        (item) => item.query.toLowerCase() === normalizedQuery.toLowerCase(),
-      );
-
-      if (existingIndex >= 0) {
-        const existing = next[existingIndex];
-        next[existingIndex] = {
-          ...existing,
-          query: existing.query,
-          count: (existing.count || 0) + 1,
-          lastUsedAt: now,
-        };
-      } else {
-        next.unshift({ query: normalizedQuery, count: 1, lastUsedAt: now });
-      }
-
-      return next
-        .sort((left, right) => {
-          if ((right.count || 0) !== (left.count || 0)) return (right.count || 0) - (left.count || 0);
-          return new Date(right.lastUsedAt).getTime() - new Date(left.lastUsedAt).getTime();
-        })
-        .slice(0, 12);
-    });
-  };
-
-  const addSearchPreset = (rawQuery) => {
-    const normalizedQuery = normalizeSearchLabel(rawQuery);
-    if (!normalizedQuery) return;
-
-    setSearchPresets((prev) => {
-      const next = Array.isArray(prev) ? [...prev] : [];
-      if (next.some((item) => item.toLowerCase() === normalizedQuery.toLowerCase())) return next;
-      return [normalizedQuery, ...next].slice(0, MAX_SEARCH_PRESETS);
-    });
-  };
-
-  const removeSearchPreset = (labelToRemove) => {
-    setSearchPresets((prev) =>
-      (Array.isArray(prev) ? prev : []).filter(
-        (item) => item.toLowerCase() !== labelToRemove.toLowerCase(),
-      ),
-    );
-  };
-
-  const handleSearch = async (e, isMore = false, overrideQuery = '') => {
-    if (e) e.preventDefault();
-    const requestedQuery = overrideQuery || searchQuery;
-    const normalizedRequestedQueryLabel = normalizeSearchLabel(requestedQuery);
-    if (!requestedQuery && !isMore) return;
-    if (isMore && searchOverflowResults.length > 0) {
-      const nextChunk = searchOverflowResults.slice(0, 10);
-      setSearchResults((prev) => [...prev, ...nextChunk]);
-      setSearchOverflowResults((prev) => prev.slice(10));
-      return;
-    }
-    if (!isMore) {
-      recordSearchInterest(requestedQuery);
-      setLastSubmittedSearchQuery(normalizedRequestedQueryLabel);
-    }
-    setIsSearching(true);
-    if (!isMore) setSearchSummary('');
-    setStatus(`AI กำลังค้นหาข้อมูลสำหรับ "${requestedQuery}"...`);
-
-    try {
-      let webContext = '';
-      let searchPlan = activeSearchPlan;
-      const isComplexQuery = !/ฮา|ตลก|ขำ|funny|meme|lol|haha/i.test(requestedQuery);
-      const normalizedRequestedQuery = normalizeSearchText(requestedQuery);
-      const queryTokenCount = normalizedRequestedQuery ? normalizedRequestedQuery.split(' ').length : 0;
-      const legacyBroadDiscoveryQuery =
-        queryTokenCount > 0 &&
-        queryTokenCount <= 3 &&
-        !/ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update|news|ข่าว|รีวิว|เทียบ|vs|หลุด/i.test(requestedQuery) &&
-        !/from:|since:|until:|@|"/i.test(requestedQuery);
-      const queryIntent = analyzeSearchQueryIntent(requestedQuery);
-      const effectiveBroadDiscoveryQuery = queryIntent.broadDiscoveryIntent || legacyBroadDiscoveryQuery;
-      // Auto-enable Latest mode for price/event queries that need freshness
-      const searchQueryType = (isLatestMode || queryIntent.forceLatestMode) ? 'Latest' : 'Top';
-      const broadBlueprint = effectiveBroadDiscoveryQuery ? getBroadQueryBlueprint(requestedQuery) : null;
-      const broadFallbackQueries = effectiveBroadDiscoveryQuery ? getBroadFallbackQueries(requestedQuery) : [];
-      const shouldUseAdaptivePlan = isComplexQuery && !effectiveBroadDiscoveryQuery;
-      const preferStrictSources = isComplexQuery && !effectiveBroadDiscoveryQuery;
-      const rawDataChunks = [];
-      let finalCursor = null;
-      const getScopedQuery = (q, lane = 'default') => {
-        let sq = q;
-        if (isLatestMode) {
-          if (!q.includes('since:')) {
-            const date = new Date();
-            date.setHours(date.getHours() - 24);
-            sq = `${q} since:${date.toISOString().split('T')[0]}`;
-          }
-          // Avoid 0-engagement noise even in Latest mode
-          if (!q.includes('min_faves:')) {
-            const latestMinFaves = effectiveBroadDiscoveryQuery
-              ? (lane === 'exact' ? 10 : lane === 'broad' ? 25 : 40)
-              : (isComplexQuery ? 5 : 2);
-            sq = `${sq} min_faves:${latestMinFaves}`;
-          }
-        } else {
-          // For Top mode, ensure at least some baseline viral signal
-          if (!q.includes('min_faves:')) {
-            const topMinFaves = effectiveBroadDiscoveryQuery
-              ? (lane === 'exact' ? 15 : lane === 'broad' ? 40 : 75)
-              : (isComplexQuery ? 10 : 3);
-            sq = `${sq} min_faves:${topMinFaves}`;
-          }
-        }
-        return sq;
-      };
-      
-      if (!isMore) {
-        setStatus(`[Phase 2] Async Parallel Fetch: Tavily + Broad X Search...`);
-        
-        // 1. Fire Tavily AND X Search (Broad) concurrently!
-        const tavilyPromise =
-          shouldUseAdaptivePlan || effectiveBroadDiscoveryQuery
-            ? tavilySearch(requestedQuery, isLatestMode)
-            : Promise.resolve({ results: [], answer: '' });
-        const expandedBroadQueryPromise = expandSearchQuery(requestedQuery, isLatestMode).catch((err) => {
-          console.warn(`[Search] Failed to expand query: ${requestedQuery}`, err);
-          return requestedQuery;
-        });
-        const exactSearchPromise = effectiveBroadDiscoveryQuery
-          ? searchEverythingDeep(getScopedQuery(requestedQuery, 'exact'), null, onlyNews, searchQueryType, 2).catch((err) => {
-              console.warn(`[Search] Failed exact query: ${requestedQuery}`, err);
-              return { data: [], meta: {} };
-            })
-          : Promise.resolve({ data: [], meta: {} });
-        const broadSearchPromise = expandedBroadQueryPromise.then((expandedBroadQuery) => {
-          const broadQuery = getScopedQuery(expandedBroadQuery || requestedQuery, 'broad');
-          return searchEverythingDeep(broadQuery, null, onlyNews, searchQueryType, 4).catch(err => {
-            console.warn(`[Search] Failed broad query: ${broadQuery}`, err);
-            return { data: [], meta: {} };
-          });
-        });
-        const entitySearchPromise = effectiveBroadDiscoveryQuery && broadBlueprint?.entityQuery
-          ? searchEverythingDeep(getScopedQuery(broadBlueprint.entityQuery, 'entity'), null, onlyNews, searchQueryType, 3).catch((err) => {
-              console.warn(`[Search] Failed entity query: ${broadBlueprint.entityQuery}`, err);
-              return { data: [], meta: {} };
-            })
-          : Promise.resolve({ data: [], meta: {} });
-        const viralSearchPromise = effectiveBroadDiscoveryQuery && broadBlueprint?.viralQuery
-          ? searchEverythingDeep(getScopedQuery(broadBlueprint.viralQuery, 'viral'), null, onlyNews, searchQueryType, 3).catch((err) => {
-              console.warn(`[Search] Failed viral query: ${broadBlueprint.viralQuery}`, err);
-              return { data: [], meta: {} };
-            })
-          : Promise.resolve({ data: [], meta: {} });
-
-        const [webData, exactResult, broadResult, entityResult, viralResult] = await Promise.all([
-          tavilyPromise,
-          exactSearchPromise,
-          broadSearchPromise,
-          entitySearchPromise,
-          viralSearchPromise,
-        ]);
-
-        // Extract YouTube cards from Tavily results (zero YouTube search quota — Tavily already ran)
-        // Run in background while X results are being processed below
-        if (exactResult.data && exactResult.data.length > 0) rawDataChunks.push(exactResult.data);
-        if (broadResult.data && broadResult.data.length > 0) rawDataChunks.push(broadResult.data);
-        if (entityResult.data && entityResult.data.length > 0) rawDataChunks.push(entityResult.data);
-        if (viralResult.data && viralResult.data.length > 0) rawDataChunks.push(viralResult.data);
-        if (!finalCursor && broadResult.meta?.next_cursor) finalCursor = broadResult.meta.next_cursor;
-        if (!finalCursor && exactResult.meta?.next_cursor) finalCursor = exactResult.meta.next_cursor;
-        if (!finalCursor && entityResult.meta?.next_cursor) finalCursor = entityResult.meta.next_cursor;
-        if (!finalCursor && viralResult.meta?.next_cursor) finalCursor = viralResult.meta.next_cursor;
-
-        const initialMergedBroadData = mergeUniquePostsById(...rawDataChunks);
-        if (effectiveBroadDiscoveryQuery && initialMergedBroadData.length < 8 && broadFallbackQueries.length > 0) {
-          setStatus('[Fallback] ลองขยายคำค้นหาอัตโนมัติด้วยคำที่ใกล้เคียง...');
-          const fallbackResults = await Promise.all(
-            broadFallbackQueries.map((fallbackQuery, index) =>
-              searchEverythingDeep(
-                getScopedQuery(fallbackQuery, index === 0 ? 'exact' : 'broad'),
-                null,
-                onlyNews,
-                searchQueryType,
-                index === 0 ? 2 : 3,
-              ).catch((err) => {
-                console.warn(`[Search] Failed fallback broad query: ${fallbackQuery}`, err);
-                return { data: [], meta: {} };
-              }),
-            ),
-          );
-
-          fallbackResults.forEach((result) => {
-            if (result.data && result.data.length > 0) rawDataChunks.push(result.data);
-            if (!finalCursor && result.meta?.next_cursor) finalCursor = result.meta.next_cursor;
-          });
-        }
-
-        if (webData && (webData.results?.length || webData.answer)) {
-          const webResultsWithCitations = (webData.results || []).map((result, index) => ({
-            ...result,
-            citation_id: `[W${index + 1}]`,
-          }));
-          webContext = [
-            webData.answer ? `[WEB NEWS ANSWER]\n${webData.answer}` : '',
-            webResultsWithCitations
-              .map((r) => `${r.citation_id} ${r.title}: ${r.content?.slice(0, 200)}... (${r.url})`)
-              .join('\n')
-          ].filter(Boolean).join('\n\n');
-          setSearchWebSources(webResultsWithCitations);
-        } else {
-          setSearchWebSources([]);
-        }
-
-        if (shouldUseAdaptivePlan) {
-          setStatus(`[API] ออกแบบกลยุทธ์แสกนเชิงลึก (Precision Snipe) จาก Context...`);
-          searchPlan = await buildSearchPlan(requestedQuery, isLatestMode, webContext, isComplexQuery);
-          setActiveSearchPlan(searchPlan);
-
-          // 2. Fire Precision Snipe query from Planner
-          const snipeQueryRaw = searchPlan?.queries?.find(q => q !== requestedQuery && q !== `${requestedQuery} -filter:replies`);
-          if (snipeQueryRaw) {
-            setStatus(`[Phase 2] Async Parallel Fetch: X Search Precision Snipe...`);
-            const snipeQuery = getScopedQuery(snipeQueryRaw);
-            try {
-               const snipeResult = await searchEverything(snipeQuery, null, onlyNews, searchQueryType, true);
-               if (snipeResult.data && snipeResult.data.length > 0) rawDataChunks.push(snipeResult.data);
-               if (!finalCursor && snipeResult.meta?.next_cursor) finalCursor = snipeResult.meta.next_cursor;
-            } catch(err) {
-               console.warn(`[Search] Failed snipe query: ${snipeQuery}`, err);
-            }
-          }
-        } else {
-          setActiveSearchPlan(null);
-        }
-      } else {
-         setStatus(`[API] ดึงข้อมูล X Search เพิ่มเติม...`);
-         const planQueries = searchPlan?.queries?.length > 0 ? searchPlan.queries : [requestedQuery];
-         for (const query of planQueries) {
-            const scopedQuery = getScopedQuery(query);
-            try {
-              const searchResponse = effectiveBroadDiscoveryQuery
-                ? await searchEverythingDeep(scopedQuery, searchCursor, onlyNews, searchQueryType, 2)
-                : await searchEverything(scopedQuery, searchCursor, onlyNews, searchQueryType, false);
-              const { data: chunk, meta } = searchResponse;
-              if (chunk.length > 0) rawDataChunks.push(chunk);
-              if (!finalCursor) finalCursor = meta.next_cursor;
-            } catch (err) {
-              console.warn(`[Search] Pagination failed: ${scopedQuery}`, err);
-            }
-         }
-      }
-      
-      const rankingQuery = shouldUseAdaptivePlan
-        ? mergePlanLabelsIntoQuery(requestedQuery, searchPlan?.topicLabels || [])
-        : requestedQuery;
-
-
-      const data = mergeUniquePostsById(...rawDataChunks);
-      const meta = { next_cursor: finalCursor };
-      
-      if (data.length > 0) {
-        setStatus(`[Quality Gate] คัดกรองและประเมิน Engagement...`);
-        const isComplexQuery = !/ฮา|ตลก|ขำ|funny|meme|lol|haha/i.test(requestedQuery);
-        const curated = curateSearchResults(data, rankingQuery, { latestMode: isLatestMode, preferCredibleSources: preferStrictSources });
-        
-        setStatus(`[Agent 2/3] กำลังกรองสแปมและคัดเลือกโพสต์ระดับคุณภาพจากฐานข้อมูล...`);
-        let cleanData = [];
-        let nextOverflowResults = [];
-
-        if (effectiveBroadDiscoveryQuery) {
-          const broadCandidatePool = curated.length > 0
-            ? curated
-            : data.slice(0, Math.min(data.length, 20));
-          const rankedBroadResults = broadCandidatePool.slice(0, Math.min(broadCandidatePool.length, 30)).map((tweet, index) => ({
-            ...tweet,
-            ai_reasoning: tweet.ai_reasoning || (
-              curated.length > 0
-                ? 'Kept from the global-first ranked result set for this broad query.'
-                : 'Kept from the fallback broad-topic result set after the strict quality gate returned empty.'
-            ),
-            temporalTag: tweet.temporalTag || (isLatestMode ? 'Breaking' : 'Related'),
-            citation_id: tweet.citation_id || `[F${index + 1}]`,
-          }));
-
-          if (isMore) {
-            const mergedBroadResults = mergeUniquePostsById(searchResults, searchOverflowResults, rankedBroadResults);
-            cleanData = mergedBroadResults.slice(0, Math.min(mergedBroadResults.length, searchResults.length + 10));
-            nextOverflowResults = mergedBroadResults.slice(cleanData.length);
-          } else {
-            cleanData = rankedBroadResults.slice(0, Math.min(rankedBroadResults.length, 10));
-            nextOverflowResults = rankedBroadResults.slice(cleanData.length);
-          }
-        } else {
-          setStatus(`[Agent 2/3] Selecting the highest-quality posts from the search pool...`);
-          const dedupedCurated = clusterBySimilarity(curated, 0.55);
-          const validPicks = await agentFilterFeed(dedupedCurated, rankingQuery, { preferCredibleSources: preferStrictSources, webContext, isComplexQuery });
-          const pickedData = dedupedCurated
-            .filter(t => validPicks.some(pick => String(pick.id) === String(t.id)))
-            .map(t => {
-              const pick = validPicks.find(p => String(p.id) === String(t.id));
-              return {
-                ...t,
-                ai_reasoning: pick?.reasoning,
-                temporalTag: pick?.temporalTag,
-                citation_id: pick?.citation_id
-              };
-            });
-          const shouldFallbackToCurated = pickedData.length === 0;
-          cleanData = !shouldFallbackToCurated && pickedData.length > 0
-            ? pickedData
-            : dedupedCurated.slice(0, Math.min(dedupedCurated.length, 12)).map((tweet, index) => ({
-                ...tweet,
-                ai_reasoning: tweet.ai_reasoning || 'Kept as a fallback result after passing the local quality checks.',
-                temporalTag: tweet.temporalTag || (isLatestMode ? 'Breaking' : 'Related'),
-                citation_id: tweet.citation_id || `[F${index + 1}]`,
-              }));
-        }
-        const xResults = effectiveBroadDiscoveryQuery
-          ? cleanData
-          : isMore
-            ? mergeUniquePostsById(searchResults, cleanData)
-            : cleanData;
-
-        // Await YouTube cards (ran in background during X processing) — interleave if any
-        setSearchResults(xResults);
-        setSearchOverflowResults(effectiveBroadDiscoveryQuery ? nextOverflowResults : []);
-        setSearchCursor(meta.next_cursor);
-        
-        if (cleanData.length === 0) {
-           setStatus(`ไม่พบเนื้อหาที่มีประโยชน์ หรือถูก AI ปฏิเสธทั้งหมด (จาก ${data.length} โพสต์ที่อ้างอิง)`);
-        } else {
-           setStatus(`ค้นพบ ${cleanData.length} รายการ (กลั่นกรองโดย AI จากทั้งหมด ${data.length} โพสต์)`);
-        }
-
-        if (!isMore) {
-          setStatus(`[Agent 3/3] กำลังสังเคราะห์ข้อมูลและเขียน Executive Summary...`);
-          setSearchSummary('');
-          generateExecutiveSummary(cleanData.slice(0, 10), requestedQuery, (chunk, fullText) => {
-            setSearchSummary(fullText);
-          }, webContext)
-            .then((summaryText) => {
-              if (summaryText) setSearchSummary(summaryText);
-            })
-            .catch((summaryError) => {
-              console.warn('[Search] Executive summary failed:', summaryError);
-            });
-        }
-
-        // Progressive Translation for results...
-        const CHUNK_SIZE = 5;
-        (async () => {
-          try {
-            for (let i = 0; i < cleanData.length; i += CHUNK_SIZE) {
-              const chunk = cleanData.slice(i, i + CHUNK_SIZE);
-              const batchTexts = chunk.map(t => t.text);
-              const summaries = await generateGrokBatch(batchTexts);
-              
-              setSearchResults(prev => prev.map(p => {
-                const idx = chunk.findIndex(c => c.id === p.id);
-                if (idx !== -1) return { ...p, summary: summaries[idx] || p.text };
-                return p;
-              }));
-            }
-          } catch (batchError) {
-            console.warn('[Search] Progressive translation failed:', batchError);
-          }
-        })();
-      } else {
-        setStatus('ไม่พบข้อมูลสำหรับคำค้นหานี้');
-      }
-    } catch (err) {
-      console.error(err);
-      setStatus('เกิดข้อผิดพลาดในการค้นหา');
-    } finally {
-      setIsSearching(false);
-      setIsLiveSearching(false);
-    }
-  };
-
-  const searchHistoryLabels = searchHistory.map((item) => item.query).filter(Boolean);
-  const feedInterestLabels = extractInterestTopics([
-    ...originalFeed.slice(0, 12),
-    ...readArchive.slice(0, 12),
-  ]);
-  const interestSeedLabels = [...feedInterestLabels].filter(Boolean);
-  const dynamicSearchTags = buildDynamicSearchTags({
-    searchPresets,
-    searchHistoryLabels,
-    interestSeedLabels,
-    commonKeywords: COMMON_KEYWORDS,
-    limit: MAX_SEARCH_PRESETS,
-  });
-
-  const canSaveCurrentSearchAsPreset =
-    !!normalizeSearchLabel(searchQuery) &&
-    !searchPresets.some((item) => item.toLowerCase() === normalizeSearchLabel(searchQuery).toLowerCase()) &&
-    searchPresets.length < MAX_SEARCH_PRESETS;
-
   const watchlistHandleSet = useMemo(
     () => new Set((watchlist || []).map((user) => (user?.username || '').toLowerCase()).filter(Boolean)),
     [watchlist],
   );
-  const searchStatusMessage = status.replace(/\[.*?\]\s*/g, '').trim();
-  const isSearchSummaryPending =
-    activeView === 'content' &&
-    contentTab === 'search' &&
-    !isSearching &&
-    searchResults.length > 0 &&
-    !searchSummary;
-  const shouldInlineSearchStatus =
-    activeView === 'content' &&
-    contentTab === 'search' &&
-    (isSearching || isSearchSummaryPending) &&
-    !!searchStatusMessage;
 
   const currentActiveList = useMemo(
     () => (activeListId ? postLists.find((list) => list.id === activeListId) ?? null : null),
@@ -968,19 +339,6 @@ const App = () => {
     setPostLists(prev => prev.map(l => ({ ...l, members: l.members.filter(m => m.toLowerCase() !== target.username.toLowerCase()) })));
   };
 
-  const handleDeleteAll = () => {
-    setDeletedFeed([...originalFeed]);
-    setOriginalFeed([]);
-    setFeed([]);
-  };
-
-  const handleUndo = () => {
-    if (deletedFeed.length > 0) {
-      setOriginalFeed([...deletedFeed]);
-      setDeletedFeed([]);
-    }
-  };
-
   const handleRemoveList = (id) => {
     setPostLists(prev => prev.filter(l => l.id !== id));
     if (activeListId === id) setActiveListId(null);
@@ -1003,72 +361,6 @@ const App = () => {
   const handleShareList = (list) => {
     const code = btoa(unescape(encodeURIComponent(JSON.stringify({ name: list.name, members: list.members, color: list.color }))));
     navigator.clipboard.writeText(code).then(() => setStatus('คัดลอกรหัสแชร์แล้ว'));
-  };
-
-  const handleSort = (type) => {
-    setActiveFilters(prev => ({ ...prev, [type]: !prev[type] }));
-  };
-
-  const aiFilterPresets = ['โพสต์ไหนน่าทำคอนเทนต์ต่อ', 'กำลัง viral อยู่ตอนนี้', 'เรื่องที่คนถกเถียงมากที่สุด', 'ข่าวสำคัญที่ควรติดตาม'];
-
-
-
-  const handleAiFilter = async (promptOverride) => {
-    const prompt = promptOverride ?? filterModal.prompt;
-    if (!prompt || filterModal.isFiltering) return;
-    setFilterModal(prev => ({ ...prev, isFiltering: true, show: false }));
-    setStatus('AI กำลังวิเคราะห์และคัดกรองเนื้อหา...');
-    
-    try {
-      const sourceFeed = deriveVisibleFeed({
-        activeFilters,
-        activeListId,
-        activeView: 'home',
-        originalFeed,
-        postLists,
-        watchlist,
-      });
-
-      if (sourceFeed.length === 0) {
-        setFilterModal(prev => ({ ...prev, show: false, isFiltering: false }));
-        setStatus('ยังไม่มีโพสต์ใน Watchlist Feed ให้ AI กรอง');
-        return;
-      }
-
-      const validPicks = await agentFilterFeed(sourceFeed, prompt);
-      const filteredResult = sourceFeed
-        .filter(t => validPicks.some(pick => String(pick.id) === String(t.id)))
-        .map(t => {
-          const matchingPick = validPicks.find(pick => String(pick.id) === String(t.id));
-          return {
-            ...t,
-            ai_reasoning: matchingPick?.reasoning,
-            temporalTag: matchingPick?.temporalTag,
-            citation_id: matchingPick?.citation_id,
-          };
-        });
-      
-      setFeed(filteredResult);
-      setIsFiltered(true);
-      
-      if (filteredResult.length > 0) {
-        setStatus('กำลังวิเคราะห์บทสรุปสำหรับคุณ...');
-        const summary = await generateExecutiveSummary(filteredResult.slice(0, 8), prompt);
-        setAiFilterSummary(summary);
-      }
-      
-      setFilterModal(prev => ({ ...prev, show: false, isFiltering: false }));
-      
-      if (filteredResult.length > 0) {
-        setStatus(`กรองสำเร็จ! พบ ${filteredResult.length} โพสต์ที่ตรงตามเจตนาของคุณ`);
-      } else {
-        setStatus('ไม่พบโพสต์ที่ตรงตามเงื่อนไข ลองปรับคำสั่งกรองใหม่');
-      }
-    } catch (err) {
-      console.error(err);
-      setStatus('การกรองข้อมูลล้มเหลว กรุณาลองใหม่อีกครั้ง');
-      setFilterModal(prev => ({ ...prev, isFiltering: false }));
-    }
   };
 
   const removeQuickPreset = (preset) => {
@@ -1109,13 +401,16 @@ const App = () => {
     });
   }, [quickFilterPresets, setQuickFilterVisiblePresets]);
 
-  const clearAiFilter = () => {
-    setIsFiltered(false);
-    setAiFilterSummary('');
-    // This will trigger the useEffect to restore the feed from originalFeed
-    setActiveListId(activeListId);
-    setOriginalFeed([...originalFeed]);
-    setStatus('ล้างตัวกรองแล้ว');
+  const handleAiFilter = async (promptOverride) => {
+    const prompt = promptOverride ?? filterModal.prompt;
+    if (!prompt || isFiltering) return;
+
+    setFilterModal((prev) => ({ ...prev, show: false }));
+    try {
+      await applyAiFilter(prompt);
+    } catch {
+      // Status messaging is handled inside the home feed workspace mutation.
+    }
   };
 
   const handleAiSearchAudience = async (q, isMore = false) => {
@@ -1295,7 +590,7 @@ const App = () => {
           syncing: loading,
           generating: isGeneratingContent,
           searching: isSearching,
-          filtering: filterModal.isFiltering,
+          filtering: isFiltering,
           audienceSearch: aiSearchLoading
         }}
       />
@@ -1318,7 +613,7 @@ const App = () => {
             activeFilters={activeFilters}
             visibleQuickPresets={visibleQuickPresets}
             quickFilterPresets={quickFilterPresets}
-            isFiltering={filterModal.isFiltering}
+            isFiltering={isFiltering}
             loading={loading}
             pendingFeed={pendingFeed}
             nextCursor={nextCursor}
@@ -1374,7 +669,7 @@ const App = () => {
               lastSubmittedSearchQuery={lastSubmittedSearchQuery}
               searchPresets={searchPresets}
               canSaveCurrentSearchAsPreset={canSaveCurrentSearchAsPreset}
-              maxSearchPresets={MAX_SEARCH_PRESETS}
+              maxSearchPresets={maxSearchPresets}
               addSearchPreset={addSearchPreset}
               isLiveSearching={isLiveSearching}
               dynamicSearchTags={dynamicSearchTags}
@@ -1476,7 +771,7 @@ const App = () => {
       />
 
       <AiFilterModal
-        filterModal={filterModal}
+        filterModal={{ ...filterModal, isFiltering }}
         quickFilterPresets={quickFilterPresets}
         quickFilterVisiblePresets={quickFilterVisiblePresets}
         visibleQuickPresets={visibleQuickPresets}

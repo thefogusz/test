@@ -166,7 +166,10 @@ const FORMAT_HINTS = {
 
 const CustomDropdown = ({ icon, value, onChange, options, isObject }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isCompact, setIsCompact] = useState(false);
+  const [isCompact, setIsCompact] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(max-width: 1024px), (hover: none), (pointer: coarse)').matches;
+  });
   const dropdownRef = useRef(null);
   const IconComponent = icon;
 
@@ -185,8 +188,6 @@ const CustomDropdown = ({ icon, value, onChange, options, isObject }) => {
 
     const mediaQuery = window.matchMedia('(max-width: 1024px), (hover: none), (pointer: coarse)');
     const handleChange = (event) => setIsCompact(event.matches);
-
-    setIsCompact(mediaQuery.matches);
 
     if (typeof mediaQuery.addEventListener === 'function') {
       mediaQuery.addEventListener('change', handleChange);
@@ -315,7 +316,7 @@ const CreateContent = ({
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const [thinkingStep, setThinkingStep] = useState(0);
+  const [_thinkingStep, setThinkingStep] = useState(0);
   const [generationStartedAt, setGenerationStartedAt] = useState(null);
   const [progressNow, setProgressNow] = useState(() => Date.now());
   const abortRef = useRef(null);
@@ -353,8 +354,7 @@ const CreateContent = ({
   }, [isGenerating]);
 
   const progressElapsedMs = generationStartedAt ? Math.max(0, progressNow - generationStartedAt) : 0;
-  const crawlDurationMs = 60000;
-  const crawlProgressWidth = Math.min(95, (progressElapsedMs / crawlDurationMs) * 95);
+  const _crawlDurationMs = 60000;
   const flowDurationMs = 1800;
   const flowAnimationDelay = generationStartedAt ? `-${progressElapsedMs % flowDurationMs}ms` : '0ms';
 
@@ -440,7 +440,7 @@ const CreateContent = ({
       const normalizedLength = lengthIndex === 0 ? 'short' : lengthIndex === 2 ? 'long' : 'medium';
 
       let streamStarted = false;
-      const result = await generateStructuredContentV2(
+      await generateStructuredContentV2(
         facts,
         normalizedLength,
         tone,
@@ -535,7 +535,7 @@ const CreateContent = ({
       const lengthIndex = LENGTH_OPTIONS.indexOf(length);
       const normalizedLength = lengthIndex === 0 ? 'short' : lengthIndex === 2 ? 'long' : 'medium';
 
-      const result = await generateStructuredContentV2(
+      await generateStructuredContentV2(
         factSheet,
         normalizedLength,
         tone,

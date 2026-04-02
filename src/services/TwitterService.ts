@@ -915,7 +915,7 @@ export const searchEverything = async (
   onlyNews = true,
   queryType = 'Latest',
   duoFetch = false,
-  maxPages = 1,
+  _maxPages = 1,
 ) => {
   try {
     const fullQuery = appendNewsFilter(query, onlyNews);
@@ -993,7 +993,7 @@ export const searchEverythingDeep = async (
 let segmenter = null;
 try {
   segmenter = new Intl.Segmenter('th-TH', { granularity: 'word' });
-} catch (e) {
+} catch (_e) {
   // Graceful fallback if Intl.Segmenter is not supported
 }
 

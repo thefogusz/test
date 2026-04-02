@@ -58,7 +58,7 @@ const ContentWorkspace = ({
   lastSubmittedSearchQuery,
   searchPresets,
   canSaveCurrentSearchAsPreset,
-  maxSearchPresets,
+  maxSearchPresets: _maxSearchPresets,
   addSearchPreset,
   isLiveSearching,
   dynamicSearchTags,
@@ -89,10 +89,10 @@ const ContentWorkspace = ({
     citation_id: src.citation_id || `[W${index + 1}]`,
   }));
   const summaryWebCitationIds = Array.from(
-    new Set((searchSummary.match(/\[W\d{1,2}\]/g) || []).map((token) => token.replace(/[\[\]]/g, ''))),
+    new Set((searchSummary.match(/\[W\d{1,2}\]/g) || []).map((token) => token.replaceAll('[', '').replaceAll(']', ''))),
   );
   const referencedWebSources = webSourcesWithCitationIds.filter((src) =>
-    summaryWebCitationIds.includes(String(src.citation_id || '').replace(/[\[\]]/g, '')),
+    summaryWebCitationIds.includes(String(src.citation_id || '').replaceAll('[', '').replaceAll(']', '')),
   );
 
   return (
