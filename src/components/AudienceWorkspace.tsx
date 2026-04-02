@@ -16,7 +16,7 @@ import {
   Plus,
   RefreshCw,
   Search,
-  Sparkles,
+  Users,
   TrendingUp,
 } from 'lucide-react';
 import UserCard from './UserCard';
@@ -81,8 +81,8 @@ const AudienceWorkspace = ({
 
         <div className="audience-tabs">
           <button onClick={() => setAudienceTab('ai')} className={`audience-tab-btn ${audienceTab === 'ai' ? 'active-ai' : ''}`}>
-            <Sparkles size={14} strokeWidth={2.1} />
-            {'\u0e41\u0e19\u0e30\u0e19\u0e33\u0e42\u0e14\u0e22 AI'}
+            <Users size={14} strokeWidth={2.1} />
+            {'\u0e41\u0e19\u0e30\u0e19\u0e33\u0e42\u0e14\u0e22 FORO'}
           </button>
           <button onClick={() => setAudienceTab('manual')} className={`audience-tab-btn ${audienceTab === 'manual' ? 'active-manual' : ''}`}>
             <Search size={14} strokeWidth={2.1} />
@@ -112,7 +112,7 @@ const AudienceWorkspace = ({
               <div style={{ padding: '60px 0', textAlign: 'center' }}>
                 <div className="ai-loader-ring" style={{ margin: '0 auto 20px' }}></div>
                 <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--accent-secondary)' }} className="animate-pulse">
-                  AI ANALYST IS SCANNING...
+                  FORO IS CURATING SOURCES...
                 </div>
               </div>
             )}
@@ -126,7 +126,7 @@ const AudienceWorkspace = ({
                       <div key={expert.username} className="expert-card animate-fade-in" style={{ animationDelay: `${i * 0.05}s` }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                           <div className="ai-pick-pill">
-                            <Sparkles size={10} /> AI PICK
+                            <Users size={10} /> FORO PICK
                           </div>
                           <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
                             <button

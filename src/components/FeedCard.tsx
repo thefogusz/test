@@ -1,7 +1,7 @@
 import React, { memo, useEffect, useState } from 'react';
 import { 
   BarChart2, Heart, MessageCircle, Repeat,
-  ExternalLink, Sparkles, PenTool, Bookmark,
+  ExternalLink, PenTool, Bookmark,
   MessageSquare, Reply
 } from 'lucide-react';
 import type { Post } from '../types/domain';
@@ -226,7 +226,7 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
         </div>
       </div>
       {/* ── SUBTLE AI REASONING BADGE ── */}
-      {tweet.ai_reasoning && (
+      {false && tweet.ai_reasoning && (
         <div style={{
           marginTop: '16px',
           padding: '8px 12px',

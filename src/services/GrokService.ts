@@ -1170,7 +1170,7 @@ ${preferCredibleSources ? '- Prioritize topic fit first, then strictly prefer cr
 
     const validIdSet = new Set(compressedInput.map((tweet) => String(tweet.id)));
     const finalPicks = object.picks.filter((pick) => validIdSet.has(String(pick.id)));
-    return finalPicks.map((pick, i) => ({ ...pick, citation_id: `[T${i + 1}]` }));
+    return finalPicks.map((pick, i) => ({ ...pick, citation_id: `[F${i + 1}]` }));
   } catch (error) {
     if (error.status === 400) {
       console.warn('[GrokService] 400 Bad Request in agentFilterFeed. Check parameters/model.');
@@ -1308,7 +1308,7 @@ export const generateExecutiveSummary = async (validTweets, userQuery, onStreamC
   const contentToAnalyze = tweetsForSummary
     .map((tweet) => {
       const authorLabel = tweet.author?.username ? `@${tweet.author.username}` : tweet.author?.name || 'unknown';
-      return `${tweet.citation_id || '[T?]'} (${authorLabel}) ${sanitizeForPrompt(tweet.text, 400)}`;
+      return `${tweet.citation_id || '[F?]'} (${authorLabel}) ${sanitizeForPrompt(tweet.text, 400)}`;
     })
     .join('\n---\n');
 
@@ -1328,11 +1328,20 @@ ${safeWebCtx ? `ใช้ Web Context ด้านล่างนี้เพื
 - บรรทัดสุดท้ายสุด ให้ประเมินระดับความน่าเชื่อถือโดยอิงจากการยืนยันข้อความกับ Web Context แล้วเขียนแท็กดังนี้ (ตัวอย่าง):
 [CONFIDENCE_SCORE: 85%]`;
 
+  const enhancedSummarySystem = `${summarySystem}
+
+Additional citation rules:
+- Use [F1], [F2] for X posts.
+- Use [W1], [W2] for website sources provided in Web Context.
+- If a claim is supported by both X and web, cite both, for example [F2][W1].
+- You may expand to 5 bullets if there are clearly more than 3 important storylines.
+- If the web source contains a crucial confirmed development not obvious from the tweets, you may include it as one bullet with [W#] citation.`;
+
   if (onStreamChunk) {
     try {
       const { textStream } = await streamText({
         model: grok(MODEL_REASONING_FAST),
-        system: summarySystem,
+        system: enhancedSummarySystem,
         prompt: contentToAnalyze,
         maxTokens: 600,
       });
@@ -1356,7 +1365,7 @@ ${safeWebCtx ? `ใช้ Web Context ด้านล่างนี้เพื
 
   return setCachedValue(responseCache, cacheKey, await callGrok({
     modelName: MODEL_NEWS_FAST,
-    system: summarySystem,
+    system: enhancedSummarySystem,
     prompt: contentToAnalyze,
   }), EXECUTIVE_SUMMARY_CACHE_TTL_MS);
 };

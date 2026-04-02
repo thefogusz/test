@@ -6,7 +6,7 @@ export const cleanMarkdownForClipboard = (markdown = '') => {
 
   return source
     .replace(/\[CONFIDENCE_SCORE:\s*[^\]]+\]/gi, '')
-    .replace(/\[(?:F\d{1,2}|\d{1,2})\]/g, '')
+    .replace(/\[(?:F\d{1,2}|W\d{1,2}|\d{1,2})\]/g, '')
     .replace(/[ \t]+([,.;:!?])/g, '$1')
     .replace(/\n{3,}/g, '\n\n')
     .trim();

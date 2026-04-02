@@ -4,13 +4,13 @@ import {
   Activity,
   Copy,
   ExternalLink,
+  FileText,
   Link,
   Loader2,
   RefreshCw,
   RefreshCcw,
   Search,
   ShieldCheck,
-  Sparkles,
   X,
   Zap,
 } from 'lucide-react';
@@ -73,6 +73,16 @@ const ContentWorkspace = ({
   onArticleGen,
 }) => {
   const summaryDateLabel = getSummaryDateLabel(searchResults, 10);
+  const webSourcesWithCitationIds = searchWebSources.map((src, index) => ({
+    ...src,
+    citation_id: src.citation_id || `[W${index + 1}]`,
+  }));
+  const summaryWebCitationIds = Array.from(
+    new Set((searchSummary.match(/\[W\d{1,2}\]/g) || []).map((token) => token.replace(/[\[\]]/g, ''))),
+  );
+  const referencedWebSources = webSourcesWithCitationIds.filter((src) =>
+    summaryWebCitationIds.includes(String(src.citation_id || '').replace(/[\[\]]/g, '')),
+  );
 
   return (
     <div className="unified-content-view animate-fade-in" style={{ display: isVisible ? 'block' : 'none' }}>
@@ -367,14 +377,14 @@ const ContentWorkspace = ({
                           color: '#fff',
                         }}
                       >
-                        <Sparkles size={18} fill="currentColor" />
+                        <FileText size={18} strokeWidth={2.2} />
                       </div>
                       <div>
                         <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>
-                          NEWS EXECUTIVE SUMMARY
+                          FORO SUMMARY
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>
-                          ANALYZING {Math.min(searchResults.length, 10)} KEY SIGNALS
+                          EDITORIAL DIGEST FROM {Math.min(searchResults.length, 10)} KEY SIGNALS
                         </div>
                         {summaryDateLabel && (
                           <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', marginTop: '4px' }}>
@@ -422,7 +432,7 @@ const ContentWorkspace = ({
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', flexWrap: 'wrap' }}>
-                            <ShieldCheck size={12} className="text-accent" /> {'\u0e2a\u0e23\u0e38\u0e1b\u0e42\u0e14\u0e22 AI \u0e2d\u0e49\u0e32\u0e07\u0e2d\u0e34\u0e07\u0e08\u0e32\u0e01\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e25\u0e48\u0e32\u0e2a\u0e38\u0e14\u0e43\u0e19 24-48 \u0e0a\u0e31\u0e48\u0e27\u0e42\u0e21\u0e07\u0e17\u0e35\u0e48\u0e1c\u0e48\u0e32\u0e19\u0e21\u0e32'}
+                            <ShieldCheck size={12} className="text-accent" /> {'\u0e2a\u0e23\u0e38\u0e1b\u0e42\u0e14\u0e22 FORO \u0e2d\u0e49\u0e32\u0e07\u0e2d\u0e34\u0e07\u0e08\u0e32\u0e01\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e25\u0e48\u0e32\u0e2a\u0e38\u0e14\u0e43\u0e19 24-48 \u0e0a\u0e31\u0e48\u0e27\u0e42\u0e21\u0e07\u0e17\u0e35\u0e48\u0e1c\u0e48\u0e32\u0e19\u0e21\u0e32'}
                             {confidenceScore && (
                               <span
                                 style={{
@@ -443,7 +453,7 @@ const ContentWorkspace = ({
                             )}
                           </div>
 
-                          {searchWebSources.length > 0 && (
+                          {referencedWebSources.length > 0 && (
                             <button
                               onClick={() => setIsSourcesExpanded(!isSourcesExpanded)}
                               style={{
@@ -463,7 +473,7 @@ const ContentWorkspace = ({
                               <Link size={12} />{' '}
                               {isSourcesExpanded
                                 ? '\u0e0b\u0e48\u0e2d\u0e19\u0e41\u0e2b\u0e25\u0e48\u0e07\u0e2d\u0e49\u0e32\u0e07\u0e2d\u0e34\u0e07'
-                                : `\u0e2d\u0e49\u0e32\u0e07\u0e2d\u0e34\u0e07\u0e08\u0e32\u0e01 ${searchWebSources.length} \u0e40\u0e27\u0e47\u0e1a\u0e44\u0e0b\u0e15\u0e4c`}
+                                : `\u0e22\u0e37\u0e19\u0e22\u0e31\u0e19\u0e14\u0e49\u0e27\u0e22 ${referencedWebSources.length} \u0e40\u0e27\u0e47\u0e1a\u0e44\u0e0b\u0e15\u0e4c`}
                             </button>
                           )}
                         </div>
@@ -471,7 +481,7 @@ const ContentWorkspace = ({
                     );
                   })()}
 
-                  {isSourcesExpanded && searchWebSources.length > 0 && (
+                  {isSourcesExpanded && referencedWebSources.length > 0 && (
                     <div
                       className="animate-fade-in"
                       style={{
@@ -486,9 +496,9 @@ const ContentWorkspace = ({
                         WEB SOURCES
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {searchWebSources.map((src, index) => (
+                        {referencedWebSources.map((src, index) => (
                           <a
-                            key={index}
+                            key={src.url || index}
                             href={src.url}
                             target="_blank"
                             rel="noreferrer"
@@ -509,6 +519,9 @@ const ContentWorkspace = ({
                               e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
                             }}
                           >
+                            <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--accent-secondary)', letterSpacing: '0.05em' }}>
+                              {src.citation_id || `[W${index + 1}]`}
+                            </div>
                             <div
                               style={{
                                 fontSize: '13px',

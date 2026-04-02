@@ -23,6 +23,7 @@ export interface Author {
 }
 
 export interface ContentSource {
+  citation_id?: string;
   title?: string;
   url: string;
   content?: string;

@@ -1,4 +1,4 @@
-import { Sparkles, X } from 'lucide-react';
+import { Filter, X } from 'lucide-react';
 
 type AiFilteredBadgeProps = {
   onClear: () => void;
@@ -11,8 +11,8 @@ const AiFilteredBadge = ({
 }: AiFilteredBadgeProps) => {
   return (
     <div className="ai-filtered-badge">
-      <Sparkles size={12} className="text-accent" />
-      <span>AI FILTERED</span>
+      <Filter size={12} className="text-accent" />
+      <span>FORO FILTER</span>
       <button onClick={onClear} className="ai-filtered-clear-btn" title={clearTitle}>
         <X size={12} />
       </button>

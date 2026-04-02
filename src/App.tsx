@@ -2,7 +2,6 @@
 import React, { Suspense, lazy, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Search,
-  Sparkles,
   RefreshCw,
   RefreshCcw,
   Trash2,
@@ -37,7 +36,9 @@ import {
   Leaf,
   Globe2,
   Landmark,
-  BrainCircuit
+  BrainCircuit,
+  FileText,
+  Filter as FilterIcon
 } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import RightSidebar from './components/RightSidebar';
@@ -860,11 +861,17 @@ const App = () => {
         }
 
         if (webData && (webData.results?.length || webData.answer)) {
+          const webResultsWithCitations = (webData.results || []).map((result, index) => ({
+            ...result,
+            citation_id: `[W${index + 1}]`,
+          }));
           webContext = [
             webData.answer ? `[WEB NEWS ANSWER]\n${webData.answer}` : '',
-            (webData.results || []).map((r, i) => `${i+1}. ${r.title}: ${r.content?.slice(0, 200)}... (${r.url})`).join('\n')
+            webResultsWithCitations
+              .map((r) => `${r.citation_id} ${r.title}: ${r.content?.slice(0, 200)}... (${r.url})`)
+              .join('\n')
           ].filter(Boolean).join('\n\n');
-          setSearchWebSources(webData.results || []);
+          setSearchWebSources(webResultsWithCitations);
         } else {
           setSearchWebSources([]);
         }
@@ -1552,7 +1559,7 @@ const App = () => {
                       onClick={() => setFilterModal({ show: true, prompt: '' })}
                       className={`btn-pill ${activeView === 'home' && feed.length > 0 ? 'home-ai-filter-ready' : ''}`}
                     >
-                      AI Filter
+                      FORO Filter
                     </button>
                     <button
                       onClick={handleSync}
@@ -1593,11 +1600,11 @@ const App = () => {
                         background: 'var(--accent-gradient)', padding: '8px', borderRadius: '12px', 
                         display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff'
                       }}>
-                        <Sparkles size={18} fill="currentColor" />
+                        <FileText size={18} strokeWidth={2.2} />
                       </div>
                       <div>
-                        <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>NEWS FILTER SUMMARY</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>SYNTHESIZING {feed.length} FILTERED RESULTS</div>
+                        <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>FORO FILTER SUMMARY</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>CURATED FROM {feed.length} FILTERED RESULTS</div>
                         {aiFilterSummaryDateLabel && (
                           <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', marginTop: '4px' }}>
                             {aiFilterSummaryDateLabel}
@@ -1629,7 +1636,7 @@ const App = () => {
                     fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600'
                   }}>
                     <ShieldCheck size={12} className="text-accent" />
-                    สรุปโดย AI อ้างอิงจากบทสนทนาและเงื่อนไขการกรองของคุณ
+                    สรุปโดย FORO อ้างอิงจากบทสนทนาและเงื่อนไขการกรองของคุณ
                   </div>
                 </div>
               )}
@@ -1836,10 +1843,10 @@ const App = () => {
         <div className="modal-overlay" onClick={() => !filterModal.isFiltering && setFilterModal({ ...filterModal, show: false })}>
             <div className="modal-content ai-filter-modal animate-fade-in" onClick={e => e.stopPropagation()}>
               <div className="ai-filter-modal-header">
-                <div className="ai-filter-modal-icon"><Sparkles size={16} /></div>
+                <div className="ai-filter-modal-icon"><FilterIcon size={16} /></div>
                 <div>
-                  <div className="modal-title">AI Smart Filter</div>
-                  <div className="ai-filter-modal-hint">บอก AI ว่าอยากหาอะไรในฟีดนี้</div>
+                  <div className="modal-title">FORO Filter</div>
+                  <div className="ai-filter-modal-hint">บอก FORO ว่าอยากหาอะไรในฟีดนี้</div>
                 </div>
               </div>
               {quickFilterPresets.length > 0 && (
