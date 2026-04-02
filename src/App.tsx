@@ -1084,6 +1084,10 @@ const App = () => {
     !searchPresets.some((item) => item.toLowerCase() === normalizeSearchLabel(searchQuery).toLowerCase()) &&
     searchPresets.length < MAX_SEARCH_PRESETS;
 
+  const watchlistHandleSet = useMemo(
+    () => new Set((watchlist || []).map((user) => (user?.username || '').toLowerCase()).filter(Boolean)),
+    [watchlist],
+  );
   const searchStatusMessage = status.replace(/\[.*?\]\s*/g, '').trim();
   const isSearchSummaryPending =
     activeView === 'content' &&
@@ -1461,6 +1465,52 @@ const App = () => {
     setManualQuery('');
   };
 
+  const handleAddSearchAuthorToWatchlist = async (post) => {
+    const username = (post?.author?.username || '').trim().replace(/^@/, '').toLowerCase();
+    if (!username) return;
+
+    const existingUser = watchlist.find((user) => (user.username || '').toLowerCase() === username);
+    if (existingUser) {
+      setStatus(`@${username} อยู่ใน Watchlist แล้ว`);
+      return;
+    }
+
+    try {
+      const fullUser = await getUserInfo(username);
+      const fallbackUser = {
+        id: post?.author?.id || username,
+        username,
+        name: post?.author?.name || username,
+        profile_image_url: post?.author?.profile_image_url || '',
+        isPlaceholder: !fullUser,
+      };
+      const nextUser = fullUser || fallbackUser;
+
+      setWatchlist((prev) => {
+        if (prev.some((user) => (user.username || '').toLowerCase() === username)) return prev;
+        return [nextUser, ...prev];
+      });
+
+      if (!fullUser) resolvePlaceholders([fallbackUser]);
+      setStatus(`เพิ่ม @${username} เข้า Watchlist แล้ว`);
+    } catch (error) {
+      console.error(error);
+      const fallbackUser = {
+        id: post?.author?.id || username,
+        username,
+        name: post?.author?.name || username,
+        profile_image_url: post?.author?.profile_image_url || '',
+        isPlaceholder: true,
+      };
+      setWatchlist((prev) => {
+        if (prev.some((user) => (user.username || '').toLowerCase() === username)) return prev;
+        return [fallbackUser, ...prev];
+      });
+      resolvePlaceholders([fallbackUser]);
+      setStatus(`เพิ่ม @${username} เข้า Watchlist แล้ว`);
+    }
+  };
+
   const handleSaveGeneratedArticle = (title, content, meta) => {
     const newArt = {
       id: Date.now().toString(),
@@ -1732,6 +1782,10 @@ const App = () => {
               addSearchPreset={addSearchPreset}
               isLiveSearching={isLiveSearching}
               dynamicSearchTags={dynamicSearchTags}
+              watchlistHandleSet={watchlistHandleSet}
+              postLists={postLists}
+              onAddAuthorToWatchlist={handleAddSearchAuthorToWatchlist}
+              onToggleAuthorInPostList={handleToggleMemberInList}
               searchHistory={searchHistory}
               interestSeedLabels={interestSeedLabels}
               removeSearchPreset={removeSearchPreset}

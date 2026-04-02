@@ -63,6 +63,10 @@ const ContentWorkspace = ({
   addSearchPreset,
   isLiveSearching,
   dynamicSearchTags,
+  watchlistHandleSet,
+  postLists,
+  onAddAuthorToWatchlist,
+  onToggleAuthorInPostList,
   searchHistory,
   interestSeedLabels,
   removeSearchPreset,
@@ -558,9 +562,17 @@ const ContentWorkspace = ({
                   )}
                 </div>
               )}
-              <div className="feed-grid">
-                {searchResults.map((item, idx) => (
-                  <FeedCard key={item.id || idx} tweet={item} onArticleGen={onArticleGen} />
+                <div className="feed-grid">
+                  {searchResults.map((item, idx) => (
+                  <FeedCard
+                    key={item.id || idx}
+                    tweet={item}
+                    onArticleGen={onArticleGen}
+                    isInWatchlist={watchlistHandleSet?.has((item?.author?.username || '').toLowerCase())}
+                    postLists={postLists}
+                    onAddToWatchlist={onAddAuthorToWatchlist}
+                    onTogglePostList={onToggleAuthorInPostList}
+                  />
                 ))}
               </div>
               {(searchOverflowResults.length > 0 || searchCursor) && !isSearching && (

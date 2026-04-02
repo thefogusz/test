@@ -2,9 +2,9 @@ import React, { memo, useEffect, useState } from 'react';
 import { 
   BarChart2, Heart, MessageCircle, Repeat,
   ExternalLink, PenTool, Bookmark,
-  MessageSquare, Reply
+  MessageSquare, Reply, Plus, Check, UserPlus, ListPlus, SquarePen
 } from 'lucide-react';
-import type { Post } from '../types/domain';
+import type { Post, PostList } from '../types/domain';
 
 const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
 
@@ -39,11 +39,26 @@ type FeedCardProps = {
   onArticleGen?: (tweet: Post) => void;
   onBookmark?: (tweet: Post, bookmarked: boolean) => void;
   isBookmarked?: boolean;
+  isInWatchlist?: boolean;
+  postLists?: PostList[];
+  onAddToWatchlist?: (tweet: Post) => void | Promise<void>;
+  onTogglePostList?: (listId: string, contributor: string | { username?: string; name?: string; profile_image_url?: string; id?: string }) => void | Promise<void>;
 };
 
-const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookmarked = false }: FeedCardProps) => {
+const FeedCard = ({
+  tweet,
+  onArticleGen,
+  onBookmark,
+  isBookmarked: initialBookmarked = false,
+  isInWatchlist = false,
+  postLists = [],
+  onAddToWatchlist,
+  onTogglePostList,
+}: FeedCardProps) => {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
+  const [showListMenu, setShowListMenu] = useState(false);
   const displayText = isUsableThaiSummary(tweet.summary, tweet.text) ? tweet.summary : tweet.text;
+  const authorUsername = (tweet.author?.username || '').trim().replace(/^@/, '').toLowerCase();
 
   useEffect(() => {
     setBookmarked(initialBookmarked);
@@ -53,6 +68,11 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
     const next = !bookmarked;
     setBookmarked(next);
     if (onBookmark) onBookmark(tweet, next);
+  };
+
+  const handleAddToWatchlist = () => {
+    if (!authorUsername || isInWatchlist || !onAddToWatchlist) return;
+    onAddToWatchlist(tweet);
   };
 
   const stats = [
@@ -215,12 +235,99 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
           </div>
         </div>
         <div className="feed-card-actions" style={{ display: 'flex', gap: '4px' }}>
+          {authorUsername && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddToWatchlist();
+              }}
+              className="btn-forge feed-card-inline-action"
+              style={{
+                opacity: isInWatchlist ? 0.8 : 1,
+                borderColor: isInWatchlist ? 'rgba(16, 185, 129, 0.25)' : undefined,
+              }}
+              disabled={isInWatchlist}
+              title={isInWatchlist ? 'อยู่ใน Watchlist แล้ว' : 'เพิ่มเข้า Watchlist'}
+            >
+              {isInWatchlist ? <Check size={11} strokeWidth={2.5} /> : <UserPlus size={11} strokeWidth={2.5} />}
+              <span>{isInWatchlist ? 'อยู่ใน Watchlist' : 'เข้า Watchlist'}</span>
+            </button>
+          )}
+          {authorUsername && onTogglePostList && (
+            <div style={{ position: 'relative' }}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowListMenu((prev) => !prev);
+                }}
+                className="btn-forge feed-card-inline-action"
+                title="เพิ่มเข้า Post List"
+              >
+                <ListPlus size={11} strokeWidth={2.5} />
+                <span>เข้า Post List</span>
+                <Plus
+                  size={11}
+                  strokeWidth={2.5}
+                  style={{ transform: showListMenu ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s' }}
+                />
+              </button>
+              {showListMenu && (
+                <>
+                  <div
+                    style={{ position: 'fixed', inset: 0, zIndex: 90 }}
+                    onClick={() => setShowListMenu(false)}
+                  />
+                  <div
+                    className="discovery-menu"
+                    style={{ display: 'block', position: 'absolute', right: 0, bottom: 'calc(100% + 8px)', zIndex: 100, minWidth: '200px' }}
+                  >
+                    <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', padding: '8px 12px', borderBottom: '1px solid var(--glass-border)' }}>
+                      ADD TO POST LIST
+                    </div>
+                    <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                      {postLists.map((list) => {
+                        const isMember = Array.isArray(list.members) && list.members.some((member) => member?.toLowerCase() === authorUsername);
+                        return (
+                          <div
+                            key={list.id}
+                            onClick={() => {
+                              onTogglePostList(list.id, {
+                                id: tweet.author?.id || authorUsername,
+                                username: authorUsername,
+                                name: tweet.author?.name || authorUsername,
+                                profile_image_url: tweet.author?.profile_image_url || '',
+                              });
+                              setShowListMenu(false);
+                            }}
+                            className={`discovery-menu-item ${isMember ? 'active' : ''}`}
+                          >
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '8px' }}>{list.name}</span>
+                            {isMember && <Check size={12} />}
+                          </div>
+                        );
+                      })}
+                      {postLists.length === 0 && (
+                        <div style={{ padding: '12px', fontSize: '12px', color: 'var(--text-dim)', textAlign: 'center' }}>
+                          ยังไม่มี Post List ให้เพิ่ม
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           {onArticleGen && (
             <button 
               onClick={(e) => { e.stopPropagation(); onArticleGen(tweet); }} 
-              className="btn-forge feed-card-inline-action" 
+              className="btn-forge feed-card-inline-action content-card-action" 
             >
-              <PenTool size={11} strokeWidth={2.5} /> <span>สร้างคอนเทนต์</span>
+              <span className="content-card-action-icon">
+                <SquarePen size={14} strokeWidth={2.2} />
+              </span>
+              <span>คอนเทนต์</span>
             </button>
           )}
         </div>
@@ -251,4 +358,6 @@ const FeedCard = ({ tweet, onArticleGen, onBookmark, isBookmarked: initialBookma
 export default memo(FeedCard, (prevProps, nextProps) => (
   prevProps.tweet === nextProps.tweet
   && prevProps.isBookmarked === nextProps.isBookmarked
+  && prevProps.isInWatchlist === nextProps.isInWatchlist
+  && prevProps.postLists === nextProps.postLists
 ));
