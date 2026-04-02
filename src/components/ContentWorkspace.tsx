@@ -431,6 +431,8 @@ const ContentWorkspace = ({
                       .replace(/\[CONFIDENCE_SCORE:\s*([^\]]+)\]/gi, '')
                       // Drop standalone citation clusters like "[F1] [F4] [F6]" that duplicate bullet badges.
                       .replace(/(?:^|\n)\s*(?:\[(?:F|W)\d{1,2}\]\s*){2,}(?=\n|$)/g, '\n')
+                      // Drop citation clusters appended to sentence ends like "... AI [F1] [F4] [F6]."
+                      .replace(/([^\n])(?:\s*\[(?:F|W)\d{1,2}\]){2,}(?=\s*[.,;:!?]?\s*(?:\n|$))/g, '$1')
                       .trim();
 
                     return (

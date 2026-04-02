@@ -250,6 +250,18 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 0 16px rgba(41, 151, 255, 0.25);
 }
 
+.btn-pill:not(:disabled):not(.primary):not(.active):hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.16);
+}
+
+.btn-pill:not(:disabled):active {
+  transform: translateY(0) scale(0.985);
+}
+
 .icon-btn-large {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--glass-border);
@@ -280,6 +292,28 @@ h1, h2, h3, h4, h5, h6 {
 .icon-btn-large:active {
   transform: scale(0.95);
   background: rgba(255, 255, 255, 0.15);
+}
+
+.icon-hover {
+  transition:
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease;
+}
+
+.icon-hover:hover {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+  transform: translateY(-1px);
+}
+
+.icon-hover:active {
+  transform: translateY(0) scale(0.96);
 }
 
 .header-secondary-action {
@@ -379,6 +413,7 @@ h1, h2, h3, h4, h5, h6 {
   background: rgba(255, 255, 255, 0.05);
   border-color: rgba(255, 255, 255, 0.1);
   color: #fff;
+  transform: translateY(-1px);
 }
 
 .btn-mini-ghost.accent-blue:hover {
@@ -837,6 +872,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .hero-clear-btn:hover {
   color: #fff;
+  transform: translateY(-1px);
 }
 
 .hero-submit-btn {
@@ -859,8 +895,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .hero-submit-btn:hover {
-  transform: scale(1.02);
+  transform: translateY(-1px) scale(1.02);
   opacity: 0.9;
+}
+
+.hero-submit-btn:active,
+.hero-clear-btn:active {
+  transform: translateY(0) scale(0.98);
 }
 
 /* Search Idea Tags */
@@ -1002,6 +1043,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   padding: 6px 10px 6px 14px;
   border-radius: inherit;
+  cursor: pointer;
 }
 
 .search-preset-remove-btn {
@@ -1020,6 +1062,7 @@ h1, h2, h3, h4, h5, h6 {
 .search-preset-remove-btn:hover {
   background: rgba(255, 255, 255, 0.10);
   color: #fff;
+  transform: translateY(-1px);
 }
 
 .bookmark-tabs {
@@ -1487,6 +1530,16 @@ h1, h2, h3, h4, h5, h6 {
 
 .user-card-profile-link {
   opacity: 0.92;
+  transition:
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 160ms ease,
+    opacity 160ms ease;
+}
+
+.user-card-profile-link:hover {
+  opacity: 1;
+  color: #fff !important;
+  transform: translateY(-1px);
 }
 
 .user-card-icon-btn {
@@ -4114,6 +4167,7 @@ h1, h2, h3, h4, h5, h6 {
 .discovery-menu-item:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #fff;
+  transform: translateX(2px);
 }
 
 .discovery-menu-item.active {
@@ -4128,6 +4182,44 @@ h1, h2, h3, h4, h5, h6 {
 .discovery-menu-item:disabled {
   cursor: default;
   opacity: 0.88;
+}
+
+.action-hover-btn,
+.search-preset-pill-button,
+.search-preset-save-btn,
+.search-preset-remove-btn,
+.hero-clear-btn,
+.bookmark-tab-btn,
+.content-view-tab-btn,
+.audience-tab-btn,
+.user-card-profile-link {
+  transition:
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 160ms ease,
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    opacity 160ms ease;
+}
+
+.action-hover-btn:hover,
+.search-preset-pill-button:hover,
+.search-preset-save-btn:hover,
+.bookmark-tab-btn:hover,
+.content-view-tab-btn:hover,
+.user-card-profile-link:hover {
+  transform: translateY(-1px);
+}
+
+.action-hover-btn:active,
+.search-preset-pill-button:active,
+.search-preset-save-btn:active,
+.search-preset-remove-btn:active,
+.bookmark-tab-btn:active,
+.content-view-tab-btn:active,
+.audience-tab-btn:active,
+.user-card-profile-link:active {
+  transform: translateY(0) scale(0.985);
 }
 
 @keyframes feedCardMenuIn {

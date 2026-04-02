@@ -68,7 +68,6 @@ const FeedCard = ({
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const displayText = isUsableThaiSummary(tweet.summary, tweet.text) ? tweet.summary : tweet.text;
   const authorUsername = (tweet.author?.username || '').trim().replace(/^@/, '').toLowerCase();
-  const visibleTemporalTag = tweet.temporalTag && tweet.temporalTag !== 'Related' ? tweet.temporalTag : null;
 
   useEffect(() => {
     setBookmarked(initialBookmarked);
@@ -219,26 +218,6 @@ const FeedCard = ({
         </div>
 
         <div className="feed-card-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          {visibleTemporalTag && (
-            <div
-              style={{
-                background: visibleTemporalTag === 'Breaking' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                color: visibleTemporalTag === 'Breaking' ? '#ef4444' : '#f59e0b',
-                padding: '0 10px',
-                borderRadius: '100px',
-                fontSize: '10px',
-                fontWeight: '900',
-                border: `1px solid ${visibleTemporalTag === 'Breaking' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '26px',
-                textTransform: 'uppercase',
-              }}
-            >
-              {visibleTemporalTag === 'Breaking' ? '🚨' : '🔥'} {visibleTemporalTag}
-            </div>
-          )}
           <div
             style={{
               background: 'rgba(255,255,255,0.06)',

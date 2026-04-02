@@ -1312,22 +1312,25 @@ export const generateExecutiveSummary = async (validTweets, userQuery, onStreamC
     })
     .join('\n---\n');
 
-  const summarySystem = `คุณคือระบบสรุปข้อมูลอัจฉริยะที่เน้นความถูกต้องเป็นหลัก (Zero-Hallucination Summarizer)
-สรุปจากทวีตหัวกะทิ ในหัวข้อ "${safeQuery}" เป็นภาษาไทย
-${safeWebCtx ? `ใช้ Web Context ด้านล่างนี้เพื่อตรวจสอบความขัดแย้ง (Fact-Check) ห้ามเดาหรือเพิ่มตัวละครที่ไม่มีในเนื้อหา:\n${safeWebCtx}\n` : ''}
+  const summarySystem = `You are a zero-hallucination news summarizer.
+Write the output in Thai.
+Summarize the key developments for the topic "${safeQuery}" using combined signals from X posts and web context when available.
+${safeWebCtx ? `Use the web context below only to verify, clarify, or add confirmed developments that are not obvious from X evidence:
+${safeWebCtx}
+` : ""}
 
-กฎเหล็ก:
-- ห้ามเพิ่มข้อมูลภายนอก (ห้ามเดาชื่อดารา, ห้ามเดาชื่อเกมถ้าไม่มีในข้อความ)
-- สรุปเฉพาะ "ความจริง" ที่เกิดขึ้นใน X (Twitter) และ Web Context เท่านั้น
-- **การอ้างอิงแหล่งที่มา (Citation Enforcement):** ทุกประโยคหรือข้ออ้างอิง (Claim) สำคัญในบทสรุป **ต้องบังคับ** ห้อยท้ายด้วย Source ID ของโพสต์นั้นเสมอ เช่น [T1], [T2], [T1][T3] 
-- หากเจอข้ออ้างอิงที่หาแหล่งที่มาจาก T1-T10 ไม่ได้ ห้ามอ้างอิงแหล่งที่มาแบบมั่วๆ เด็ดขาด
-- รูปแบบ: 1 ประโยคเปิดที่เป็นภาพรวม + 3 Bullet Points สั้นๆ ที่สรุปประเด็นหลัก 
-- สไตล์: กระชับ จริงจัง ไม่เน้นคำโปรย (No Fluff)
-- หากข้อมูลใน X และ Web ขัดกัน ให้ระบุสิ่งที่คนใน X กำลังพูดถึงเป็นหลัก
-- ใช้ markdown bold สำหรับคำสำคัญที่สอดคล้องกับหัวข้อค้นหา
-- บรรทัดสุดท้ายสุด ให้ประเมินระดับความน่าเชื่อถือโดยอิงจากการยืนยันข้อความกับ Web Context แล้วเขียนแท็กดังนี้ (ตัวอย่าง):
+Hard rules:
+- Do not invent people, companies, products, events, or numbers.
+- Treat X evidence and web context as the only allowed sources.
+- Do not use wording like "????????", "???????????", or any phrase that implies the summary comes from X alone.
+- Every important claim must end with a citation such as [F1], [F2], [W1], or combined citations like [F2][W1].
+- If a claim cannot be traced to one of the provided sources, do not include it.
+- Format: 1 short opening sentence plus 3 concise bullet points. You may expand to 5 bullets only if there are clearly more than 3 major storylines.
+- Tone: compact, factual, serious, no fluff.
+- If X and web context conflict, prioritize what is actually supported and make uncertainty clear.
+- Use markdown bold only for the most important terms relevant to the query.
+- End with a confidence tag on the final line in this exact format:
 [CONFIDENCE_SCORE: 85%]`;
-
   const enhancedSummarySystem = `${summarySystem}
 
 Additional citation rules:
