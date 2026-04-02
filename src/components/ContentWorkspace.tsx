@@ -55,6 +55,7 @@ const ContentWorkspace = ({
   setStatus,
   shouldInlineSearchStatus,
   searchStatusMessage,
+  lastSubmittedSearchQuery,
   searchPresets,
   canSaveCurrentSearchAsPreset,
   maxSearchPresets,
@@ -73,6 +74,12 @@ const ContentWorkspace = ({
   onArticleGen,
 }) => {
   const summaryDateLabel = getSummaryDateLabel(searchResults, 10);
+  const normalizedCurrentSearchQuery = (searchQuery || '').trim().replace(/\s+/g, ' ');
+  const shouldShowEmptySearchState =
+    Boolean(normalizedCurrentSearchQuery) &&
+    normalizedCurrentSearchQuery.toLowerCase() === (lastSubmittedSearchQuery || '').toLowerCase() &&
+    searchResults.length === 0 &&
+    !isSearching;
   const webSourcesWithCitationIds = searchWebSources.map((src, index) => ({
     ...src,
     citation_id: src.citation_id || `[W${index + 1}]`,
@@ -273,7 +280,7 @@ const ContentWorkspace = ({
                 </div>
               )}
 
-              {searchQuery && searchResults.length === 0 && !isSearching && (
+              {shouldShowEmptySearchState && (
                 <div className="search-idea-tags animate-fade-in" style={{ textAlign: 'center', padding: '40px 20px' }}>
                   <div style={{ marginBottom: '16px', opacity: 0.5 }}>
                     <Search size={48} style={{ margin: '0 auto' }} />

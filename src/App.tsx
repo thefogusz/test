@@ -299,6 +299,7 @@ const App = () => {
     deserialize: deserializeStoredCollection,
   });
   const [isSearching, setIsSearching] = useState(false);
+  const [lastSubmittedSearchQuery, setLastSubmittedSearchQuery] = useState('');
   const [searchOverflowResults, setSearchOverflowResults] = useState([]);
   const [isSourcesExpanded, setIsSourcesExpanded] = useState(false);
   const [searchCursor, setSearchCursor] = useState(null);
@@ -719,6 +720,7 @@ const App = () => {
   const handleSearch = async (e, isMore = false, overrideQuery = '') => {
     if (e) e.preventDefault();
     const requestedQuery = overrideQuery || searchQuery;
+    const normalizedRequestedQueryLabel = normalizeSearchLabel(requestedQuery);
     if (!requestedQuery && !isMore) return;
     if (isMore && searchOverflowResults.length > 0) {
       const nextChunk = searchOverflowResults.slice(0, 10);
@@ -726,7 +728,10 @@ const App = () => {
       setSearchOverflowResults((prev) => prev.slice(10));
       return;
     }
-    if (!isMore) recordSearchInterest(requestedQuery);
+    if (!isMore) {
+      recordSearchInterest(requestedQuery);
+      setLastSubmittedSearchQuery(normalizedRequestedQueryLabel);
+    }
     setIsSearching(true);
     if (!isMore) setSearchSummary('');
     setStatus(`AI กำลังค้นหาข้อมูลสำหรับ "${requestedQuery}"...`);
@@ -1707,6 +1712,7 @@ const App = () => {
               setStatus={setStatus}
               shouldInlineSearchStatus={shouldInlineSearchStatus}
               searchStatusMessage={searchStatusMessage}
+              lastSubmittedSearchQuery={lastSubmittedSearchQuery}
               searchPresets={searchPresets}
               canSaveCurrentSearchAsPreset={canSaveCurrentSearchAsPreset}
               maxSearchPresets={MAX_SEARCH_PRESETS}
