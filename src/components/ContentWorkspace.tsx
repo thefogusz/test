@@ -11,6 +11,7 @@ import {
   RefreshCcw,
   Search,
   ShieldCheck,
+  Sparkles,
   X,
   Zap,
 } from 'lucide-react';
