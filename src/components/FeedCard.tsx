@@ -1,8 +1,14 @@
 import React, { memo, useEffect, useState } from 'react';
-import { 
-  BarChart2, Heart, MessageCircle, Repeat,
-  ExternalLink, PenTool, Bookmark,
-  MessageSquare, Reply, Plus, Check, UserPlus, ListPlus, SquarePen
+import {
+  BarChart2,
+  Bookmark,
+  Check,
+  ExternalLink,
+  Heart,
+  MessageCircle,
+  PenTool,
+  Repeat,
+  Reply,
 } from 'lucide-react';
 import type { Post, PostList } from '../types/domain';
 
@@ -22,8 +28,8 @@ const getRelativeTime = (dateString) => {
 const fmt = (num) => {
   const n = parseInt((num || '0').toString().replace(/,/g, ''), 10);
   if (isNaN(n)) return '0';
-  if (n >= 1000000) return Math.floor(n / 1000000) + 'M';
-  if (n >= 1000) return Math.floor(n / 1000) + 'K';
+  if (n >= 1000000) return `${Math.floor(n / 1000000)}M`;
+  if (n >= 1000) return `${Math.floor(n / 1000)}K`;
   return n.toString();
 };
 
@@ -42,7 +48,10 @@ type FeedCardProps = {
   isInWatchlist?: boolean;
   postLists?: PostList[];
   onAddToWatchlist?: (tweet: Post) => void | Promise<void>;
-  onTogglePostList?: (listId: string, contributor: string | { username?: string; name?: string; profile_image_url?: string; id?: string }) => void | Promise<void>;
+  onTogglePostList?: (
+    listId: string,
+    contributor: string | { username?: string; name?: string; profile_image_url?: string; id?: string }
+  ) => void | Promise<void>;
 };
 
 const FeedCard = ({
@@ -56,9 +65,10 @@ const FeedCard = ({
   onTogglePostList,
 }: FeedCardProps) => {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
-  const [showListMenu, setShowListMenu] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const displayText = isUsableThaiSummary(tweet.summary, tweet.text) ? tweet.summary : tweet.text;
   const authorUsername = (tweet.author?.username || '').trim().replace(/^@/, '').toLowerCase();
+  const visibleTemporalTag = tweet.temporalTag && tweet.temporalTag !== 'Related' ? tweet.temporalTag : null;
 
   useEffect(() => {
     setBookmarked(initialBookmarked);
@@ -75,6 +85,15 @@ const FeedCard = ({
     onAddToWatchlist(tweet);
   };
 
+  const profileMenuItems = postLists.map((list) => {
+    const isMember = Array.isArray(list.members) && list.members.some((member) => member?.toLowerCase() === authorUsername);
+    return {
+      id: list.id,
+      label: isMember ? `เอาออกจาก ${list.name}` : `เพิ่มเข้า ${list.name}`,
+      active: isMember,
+    };
+  });
+
   const stats = [
     { icon: BarChart2, v: tweet.view_count },
     { icon: Heart, v: tweet.like_count },
@@ -84,146 +103,248 @@ const FeedCard = ({
 
   return (
     <div className="feed-card animate-fade-in">
-      {/* ── HEADER: Avatar, Author & Time ── */}
       <div className="feed-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div className="feed-card-author" style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-          <div style={{ 
-            width: '42px', height: '42px', borderRadius: '50%', overflow: 'hidden', 
-            border: '2px solid rgba(255,255,255,0.08)', flexShrink: 0 
-          }}>
-            <img
-              src={tweet.author?.profile_image_url?.replace('_normal', '')}
-              alt=""
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              onError={e => {
-                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tweet.author?.name || 'U')}&background=random&color=fff&bold=true`;
+        <div style={{ position: 'relative', minWidth: 0 }}>
+          <button
+            type="button"
+            className="feed-card-author feed-card-author-trigger"
+            onClick={() => authorUsername && setShowProfileMenu((prev) => !prev)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              minWidth: 0,
+              background: 'transparent',
+              border: 'none',
+              padding: 0,
+              cursor: authorUsername ? 'pointer' : 'default',
+              textAlign: 'left',
+            }}
+          >
+            <div
+              className="feed-card-author-avatar"
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                border: '2px solid rgba(255,255,255,0.08)',
+                flexShrink: 0,
               }}
-            />
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              {tweet.citation_id && (
-                <span style={{ 
-                  background: 'rgba(255,255,255,0.9)', color: '#000', padding: '1px 6px', 
-                  borderRadius: '4px', fontSize: '10px', fontWeight: '900', letterSpacing: '0.05em' 
-                }}>
-                  {tweet.citation_id.replace(/[[\]]/g, '')}
-                </span>
-              )}
-              <div style={{ fontWeight: '800', fontSize: '13px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {tweet.author?.name}
+            >
+              <img
+                src={tweet.author?.profile_image_url?.replace('_normal', '')}
+                alt=""
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => {
+                  e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tweet.author?.name || 'U')}&background=random&color=fff&bold=true`;
+                }}
+              />
+            </div>
+            <div className="feed-card-author-copy" style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {tweet.citation_id && (
+                  <span
+                    style={{
+                      background: 'rgba(255,255,255,0.9)',
+                      color: '#000',
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      fontSize: '10px',
+                      fontWeight: '900',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    {tweet.citation_id.replace(/[[\]]/g, '')}
+                  </span>
+                )}
+                <div style={{ fontWeight: '800', fontSize: '13px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {tweet.author?.name}
+                </div>
+              </div>
+              <div style={{ color: 'var(--text-dim)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span>@{tweet.author?.username}</span>
               </div>
             </div>
-            <div style={{ color: 'var(--text-dim)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              <span>@{tweet.author?.username}</span>
-            </div>
-          </div>
+          </button>
+
+          {showProfileMenu && authorUsername && (
+            <>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 90 }} onClick={() => setShowProfileMenu(false)} />
+              <div
+                className="discovery-menu feed-card-profile-menu"
+                style={{ display: 'block', position: 'absolute', left: 0, top: 'calc(100% + 8px)', zIndex: 100, minWidth: '220px' }}
+              >
+                <button
+                  type="button"
+                  className={`discovery-menu-item ${isInWatchlist ? 'active' : ''}`}
+                  onClick={() => {
+                    handleAddToWatchlist();
+                    setShowProfileMenu(false);
+                  }}
+                  disabled={isInWatchlist}
+                >
+                  <span>{isInWatchlist ? 'อยู่ใน Watchlist แล้ว' : 'เพิ่มเข้า Watchlist'}</span>
+                  {isInWatchlist && <Check size={12} />}
+                </button>
+                {profileMenuItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`discovery-menu-item ${item.active ? 'active' : ''}`}
+                    onClick={() => {
+                      onTogglePostList?.(item.id, {
+                        id: tweet.author?.id || authorUsername,
+                        username: authorUsername,
+                        name: tweet.author?.name || authorUsername,
+                        profile_image_url: tweet.author?.profile_image_url || '',
+                      });
+                      setShowProfileMenu(false);
+                    }}
+                  >
+                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '8px' }}>
+                      {item.label}
+                    </span>
+                    {item.active && <Check size={12} />}
+                  </button>
+                ))}
+                {postLists.length === 0 && (
+                  <div style={{ padding: '12px', fontSize: '12px', color: 'var(--text-dim)', textAlign: 'center' }}>
+                    ยังไม่มี Post List
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         <div className="feed-card-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          {tweet.temporalTag && (
-            <div style={{
-              background: tweet.temporalTag === 'Breaking' ? 'rgba(239, 68, 68, 0.15)' : tweet.temporalTag === 'Trending' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(59, 130, 246, 0.15)',
-              color: tweet.temporalTag === 'Breaking' ? '#ef4444' : tweet.temporalTag === 'Trending' ? '#f59e0b' : '#3b82f6',
+          {visibleTemporalTag && (
+            <div
+              style={{
+                background: visibleTemporalTag === 'Breaking' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                color: visibleTemporalTag === 'Breaking' ? '#ef4444' : '#f59e0b',
+                padding: '0 10px',
+                borderRadius: '100px',
+                fontSize: '10px',
+                fontWeight: '900',
+                border: `1px solid ${visibleTemporalTag === 'Breaking' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(245, 158, 11, 0.3)'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '26px',
+                textTransform: 'uppercase',
+              }}
+            >
+              {visibleTemporalTag === 'Breaking' ? '🚨' : '🔥'} {visibleTemporalTag}
+            </div>
+          )}
+          <div
+            style={{
+              background: 'rgba(255,255,255,0.06)',
               padding: '0 10px',
               borderRadius: '100px',
               fontSize: '10px',
               fontWeight: '900',
-              border: `1px solid ${tweet.temporalTag === 'Breaking' ? 'rgba(239, 68, 68, 0.3)' : tweet.temporalTag === 'Trending' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(59, 130, 246, 0.3)'}`,
+              color: 'rgba(255,255,255,0.9)',
+              border: '1px solid rgba(255,255,255,0.08)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               height: '26px',
-              textTransform: 'uppercase'
-            }}>
-              {tweet.temporalTag === 'Breaking' ? '🚨' : tweet.temporalTag === 'Trending' ? '🔥' : '📌'} {tweet.temporalTag}
-            </div>
-          )}
-          {/* Time Badge - Standardized Height for Alignment */}
-          <div style={{
-            background: 'rgba(255,255,255,0.06)', 
-            padding: '0 10px', 
-            borderRadius: '100px',
-            fontSize: '10px', 
-            fontWeight: '900', 
-            color: 'rgba(255,255,255,0.9)', 
-            border: '1px solid rgba(255,255,255,0.08)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '26px'
-          }}>
+            }}
+          >
             {getRelativeTime(tweet.created_at)}
           </div>
-          
-          <button onClick={handleBookmark} className="icon-hover" style={{ 
-            background: 'transparent', border: 'none', cursor: 'pointer', 
-            width: '26px', height: '26px', borderRadius: '6px',
-            color: bookmarked ? '#facc15' : 'rgba(255,255,255,0.25)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 0
-          }}>
+
+          <button
+            onClick={handleBookmark}
+            className="icon-hover"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              width: '26px',
+              height: '26px',
+              borderRadius: '6px',
+              color: bookmarked ? '#facc15' : 'rgba(255,255,255,0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+            }}
+          >
             <Bookmark size={15} fill={bookmarked ? 'currentColor' : 'none'} strokeWidth={2.5} />
           </button>
-          
-          <a href={`https://x.com/${tweet.author?.username || 'i'}/status/${tweet.id}`} target="_blank" rel="noopener noreferrer" style={{ 
-            width: '26px', height: '26px', borderRadius: '6px',
-            color: 'rgba(255,255,255,0.25)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 0
-          }} className="icon-hover">
+
+          <a
+            href={`https://x.com/${tweet.author?.username || 'i'}/status/${tweet.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              width: '26px',
+              height: '26px',
+              borderRadius: '6px',
+              color: 'rgba(255,255,255,0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+            }}
+            className="icon-hover"
+          >
             <ExternalLink size={15} strokeWidth={2.5} />
           </a>
         </div>
       </div>
 
-      {/* ── CREATIVE REPLY BADGE ── */}
       {tweet.isReply && (
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          alignSelf: 'flex-start',
-          width: 'fit-content',
-          gap: '6px',
-          padding: '6px 12px',
-          background: 'linear-gradient(90deg, rgba(41, 151, 255, 0.1) 0%, rgba(157, 117, 255, 0.05) 100%)',
-          borderLeft: '3px solid var(--accent-blue)',
-          borderRadius: '4px 8px 8px 4px',
-          color: 'var(--accent-blue)',
-          fontSize: '11.5px',
-          fontWeight: '600',
-          marginBottom: '14px',
-          letterSpacing: '0.02em',
-          backdropFilter: 'blur(10px)',
-          boxShadow: '0 2px 10px rgba(41, 151, 255, 0.05)'
-        }}>
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            alignSelf: 'flex-start',
+            width: 'fit-content',
+            gap: '6px',
+            padding: '6px 12px',
+            background: 'linear-gradient(90deg, rgba(41, 151, 255, 0.1) 0%, rgba(157, 117, 255, 0.05) 100%)',
+            borderLeft: '3px solid var(--accent-blue)',
+            borderRadius: '4px 8px 8px 4px',
+            color: 'var(--accent-blue)',
+            fontSize: '11.5px',
+            fontWeight: '600',
+            marginBottom: '14px',
+            letterSpacing: '0.02em',
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 2px 10px rgba(41, 151, 255, 0.05)',
+          }}
+        >
           <Reply size={13} strokeWidth={2.5} style={{ opacity: 0.9 }} />
           <span>ตอบกลับ <b>@{tweet.inReplyToUsername || 'ใครบางคน'}</b></span>
         </div>
       )}
 
-      {/* ── BODY: The Star Content ── */}
       <div style={{ marginBottom: '16px' }}>
-        <p style={{ 
-          fontSize: '16px', 
-          lineHeight: '1.6', 
-          color: 'rgba(255, 255, 255, 0.9)',
-          fontWeight: '500', 
-          margin: 0, 
-          display: '-webkit-box',
-          WebkitLineClamp: 10, 
-          WebkitBoxOrient: 'vertical', 
-          overflow: 'hidden',
-          letterSpacing: '-0.01em',
-          wordBreak: 'break-word'
-        }}>
+        <p
+          style={{
+            fontSize: '16px',
+            lineHeight: '1.6',
+            color: 'rgba(255, 255, 255, 0.9)',
+            fontWeight: '500',
+            margin: 0,
+            display: '-webkit-box',
+            WebkitLineClamp: 10,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            letterSpacing: '-0.01em',
+            wordBreak: 'break-word',
+          }}
+        >
           {displayText}
         </p>
       </div>
 
-      {/* ── FOOTER: Stats & Sublte Actions ── */}
       <div className="feed-card-footer" style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-        {/* Minimalist Stats */}
         <div className="feed-card-stats" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div className="feed-card-stats-group" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             {stats.map((s, i) => (
@@ -235,129 +356,27 @@ const FeedCard = ({
           </div>
         </div>
         <div className="feed-card-actions" style={{ display: 'flex', gap: '4px' }}>
-          {authorUsername && (
+          {onArticleGen && (
             <button
-              type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                handleAddToWatchlist();
+                onArticleGen(tweet);
               }}
               className="btn-forge feed-card-inline-action"
-              style={{
-                opacity: isInWatchlist ? 0.8 : 1,
-                borderColor: isInWatchlist ? 'rgba(16, 185, 129, 0.25)' : undefined,
-              }}
-              disabled={isInWatchlist}
-              title={isInWatchlist ? 'อยู่ใน Watchlist แล้ว' : 'เพิ่มเข้า Watchlist'}
             >
-              {isInWatchlist ? <Check size={11} strokeWidth={2.5} /> : <UserPlus size={11} strokeWidth={2.5} />}
-              <span>{isInWatchlist ? 'อยู่ใน Watchlist' : 'เข้า Watchlist'}</span>
-            </button>
-          )}
-          {authorUsername && onTogglePostList && (
-            <div style={{ position: 'relative' }}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowListMenu((prev) => !prev);
-                }}
-                className="btn-forge feed-card-inline-action"
-                title="เพิ่มเข้า Post List"
-              >
-                <ListPlus size={11} strokeWidth={2.5} />
-                <span>เข้า Post List</span>
-                <Plus
-                  size={11}
-                  strokeWidth={2.5}
-                  style={{ transform: showListMenu ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s' }}
-                />
-              </button>
-              {showListMenu && (
-                <>
-                  <div
-                    style={{ position: 'fixed', inset: 0, zIndex: 90 }}
-                    onClick={() => setShowListMenu(false)}
-                  />
-                  <div
-                    className="discovery-menu"
-                    style={{ display: 'block', position: 'absolute', right: 0, bottom: 'calc(100% + 8px)', zIndex: 100, minWidth: '200px' }}
-                  >
-                    <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', padding: '8px 12px', borderBottom: '1px solid var(--glass-border)' }}>
-                      ADD TO POST LIST
-                    </div>
-                    <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
-                      {postLists.map((list) => {
-                        const isMember = Array.isArray(list.members) && list.members.some((member) => member?.toLowerCase() === authorUsername);
-                        return (
-                          <div
-                            key={list.id}
-                            onClick={() => {
-                              onTogglePostList(list.id, {
-                                id: tweet.author?.id || authorUsername,
-                                username: authorUsername,
-                                name: tweet.author?.name || authorUsername,
-                                profile_image_url: tweet.author?.profile_image_url || '',
-                              });
-                              setShowListMenu(false);
-                            }}
-                            className={`discovery-menu-item ${isMember ? 'active' : ''}`}
-                          >
-                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '8px' }}>{list.name}</span>
-                            {isMember && <Check size={12} />}
-                          </div>
-                        );
-                      })}
-                      {postLists.length === 0 && (
-                        <div style={{ padding: '12px', fontSize: '12px', color: 'var(--text-dim)', textAlign: 'center' }}>
-                          ยังไม่มี Post List ให้เพิ่ม
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-          {onArticleGen && (
-            <button 
-              onClick={(e) => { e.stopPropagation(); onArticleGen(tweet); }} 
-              className="btn-forge feed-card-inline-action content-card-action" 
-            >
-              <span className="content-card-action-icon">
-                <SquarePen size={14} strokeWidth={2.2} />
-              </span>
-              <span>คอนเทนต์</span>
+              <PenTool size={11} strokeWidth={2.5} />
+              <span>สร้างคอนเทนต์</span>
             </button>
           )}
         </div>
       </div>
-      {/* ── SUBTLE AI REASONING BADGE ── */}
-      {false && tweet.ai_reasoning && (
-        <div style={{
-          marginTop: '16px',
-          padding: '8px 12px',
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-          borderRadius: '8px',
-          fontSize: '11.5px',
-          color: 'var(--text-dim)',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '8px',
-          lineHeight: '1.4'
-        }}>
-          <Sparkles size={12} style={{ color: 'var(--accent-secondary)', marginTop: '2px', flexShrink: 0 }} fill="currentColor" />
-          <span style={{ fontStyle: 'italic' }}>AI Insight: {tweet.ai_reasoning}</span>
-        </div>
-      )}
     </div>
   );
 };
 
 export default memo(FeedCard, (prevProps, nextProps) => (
-  prevProps.tweet === nextProps.tweet
-  && prevProps.isBookmarked === nextProps.isBookmarked
-  && prevProps.isInWatchlist === nextProps.isInWatchlist
-  && prevProps.postLists === nextProps.postLists
+  prevProps.tweet === nextProps.tweet &&
+  prevProps.isBookmarked === nextProps.isBookmarked &&
+  prevProps.isInWatchlist === nextProps.isInWatchlist &&
+  prevProps.postLists === nextProps.postLists
 ));

@@ -383,7 +383,7 @@ const ContentWorkspace = ({
                   ></div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
                       <div
                         style={{
                           background: 'var(--accent-gradient)',
@@ -427,7 +427,11 @@ const ContentWorkspace = ({
                   {(() => {
                     const confMatch = searchSummary.match(/\[CONFIDENCE_SCORE:\s*([^\]]+)\]/i);
                     const confidenceScore = confMatch ? confMatch[1] : null;
-                    const cleanSummary = searchSummary.replace(/\[CONFIDENCE_SCORE:\s*([^\]]+)\]/gi, '').trim();
+                    const cleanSummary = searchSummary
+                      .replace(/\[CONFIDENCE_SCORE:\s*([^\]]+)\]/gi, '')
+                      // Drop standalone citation clusters like "[F1] [F4] [F6]" that duplicate bullet badges.
+                      .replace(/(?:^|\n)\s*(?:\[(?:F|W)\d{1,2}\]\s*){2,}(?=\n|$)/g, '\n')
+                      .trim();
 
                     return (
                       <>
