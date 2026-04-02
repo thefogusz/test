@@ -127,7 +127,9 @@ const ContentWorkspace = ({
               setContentTab={setContentTab}
               className="content-view-tabs-mobile-inline"
             />
-            <div style={{ display: contentTab === 'search' ? 'block' : 'none' }} className="hero-search-wrapper">
+            <ContentErrorBoundary key="search-form-boundary">
+              <div style={{ display: contentTab === 'search' ? 'block' : 'none' }} className="hero-search-wrapper">
+
               <ContentTabSwitcher contentTab={contentTab} setContentTab={setContentTab} hidden />
               <div className="hero-search-form" style={{ width: '100%' }}>
                 <Search size={20} className="hero-search-icon" />
@@ -240,20 +242,23 @@ const ContentWorkspace = ({
               )}
               {showSuggestions && suggestions.length > 0 && (
                 <div className="search-suggestions-dropdown">
-                  {suggestions.map((item, idx) => (
-                    <div
-                      key={item}
-                      className={`suggestion-item ${idx === activeSuggestionIndex ? 'active' : ''}`}
-                      onClick={() => {
-                        setSearchQuery(item);
-                        handleSearch(null, false, item);
-                        setShowSuggestions(false);
-                      }}
-                    >
-                      <Search size={14} className="suggestion-icon" />
-                      <span>{item}</span>
-                    </div>
-                  ))}
+                  {suggestions.map((item, idx) => {
+                    if (typeof item !== 'string') return null;
+                    return (
+                      <div
+                        key={`${item}-${idx}`}
+                        className={`suggestion-item ${idx === activeSuggestionIndex ? 'active' : ''}`}
+                        onClick={() => {
+                          setSearchQuery(item);
+                          handleSearch(null, false, item);
+                          setShowSuggestions(false);
+                        }}
+                      >
+                        <Search size={14} className="suggestion-icon" />
+                        <span>{String(item)}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
               {isLiveSearching && !isSearching && (
@@ -341,7 +346,8 @@ const ContentWorkspace = ({
                 </div>
               )}
             </div>
-          </div>
+          </ContentErrorBoundary>
+        </div>
           {searchResults.length > 0 && (
             <div className="search-results-container">
               {searchSummary && (

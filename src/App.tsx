@@ -99,7 +99,11 @@ const MAX_SEARCH_PRESETS = 4;
 const READ_ARCHIVE_INITIAL_RENDER = 24;
 const READ_ARCHIVE_RENDER_BATCH = 24;
 
-const normalizeSearchLabel = (value) => (value || '').trim().replace(/\s+/g, ' ');
+const normalizeSearchLabel = (value) => {
+  const str = typeof value === 'string' ? value : (value?.label || String(value || ''));
+  return str.trim().replace(/\s+/g, ' ');
+};
+
 
 const deserializeSearchPresets = (saved) => {
   const parsed = safeParse(saved, []);
@@ -1129,11 +1133,20 @@ const App = () => {
     }
 
     const suggestionPool = Array.from(
-      new Set([...searchPresets, ...searchHistoryLabels, ...interestSeedLabels, ...commonKeywords]),
-    );
+      new Set([
+        ...(Array.isArray(searchPresets) ? searchPresets : []),
+        ...(Array.isArray(searchHistoryLabels) ? searchHistoryLabels : []),
+        ...(Array.isArray(interestSeedLabels) ? interestSeedLabels : []),
+        ...(Array.isArray(commonKeywords) ? commonKeywords : []),
+      ]),
+    ).filter(kw => typeof kw === 'string' && kw.trim().length > 0);
 
+    const normalizedQuery = (query || '').toLowerCase();
     const filteredSuggestions = suggestionPool
-      .filter((kw) => kw.toLowerCase().includes(query.toLowerCase()) && kw.toLowerCase() !== query.toLowerCase())
+      .filter((kw) => {
+        const normalizedKw = kw.toLowerCase();
+        return normalizedKw.includes(normalizedQuery) && normalizedKw !== normalizedQuery;
+      })
       .slice(0, 5);
     setSuggestions(filteredSuggestions);
 
