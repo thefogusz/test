@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+/tmp
+/tmp-home-toolbar-check.png
 *.local
 
 # Editor directories and files

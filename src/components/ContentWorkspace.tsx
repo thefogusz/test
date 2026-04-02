@@ -38,7 +38,6 @@ const ContentWorkspace = ({
   searchQuery,
   setSearchQuery,
   suggestions,
-  setSuggestions,
   showSuggestions,
   setShowSuggestions,
   activeSuggestionIndex,
@@ -184,7 +183,6 @@ const ContentWorkspace = ({
                       type="button"
                       onClick={() => {
                         setSearchQuery('');
-                        setSuggestions([]);
                       }}
                       className="hero-clear-btn"
                     >

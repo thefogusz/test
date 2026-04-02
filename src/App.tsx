@@ -1,54 +1,15 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import React, { Suspense, lazy, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Search,
-  RefreshCw,
-  RefreshCcw,
-  Trash2,
-  Undo2,
-  Eye,
-  Heart,
-  Activity,
-  Zap,
-  X,
-  Plus,
-  FileCode,
-  Share2,
-  PenTool,
-  Loader2,
-  Filter,
-  Copy,
-  ShieldCheck,
-  List,
-  LayoutGrid,
-  BookOpen,
-  ExternalLink,
-  Link,
-  Users,
-  Cpu,
-  Bot,
-  BriefcaseBusiness,
-  TrendingUp,
-  BadgeDollarSign,
-  ChartColumn,
-  Bitcoin,
-  HeartPulse,
-  Leaf,
-  Globe2,
-  Landmark,
-  BrainCircuit,
-  FileText,
-  Filter as FilterIcon
-} from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import AiFilterModal from './components/AiFilterModal';
+import HomeView from './components/HomeView';
+import ListModal from './components/ListModal';
 import Sidebar from './components/Sidebar';
+import StatusToast from './components/StatusToast';
 import RightSidebar from './components/RightSidebar';
-import HomeCanvas from './components/HomeCanvas';
-import FeedCard from './components/FeedCard';
-import AiFilteredBadge from './components/AiFilteredBadge';
 import {
   getUserInfo,
   fetchWatchlistFeed,
-  RECENT_WINDOW_HOURS,
   searchEverything,
   searchEverythingDeep,
   curateSearchResults,
@@ -56,219 +17,49 @@ import {
   clusterBySimilarity
 } from './services/TwitterService';
 import { agentFilterFeed, buildSearchPlan, discoverTopExpertsStrict, expandSearchQuery, generateExecutiveSummary, generateGrokBatch, generateGrokSummary, tavilySearch } from './services/GrokService';
-import { cleanMarkdownForClipboard, renderMarkdownToHtml } from './utils/markdown';
 import { getSummaryDateLabel } from './utils/summaryDates';
 import './index.css';
 import { STORAGE_KEYS } from './constants/storageKeys';
 import useLibraryViews from './hooks/useLibraryViews';
 import { usePersistentState } from './hooks/usePersistentState';
+import useSearchSuggestions from './hooks/useSearchSuggestions';
 import {
   deriveVisibleFeed,
-  safeParse,
   mergeUniquePostsById,
   hasUsefulThaiSummary,
   sanitizeStoredPost,
-  sanitizeStoredCollection,
-  sanitizeStoredSingle,
   sanitizeCollectionState,
+  sanitizeStoredSingle,
   normalizeSearchText,
   mergePlanLabelsIntoQuery
 } from './utils/appUtils';
-import UserCard from './components/UserCard';
-import { TOPIC_TRIGGERS } from './config/topics';
+import {
+  deserializeAttachedSource,
+  deserializePostLists,
+  deserializeStoredCollection,
+  deserializeWatchlist,
+} from './utils/appPersistence';
+import {
+  buildDynamicSearchTags,
+  COMMON_KEYWORDS,
+  deserializeSearchHistory,
+  deserializeSearchPresets,
+  extractInterestTopics,
+  getBroadFallbackQueries,
+  getBroadQueryBlueprint,
+  MAX_SEARCH_PRESETS,
+  normalizeSearchLabel,
+} from './utils/searchHelpers';
 
 const AudienceWorkspace = lazy(() => import('./components/AudienceWorkspace'));
 const BookmarksWorkspace = lazy(() => import('./components/BookmarksWorkspace'));
 const ContentWorkspace = lazy(() => import('./components/ContentWorkspace'));
 const ReadWorkspace = lazy(() => import('./components/ReadWorkspace'));
 
-const deserializeWatchlist = (saved) => {
-  const parsed = safeParse(saved, []);
-  return Array.isArray(parsed) ? parsed.filter((user) => user && user.username) : [];
-};
-
-const deserializeStoredCollection = (saved) =>
-  sanitizeStoredCollection(safeParse(saved, []));
-
-const deserializeAttachedSource = (saved) =>
-  sanitizeStoredSingle(safeParse(saved, null));
-
-const deserializePostLists = (saved) => safeParse(saved, []);
-
-const MAX_SEARCH_PRESETS = 4;
 const READ_ARCHIVE_INITIAL_RENDER = 24;
 const READ_ARCHIVE_RENDER_BATCH = 24;
 
-const normalizeSearchLabel = (value) => {
-  const str = typeof value === 'string' ? value : (value?.label || String(value || ''));
-  return str.trim().replace(/\s+/g, ' ');
-};
-
-
-const deserializeSearchPresets = (saved) => {
-  const parsed = safeParse(saved, []);
-  if (!Array.isArray(parsed)) return [];
-
-  return Array.from(
-    new Set(
-      parsed
-        .map((item) => normalizeSearchLabel(typeof item === 'string' ? item : item?.label))
-        .filter(Boolean),
-    ),
-  ).slice(0, MAX_SEARCH_PRESETS);
-};
-
-const deserializeSearchHistory = (saved) => {
-  const parsed = safeParse(saved, []);
-  if (!Array.isArray(parsed)) return [];
-
-  return parsed
-    .map((item) => ({
-      query: normalizeSearchLabel(item?.query),
-      count: Math.max(1, Number(item?.count) || 1),
-      lastUsedAt: typeof item?.lastUsedAt === 'string' ? item.lastUsedAt : new Date(0).toISOString(),
-    }))
-    .filter((item) => item.query)
-    .slice(0, 12);
-};
-
-const TOPIC_STOPWORDS = new Set([
-  'the', 'and', 'for', 'with', 'from', 'that', 'this', 'your', 'about', 'into', 'over', 'after',
-  'have', 'has', 'will', 'just', 'more', 'than', 'what', 'when', 'where', 'their', 'they', 'them',
-  'ข่าว', 'โพสต์', 'สรุป', 'ข้อมูล', 'ล่าสุด', 'ตอนนี้', 'ระบบ', 'ของ', 'และ', 'หรือ', 'ที่', 'ใน', 'จาก',
-  'ให้', 'แล้ว', 'กับ', 'แบบ', 'มาก', 'ขึ้น', 'ตาม', 'ผ่าน', 'เพื่อ', 'ยัง', 'ไม่มี', 'อยู่',
-]);
-
-const TOPIC_ALLOWLIST = new Set([
-  'AI', 'Web3', 'Crypto', 'Esport', 'Esports', 'Gaming', 'Marketing', 'Startup', 'Netflix', 'YouTube',
-  'Epic Games', 'Epic Games Store', 'Dune', 'Steam', 'Xbox', 'PS5', 'OpenAI', 'Bitcoin', 'Ethereum',
-]);
-
-const extractInterestTopics = (items = []) => {
-  const topicScores = new Map();
-
-  const pushTopic = (rawLabel, weight = 1) => {
-    const label = normalizeSearchLabel(rawLabel);
-    if (!label) return;
-    const normalized = normalizeSearchText(label);
-    if (!normalized || TOPIC_STOPWORDS.has(normalized)) return;
-
-    if (!TOPIC_ALLOWLIST.has(label)) {
-      if (label.startsWith('@')) return;
-      if (label.length < 3 || label.length > 32) return;
-      if (/^[a-z0-9_]+$/i.test(label) && !/[A-Z]/.test(label) && !/[ก-ฮ]/.test(label)) return;
-      if (label.split(' ').length > 3) return;
-    }
-
-    topicScores.set(label, (topicScores.get(label) || 0) + weight);
-  };
-
-  items.forEach((item) => {
-    const text = [item?.summary, item?.text].filter(Boolean).join(' ');
-    const authorName = normalizeSearchText(item?.author?.name);
-    const authorUsername = normalizeSearchText(item?.author?.username);
-
-    const hashtags = text.match(/#([\p{L}\p{N}_]{3,30})/gu) || [];
-    hashtags.forEach((hashtag) => pushTopic(hashtag.replace(/^#/, ''), 3));
-
-    const uppercasePhrases = text.match(/\b(?:AI|Web3|Crypto|Gaming|Esports?|Netflix|YouTube|Steam|Xbox|PS5|OpenAI|Bitcoin|Ethereum|Dune|Epic Games(?: Store)?)\b/gi) || [];
-    uppercasePhrases.forEach((phrase) => pushTopic(phrase, 3));
-
-    const properNouns = text.match(/\b[A-Z][a-zA-Z0-9+.-]{2,}(?:\s+[A-Z][a-zA-Z0-9+.-]{2,}){0,2}\b/g) || [];
-    properNouns.forEach((phrase) => {
-      const normalizedPhrase = normalizeSearchText(phrase);
-      if (normalizedPhrase === authorName || normalizedPhrase === authorUsername) return;
-      pushTopic(phrase, 2);
-    });
-  });
-
-  return Array.from(topicScores.entries())
-    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
-    .map(([label]) => label)
-    .slice(0, 6);
-};
-
 const shouldRemoveWhenFalsy = (value) => !value;
-
-const BROAD_QUERY_BLUEPRINTS = [
-  {
-    triggers: TOPIC_TRIGGERS.gaming,
-    entityQuery: '(Nintendo OR PlayStation OR Xbox OR Steam OR "Switch 2" OR GTA OR Pokemon OR Zelda OR Mario OR "Monster Hunter" OR "Game Awards")',
-    viralQuery: '(gaming OR videogames OR Nintendo OR PlayStation OR Xbox OR Steam OR "Switch 2" OR GTA) min_faves:500',
-  },
-  {
-    triggers: TOPIC_TRIGGERS.football,
-    entityQuery: '(Premier League OR Champions League OR FIFA OR UEFA OR Arsenal OR Liverpool OR Real Madrid OR Barcelona)',
-    viralQuery: '(football OR soccer OR Premier League OR Champions League OR FIFA OR UEFA) min_faves:500',
-  },
-  {
-    triggers: TOPIC_TRIGGERS.crypto,
-    entityQuery: '(Bitcoin OR BTC OR Ethereum OR ETH OR Solana OR Binance OR Coinbase OR ETF)',
-    viralQuery: '(crypto OR bitcoin OR btc OR ethereum OR eth OR solana) min_faves:500',
-  },
-];
-
-const getBroadQueryBlueprint = (query = '') => {
-  const normalized = normalizeSearchText(query);
-  if (!normalized) return null;
-
-  return BROAD_QUERY_BLUEPRINTS.find((blueprint) =>
-    blueprint.triggers.some((trigger) => normalized.includes(normalizeSearchText(trigger))),
-  ) || null;
-};
-
-const getBroadFallbackQueries = (query = '') => {
-  const normalized = normalizeSearchText(query);
-  if (!normalized) return [];
-
-  const fallbackGroups = [
-    {
-      triggers: TOPIC_TRIGGERS.gaming,
-      queries: [
-        '(game OR gaming OR videogame OR videogames OR เกม OR วงการเกม)',
-        '(Nintendo OR PlayStation OR Xbox OR Steam OR PS5 OR GTA OR Pokemon OR Zelda OR Mario OR "Monster Hunter" OR "Game Awards")',
-        '(esports OR gamedev OR "game dev" OR studio OR trailer OR launch)',
-      ],
-    },
-    {
-      triggers: TOPIC_TRIGGERS.football,
-      queries: [
-        '(football OR soccer OR ฟุตบอล)',
-        '(Premier League OR Champions League OR FIFA OR UEFA OR Arsenal OR Liverpool OR Real Madrid OR Barcelona)',
-      ],
-    },
-    {
-      triggers: TOPIC_TRIGGERS.crypto,
-      queries: [
-        '(crypto OR bitcoin OR btc OR ethereum OR eth OR คริปโต)',
-        '(Solana OR Binance OR Coinbase OR ETF OR blockchain OR web3)',
-      ],
-    },
-  ];
-
-  const match = fallbackGroups.find((group) =>
-    group.triggers.some((trigger) => normalized.includes(normalizeSearchText(trigger))),
-  );
-
-  return match ? match.queries : [];
-};
-
-const isBroadTopicSearchQuery = (query = '') => {
-  const normalized = normalizeSearchText(query);
-  if (!normalized) return false;
-
-  const stripped = normalized
-    .replace(/\b(latest|breaking|today|now|update|news)\b/g, ' ')
-    .replace(/ข่าว|ล่าสุด|วันนี้|ด่วน|อัปเดต|อัพเดต/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  const tokenCount = stripped ? stripped.split(' ').length : 0;
-
-  if (tokenCount === 0 || tokenCount > 4) return false;
-  if (/from:|since:|until:|@|"/i.test(query)) return false;
-
-  return Boolean(getBroadQueryBlueprint(query));
-};
 
 const App = () => {
   const [watchlist, setWatchlist] = usePersistentState(STORAGE_KEYS.watchlist, [], {
@@ -285,7 +76,6 @@ const App = () => {
   });
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
-  const [aiReport, setAiReport] = useState('');
   const [activeFilters, setActiveFilters] = useState({ view: false, engagement: false });
   
   const [searchQuery, setSearchQuery] = usePersistentState(STORAGE_KEYS.searchQuery, '');
@@ -311,16 +101,9 @@ const App = () => {
   const onlyNews = true;
   const [nextCursor, setNextCursor] = useState(null);
   const [isLatestMode, setIsLatestMode] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [isLiveSearching, setIsLiveSearching] = useState(false);
-
-  const commonKeywords = [
-  'AI', 'Artificial Intelligence', 'Elon Musk', 'Tesla', 'SpaceX', 'Bitcoin', 'Ethereum', 'Crypto', 'Vitalik Buterin',
-  'Technology', 'Future', 'Innovation', 'Machine Learning', 'GPT-4', 'OpenAI',
-  'Market Analysis', 'Web3', 'Blockchain', 'Social Media', 'Marketing Strategy'
-];
 
   const [bookmarks, setBookmarks] = usePersistentState(STORAGE_KEYS.bookmarks, [], {
     deserialize: deserializeStoredCollection,
@@ -399,13 +182,6 @@ const App = () => {
       return () => clearTimeout(timer);
     }
   }, [activeView, contentTab, isSearching, searchResults.length, searchSummary, status]);
-
-  useEffect(() => {
-    if (aiReport) {
-      const timer = setTimeout(() => setAiReport(''), 6000);
-      return () => clearTimeout(timer);
-    }
-  }, [aiReport]);
 
   useEffect(() => {
     setOriginalFeed(prev => sanitizeCollectionState(prev));
@@ -1052,27 +828,13 @@ const App = () => {
     ...readArchive.slice(0, 12),
   ]);
   const interestSeedLabels = [...feedInterestLabels].filter(Boolean);
-  const dynamicSearchTags = [
-    ...searchPresets.map((label) => ({ label, source: 'preset' })),
-    ...searchHistoryLabels
-      .filter((label) => !searchPresets.some((preset) => preset.toLowerCase() === label.toLowerCase()))
-      .map((label) => ({ label, source: 'history' })),
-    ...interestSeedLabels
-      .filter(
-        (label) =>
-          !searchPresets.some((preset) => preset.toLowerCase() === label.toLowerCase()) &&
-          !searchHistoryLabels.some((historyItem) => historyItem.toLowerCase() === label.toLowerCase()),
-      )
-      .map((label) => ({ label, source: 'interest' })),
-    ...commonKeywords
-      .filter(
-        (label) =>
-          !searchPresets.some((preset) => preset.toLowerCase() === label.toLowerCase()) &&
-          !searchHistoryLabels.some((historyItem) => historyItem.toLowerCase() === label.toLowerCase()) &&
-          !interestSeedLabels.some((interestItem) => interestItem.toLowerCase() === label.toLowerCase()),
-      )
-      .map((label) => ({ label, source: 'fallback' })),
-  ].slice(0, MAX_SEARCH_PRESETS);
+  const dynamicSearchTags = buildDynamicSearchTags({
+    searchPresets,
+    searchHistoryLabels,
+    interestSeedLabels,
+    commonKeywords: COMMON_KEYWORDS,
+    limit: MAX_SEARCH_PRESETS,
+  });
 
   const canSaveCurrentSearchAsPreset =
     !!normalizeSearchLabel(searchQuery) &&
@@ -1101,10 +863,8 @@ const App = () => {
     [activeListId, postLists],
   );
   const {
-    activeReadListMemberSet,
     filteredBookmarks,
     bookmarkIds,
-    normalizedReadSearchQuery,
     readSearchSuggestions,
     filteredReadArchive,
     visibleReadArchive,
@@ -1121,48 +881,15 @@ const App = () => {
     readArchiveInitialRender: READ_ARCHIVE_INITIAL_RENDER,
     activeView,
   });
-
-  useEffect(() => {
-    const isAudienceManual = activeView === 'audience' && audienceTab === 'manual';
-    const query = isAudienceManual ? manualQuery : searchQuery;
-
-    if (!query || query.trim().length < 1) {
-      setSuggestions([]);
-      return;
-    }
-
-    const suggestionPool = Array.from(
-      new Set([
-        ...(Array.isArray(searchPresets) ? searchPresets : []),
-        ...(Array.isArray(searchHistoryLabels) ? searchHistoryLabels : []),
-        ...(Array.isArray(interestSeedLabels) ? interestSeedLabels : []),
-        ...(Array.isArray(commonKeywords) ? commonKeywords : []),
-      ]),
-    ).filter(kw => typeof kw === 'string' && kw.trim().length > 0);
-
-    const normalizedQuery = (query || '').toLowerCase();
-    const filteredSuggestions = suggestionPool
-      .filter((kw) => {
-        const normalizedKw = kw.toLowerCase();
-        return normalizedKw.includes(normalizedQuery) && normalizedKw !== normalizedQuery;
-      })
-      .slice(0, 5);
-    setSuggestions(filteredSuggestions);
-
-    // Removed automatic debounced search as requested by user (Bug fix)
-    /*
-    if (!isAudienceManual) {
-      const timer = setTimeout(() => {
-        if (searchQuery.trim().length >= 1) {
-          setIsLiveSearching(true);
-          handleSearch(null, false, searchQuery);
-        }
-      }, 800);
-      return () => clearTimeout(timer);
-    }
-    */
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, manualQuery, activeView, audienceTab, contentTab, searchPresets, searchHistory, postLists, watchlist]);
+  const suggestions = useSearchSuggestions({
+    activeView,
+    audienceTab,
+    manualQuery,
+    searchQuery,
+    searchPresets,
+    searchHistoryLabels,
+    interestSeedLabels,
+  });
 
   const resolvePlaceholders = async (nodes) => {
     for (const placeholder of nodes) {
@@ -1391,9 +1118,6 @@ const App = () => {
     setStatus('ล้างตัวกรองแล้ว');
   };
 
-  const hasHomeSecondaryActions = originalFeed.length > 0 || deletedFeed.length > 0;
-  const showHomeFeedToolbar = feed.length > 0 || isFiltered;
-
   const handleAiSearchAudience = async (q, isMore = false) => {
     const query = q || aiQuery;
     setAiSearchLoading(true);
@@ -1525,6 +1249,27 @@ const App = () => {
     setTimeout(() => setContentTab('create'), 0);
   };
 
+  const closeListModal = () => {
+    setListModal((prev) => ({ ...prev, show: false }));
+    if (reopenMobilePostListAfterModal) {
+      setIsMobilePostListOpen(true);
+      setReopenMobilePostListAfterModal(false);
+    }
+  };
+
+  const openListModal = (mode) => {
+    if (isMobilePostListOpen) {
+      setReopenMobilePostListAfterModal(true);
+      setIsMobilePostListOpen(false);
+    }
+
+    setListModal({ show: true, mode, value: '' });
+  };
+
+  const closeFilterModal = () => {
+    setFilterModal((prev) => ({ ...prev, show: false }));
+  };
+
   const workspaceLoadingFallback = (
     <div className="animate-fade-in" style={{ padding: '56px 0', display: 'flex', justifyContent: 'center' }}>
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', color: 'var(--text-dim)', fontSize: '13px', fontWeight: '700' }}>
@@ -1562,180 +1307,37 @@ const App = () => {
       <main className="foro-main">
         <div className="foro-main-scroll">
 
-          {/* ===== HOME VIEW ===== */}
-          <div className="animate-fade-in" style={{ display: activeView === 'home' ? 'block' : 'none' }}>
-            <header className="dashboard-header dashboard-header-home dashboard-header-home-layout">
-                <div className="dashboard-header-top dashboard-header-top-layout">
-                  <div className="mobile-only-flex home-mobile-logo home-mobile-logo-layout">
-                    <img src="logo.png" alt="FO" className="home-mobile-logo-img" loading="eager" />
-                  </div>
-                  <div className="dashboard-header-title-block dashboard-header-title-stack">
-                    <div style={{ color: 'var(--text-dim)', fontSize: '13px', fontWeight: '500' }}>WATCHLIST FEED</div>
-                    <h1 style={{ margin: 0, fontSize: '32px', fontWeight: '800', lineHeight: '1.4', color: currentActiveList?.color || 'inherit' }}>
-                      {currentActiveList?.name || '\u0e2b\u0e19\u0e49\u0e32\u0e2b\u0e25\u0e31\u0e01'}
-                    </h1>
-                  </div>
-                  <button className="mobile-only-flex icon-btn-large" onClick={() => setIsMobilePostListOpen(true)}><List size={20} /></button>
-                </div>
-                
-                <div className={`dashboard-header-actions home-control-panel ${hasHomeSecondaryActions ? '' : 'home-control-panel-compact'}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '12px' }}>
-                  <div className="dashboard-header-actions-group" style={{ display: 'flex', gap: '8px' }}>
-                    {originalFeed.length > 0 && (
-                      <button onClick={handleDeleteAll} className="icon-btn-large header-secondary-action"><Trash2 size={16} /></button>
-                    )}
-                    {deletedFeed.length > 0 && (
-                      <button onClick={handleUndo} className="icon-btn-large header-secondary-action undo-reveal"><Undo2 size={16} /></button>
-                    )}
-                  </div>
-                  <div className="mobile-only-flex home-mobile-feed-inline" style={{ alignItems: 'center', justifyContent: 'space-between', gap: '12px', width: '100%' }}>
-                    <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                      <div className="section-title">โพสต์ล่าสุด</div>
-                      {isFiltered && <AiFilteredBadge onClear={clearAiFilter} clearTitle="\u0e25\u0e49\u0e32\u0e07\u0e15\u0e31\u0e27\u0e01\u0e23\u0e2d\u0e07" />}
-                    </div>
-                    <div className="feed-section-filters" style={{ display: 'flex', gap: '8px' }}>
-                      <button onClick={() => handleSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`}>ยอดวิว</button>
-                      <button onClick={() => handleSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`}>เอนเกจเมนต์</button>
-                    </div>
-                  </div>
-                  <div className="home-ai-filter-cluster">
-                    {feed.length > 0 && !isFiltered && visibleQuickPresets.length > 0 && (
-                      <div className="home-ai-quick-presets">
-                        {visibleQuickPresets.map(preset => (
-                          <div key={preset} className="home-ai-quick-chip">
-                            <button
-                              onClick={() => handleAiFilter(preset)}
-                              disabled={filterModal.isFiltering}
-                              className="home-ai-quick-preset-btn"
-                            >
-                              {preset}
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {feed.length > 0 && !isFiltered && quickFilterPresets.length > 0 && (
-                      <div className="home-ai-connector">
-                        <div className="home-ai-connector-line" />
-                      </div>
-                    )}
-                    <button
-                      onClick={() => setFilterModal({ show: true, prompt: '' })}
-                      className={`btn-pill ${activeView === 'home' && feed.length > 0 ? 'home-ai-filter-ready' : ''}`}
-                    >
-                      FORO Filter
-                    </button>
-                    <button
-                      onClick={handleSync}
-                      disabled={loading || originalFeed.length > 0}
-                      className="btn-pill primary"
-                      title={originalFeed.length > 0 ? 'ล้างฟีดทั้งหมดก่อนแล้วค่อยหาฟีดใหม่' : undefined}
-                    >
-                      {loading ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} ฟีดข้อมูล
-                    </button>
-                  </div>
-                </div>
-              </header>
-
-              {showHomeFeedToolbar && <div className="feed-section-header home-desktop-feed-header home-feed-toolbar reader-toolbar-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div className="section-title">โพสต์ล่าสุด</div>
-                  {activeListId && <div className="active-list-pills">กำลังกรองตาม: {currentActiveList?.name}</div>}
-                  {isFiltered && <AiFilteredBadge onClear={clearAiFilter} clearTitle="\u0e25\u0e49\u0e32\u0e07\u0e15\u0e31\u0e27\u0e01\u0e23\u0e2d\u0e07" />}
-                </div>
-                <div className="feed-section-filters reader-toolbar-actions-group" style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => handleSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`}>ยอดวิว</button>
-                  <button onClick={() => handleSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`}>เอนเกจเมนต์</button>
-                </div>
-              </div>}
-
-              {aiFilterSummary && (
-                <div className="search-summary-card animate-fade-in">
-                  <div style={{
-                    position: 'absolute', top: '-20px', left: '-20px', width: '120px', height: '120px',
-                    background: 'radial-gradient(circle, rgba(41, 151, 255, 0.15) 0%, transparent 70%)',
-                    zIndex: 0,
-                    pointerEvents: 'none'
-                  }}></div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', position: 'relative', zIndex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{ 
-                        background: 'var(--accent-gradient)', padding: '8px', borderRadius: '12px', 
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff'
-                      }}>
-                        <FileText size={18} strokeWidth={2.2} />
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>FORO FILTER SUMMARY</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>CURATED FROM {feed.length} FILTERED RESULTS</div>
-                        {aiFilterSummaryDateLabel && (
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', marginTop: '4px' }}>
-                            {aiFilterSummaryDateLabel}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => {
-                        navigator.clipboard.writeText(cleanMarkdownForClipboard(aiFilterSummary));
-                        setStatus('คัดลอกบทสรุปแล้ว');
-                      }}
-                      className="btn-mini-ghost" 
-                      style={{ padding: '6px 12px', fontSize: '12px' }}
-                    >
-                      <Copy size={14} /> ก๊อปปี้สรุป
-                    </button>
-                  </div>
-
-                  <div 
-                    className="markdown-body search-summary-content" 
-                    style={{ fontSize: '15px', lineHeight: '1.8', color: 'rgba(255,255,255,0.9)', position: 'relative', zIndex: 1 }}
-                    dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(aiFilterSummary) }} 
-                  />
-                  
-                  <div style={{ 
-                    display: 'flex', alignItems: 'center', gap: '8px', 
-                    marginTop: '20px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.05)',
-                    fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600'
-                  }}>
-                    <ShieldCheck size={12} className="text-accent" />
-                    สรุปโดย FORO อ้างอิงจากบทสนทนาและเงื่อนไขการกรองของคุณ
-                  </div>
-                </div>
-              )}
-              <div className="feed-grid">
-                {feed.length === 0 && (
-                  <div
-                    className="home-splash"
-                    onMouseMove={(e) => {
-                      const r = e.currentTarget.getBoundingClientRect();
-                      e.currentTarget.style.setProperty('--mx', `${((e.clientX - r.left) / r.width) * 100}%`);
-                      e.currentTarget.style.setProperty('--my', `${((e.clientY - r.top) / r.height) * 100}%`);
-                    }}
-                  >
-                    <HomeCanvas />
-                    <div className="home-splash-inner">
-                      <h2 className="home-splash-title no-select-ui">
-                        FORO ติดตามทุกเรื่องที่คุณสนใจ
-                      </h2>
-                    </div>
-                  </div>
-                )}
-                {feed.length > 0 && feed.map((item, idx) => (
-                  <FeedCard key={item.id || idx} tweet={item}
-                    isBookmarked={bookmarks.some(b => b.id === item.id)}
-                    onBookmark={handleBookmark}
-                    onArticleGen={openContentComposerFromPost}
-                  />
-                ))}
-              </div>
-              {(pendingFeed.length > 0 || nextCursor) && !loading && (
-                <div style={{ textAlign: 'center', padding: '40px' }}>
-                  <button onClick={handleLoadMore} className="btn-pill">โหลดเพิ่มเติม</button>
-                </div>
-              )}
-            </div>
-
+          <HomeView
+            isVisible={activeView === 'home'}
+            currentActiveList={currentActiveList}
+            activeListId={activeListId}
+            originalFeedLength={originalFeed.length}
+            deletedFeedLength={deletedFeed.length}
+            feed={feed}
+            isFiltered={isFiltered}
+            activeFilters={activeFilters}
+            visibleQuickPresets={visibleQuickPresets}
+            quickFilterPresets={quickFilterPresets}
+            isFiltering={filterModal.isFiltering}
+            loading={loading}
+            pendingFeed={pendingFeed}
+            nextCursor={nextCursor}
+            aiFilterSummary={aiFilterSummary}
+            aiFilterSummaryDateLabel={aiFilterSummaryDateLabel}
+            bookmarks={bookmarks}
+            onOpenMobileList={() => setIsMobilePostListOpen(true)}
+            onDeleteAll={handleDeleteAll}
+            onUndo={handleUndo}
+            onSort={handleSort}
+            onQuickFilter={handleAiFilter}
+            onOpenFilterModal={() => setFilterModal({ show: true, prompt: '' })}
+            onSync={handleSync}
+            onLoadMore={handleLoadMore}
+            onClearAiFilter={clearAiFilter}
+            onBookmark={handleBookmark}
+            onArticleGen={openContentComposerFromPost}
+            onSummaryCopied={() => setStatus('คัดลอกบทสรุปแล้ว')}
+          />
           {/* ===== UNIFIED CONTENT VIEW ===== */}
           <Suspense fallback={workspaceLoadingFallback}>
             <ContentWorkspace
@@ -1752,7 +1354,6 @@ const App = () => {
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
               suggestions={suggestions}
-              setSuggestions={setSuggestions}
               showSuggestions={showSuggestions}
               setShowSuggestions={setShowSuggestions}
               activeSuggestionIndex={activeSuggestionIndex}
@@ -1867,158 +1468,37 @@ const App = () => {
         </div>
         </main>
 
-      {listModal.show && (
-        <div className="modal-overlay" onClick={() => {
-          setListModal({ ...listModal, show: false });
-          if (reopenMobilePostListAfterModal) {
-            setIsMobilePostListOpen(true);
-            setReopenMobilePostListAfterModal(false);
-          }
-        }}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">
-              {listModal.mode === 'create' ? 'สร้าง Post List ใหม่' : 
-               listModal.mode === 'edit' ? 'แก้ไข Post List' : 'นำเข้า Post List'}
-            </div>
-            <div className="modal-subtitle">
-              {listModal.mode === 'create' ? 'ตั้งชื่อให้ลิสต์ของคุณเพื่อเริ่มจัดกลุ่มแหล่งข้อมูล และรับการสรุปข่าวจากกลุ่มเป้าหมายที่เลือกไว้โดยเฉพาะ' : 
-               listModal.mode === 'edit' ? 'ปรับปรุงชื่อหรือการตั้งค่าสำหรับลิสต์นี้' : 'วางรหัสแชร์เพื่อนำเข้า Post List พร้อมรายชื่อสมาชิกทั้งหมด'}
-            </div>
-            <input 
-              className="modal-input"
-              autoFocus
-              placeholder={listModal.mode === 'import' ? "https://..." : "เช่น DeFi Experts, Crypto News..."}
-              value={listModal.value} 
-              onChange={e => setListModal({ ...listModal, value: e.target.value })}
-              onKeyDown={e => e.key === 'Enter' && finalizeListAction()}
-            />
-            <div className="modal-actions">
-              <button className="modal-btn modal-btn-secondary" onClick={() => {
-                setListModal({ ...listModal, show: false });
-                if (reopenMobilePostListAfterModal) {
-                  setIsMobilePostListOpen(true);
-                  setReopenMobilePostListAfterModal(false);
-                }
-              }}>ยกเลิก</button>
-              <button className="modal-btn modal-btn-primary" onClick={finalizeListAction}>ยืนยัน</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ListModal
+        listModal={listModal}
+        onChange={(value) => setListModal((prev) => ({ ...prev, value }))}
+        onClose={closeListModal}
+        onConfirm={finalizeListAction}
+      />
 
-      {filterModal.show && (
-        <div className="modal-overlay" onClick={() => !filterModal.isFiltering && setFilterModal({ ...filterModal, show: false })}>
-            <div className="modal-content ai-filter-modal animate-fade-in" onClick={e => e.stopPropagation()}>
-              <div className="ai-filter-modal-header">
-                <div className="ai-filter-modal-icon"><FilterIcon size={16} /></div>
-                <div>
-                  <div className="modal-title">FORO Filter</div>
-                  <div className="ai-filter-modal-hint">บอก FORO ว่าอยากหาอะไรในฟีดนี้</div>
-                </div>
-              </div>
-              {quickFilterPresets.length > 0 && (
-                <div className="ai-filter-presets">
-                  {quickFilterPresets.map((preset) => (
-                    <div key={preset} className="ai-filter-modal-preset-chip">
-                      <button
-                        type="button"
-                        className={`ai-filter-preset-btn ${filterModal.prompt === preset ? 'active' : ''}`}
-                        disabled={filterModal.isFiltering}
-                        onClick={() => setFilterModal({ ...filterModal, prompt: preset })}
-                      >
-                        {preset}
-                      </button>
-                      <button
-                        type="button"
-                        className="ai-filter-preset-remove-btn"
-                        disabled={filterModal.isFiltering}
-                        onClick={() => removeQuickPreset(preset)}
-                        title="ลบ preset"
-                      >
-                        <X size={12} />
-                      </button>
-                      <button
-                        type="button"
-                        className={`ai-filter-preset-visibility-btn ${quickFilterVisiblePresets.includes(preset) ? 'active' : ''}`}
-                        disabled={filterModal.isFiltering || (!quickFilterVisiblePresets.includes(preset) && visibleQuickPresets.length >= 3)}
-                        onClick={() => toggleVisibleQuickPreset(preset)}
-                        title={quickFilterVisiblePresets.includes(preset) ? 'ซ่อนจากหน้าข่าววันนี้' : 'แสดงบนหน้าข่าววันนี้'}
-                      >
-                        {quickFilterVisiblePresets.includes(preset) ? 'ซ่อน' : 'โชว์'}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="ai-filter-visible-hint">เลือก preset ไปโชว์บนหน้าข่าววันนี้ได้สูงสุด 3 อัน</div>
-              <textarea
-                className="modal-input ai-filter-input"
-                autoFocus
-                disabled={filterModal.isFiltering}
-                placeholder="เช่น AI ที่มี engagement สูง"
-                value={filterModal.prompt}
-                onChange={e => setFilterModal({ ...filterModal, prompt: e.target.value })}
-              />
-              {filterModal.prompt.trim() && !quickFilterPresets.includes(filterModal.prompt.trim()) && (
-                <button
-                  type="button"
-                  className="ai-filter-save-preset-btn"
-                  onClick={() => addQuickPreset(filterModal.prompt)}
-                >
-                  <Plus size={12} /> บันทึกเป็น Preset
-                </button>
-              )}
-              <div className="modal-actions">
-                <button
-                  className="modal-btn modal-btn-secondary"
-                  disabled={filterModal.isFiltering}
-                  onClick={() => setFilterModal({ ...filterModal, show: false })}
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  className="modal-btn modal-btn-primary"
-                  onClick={() => handleAiFilter()}
-                  disabled={filterModal.isFiltering || !filterModal.prompt.trim()}
-                  style={{ position: 'relative', overflow: 'hidden' }}
-                >
-                  {filterModal.isFiltering ? (
-                    <>
-                      <RefreshCw size={16} className="animate-spin" />
-                      <span>กำลังวิเคราะห์...</span>
-                    </>
-                  ) : (
-                    <>กรองฟีด</>
-                  )}
-                </button>
-              </div>
-          </div>
-        </div>
-      )}
-      
-      {status && !shouldInlineSearchStatus && (
-        <div className="status-toast" style={{ position: 'fixed', bottom: '32px', left: '50%', transform: 'translateX(-50%)', background: '#fff', color: '#000', padding: '12px 24px', borderRadius: '100px', fontSize: '12px', fontWeight: '900', letterSpacing: '0.02em', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', zIndex: 9999, maxWidth: 'min(720px, calc(100vw - 24px))', lineHeight: '1.4', textAlign: 'center' }}>
-          {searchStatusMessage || status}
-        </div>
-      )}
+      <AiFilterModal
+        filterModal={filterModal}
+        quickFilterPresets={quickFilterPresets}
+        quickFilterVisiblePresets={quickFilterVisiblePresets}
+        visibleQuickPresets={visibleQuickPresets}
+        onClose={closeFilterModal}
+        onPromptChange={(value) => setFilterModal((prev) => ({ ...prev, prompt: value }))}
+        onSelectPreset={(preset) => setFilterModal((prev) => ({ ...prev, prompt: preset }))}
+        onRemovePreset={removeQuickPreset}
+        onToggleVisiblePreset={toggleVisibleQuickPreset}
+        onAddPreset={addQuickPreset}
+        onSubmit={() => handleAiFilter()}
+      />
 
+      <StatusToast
+        status={status}
+        message={searchStatusMessage}
+        hidden={shouldInlineSearchStatus}
+      />
       <RightSidebar 
         watchlist={watchlist} postLists={postLists} activeListId={activeListId}
         onSelectList={setActiveListId}
-        onCreateList={() => {
-          if (isMobilePostListOpen) {
-            setReopenMobilePostListAfterModal(true);
-            setIsMobilePostListOpen(false);
-          }
-          setListModal({ show: true, mode: 'create', value: '' });
-        }}
-        onImportList={() => {
-          if (isMobilePostListOpen) {
-            setReopenMobilePostListAfterModal(true);
-            setIsMobilePostListOpen(false);
-          }
-          setListModal({ show: true, mode: 'import', value: '' });
-        }}
+        onCreateList={() => openListModal('create')}
+        onImportList={() => openListModal('import')}
         onRemoveList={handleRemoveList} onAddMember={handleAddMember} onRemoveMember={handleRemoveMember}
         onUpdateList={handleUpdateList} onShareList={handleShareList} onRemoveAccount={handleRemoveAccountGlobal}
         isMobileOpen={isMobilePostListOpen} onCloseMobile={() => setIsMobilePostListOpen(false)}
@@ -2028,3 +1508,5 @@ const App = () => {
 };
 
 export default App;
+
+
