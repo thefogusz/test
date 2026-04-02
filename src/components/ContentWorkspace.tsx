@@ -15,7 +15,8 @@ import {
   Zap,
 } from 'lucide-react';
 import { AI_WORKSPACES } from '../config/aiWorkspaces';
-import { renderMarkdownToHtml } from '../utils/markdown';
+import { cleanMarkdownForClipboard, renderMarkdownToHtml } from '../utils/markdown';
+import { getSummaryDateLabel } from '../utils/summaryDates';
 import ContentErrorBoundary from './ContentErrorBoundary';
 import ContentTabSwitcher from './ContentTabSwitcher';
 import CreateContent from './CreateContent';
@@ -71,6 +72,8 @@ const ContentWorkspace = ({
   setIsSourcesExpanded,
   onArticleGen,
 }) => {
+  const summaryDateLabel = getSummaryDateLabel(searchResults, 10);
+
   return (
     <div className="unified-content-view animate-fade-in" style={{ display: isVisible ? 'block' : 'none' }}>
       <ContentTabSwitcher contentTab={contentTab} setContentTab={setContentTab} />
@@ -373,11 +376,16 @@ const ContentWorkspace = ({
                         <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>
                           ANALYZING {Math.min(searchResults.length, 10)} KEY SIGNALS
                         </div>
+                        {summaryDateLabel && (
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', marginTop: '4px' }}>
+                            {summaryDateLabel}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(searchSummary);
+                        navigator.clipboard.writeText(cleanMarkdownForClipboard(searchSummary));
                         setStatus('\u0e04\u0e31\u0e14\u0e25\u0e2d\u0e01\u0e1a\u0e17\u0e2a\u0e23\u0e38\u0e1b\u0e41\u0e25\u0e49\u0e27');
                       }}
                       className="icon-btn-large"

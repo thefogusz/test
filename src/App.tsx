@@ -55,7 +55,8 @@ import {
   clusterBySimilarity
 } from './services/TwitterService';
 import { agentFilterFeed, buildSearchPlan, discoverTopExpertsStrict, expandSearchQuery, generateExecutiveSummary, generateGrokBatch, generateGrokSummary, tavilySearch } from './services/GrokService';
-import { renderMarkdownToHtml } from './utils/markdown';
+import { cleanMarkdownForClipboard, renderMarkdownToHtml } from './utils/markdown';
+import { getSummaryDateLabel } from './utils/summaryDates';
 import './index.css';
 import { STORAGE_KEYS } from './constants/storageKeys';
 import useLibraryViews from './hooks/useLibraryViews';
@@ -367,6 +368,7 @@ const App = () => {
 
   const [isFiltered, setIsFiltered] = useState(false);
   const [aiFilterSummary, setAiFilterSummary] = useState('');
+  const aiFilterSummaryDateLabel = getSummaryDateLabel(feed, 8);
 
   // Global Background Tasks Persistence
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
@@ -1596,11 +1598,16 @@ const App = () => {
                       <div>
                         <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>NEWS FILTER SUMMARY</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>SYNTHESIZING {feed.length} FILTERED RESULTS</div>
+                        {aiFilterSummaryDateLabel && (
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', marginTop: '4px' }}>
+                            {aiFilterSummaryDateLabel}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <button 
                       onClick={() => {
-                        navigator.clipboard.writeText(aiFilterSummary);
+                        navigator.clipboard.writeText(cleanMarkdownForClipboard(aiFilterSummary));
                         setStatus('คัดลอกบทสรุปแล้ว');
                       }}
                       className="btn-mini-ghost" 

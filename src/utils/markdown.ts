@@ -1,6 +1,17 @@
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 
+export const cleanMarkdownForClipboard = (markdown = '') => {
+  const source = typeof markdown === 'string' ? markdown : '';
+
+  return source
+    .replace(/\[CONFIDENCE_SCORE:\s*[^\]]+\]/gi, '')
+    .replace(/\[(?:F\d{1,2}|\d{1,2})\]/g, '')
+    .replace(/[ \t]+([,.;:!?])/g, '$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
 export const renderMarkdownToHtml = (markdown = '') => {
   const source = typeof markdown === 'string' ? markdown : '';
   const rawHtml = marked.parse(source) as string;
