@@ -570,7 +570,6 @@ const CreateContent = ({
       {/* Compact Header */}
       <div className="create-content-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', marginTop: '10px' }}>
         <div className="create-content-header-copy">
-          <div className="create-content-eyebrow">Editor</div>
           <h1 className="create-content-title" style={{ margin: 0, fontSize: '28px', fontWeight: '800', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <SquarePen size={22} strokeWidth={2.05} /> สร้างคอนเทนต์
           </h1>
@@ -721,10 +720,8 @@ const CreateContent = ({
                   background: 'transparent', border: 'none', color: 'var(--text-dim)',
                   fontSize: '13px', fontWeight: '600', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: '6px',
-                  padding: '10px 8px', borderRadius: '12px', transition: 'all 0.2s', width: 'fit-content'
+                  padding: '10px 8px', borderRadius: '12px'
                 }}
-                onMouseOver={(e) => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-                onMouseOut={(e) => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.background = 'transparent'; }}
               >
                 <Plus size={14} /> ตัวเลือกเพิ่มเติม
               </button>
@@ -792,65 +789,6 @@ const CreateContent = ({
         )}
       </div>
 
-      {/* ===== PREMIUM AGENT PIPELINE UI ===== */}
-      {isGenerating && (
-        <div style={{ marginTop: '24px', animation: 'fadeIn 0.4s ease-out' }}>
-          {/* Agent Nodes */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0', justifyContent: 'center', marginBottom: '24px' }}>
-            {[
-              { id: 'research', emoji: 'R', label: 'Harper Research', sub: 'Fact-checking & Web Search', active: ['researching'].includes(phase), done: ['briefing', 'generating', 'done'].includes(phase) },
-              { id: 'brief', emoji: 'B', label: 'Brief Builder', sub: 'Structuring angle & tone', active: phase === 'briefing', done: ['generating', 'done'].includes(phase) },
-              { id: 'writer', emoji: 'W', label: 'AI Writer', sub: 'Drafting & streaming', active: phase === 'generating', done: phase === 'done' },
-            ].map((agent, i) => (
-              <React.Fragment key={agent.id}>
-                {/* Connector line between nodes */}
-                {i > 0 && (
-                  <div style={{ flex: 1, height: '2px', maxWidth: '60px', background: agent.done ? 'var(--accent-secondary)' : 'rgba(255,255,255,0.08)', transition: 'background 0.8s ease', position: 'relative', overflow: 'hidden' }}>
-                    {agent.active && (
-                      <div style={{ position: 'absolute', top: 0, left: '-40px', width: '40px', height: '100%', background: 'linear-gradient(90deg, transparent, var(--accent-secondary), transparent)', animation: 'shimmer 1.2s infinite linear' }} />
-                    )}
-                  </div>
-                )}
-                {/* Agent Node */}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', transition: 'all 0.4s' }}>
-                  <div style={{
-                    width: '64px', height: '64px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px',
-                    background: agent.done ? 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.05))' 
-                      : agent.active ? 'linear-gradient(135deg, rgba(41,151,255,0.2), rgba(41,151,255,0.05))' 
-                      : 'rgba(255,255,255,0.04)',
-                    border: agent.done ? '1.5px solid rgba(16,185,129,0.4)' 
-                      : agent.active ? '1.5px solid rgba(41,151,255,0.5)' 
-                      : '1.5px solid rgba(255,255,255,0.07)',
-                    boxShadow: agent.active ? '0 0 20px rgba(41,151,255,0.25)' : agent.done ? '0 0 12px rgba(16,185,129,0.15)' : 'none',
-                    transition: 'all 0.4s ease',
-                  }}>
-                    {agent.done ? 'OK' : agent.emoji}
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '12px', fontWeight: '700', color: agent.active ? 'var(--accent-secondary)' : agent.done ? '#10b981' : 'rgba(255,255,255,0.4)', transition: 'color 0.4s' }}>{agent.label}</div>
-                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.25)', marginTop: '2px', maxWidth: '90px', lineHeight: '1.3' }}>{agent.sub}</div>
-                  </div>
-                </div>
-              </React.Fragment>
-            ))}
-          </div>
-          {/* Live status line */}
-          <div style={{ textAlign: 'center', fontSize: '13px', color: 'var(--accent-secondary)', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
-            <Loader2 size={14} className="animate-spin" />
-            {(THINKING_PHASES[phase] || THINKING_PHASES.researching)[thinkingStep]}
-          </div>
-          {/* Global progress track - now uses a continuous crawling animation for better "live" feel */}
-          <div style={{ height: '3px', background: 'rgba(255,255,255,0.06)', borderRadius: '999px', overflow: 'hidden', maxWidth: '320px', margin: '16px auto 0' }}>
-            <div style={{ 
-              height: '100%', 
-              background: 'linear-gradient(90deg, var(--accent-secondary), #a855f7)', 
-              borderRadius: '999px', 
-              width: `${crawlProgressWidth}%`,
-              transition: 'width 200ms linear'
-            }} />
-          </div>
-        </div>
-      )}
       {/* Live streaming preview — shows raw text while streaming, avoids marked crash */}
       {isGenerating && phase === 'generating' && generatedMarkdown && (
         <div style={{ marginTop: '20px', padding: '20px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', maxHeight: '220px', overflowY: 'auto' }}>

@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState } from 'react';
+import React, { memo, useEffect, useMemo, useState } from 'react';
 import {
   BarChart2,
   Bookmark,
@@ -11,6 +11,7 @@ import {
   Reply,
 } from 'lucide-react';
 import type { Post, PostList } from '../types/domain';
+import { STORAGE_KEYS } from '../constants/storageKeys';
 
 const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
 
@@ -40,6 +41,18 @@ const isUsableThaiSummary = (summary, originalText = '') => {
   return THAI_CHAR_REGEX.test(trimmedSummary);
 };
 
+const safeReadStoredValue = (key, fallbackValue) => {
+  if (typeof window === 'undefined') return fallbackValue;
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return fallbackValue;
+    const parsed = JSON.parse(raw);
+    return parsed ?? fallbackValue;
+  } catch {
+    return fallbackValue;
+  }
+};
+
 type FeedCardProps = {
   tweet: Post;
   onArticleGen?: (tweet: Post) => void;
@@ -66,12 +79,30 @@ const FeedCard = ({
 }: FeedCardProps) => {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [optimisticInWatchlist, setOptimisticInWatchlist] = useState(false);
   const displayText = isUsableThaiSummary(tweet.summary, tweet.text) ? tweet.summary : tweet.text;
   const authorUsername = (tweet.author?.username || '').trim().replace(/^@/, '').toLowerCase();
+  const fallbackPostLists = useMemo(() => {
+    if (Array.isArray(postLists) && postLists.length > 0) return postLists;
+    const storedPostLists = safeReadStoredValue(STORAGE_KEYS.postLists, []);
+    return Array.isArray(storedPostLists) ? storedPostLists : [];
+  }, [postLists]);
+  const effectiveIsInWatchlist = useMemo(() => {
+    if (!authorUsername) return false;
+    if (optimisticInWatchlist || isInWatchlist) return true;
+    const storedWatchlist = safeReadStoredValue(STORAGE_KEYS.watchlist, []);
+    return (storedWatchlist || []).some(
+      (user) => (user?.username || '').trim().replace(/^@/, '').toLowerCase() === authorUsername,
+    );
+  }, [authorUsername, isInWatchlist, optimisticInWatchlist]);
 
   useEffect(() => {
     setBookmarked(initialBookmarked);
   }, [initialBookmarked]);
+
+  useEffect(() => {
+    setOptimisticInWatchlist(false);
+  }, [authorUsername, isInWatchlist]);
 
   const handleBookmark = () => {
     const next = !bookmarked;
@@ -79,12 +110,18 @@ const FeedCard = ({
     if (onBookmark) onBookmark(tweet, next);
   };
 
-  const handleAddToWatchlist = () => {
-    if (!authorUsername || isInWatchlist || !onAddToWatchlist) return;
-    onAddToWatchlist(tweet);
+  const handleAddToWatchlist = async () => {
+    if (!authorUsername || effectiveIsInWatchlist || !onAddToWatchlist) return;
+    setOptimisticInWatchlist(true);
+    try {
+      await Promise.resolve(onAddToWatchlist(tweet));
+    } catch (error) {
+      console.error(error);
+      setOptimisticInWatchlist(false);
+    }
   };
 
-  const profileMenuItems = postLists.map((list) => {
+  const profileMenuItems = fallbackPostLists.map((list) => {
     const isMember = Array.isArray(list.members) && list.members.some((member) => member?.toLowerCase() === authorUsername);
     return {
       id: list.id,
@@ -176,15 +213,16 @@ const FeedCard = ({
               >
                 <button
                   type="button"
-                  className={`discovery-menu-item ${isInWatchlist ? 'active' : ''}`}
-                  onClick={() => {
-                    handleAddToWatchlist();
+                  className="discovery-menu-item"
+                  onClick={async () => {
+                    await handleAddToWatchlist();
                     setShowProfileMenu(false);
                   }}
-                  disabled={isInWatchlist}
+                  disabled={effectiveIsInWatchlist}
+                  hidden={effectiveIsInWatchlist}
                 >
                   <span>{isInWatchlist ? 'อยู่ใน Watchlist แล้ว' : 'เพิ่มเข้า Watchlist'}</span>
-                  {isInWatchlist && <Check size={12} />}
+                  {effectiveIsInWatchlist && <Check size={12} />}
                 </button>
                 {profileMenuItems.map((item) => (
                   <button
@@ -207,7 +245,7 @@ const FeedCard = ({
                     {item.active && <Check size={12} />}
                   </button>
                 ))}
-                {postLists.length === 0 && (
+                {profileMenuItems.length === 0 && (
                   <div style={{ padding: '12px', fontSize: '12px', color: 'var(--text-dim)', textAlign: 'center' }}>
                     ยังไม่มี Post List
                   </div>

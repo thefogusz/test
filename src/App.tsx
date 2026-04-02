@@ -365,7 +365,6 @@ const App = () => {
   const [readFilters, setReadFilters] = useState({ view: false, engagement: false });
 
   const [audienceTab, setAudienceTab] = usePersistentState(STORAGE_KEYS.audienceTab, 'ai');
-  const [audienceKey, setAudienceKey] = useState(0);
   const [aiQuery, setAiQuery] = useState('');
   const [aiSearchLoading, setAiSearchLoading] = useState(false);
   const [aiSearchResults, setAiSearchResults] = useState([]);
@@ -425,10 +424,6 @@ const App = () => {
   useEffect(() => {
     setNextCursor(null);
     setPendingFeed([]);
-    if (activeView === 'audience') {
-      setAudienceKey(k => k + 1);
-      setAiSearchResults([]);
-    }
   }, [activeListId, activeView, setPendingFeed]);
 
   useEffect(() => {
@@ -1828,7 +1823,6 @@ const App = () => {
           <Suspense fallback={workspaceLoadingFallback}>
             <AudienceWorkspace
               isVisible={activeView === 'audience'}
-              audienceKey={audienceKey}
               audienceTab={audienceTab}
               setAudienceTab={setAudienceTab}
               aiQuery={aiQuery}

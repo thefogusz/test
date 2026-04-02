@@ -23,7 +23,6 @@ import UserCard from './UserCard';
 
 const AudienceWorkspace = ({
   isVisible,
-  audienceKey,
   audienceTab,
   setAudienceTab,
   aiQuery,
@@ -64,7 +63,7 @@ const AudienceWorkspace = ({
 
   return (
     <div style={{ display: isVisible ? 'block' : 'none' }}>
-      <div key={audienceKey} className="animate-fade-in">
+      <div className="animate-fade-in">
         <header className="dashboard-header audience-hero-header" style={{ marginBottom: '28px', paddingTop: '0' }}>
           <div className="audience-hero-copy">
             <div className="audience-hero-text">
@@ -118,69 +117,76 @@ const AudienceWorkspace = ({
             )}
 
             {!aiSearchLoading && aiSearchResults.length > 0 && (
-              <div style={{ marginBottom: '32px' }}>
+              <div className="audience-results-shell" style={{ marginBottom: '32px' }}>
                 <div className="expert-grid" style={{ marginBottom: '24px' }}>
                   {aiSearchResults.map((expert, i) => {
                     const isAdded = watchlist.find((w) => w.username.toLowerCase() === expert.username.toLowerCase());
                     return (
                       <div key={expert.username} className="expert-card animate-fade-in" style={{ animationDelay: `${i * 0.05}s` }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                          <div className="ai-pick-pill">
-                            <Users size={10} /> FORO PICK
-                          </div>
-                          <div style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-                            <button
-                              onClick={(e) => {
-                                const btn = e.currentTarget;
-                                const menu = btn.nextElementSibling;
-                                menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
-                              }}
-                              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'var(--text-dim)', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}
-                            >
-                              <Plus size={12} />
-                            </button>
-                            <div className="discovery-menu" style={{ display: 'none', position: 'absolute', right: 0, top: '100%', marginTop: '8px', zIndex: 100, width: '180px' }}>
-                              <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--glass-border)', fontSize: '10px', fontWeight: '800', color: 'var(--accent-secondary)' }}>
-                                ADD TO LIST
+                        <div className="audience-expert-top">
+                          <div className="audience-expert-meta-row">
+                            <div className="ai-pick-pill">
+                              <Users size={10} /> FORO PICK
+                            </div>
+                            <div className="audience-expert-menu-wrap" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={(e) => {
+                                  const btn = e.currentTarget;
+                                  const menu = btn.nextElementSibling;
+                                  menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+                                }}
+                                className="audience-expert-menu-trigger"
+                                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'var(--text-dim)', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}
+                              >
+                                <Plus size={12} />
+                              </button>
+                              <div className="discovery-menu" style={{ display: 'none', position: 'absolute', right: 0, top: '100%', marginTop: '8px', zIndex: 100, width: '180px' }}>
+                                <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--glass-border)', fontSize: '10px', fontWeight: '800', color: 'var(--accent-secondary)' }}>
+                                  ADD TO LIST
+                                </div>
+                                {postLists.map((list) => {
+                                  const isMember = list.members.some((m) => m.toLowerCase() === expert.username.toLowerCase());
+                                  return (
+                                    <button
+                                      key={list.id}
+                                      onClick={(e) => {
+                                        handleToggleMemberInList(list.id, expert.username);
+                                        e.currentTarget.closest('.discovery-menu').style.display = 'none';
+                                      }}
+                                      className={`discovery-menu-item ${isMember ? 'active' : ''}`}
+                                    >
+                                      <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '8px' }}>{list.name}</span>
+                                      {isMember && <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--accent-secondary)' }} />}
+                                    </button>
+                                  );
+                                })}
                               </div>
-                              {postLists.map((list) => {
-                                const isMember = list.members.some((m) => m.toLowerCase() === expert.username.toLowerCase());
-                                return (
-                                  <button
-                                    key={list.id}
-                                    onClick={(e) => {
-                                      handleToggleMemberInList(list.id, expert.username);
-                                      e.currentTarget.closest('.discovery-menu').style.display = 'none';
-                                    }}
-                                    className={`discovery-menu-item ${isMember ? 'active' : ''}`}
-                                  >
-                                    <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginRight: '8px' }}>{list.name}</span>
-                                    {isMember && <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--accent-secondary)' }} />}
-                                  </button>
-                                );
-                              })}
                             </div>
                           </div>
+
+                          <div className="audience-expert-profile">
+                            <img
+                              src={`https://unavatar.io/twitter/${expert.username}`}
+                              className="audience-expert-avatar"
+                              style={{ width: '42px', height: '42px', borderRadius: '50%', marginBottom: '10px', border: '2px solid var(--bg-700)', objectFit: 'cover' }}
+                              onError={(e) => {
+                                if (e.target.src.includes('unavatar.io')) {
+                                  e.target.src = `https://unavatar.io/github/${expert.username}`;
+                                } else if (e.target.src.includes('github')) {
+                                  e.target.src = 'https://www.google.com/s2/favicons?domain=x.com&sz=128';
+                                } else {
+                                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(expert.name)}&background=random&color=fff&bold=true`;
+                                  e.target.onerror = null;
+                                }
+                              }}
+                            />
+                            <a href={`https://x.com/${expert.username}`} target="_blank" rel="noopener noreferrer" className="audience-expert-link" style={{ textDecoration: 'none', display: 'inline-block', marginBottom: '8px', width: 'fit-content' }}>
+                              <div className="expert-name" style={{ fontSize: '14px', color: '#fff', fontWeight: '800' }}>{expert.name}</div>
+                              <div className="expert-username" style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>@{expert.username}</div>
+                            </a>
+                          </div>
                         </div>
-                        <img
-                          src={`https://unavatar.io/twitter/${expert.username}`}
-                          style={{ width: '42px', height: '42px', borderRadius: '50%', marginBottom: '10px', border: '2px solid var(--bg-700)', objectFit: 'cover' }}
-                          onError={(e) => {
-                            if (e.target.src.includes('unavatar.io')) {
-                              e.target.src = `https://unavatar.io/github/${expert.username}`;
-                            } else if (e.target.src.includes('github')) {
-                              e.target.src = 'https://www.google.com/s2/favicons?domain=x.com&sz=128';
-                            } else {
-                              e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(expert.name)}&background=random&color=fff&bold=true`;
-                              e.target.onerror = null;
-                            }
-                          }}
-                        />
-                        <a href={`https://x.com/${expert.username}`} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'inline-block', marginBottom: '8px', width: 'fit-content' }}>
-                          <div className="expert-name" style={{ fontSize: '14px', color: '#fff', fontWeight: '800' }}>{expert.name}</div>
-                          <div className="expert-username" style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>@{expert.username}</div>
-                        </a>
-                        <div className="expert-reasoning" style={{ fontSize: '13px', marginBottom: '16px', flex: 1, color: 'rgba(255,255,255,0.7)', lineHeight: '1.5' }}>
+                        <div className="expert-reasoning audience-expert-reasoning" style={{ fontSize: '13px', marginBottom: '16px', flex: 1, color: 'rgba(255,255,255,0.7)', lineHeight: '1.5' }}>
                           "{expert.reasoning}"
                         </div>
                         <button onClick={() => handleAddExpert(expert)} disabled={isAdded} className={`expert-follow-btn ${isAdded ? 'added' : ''}`} style={{ padding: '6px', fontSize: '11px' }}>
