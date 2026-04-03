@@ -67,11 +67,24 @@ const getSearchCacheKey = (query: string, mode: string) => [
 ];
 
 const buildSearchRequestQuery = (query: string, mediaType: SearchMediaType) => {
-  const trimmedQuery = String(query || '').trim();
-  if (!trimmedQuery) return trimmedQuery;
-  if (mediaType !== 'videos') return trimmedQuery;
-  if (/\bfilter:videos\b/i.test(trimmedQuery)) return trimmedQuery;
-  return `${trimmedQuery} filter:videos`;
+  let nextQuery = String(query || '').trim();
+  if (!nextQuery) return nextQuery;
+
+  const queryIntent = analyzeSearchQueryIntent(nextQuery);
+
+  if (mediaType === 'videos' && !/\bfilter:videos\b/i.test(nextQuery)) {
+    nextQuery = `${nextQuery} filter:videos`;
+  }
+
+  if (
+    queryIntent.preferGlobal &&
+    queryIntent.queryKey === 'viral_video' &&
+    !/\blang:[a-z]{2,3}\b/i.test(nextQuery)
+  ) {
+    nextQuery = `${nextQuery} lang:en`;
+  }
+
+  return nextQuery;
 };
 
 const readNextCursor = (meta: { next_cursor?: string | null } | null | undefined) =>

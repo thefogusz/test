@@ -185,6 +185,11 @@ export const extractInterestTopics = (items = []) => {
 
 const BROAD_QUERY_BLUEPRINTS = [
   {
+    triggers: ['viral', 'funny', 'meme', 'clip', 'video', 'ไวรัล', 'ฮา', 'ตลก', 'ขำ', 'คลิป', 'มีม'],
+    entityQuery: '("viral video" OR "funny video" OR meme OR "internet culture" OR hilarious OR comedy OR "must watch") lang:en',
+    viralQuery: '("viral video" OR "funny clip" OR meme OR hilarious OR comedy OR "internet culture") lang:en min_faves:1000',
+  },
+  {
     triggers: TOPIC_TRIGGERS.gaming,
     entityQuery: '(Nintendo OR PlayStation OR Xbox OR Steam OR "Switch 2" OR GTA OR Pokemon OR Zelda OR Mario OR "Monster Hunter" OR "Game Awards")',
     viralQuery: '(gaming OR videogames OR Nintendo OR PlayStation OR Xbox OR Steam OR "Switch 2" OR GTA) min_faves:500',
@@ -202,6 +207,14 @@ const BROAD_QUERY_BLUEPRINTS = [
 ];
 
 const BROAD_QUERY_FALLBACKS = [
+  {
+    triggers: ['viral', 'funny', 'meme', 'clip', 'video', 'ไวรัล', 'ฮา', 'ตลก', 'ขำ', 'คลิป', 'มีม'],
+    queries: [
+      '("viral video" OR "funny video" OR meme OR comedy OR hilarious) lang:en',
+      '("viral clip" OR "funniest video" OR "must watch" OR "internet culture") lang:en',
+      '(meme OR hilarious OR comedy OR funny OR viral) lang:en min_faves:500',
+    ],
+  },
   {
     triggers: TOPIC_TRIGGERS.gaming,
     queries: [

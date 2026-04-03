@@ -82,6 +82,14 @@ const HYPE_PATTERNS = [
   /\bgiga volatile\b/i,
 ];
 
+const VIRAL_GLOBAL_PATTERNS = [
+  /ไวรัล|viral/i,
+  /ฮา|ตลก|ขำ|funny|hilarious|comedy|lol|haha/i,
+  /มีม|meme/i,
+  /คลิป|clip|video|videos/i,
+  /internet culture|must-watch|best videos?/i,
+];
+
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 
 const logScore = (value, multiplier, maxInput = 1) => {
@@ -114,6 +122,10 @@ const isBroadDiscoveryIntent = (query = '') => {
     return false;
   }
 
+  if (VIRAL_GLOBAL_PATTERNS.some((pattern) => pattern.test(normalized))) {
+    return true;
+  }
+
   return BROAD_TOPIC_HINTS.some((group) =>
     group.triggers.some((trigger) => normalized.includes(trigger)),
   );
@@ -139,6 +151,69 @@ const buildQueryProfile = (rawQuery = '') => {
   const queryTerms = normalizeSearchTerms(rawQuery);
   const broadHints = getBroadTopicHints(rawQuery);
   const preferGlobal = broadIntent && !isExplicitlyLocalQuery(rawQuery);
+
+  if (VIRAL_GLOBAL_PATTERNS.some((pattern) => pattern.test(normalizedQuery))) {
+    return {
+      key: 'viral_video',
+      broadIntent: true,
+      preferGlobal,
+      queryTerms,
+      exactTerms: Array.from(
+        new Set([
+          ...queryTerms,
+          'viral',
+          'funny',
+          'meme',
+          'clip',
+          'video',
+          'comedy',
+          'hilarious',
+          'internet culture',
+          'ไวรัล',
+          'คลิป',
+          'ฮา',
+          'ตลก',
+          'ขำ',
+          'มีม',
+        ]),
+      ),
+      primaryHints: [
+        'viral video',
+        'funny video',
+        'funniest video',
+        'hilarious',
+        'comedy',
+        'meme',
+        'internet culture',
+        'must watch',
+        'caught on camera',
+        'laugh',
+        'lol',
+        'viral clip',
+        'comedy clip',
+      ],
+      secondaryHints: [
+        'trend',
+        'trending',
+        'fyp',
+        'viral',
+        'funny',
+        'meme',
+        'clip',
+        'video',
+      ],
+      softNegativeHints: [
+        'fan cam',
+        'fancam',
+        'idol',
+        'dispatch',
+        'stan',
+        'shipping',
+        'stream now',
+        'vote now',
+      ],
+    };
+  }
 
   if (
     normalizedQuery === 'ai' ||
@@ -292,6 +367,20 @@ const getBroadTopicFocusPenalty = (tweet, queryProfile) => {
   const primaryTextMatches = queryProfile.primaryHints.filter((hint) => text.includes(hint)).length;
   const secondaryTextMatches = queryProfile.secondaryHints.filter((hint) => text.includes(hint)).length;
 
+  if (queryProfile.key === 'viral_video') {
+    const listLikeText = (text.match(/[,:|/]/g) || []).length >= 4 || text.split(/\s+/).length > 45;
+
+    if (primaryTextMatches === 0 && exactTextMatches === 0) {
+      return 4.2;
+    }
+
+    if (primaryTextMatches === 0 && exactTextMatches <= 1) {
+      return listLikeText ? 2.8 : 1.9;
+    }
+
+    return 0;
+  }
+
   if (queryProfile.key !== 'gaming') return 0;
 
   const listLikeText = (text.match(/[,:|/]/g) || []).length >= 4 || text.split(/\s+/).length > 45;
@@ -372,6 +461,20 @@ const getBroadLocalCasualPenalty = (tweet, queryProfile) => {
   const exactMatches = queryProfile.exactTerms.filter((term) => text.includes(term)).length;
   const primaryMatches = queryProfile.primaryHints.filter((hint) => text.includes(hint)).length;
   const signalScore = getSignalScore(tweet);
+  const hasLatinSignal = /[a-z]/i.test(text);
+
+  if (queryProfile.key === 'viral_video') {
+    if (primaryMatches >= 2) return 0;
+    if (author.isVerified && followers >= 100_000) return 0;
+
+    let penalty = 0;
+    if (exactMatches === 0 && primaryMatches === 0) penalty += 4.5;
+    if (!hasLatinSignal) penalty += 2.4;
+    if (!author.isVerified && !author.isBlueVerified && followers < 100_000) penalty += 2.4;
+    if (!author.isVerified && followers < 25_000) penalty += 1.6;
+    if (thaiHeavy) penalty += 2.0;
+    return penalty;
+  }
 
   if (!thaiHeavy) return 0;
   if (primaryMatches > 0) return 0;
@@ -584,6 +687,13 @@ const getTopicBucket = (tweet, queryProfile) => {
   if (!queryProfile?.broadIntent) return 'general';
 
   const text = getTweetTextOnly(tweet);
+  if (queryProfile.key === 'viral_video') {
+    if (/(viral video|funny video|funniest|hilarious|comedy clip|must watch)/i.test(text)) return 'viral-main';
+    if (/(meme|internet culture|lol|haha|laugh)/i.test(text)) return 'meme';
+    if (/(idol|dispatch|fan cam|fancam|stan|shipping)/i.test(text)) return 'fan-share';
+    return 'general';
+  }
+
   if (queryProfile.key === 'gaming') {
     if (/(giveaway|gaming pc|rtx|steam deck)/i.test(text)) return 'promo';
     if (/(esports|valorant|league of legends|lolesports|faze|cblol|faker|counter-strike|tournament)/i.test(text)) return 'esports';
@@ -606,6 +716,8 @@ const diversifyBroadResults = (tweets, queryProfile, limit = 30) => {
 
   const bucketOrder = queryProfile.key === 'gaming'
     ? ['gaming-main', 'gaming-general', 'general', 'esports', 'promo']
+    : queryProfile.key === 'viral_video'
+      ? ['viral-main', 'meme', 'general', 'fan-share']
     : ['general'];
 
   const result = [];
@@ -621,6 +733,10 @@ const diversifyBroadResults = (tweets, queryProfile, limit = 30) => {
           const esportsCount = result.filter((tweet) => getTopicBucket(tweet, queryProfile) === 'esports').length;
           if (esportsCount >= 2) continue;
         }
+      }
+      if (queryProfile.key === 'viral_video' && queryProfile.preferGlobal && bucket === 'fan-share') {
+        const fanShareCount = result.filter((tweet) => getTopicBucket(tweet, queryProfile) === 'fan-share').length;
+        if (fanShareCount >= 1) continue;
       }
       const items = buckets.get(bucket) || [];
       while (items.length > 0 && seenIds.has(items[0].id)) items.shift();
@@ -942,11 +1058,11 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
       const totalScore =
         (broadDiscoveryIntent
           ? relevanceScore * (queryProfile.preferGlobal ? 0.3 : 1.0) +
-            broadSemanticScore * (queryProfile.preferGlobal ? 2.2 : 1.9) +
+            broadSemanticScore * (queryProfile.key === 'viral_video' ? 3.1 : queryProfile.preferGlobal ? 2.2 : 1.9) +
             credibilityScore * (queryProfile.preferGlobal ? 1.2 : 2.1) +
-            signalScore * (queryProfile.preferGlobal ? 2.2 : 3.1) +
-            broadGlobalAuthorityScore * (queryProfile.preferGlobal ? 0.55 : 1.3) +
-            broadViralMomentumScore * (queryProfile.preferGlobal ? 2.4 : 1.1)
+            signalScore * (queryProfile.key === 'viral_video' ? 1.9 : queryProfile.preferGlobal ? 2.2 : 3.1) +
+            broadGlobalAuthorityScore * (queryProfile.key === 'viral_video' ? 1.15 : queryProfile.preferGlobal ? 0.55 : 1.3) +
+            broadViralMomentumScore * (queryProfile.key === 'viral_video' ? 2.8 : queryProfile.preferGlobal ? 2.4 : 1.1)
           : relevanceScore * (latestMode ? 2.5 : 2.2) +
             credibilityScore * (preferCredibleSources ? (latestMode ? 2.0 : 1.85) : newsIntent ? 1.4 : 1.1) +
             signalScore * (latestMode ? 2.0 : newsIntent ? 2.2 : 2.6)) + // Increased from 0.9 / 1.15 / 1.4
@@ -980,10 +1096,15 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
   let acceptable = scored.filter(tweet => tweet.search_score >= hardThreshold);
 
   if (broadDiscoveryIntent && queryProfile.preferGlobal) {
-    acceptable = acceptable.filter((tweet) => tweet.broad_semantic_score >= 0.45);
+    acceptable = acceptable.filter((tweet) =>
+      tweet.broad_semantic_score >= (queryProfile.key === 'viral_video' ? 1.1 : 0.45),
+    );
     if (acceptable.length < 8) {
       acceptable = scored
-        .filter((tweet) => tweet.search_score >= hardThreshold * 0.7 && tweet.broad_semantic_score >= 0.2)
+        .filter((tweet) =>
+          tweet.search_score >= hardThreshold * 0.7 &&
+          tweet.broad_semantic_score >= (queryProfile.key === 'viral_video' ? 0.8 : 0.2),
+        )
         .slice(0, 80);
     }
   }

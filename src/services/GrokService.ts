@@ -1384,6 +1384,10 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
   const cacheKey = buildCacheKey('expand-search-query', { originalQuery, isLatest });
   const cached = getCachedValue(responseCache, cacheKey);
   if (cached) return cached;
+  const globalByDefault =
+    !/\u0E44\u0E17\u0E22|thai|\u0E1B\u0E23\u0E30\u0E40\u0E17\u0E28\u0E44\u0E17\u0E22|bangkok|thailand|local|asia|asian|ญี่ปุ่น|japan|เกาหลี|korea|จีน|china/i.test(
+      String(originalQuery || ''),
+    );
 
   try {
     const { object } = await generateObject({
@@ -1391,8 +1395,11 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
       system: `เปลี่ยนหัวข้อของผู้ใช้ให้เป็นคำค้นหาขั้นสูง (Advanced Search) บน X เพื่อหาข้อมูลระดับสากล
 กฎ:
 - รักษาเจตนาเดิมของหัวข้อที่ต้องการค้นหา
-- ขยายคำค้นหาโดยใช้ทั้งภาษาไทยและ "ภาษาอังกฤษ" (English keywords) เพื่อให้ครอบคลุมข้อมูลระดับโลก
-- ใช้ OR เชื่อมระหว่างคำค้นหาไทยและอังกฤษ เช่น (คริปโต OR crypto)
+- ${
+        globalByDefault
+          ? 'ถ้าผู้ใช้ไม่ได้ระบุประเทศ ภาษา หรือภูมิภาคแบบ local ชัดเจน ให้ถือว่าเป็น global-first และใช้คำค้นหาอังกฤษ/สากลเป็นหลัก ห้ามเติมคีย์เวิร์ดไทยเอง'
+          : 'ถ้าผู้ใช้ระบุประเทศ ภาษา หรือภูมิภาคแบบ local ชัดเจน ให้ขยายคำค้นหาโดยใช้ทั้งภาษาท้องถิ่นและภาษาอังกฤษเท่าที่จำเป็น'
+      }
 - ต้องใส่ -filter:replies เสมอ 1 ครั้ง
 - ${isLatest ? 'โหมดสายฟ้าจะถูกคัดในแอปให้เหลือเฉพาะ 24 ชั่วโมงล่าสุดอยู่แล้ว ดังนั้นห้ามบังคับ since:today หรือคำค้นที่แคบเกินไป ให้โฟกัส recent developments แบบยังได้โพสต์คุณภาพ' : 'เน้นโพสต์ที่มีสัญญาณสำคัญสูง เหมาะสำหรับผลลัพธ์แบบยอดนิยม (Top)'}
 - ส่งคืนผลลัพธ์เป็น JSON เท่านั้น`,

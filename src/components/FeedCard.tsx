@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useState } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BarChart2,
   Bookmark,
@@ -17,6 +17,46 @@ import type { Post, PostList } from '../types/domain';
 import { STORAGE_KEYS } from '../constants/storageKeys';
 
 const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
+let xWidgetsLoaderPromise = null;
+
+const loadXWidgets = () => {
+  if (typeof window === 'undefined') {
+    return Promise.reject(new Error('X widgets require a browser environment'));
+  }
+
+  if (window.twttr?.widgets) {
+    return Promise.resolve(window.twttr);
+  }
+
+  if (xWidgetsLoaderPromise) {
+    return xWidgetsLoaderPromise;
+  }
+
+  xWidgetsLoaderPromise = new Promise((resolve, reject) => {
+    const existingScript = document.querySelector('script[data-foro-x-widgets="true"]');
+    if (existingScript) {
+      existingScript.addEventListener('load', () => resolve(window.twttr), { once: true });
+      existingScript.addEventListener('error', () => reject(new Error('Failed to load X widgets')), {
+        once: true,
+      });
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://platform.twitter.com/widgets.js';
+    script.async = true;
+    script.charset = 'utf-8';
+    script.setAttribute('data-foro-x-widgets', 'true');
+    script.onload = () => resolve(window.twttr);
+    script.onerror = () => reject(new Error('Failed to load X widgets'));
+    document.body.appendChild(script);
+  }).catch((error) => {
+    xWidgetsLoaderPromise = null;
+    throw error;
+  });
+
+  return xWidgetsLoaderPromise;
+};
 
 const getRelativeTime = (dateString) => {
   if (!dateString) return '';
@@ -84,14 +124,15 @@ const FeedCard = ({
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [optimisticInWatchlist, setOptimisticInWatchlist] = useState(false);
   const [isVideoOpen, setIsVideoOpen] = useState(false);
-  const [videoPlaybackFailed, setVideoPlaybackFailed] = useState(false);
+  const [isVideoEmbedLoading, setIsVideoEmbedLoading] = useState(false);
+  const [videoEmbedFailed, setVideoEmbedFailed] = useState(false);
   const displayText = isUsableThaiSummary(tweet.summary, tweet.text) ? tweet.summary : tweet.text;
   const authorUsername = (tweet.author?.username || '').trim().replace(/^@/, '').toLowerCase();
   const postUrl = useMemo(
     () => tweet.url || `https://x.com/${tweet.author?.username || 'i'}/status/${tweet.id}`,
     [tweet.author?.username, tweet.id, tweet.url],
   );
-  const hasPlayableVideo = Boolean(tweet.isXVideo && tweet.videoUrl);
+  const embedContainerRef = useRef(null);
   const fallbackPostLists = useMemo(() => {
     if (Array.isArray(postLists) && postLists.length > 0) return postLists;
     const storedPostLists = safeReadStoredValue(STORAGE_KEYS.postLists, []);
@@ -127,6 +168,53 @@ const FeedCard = ({
     return () => window.removeEventListener('keydown', handleEscape);
   }, [isVideoOpen]);
 
+  useEffect(() => {
+    if (!isVideoOpen || !tweet.isXVideo || !tweet.id || !embedContainerRef.current) return undefined;
+
+    let cancelled = false;
+    const container = embedContainerRef.current;
+    container.innerHTML = '';
+    setVideoEmbedFailed(false);
+    setIsVideoEmbedLoading(true);
+
+    loadXWidgets()
+      .then((twttr) => {
+        if (cancelled || !twttr?.widgets?.createTweet) {
+          throw new Error('X widget API unavailable');
+        }
+
+        return twttr.widgets.createTweet(tweet.id, container, {
+          align: 'center',
+          conversation: 'none',
+          dnt: true,
+          theme: 'dark',
+        });
+      })
+      .then((element) => {
+        if (!cancelled && !element) {
+          setVideoEmbedFailed(true);
+        }
+      })
+      .catch((error) => {
+        console.warn('[FeedCard] X embed failed:', error);
+        if (!cancelled) {
+          setVideoEmbedFailed(true);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsVideoEmbedLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      if (container) {
+        container.innerHTML = '';
+      }
+    };
+  }, [isVideoOpen, tweet.id, tweet.isXVideo]);
+
   const handleBookmark = () => {
     const next = !bookmarked;
     setBookmarked(next);
@@ -161,11 +249,7 @@ const FeedCard = ({
   ];
 
   const openVideo = () => {
-    if (!hasPlayableVideo) {
-      window.open(postUrl, '_blank', 'noopener,noreferrer');
-      return;
-    }
-    setVideoPlaybackFailed(false);
+    setVideoEmbedFailed(false);
     setIsVideoOpen(true);
   };
 
@@ -493,7 +577,7 @@ const FeedCard = ({
                 }}
               >
                 <ListVideo size={12} />
-                {hasPlayableVideo ? 'PLAY IN FORO' : 'OPEN ON X'}
+                PLAY IN FORO
               </div>
               {tweet.videoDurationMs ? (
                 <div
@@ -629,24 +713,7 @@ const FeedCard = ({
             </div>
 
             <div style={{ padding: '20px' }}>
-              {!videoPlaybackFailed && tweet.videoUrl ? (
-                <video
-                  key={tweet.videoUrl}
-                  src={tweet.videoUrl}
-                  poster={tweet.thumbnailUrl || undefined}
-                  controls
-                  autoPlay
-                  playsInline
-                  preload="metadata"
-                  onError={() => setVideoPlaybackFailed(true)}
-                  style={{
-                    width: '100%',
-                    maxHeight: '72vh',
-                    borderRadius: '18px',
-                    background: '#020617',
-                  }}
-                />
-              ) : (
+              {videoEmbedFailed ? (
                 <div
                   style={{
                     borderRadius: '18px',
@@ -657,10 +724,10 @@ const FeedCard = ({
                   }}
                 >
                   <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '8px' }}>
-                    เล่นวิดีโอใน FORO ไม่ได้สำหรับโพสต์นี้
+                    โหลดวิดีโอจาก X ใน FORO ไม่สำเร็จ
                   </div>
                   <div style={{ fontSize: '14px', lineHeight: 1.7, color: 'var(--text-dim)' }}>
-                    วิดีโอบางโพสต์จาก X อาจไม่มี media URL ที่เล่นตรงในแอปได้ หรือ URL อาจหมดอายุแล้ว
+                    ลองเปิดโพสต์บน X แทนได้ทันที หาก widget ของ X โหลดไม่สำเร็จในรอบนี้
                   </div>
                   <div style={{ marginTop: '16px' }}>
                     <a
@@ -673,6 +740,38 @@ const FeedCard = ({
                       เปิดวิดีโอบน X
                     </a>
                   </div>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    minHeight: '420px',
+                    borderRadius: '18px',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    padding: '18px',
+                  }}
+                >
+                  {isVideoEmbedLoading && (
+                    <div
+                      style={{
+                        minHeight: '120px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'rgba(255,255,255,0.72)',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                      }}
+                    >
+                      กำลังโหลดวิดีโอจาก X...
+                    </div>
+                  )}
+                  <div
+                    ref={embedContainerRef}
+                    style={{
+                      display: isVideoEmbedLoading ? 'none' : 'block',
+                    }}
+                  />
                 </div>
               )}
             </div>
