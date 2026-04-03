@@ -8,8 +8,10 @@ import {
   ListVideo,
   MessageCircle,
   PenTool,
+  Play,
   Repeat,
   Reply,
+  X as CloseIcon,
 } from 'lucide-react';
 import type { Post, PostList } from '../types/domain';
 import { STORAGE_KEYS } from '../constants/storageKeys';
@@ -81,8 +83,15 @@ const FeedCard = ({
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [optimisticInWatchlist, setOptimisticInWatchlist] = useState(false);
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
+  const [videoPlaybackFailed, setVideoPlaybackFailed] = useState(false);
   const displayText = isUsableThaiSummary(tweet.summary, tweet.text) ? tweet.summary : tweet.text;
   const authorUsername = (tweet.author?.username || '').trim().replace(/^@/, '').toLowerCase();
+  const postUrl = useMemo(
+    () => tweet.url || `https://x.com/${tweet.author?.username || 'i'}/status/${tweet.id}`,
+    [tweet.author?.username, tweet.id, tweet.url],
+  );
+  const hasPlayableVideo = Boolean(tweet.isXVideo && tweet.videoUrl);
   const fallbackPostLists = useMemo(() => {
     if (Array.isArray(postLists) && postLists.length > 0) return postLists;
     const storedPostLists = safeReadStoredValue(STORAGE_KEYS.postLists, []);
@@ -104,6 +113,19 @@ const FeedCard = ({
   useEffect(() => {
     setOptimisticInWatchlist(false);
   }, [authorUsername, isInWatchlist]);
+
+  useEffect(() => {
+    if (!isVideoOpen) return undefined;
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsVideoOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape);
+    return () => window.removeEventListener('keydown', handleEscape);
+  }, [isVideoOpen]);
 
   const handleBookmark = () => {
     const next = !bookmarked;
@@ -137,6 +159,15 @@ const FeedCard = ({
     { icon: Repeat, v: tweet.retweet_count },
     { icon: MessageCircle, v: tweet.reply_count },
   ];
+
+  const openVideo = () => {
+    if (!hasPlayableVideo) {
+      window.open(postUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    setVideoPlaybackFailed(false);
+    setIsVideoOpen(true);
+  };
 
   return (
     <div className="feed-card animate-fade-in">
@@ -385,6 +416,104 @@ const FeedCard = ({
         </p>
       </div>
 
+      {tweet.isXVideo && (
+        <div
+          style={{
+            marginBottom: '16px',
+            borderRadius: '20px',
+            overflow: 'hidden',
+            border: '1px solid rgba(96, 165, 250, 0.18)',
+            background: 'linear-gradient(180deg, rgba(96, 165, 250, 0.12) 0%, rgba(15, 23, 42, 0.4) 100%)',
+          }}
+        >
+          <button
+            type="button"
+            onClick={openVideo}
+            style={{
+              position: 'relative',
+              width: '100%',
+              aspectRatio: '16 / 9',
+              border: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              background: tweet.thumbnailUrl
+                ? `linear-gradient(180deg, rgba(2,6,23,0.08) 0%, rgba(2,6,23,0.72) 100%), url(${tweet.thumbnailUrl}) center/cover`
+                : 'linear-gradient(135deg, rgba(96,165,250,0.28) 0%, rgba(15,23,42,0.8) 100%)',
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <div
+                style={{
+                  width: '62px',
+                  height: '62px',
+                  borderRadius: '50%',
+                  background: 'rgba(15, 23, 42, 0.78)',
+                  border: '1px solid rgba(191, 219, 254, 0.28)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 18px 40px rgba(2, 6, 23, 0.35)',
+                }}
+              >
+                <Play size={24} fill="#bfdbfe" color="#bfdbfe" />
+              </div>
+            </div>
+            <div
+              style={{
+                position: 'absolute',
+                left: '14px',
+                right: '14px',
+                bottom: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '10px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderRadius: '999px',
+                  padding: '6px 10px',
+                  background: 'rgba(2, 6, 23, 0.72)',
+                  color: '#e5eefc',
+                  fontSize: '11px',
+                  fontWeight: '800',
+                  letterSpacing: '0.04em',
+                }}
+              >
+                <ListVideo size={12} />
+                {hasPlayableVideo ? 'PLAY IN FORO' : 'OPEN ON X'}
+              </div>
+              {tweet.videoDurationMs ? (
+                <div
+                  style={{
+                    borderRadius: '999px',
+                    padding: '6px 10px',
+                    background: 'rgba(2, 6, 23, 0.72)',
+                    color: 'rgba(255,255,255,0.88)',
+                    fontSize: '11px',
+                    fontWeight: '800',
+                  }}
+                >
+                  {Math.max(1, Math.round(tweet.videoDurationMs / 1000))}s
+                </div>
+              ) : null}
+            </div>
+          </button>
+        </div>
+      )}
+
       <div className="feed-card-footer" style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="feed-card-stats" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div className="feed-card-stats-group" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -406,11 +535,150 @@ const FeedCard = ({
               className="btn-forge feed-card-inline-action"
             >
               {tweet.isXVideo ? <ListVideo size={11} strokeWidth={2.5} /> : <PenTool size={11} strokeWidth={2.5} />}
-              <span>{tweet.isXVideo ? 'สร้างสคริปต์วิดีโอ' : 'สร้างคอนเทนต์'}</span>
+              <span>สร้างคอนเทนต์</span>
             </button>
           )}
         </div>
       </div>
+
+      {isVideoOpen && tweet.isXVideo && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1200,
+            background: 'rgba(2, 6, 23, 0.78)',
+            backdropFilter: 'blur(10px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+          }}
+          onClick={() => setIsVideoOpen(false)}
+        >
+          <div
+            style={{
+              width: 'min(960px, 100%)',
+              borderRadius: '28px',
+              overflow: 'hidden',
+              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(2,6,23,0.98) 100%)',
+              boxShadow: '0 32px 80px rgba(0,0,0,0.45)',
+            }}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
+                padding: '18px 20px',
+                borderBottom: '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '12px', fontWeight: '800', color: '#93c5fd', letterSpacing: '0.08em' }}>
+                  X VIDEO
+                </div>
+                <div
+                  style={{
+                    marginTop: '4px',
+                    color: '#fff',
+                    fontSize: '14px',
+                    fontWeight: '700',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  @{tweet.author?.username || 'x'}{displayText ? ` • ${displayText.slice(0, 80)}` : ''}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <a
+                  href={postUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-mini-ghost"
+                  style={{ textDecoration: 'none' }}
+                >
+                  เปิดบน X
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setIsVideoOpen(false)}
+                  className="icon-hover"
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    cursor: 'pointer',
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '10px',
+                    color: 'rgba(255,255,255,0.72)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0,
+                  }}
+                >
+                  <CloseIcon size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div style={{ padding: '20px' }}>
+              {!videoPlaybackFailed && tweet.videoUrl ? (
+                <video
+                  key={tweet.videoUrl}
+                  src={tweet.videoUrl}
+                  poster={tweet.thumbnailUrl || undefined}
+                  controls
+                  autoPlay
+                  playsInline
+                  preload="metadata"
+                  onError={() => setVideoPlaybackFailed(true)}
+                  style={{
+                    width: '100%',
+                    maxHeight: '72vh',
+                    borderRadius: '18px',
+                    background: '#020617',
+                  }}
+                />
+              ) : (
+                <div
+                  style={{
+                    borderRadius: '18px',
+                    padding: '28px',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    background: 'rgba(255,255,255,0.03)',
+                    color: 'rgba(255,255,255,0.82)',
+                  }}
+                >
+                  <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '8px' }}>
+                    เล่นวิดีโอใน FORO ไม่ได้สำหรับโพสต์นี้
+                  </div>
+                  <div style={{ fontSize: '14px', lineHeight: 1.7, color: 'var(--text-dim)' }}>
+                    วิดีโอบางโพสต์จาก X อาจไม่มี media URL ที่เล่นตรงในแอปได้ หรือ URL อาจหมดอายุแล้ว
+                  </div>
+                  <div style={{ marginTop: '16px' }}>
+                    <a
+                      href={postUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-forge"
+                      style={{ textDecoration: 'none' }}
+                    >
+                      เปิดวิดีโอบน X
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

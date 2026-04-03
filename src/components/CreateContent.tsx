@@ -394,11 +394,6 @@ const CreateContent = ({
   useEffect(() => { localStorage.setItem('foro_gen_sources_v1', JSON.stringify(articleSources)); }, [articleSources]);
   useEffect(() => { localStorage.setItem('foro_gen_markdown_v1', generatedMarkdown); }, [generatedMarkdown]);
 
-  useEffect(() => {
-    if (!attachedIsXVideo) return;
-    setFormat((current) => (current === 'โพสต์โซเชียล' ? 'สคริปต์วิดีโอสั้น' : current));
-  }, [attachedIsXVideo]);
-
   const handleStop = () => {
     if (abortRef.current) {
       abortRef.current.abort();
@@ -657,72 +652,97 @@ const CreateContent = ({
         <div className="create-content-composer">
           <div className="create-content-main">
             {sourceNode && (
-              <div className="create-content-source-pill" style={{ 
-                padding: '20px 20px 0',
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'flex-start',
-                animation: 'fadeIn 0.3s ease-out'
-              }}>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', minWidth: 0 }}>
-                  <div style={{ 
-                    background: 'rgba(255,255,255,0.04)', padding: '9px', 
-                    borderRadius: '12px', color: 'var(--text-dim)',
-                    border: '1px solid rgba(255,255,255,0.06)'
-                  }}>
-                    {attachedIsXVideo ? <ListVideo size={16} /> : <FileText size={16} />}
-                  </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-dim)', letterSpacing: '0.08em', marginBottom: '4px', textTransform: 'uppercase' }}>
-                      อ้างอิงจากแหล่งข้อมูล
+              <div style={{ padding: '20px 20px 0', animation: 'fadeIn 0.3s ease-out' }}>
+                <div className="create-content-source-pill" style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'flex-start'
+                }}>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', minWidth: 0 }}>
+                    <div style={{ 
+                      background: 'rgba(255,255,255,0.04)', padding: '9px', 
+                      borderRadius: '12px', color: 'var(--text-dim)',
+                      border: '1px solid rgba(255,255,255,0.06)'
+                    }}>
+                      {attachedIsXVideo ? <ListVideo size={16} /> : <FileText size={16} />}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
-                      <img 
-                        src={sourceNode.author?.profile_image_url} 
-                        alt="" 
-                        style={{ width: '18px', height: '18px', borderRadius: '50%' }}
-                        onError={e => { e.target.style.display = 'none'; }}
-                      />
-                      <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', whiteSpace: 'nowrap' }}>@{sourceNode.author?.username}</div>
-                      {attachedIsXVideo && (
-                        <div
-                          style={{
-                            fontSize: '10px',
-                            fontWeight: '800',
-                            color: '#bfdbfe',
-                            background: 'rgba(96, 165, 250, 0.16)',
-                            border: '1px solid rgba(96, 165, 250, 0.28)',
-                            borderRadius: '999px',
-                            padding: '3px 8px',
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          X VIDEO{attachedVideoDurationLabel ? ` • ${attachedVideoDurationLabel}` : ''}
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-dim)', letterSpacing: '0.08em', marginBottom: '4px', textTransform: 'uppercase' }}>
+                        อ้างอิงจากแหล่งข้อมูล
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                        <img 
+                          src={sourceNode.author?.profile_image_url} 
+                          alt="" 
+                          style={{ width: '18px', height: '18px', borderRadius: '50%' }}
+                          onError={e => { e.target.style.display = 'none'; }}
+                        />
+                        <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', whiteSpace: 'nowrap' }}>@{sourceNode.author?.username}</div>
+                        {attachedIsXVideo && (
+                          <div
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: '800',
+                              color: '#bfdbfe',
+                              background: 'rgba(96, 165, 250, 0.16)',
+                              border: '1px solid rgba(96, 165, 250, 0.28)',
+                              borderRadius: '999px',
+                              padding: '3px 8px',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            X VIDEO{attachedVideoDurationLabel ? ` • ${attachedVideoDurationLabel}` : ''}
+                          </div>
+                        )}
+                        <div style={{ color: 'var(--text-dim)', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {sourceNode.summary || sourceNode.text}
                         </div>
-                      )}
-                      <div style={{ color: 'var(--text-dim)', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {sourceNode.summary || sourceNode.text}
                       </div>
                     </div>
                   </div>
+                  <button 
+                    onClick={onRemoveSource} 
+                    className="icon-hover" 
+                    style={{ 
+                      padding: '8px', 
+                      color: 'rgba(255,255,255,0.4)', 
+                      background: 'rgba(255,255,255,0.05)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseOver={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
+                    onMouseOut={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                  >
+                    <X size={18} />
+                  </button>
                 </div>
-                <button 
-                  onClick={onRemoveSource} 
-                  className="icon-hover" 
-                  style={{ 
-                    padding: '8px', 
-                    color: 'rgba(255,255,255,0.4)', 
-                    background: 'rgba(255,255,255,0.05)',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseOver={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
-                  onMouseOut={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
-                >
-                  <X size={18} />
-                </button>
+                {attachedIsXVideo && (
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '10px',
+                      padding: '12px 14px',
+                      borderRadius: '16px',
+                      background: 'rgba(96, 165, 250, 0.08)',
+                      border: '1px solid rgba(96, 165, 250, 0.18)',
+                      color: '#dbeafe',
+                    }}
+                  >
+                    <ListVideo size={15} style={{ marginTop: '2px', flexShrink: 0 }} />
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '12px', fontWeight: '800', letterSpacing: '0.04em' }}>
+                        X video source
+                      </div>
+                      <div style={{ fontSize: '13px', lineHeight: '1.6', color: 'rgba(219, 234, 254, 0.86)' }}>
+                        ตอนกดสร้างคอนเทนต์ ระบบจะวิเคราะห์วิดีโอจากโพสต์ X นี้เพื่อดึงประเด็นสำคัญและนำมาใช้เป็นบริบทในการเขียน
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -734,7 +754,7 @@ const CreateContent = ({
               placeholder={
                 sourceNode
                   ? attachedIsXVideo
-                    ? 'อยากให้ดึงมุมไหนจากวิดีโอนี้ เช่น hook, script, CTA หรือ angle ที่อยากเน้น'
+                    ? 'อยากให้หยิบเนื้อหาจากวิดีโอนี้ไปทำคอนเทนต์แบบไหน เช่นโพสต์สรุป, insight, hook, caption หรือ angle ที่อยากเน้น'
                     : 'อยากให้เล่าเรื่องนี้ในมุมไหน หรือมีประเด็นอะไรที่อยากเน้นเป็นพิเศษ?'
                   : 'เริ่มจากหัวข้อเดียวหรือไอเดียสั้น ๆ แล้วระบบจะช่วยต่อยอดให้'
               }
@@ -925,7 +945,7 @@ const CreateContent = ({
                     input.substring(0, 40).trim() ||
                     sourceNode?.title ||
                     sourceNode?.text?.substring(0, 40) ||
-                    (attachedIsXVideo ? 'สคริปต์วิดีโอจาก X' : 'บทความ AI');
+                    (attachedIsXVideo ? 'คอนเทนต์จากวิดีโอ X' : 'บทความ AI');
 
                   if (onSaveArticle) {
                     onSaveArticle(generatedTitle, contentToSave, {
