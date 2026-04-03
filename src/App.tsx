@@ -40,6 +40,33 @@ const READ_ARCHIVE_INITIAL_RENDER = 24;
 const READ_ARCHIVE_RENDER_BATCH = 24;
 
 const shouldRemoveWhenFalsy = (value) => !value;
+const DEFAULT_POST_LIST_COLOR = 'var(--accent-secondary)';
+
+const encodeShareListPayload = (list) => {
+  const compactPayload = {
+    n: String(list?.name || '').slice(0, 60).trim() || 'List',
+    m: Array.isArray(list?.members) ? list.members.map((member) => String(member || '').trim().replace(/^@/, '').toLowerCase()).filter(Boolean) : [],
+    ...(list?.color && list.color !== DEFAULT_POST_LIST_COLOR ? { c: list.color } : {}),
+  };
+
+  return btoa(unescape(encodeURIComponent(JSON.stringify(compactPayload))))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+};
+
+const decodeShareListPayload = (value) => {
+  const normalized = String(value || '').trim();
+  const padded = normalized.replace(/-/g, '+').replace(/_/g, '/');
+  const base64 = padded + '='.repeat((4 - (padded.length % 4 || 4)) % 4);
+  const raw = JSON.parse(decodeURIComponent(escape(atob(base64))));
+
+  return {
+    name: raw?.n ?? raw?.name,
+    members: raw?.m ?? raw?.members,
+    color: raw?.c ?? raw?.color,
+  };
+};
 
 const App = () => {
   const [watchlist, setWatchlist] = usePersistentState(STORAGE_KEYS.watchlist, [], {
@@ -288,13 +315,13 @@ const App = () => {
       setActiveListId(newList.id);
     } else {
       try {
-        const raw = JSON.parse(decodeURIComponent(escape(atob(listModal.value))));
+        const raw = decodeShareListPayload(listModal.value);
 
         // Validate decoded payload — reject or sanitize unexpected values
         const safeName = String(raw.name || '').slice(0, 60).trim() || 'Imported List';
         const safeColor = /^(var\(--[a-z-]+\)|#[0-9a-fA-F]{3,8}|rgba?\([^)]+\))$/.test(raw.color)
           ? raw.color
-          : 'var(--accent-secondary)';
+          : DEFAULT_POST_LIST_COLOR;
         const safeMembers = (Array.isArray(raw.members) ? raw.members : [])
           .filter((m) => typeof m === 'string' && /^[a-zA-Z0-9_]{1,50}$/.test(m.trim()));
 
@@ -361,7 +388,7 @@ const App = () => {
   const handleRemoveMember = (handle, listId) => setPostLists(prev => prev.map(l => l.id === listId ? { ...l, members: l.members.filter(m => m.toLowerCase() !== handle.toLowerCase()) } : l));
 
   const handleShareList = (list) => {
-    const code = btoa(unescape(encodeURIComponent(JSON.stringify({ name: list.name, members: list.members, color: list.color }))));
+    const code = encodeShareListPayload(list);
     navigator.clipboard.writeText(code).then(() => setStatus('คัดลอกรหัสแชร์แล้ว'));
   };
 
