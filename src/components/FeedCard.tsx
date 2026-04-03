@@ -663,7 +663,6 @@ const FeedCard = ({
         >
           <div
             className="animate-fade-in"
-            onClick={(event) => event.stopPropagation()}
             style={{
               width: '100vw',
               height: '100vh',
@@ -676,6 +675,7 @@ const FeedCard = ({
             }}
           >
             <div
+              onClick={(event) => event.stopPropagation()}
               style={{
                 position: 'absolute',
                 top: 'max(16px, env(safe-area-inset-top))',
@@ -736,6 +736,7 @@ const FeedCard = ({
               <img
                 src={activeImageUrl}
                 alt={tweet.text || tweet.summary || 'tweet image'}
+                onClick={(event) => event.stopPropagation()}
                 style={{
                   maxWidth: 'min(92vw, 1200px)',
                   maxHeight: 'min(82vh, 1200px)',
@@ -751,7 +752,10 @@ const FeedCard = ({
                 <>
                   <button
                     type="button"
-                    onClick={() => setActiveImageIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setActiveImageIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length);
+                    }}
                     style={{
                       position: 'absolute',
                       left: '12px',
@@ -773,7 +777,10 @@ const FeedCard = ({
                   </button>
                   <button
                     type="button"
-                    onClick={() => setActiveImageIndex((prev) => (prev + 1) % imageUrls.length)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setActiveImageIndex((prev) => (prev + 1) % imageUrls.length);
+                    }}
                     style={{
                       position: 'absolute',
                       right: '12px',
