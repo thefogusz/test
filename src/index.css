@@ -371,7 +371,7 @@ h1, h2, h3, h4, h5, h6 {
   background: linear-gradient(145deg, var(--bg-800) 0%, #1a1a1a 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 28px;
-  padding: 24px 24px 18px;
+  padding: 24px 24px 14px;
   font-family: "Inter", sans-serif;
   transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);

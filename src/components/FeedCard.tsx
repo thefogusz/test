@@ -311,24 +311,6 @@ const FeedCard = ({
         </div>
 
         <div className="feed-card-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <div
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              padding: '0 10px',
-              borderRadius: '100px',
-              fontSize: '10px',
-              fontWeight: '900',
-              color: 'rgba(255,255,255,0.9)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '26px',
-            }}
-          >
-            {getRelativeTime(tweet.created_at)}
-          </div>
-
           {tweet.isXVideo && (
             <div
               style={{
@@ -351,6 +333,24 @@ const FeedCard = ({
               VIDEO
             </div>
           )}
+
+          <div
+            style={{
+              background: 'rgba(255,255,255,0.06)',
+              padding: '0 10px',
+              borderRadius: '100px',
+              fontSize: '10px',
+              fontWeight: '900',
+              color: 'rgba(255,255,255,0.9)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '26px',
+            }}
+          >
+            {getRelativeTime(tweet.created_at)}
+          </div>
 
           <button
             onClick={handleBookmark}
@@ -602,7 +602,7 @@ const FeedCard = ({
           </div>
         </div>
       ) : (
-        <div style={{ marginBottom: '14px' }}>
+        <div style={{ marginBottom: '12px' }}>
           <p
             style={{
               fontSize: '16px',
@@ -623,7 +623,7 @@ const FeedCard = ({
         </div>
       )}
 
-      <div className="feed-card-footer" style={{ display: 'flex', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+      <div className="feed-card-footer" style={{ display: 'flex', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="feed-card-stats" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div className="feed-card-stats-group" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             {stats.map((s, i) => (
