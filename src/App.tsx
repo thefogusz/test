@@ -41,25 +41,56 @@ const READ_ARCHIVE_RENDER_BATCH = 24;
 
 const shouldRemoveWhenFalsy = (value) => !value;
 const DEFAULT_POST_LIST_COLOR = 'var(--accent-secondary)';
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
 
-const encodeShareListPayload = (list) => {
+const bytesToBase64Url = (bytes) =>
+  btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(''))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+
+const base64UrlToBytes = (value) => {
+  const normalized = String(value || '').trim().replace(/-/g, '+').replace(/_/g, '/');
+  const base64 = normalized + '='.repeat((4 - (normalized.length % 4 || 4)) % 4);
+  const binary = atob(base64);
+  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+};
+
+const compressString = async (value) => {
+  const stream = new Blob([value]).stream().pipeThrough(new CompressionStream('gzip'));
+  const buffer = await new Response(stream).arrayBuffer();
+  return new Uint8Array(buffer);
+};
+
+const decompressString = async (bytes) => {
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  const buffer = await new Response(stream).arrayBuffer();
+  return textDecoder.decode(buffer);
+};
+
+const encodeShareListPayload = async (list) => {
   const compactPayload = {
     n: String(list?.name || '').slice(0, 60).trim() || 'List',
     m: Array.isArray(list?.members) ? list.members.map((member) => String(member || '').trim().replace(/^@/, '').toLowerCase()).filter(Boolean) : [],
     ...(list?.color && list.color !== DEFAULT_POST_LIST_COLOR ? { c: list.color } : {}),
   };
 
-  return btoa(unescape(encodeURIComponent(JSON.stringify(compactPayload))))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/g, '');
+  const json = JSON.stringify(compactPayload);
+  if (typeof CompressionStream === 'function') {
+    const compressed = await compressString(json);
+    return `z.${bytesToBase64Url(compressed)}`;
+  }
+
+  return bytesToBase64Url(textEncoder.encode(json));
 };
 
-const decodeShareListPayload = (value) => {
+const decodeShareListPayload = async (value) => {
   const normalized = String(value || '').trim();
-  const padded = normalized.replace(/-/g, '+').replace(/_/g, '/');
-  const base64 = padded + '='.repeat((4 - (padded.length % 4 || 4)) % 4);
-  const raw = JSON.parse(decodeURIComponent(escape(atob(base64))));
+  const raw =
+    normalized.startsWith('z.') && typeof DecompressionStream === 'function'
+      ? JSON.parse(await decompressString(base64UrlToBytes(normalized.slice(2))))
+      : JSON.parse(textDecoder.decode(base64UrlToBytes(normalized)));
 
   return {
     name: raw?.n ?? raw?.name,
@@ -315,7 +346,7 @@ const App = () => {
       setActiveListId(newList.id);
     } else {
       try {
-        const raw = decodeShareListPayload(listModal.value);
+        const raw = await decodeShareListPayload(listModal.value);
 
         // Validate decoded payload — reject or sanitize unexpected values
         const safeName = String(raw.name || '').slice(0, 60).trim() || 'Imported List';
@@ -387,8 +418,8 @@ const App = () => {
 
   const handleRemoveMember = (handle, listId) => setPostLists(prev => prev.map(l => l.id === listId ? { ...l, members: l.members.filter(m => m.toLowerCase() !== handle.toLowerCase()) } : l));
 
-  const handleShareList = (list) => {
-    const code = encodeShareListPayload(list);
+  const handleShareList = async (list) => {
+    const code = await encodeShareListPayload(list);
     navigator.clipboard.writeText(code).then(() => setStatus('คัดลอกรหัสแชร์แล้ว'));
   };
 
