@@ -270,7 +270,7 @@ const ContentWorkspace = ({
                   )}
                 </div>
               </div>
-              {shouldInlineSearchStatus && (
+              {shouldInlineSearchStatus && !isSearching && (
                 <SearchInlineStatus
                   badge={isSearching ? AI_WORKSPACES.langGraph.role : AI_WORKSPACES.langChain.role}
                   message={searchStatusMessage}
