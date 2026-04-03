@@ -623,7 +623,7 @@ const FeedCard = ({
         </div>
       )}
 
-      <div className="feed-card-footer" style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+      <div className="feed-card-footer" style={{ marginTop: '12px', display: 'flex', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="feed-card-stats" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div className="feed-card-stats-group" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             {stats.map((s, i) => (
@@ -733,75 +733,84 @@ const FeedCard = ({
                 minHeight: 0,
               }}
             >
-              <img
-                src={activeImageUrl}
-                alt={tweet.text || tweet.summary || 'tweet image'}
+              <div
                 onClick={(event) => event.stopPropagation()}
                 style={{
+                  position: 'relative',
+                  width: 'fit-content',
                   maxWidth: 'min(92vw, 1200px)',
                   maxHeight: 'min(82vh, 1200px)',
-                  objectFit: 'contain',
-                  display: 'block',
-                  borderRadius: '18px',
-                  boxShadow: '0 24px 64px rgba(0,0,0,0.45)',
-                  background: 'rgba(255,255,255,0.02)',
                 }}
-              />
+              >
+                <img
+                  src={activeImageUrl}
+                  alt={tweet.text || tweet.summary || 'tweet image'}
+                  style={{
+                    maxWidth: 'min(92vw, 1200px)',
+                    maxHeight: 'min(82vh, 1200px)',
+                    objectFit: 'contain',
+                    display: 'block',
+                    borderRadius: '18px',
+                    boxShadow: '0 24px 64px rgba(0,0,0,0.45)',
+                    background: 'rgba(255,255,255,0.02)',
+                  }}
+                />
 
-              {imageUrls.length > 1 && (
-                <>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setActiveImageIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length);
-                    }}
-                    style={{
-                      position: 'absolute',
-                      left: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '999px',
-                      border: '1px solid rgba(255,255,255,0.12)',
-                      background: 'rgba(2, 6, 23, 0.72)',
-                      color: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setActiveImageIndex((prev) => (prev + 1) % imageUrls.length);
-                    }}
-                    style={{
-                      position: 'absolute',
-                      right: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '999px',
-                      border: '1px solid rgba(255,255,255,0.12)',
-                      background: 'rgba(2, 6, 23, 0.72)',
-                      color: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                </>
-              )}
+                {imageUrls.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setActiveImageIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        left: '14px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '999px',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        background: 'rgba(2, 6, 23, 0.72)',
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <ChevronLeft size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setActiveImageIndex((prev) => (prev + 1) % imageUrls.length);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: '14px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '999px',
+                        border: '1px solid rgba(255,255,255,0.12)',
+                        background: 'rgba(2, 6, 23, 0.72)',
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <ChevronRight size={18} />
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>,
