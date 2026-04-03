@@ -11,9 +11,9 @@ import {
   Image as ImageIcon,
   ListVideo,
   MessageCircle,
-  PenTool,
   Repeat,
   Reply,
+  Sparkles,
   X,
 } from 'lucide-react';
 import type { Post, PostList } from '../types/domain';
@@ -649,8 +649,10 @@ const FeedCard = ({
                 onArticleGen(tweet);
               }}
               className="btn-forge feed-card-inline-action"
+              title="สร้างคอนเทนต์"
+              aria-label="สร้างคอนเทนต์"
             >
-              {tweet.isXVideo ? <ListVideo size={11} strokeWidth={2.5} /> : <PenTool size={11} strokeWidth={2.5} />}
+              <Sparkles size={11} strokeWidth={2.35} />
               <span>สร้างคอนเทนต์</span>
             </button>
           )}
