@@ -1,6 +1,6 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, SquarePen, Bookmark, ExternalLink, RefreshCw } from 'lucide-react';
+import { Search, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, SquarePen, Bookmark, ExternalLink, RefreshCw, Image as ImageIcon } from 'lucide-react';
 import {
   analyzeXVideoPost,
   researchAndPreventHallucination,
@@ -117,6 +117,8 @@ const serializeAttachedSource = (sourceNode) => {
     url: buildAttachedTweetUrl(sourceNode),
     videoUrl: sourceNode.videoUrl || '',
     thumbnailUrl: sourceNode.thumbnailUrl || '',
+    primaryImageUrl: sourceNode.primaryImageUrl || '',
+    imageUrls: Array.isArray(sourceNode.imageUrls) ? sourceNode.imageUrls : [],
     videoDurationMs: sourceNode.videoDurationMs,
     videoTranscript: sourceNode.videoTranscript || '',
     videoAnalysis: sourceNode.videoAnalysis || '',
@@ -349,6 +351,9 @@ const CreateContent = ({
   const activeFormatHint = FORMAT_HINTS[format] || FORMAT_HINTS['โพสต์โซเชียล'];
   const attachedIsXVideo = isXVideoSource(sourceNode);
   const attachedVideoDurationLabel = formatDurationLabel(sourceNode?.videoDurationMs);
+  const attachedPreviewImageUrl = !attachedIsXVideo
+    ? sourceNode?.primaryImageUrl || sourceNode?.imageUrls?.[0] || sourceNode?.thumbnailUrl || ''
+    : '';
   useEffect(() => {
     if (!isGenerating) { setThinkingStep(0); return; }
     const steps = THINKING_PHASES[phase] || THINKING_PHASES.researching;
@@ -749,6 +754,48 @@ const CreateContent = ({
                       </div>
                     </div>
                   </div>
+                )}
+                {!attachedIsXVideo && attachedPreviewImageUrl && (
+                  <a
+                    href={buildAttachedTweetUrl(sourceNode)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      marginTop: '12px',
+                      display: 'block',
+                      position: 'relative',
+                      width: '100%',
+                      maxWidth: '240px',
+                      aspectRatio: '1 / 1',
+                      borderRadius: '18px',
+                      overflow: 'hidden',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: `linear-gradient(180deg, rgba(2,6,23,0.04) 0%, rgba(2,6,23,0.22) 100%), url(${attachedPreviewImageUrl}) center/cover`,
+                      textDecoration: 'none',
+                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+                    }}
+                  >
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: '10px',
+                        bottom: '10px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        borderRadius: '999px',
+                        padding: '5px 8px',
+                        background: 'rgba(2, 6, 23, 0.76)',
+                        color: '#e5eefc',
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        letterSpacing: '0.03em',
+                      }}
+                    >
+                      <ImageIcon size={11} />
+                      ดูภาพบน X
+                    </div>
+                  </a>
                 )}
               </div>
             )}

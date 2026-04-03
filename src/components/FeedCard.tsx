@@ -5,6 +5,7 @@ import {
   Check,
   ExternalLink,
   Heart,
+  Image as ImageIcon,
   ListVideo,
   MessageCircle,
   PenTool,
@@ -82,6 +83,7 @@ const FeedCard = ({
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [optimisticInWatchlist, setOptimisticInWatchlist] = useState(false);
   const displayText = isUsableThaiSummary(tweet.summary, tweet.text) ? tweet.summary : tweet.text;
+  const previewImageUrl = tweet.primaryImageUrl || tweet.imageUrls?.[0] || '';
   const authorUsername = (tweet.author?.username || '').trim().replace(/^@/, '').toLowerCase();
   const postUrl = useMemo(
     () => tweet.url || `https://x.com/${tweet.author?.username || 'i'}/status/${tweet.id}`,
@@ -441,6 +443,75 @@ const FeedCard = ({
                   {Math.max(1, Math.round(tweet.videoDurationMs / 1000))}s
                 </div>
               ) : null}
+            </div>
+          </a>
+
+          <div style={{ minWidth: 0, paddingTop: '2px' }}>
+            <p
+              style={{
+                fontSize: '16px',
+                lineHeight: '1.62',
+                color: 'rgba(255, 255, 255, 0.9)',
+                fontWeight: '500',
+                margin: 0,
+                display: '-webkit-box',
+                WebkitLineClamp: 6,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                letterSpacing: '-0.01em',
+                wordBreak: 'break-word',
+              }}
+            >
+              {displayText}
+            </p>
+          </div>
+        </div>
+      ) : previewImageUrl ? (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '136px minmax(0, 1fr)',
+            gap: '14px',
+            alignItems: 'start',
+            marginBottom: '16px',
+          }}
+        >
+          <a
+            href={postUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'block',
+              position: 'relative',
+              width: '100%',
+              aspectRatio: '1 / 1',
+              borderRadius: '16px',
+              overflow: 'hidden',
+              textDecoration: 'none',
+              border: '1px solid rgba(255,255,255,0.08)',
+              background: `linear-gradient(180deg, rgba(2,6,23,0.04) 0%, rgba(2,6,23,0.22) 100%), url(${previewImageUrl}) center/cover`,
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+            }}
+          >
+            <div
+              style={{
+                position: 'absolute',
+                left: '8px',
+                bottom: '8px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                borderRadius: '999px',
+                padding: '4px 7px',
+                background: 'rgba(2, 6, 23, 0.76)',
+                color: '#e5eefc',
+                fontSize: '9px',
+                fontWeight: '800',
+                letterSpacing: '0.03em',
+              }}
+            >
+              <ImageIcon size={10} />
+              ดูภาพบน X
             </div>
           </a>
 

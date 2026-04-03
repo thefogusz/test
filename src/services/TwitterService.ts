@@ -885,9 +885,36 @@ const extractVideoMeta = (tweet) => {
   };
 };
 
+const extractImageMeta = (tweet) => {
+  const mediaItems = collectTweetMedia(tweet);
+  const imageUrls = mediaItems
+    .filter((media) => {
+      const mediaType = String(media?.type || media?.media_type || media?.mediaType || '').toLowerCase();
+      return mediaType === 'photo' || mediaType === 'image';
+    })
+    .map((media) =>
+      pickFirstString(
+        media?.media_url_https,
+        media?.media_url,
+        media?.url,
+        media?.image_url,
+        media?.imageUrl,
+        media?.preview_image_url,
+        media?.previewImageUrl,
+      ),
+    )
+    .filter(Boolean);
+
+  return {
+    primaryImageUrl: imageUrls[0] || '',
+    imageUrls,
+  };
+};
+
 const normalizeTweets = (tweets) =>
   (tweets || []).map((tweet) => {
     const videoMeta = extractVideoMeta(tweet);
+    const imageMeta = extractImageMeta(tweet);
 
     return {
       ...tweet,
@@ -905,6 +932,8 @@ const normalizeTweets = (tweets) =>
       supportsVideoAnalysis: Boolean(tweet.supportsVideoAnalysis || tweet.isXVideo || videoMeta),
       videoUrl: tweet.videoUrl || videoMeta?.videoUrl || '',
       thumbnailUrl: tweet.thumbnailUrl || videoMeta?.thumbnailUrl || '',
+      primaryImageUrl: tweet.primaryImageUrl || imageMeta?.primaryImageUrl || '',
+      imageUrls: Array.isArray(tweet.imageUrls) && tweet.imageUrls.length > 0 ? tweet.imageUrls : imageMeta?.imageUrls || [],
       videoDurationMs: tweet.videoDurationMs || videoMeta?.videoDurationMs,
     };
   });

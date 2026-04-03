@@ -42,6 +42,8 @@ export interface AttachedSource {
   url?: string;
   videoUrl?: string;
   thumbnailUrl?: string;
+  primaryImageUrl?: string;
+  imageUrls?: string[];
   videoDurationMs?: number;
   videoTranscript?: string;
   videoAnalysis?: string;
@@ -65,6 +67,8 @@ export interface Post {
   url?: string;
   videoUrl?: string;
   thumbnailUrl?: string;
+  primaryImageUrl?: string;
+  imageUrls?: string[];
   videoDurationMs?: number;
   videoTranscript?: string;
   videoAnalysis?: string;
