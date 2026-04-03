@@ -27,6 +27,7 @@ const SUMMARY_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const EXECUTIVE_SUMMARY_CACHE_TTL_MS = 10 * 60 * 1000;
 const CONTENT_BRIEF_CACHE_TTL_MS = 30 * 60 * 1000;
 const FACT_CACHE_TTL_MS = 30 * 60 * 1000;
+const X_VIDEO_ANALYSIS_CACHE_TTL_MS = 30 * 60 * 1000;
 const normalizeCacheText = (value = '') => String(value || '').replace(/\s+/g, ' ').trim();
 
 // Strip characters commonly used for prompt injection from third-party content
@@ -1790,6 +1791,59 @@ const extractTweetIdFromInput = (input = '') => {
   const match = input.match(TWEET_URL_PATTERN);
   if (!match) return null;
   return { username: match[1], tweetId: match[2] };
+};
+
+export const analyzeXVideoPost = async ({ postUrl, fallbackText = '' } = {}) => {
+  if (!postUrl || !/(?:twitter|x)\.com\//i.test(postUrl)) return null;
+
+  const cacheKey = buildCacheKey(
+    'x-video-analysis',
+    `${normalizeCacheText(postUrl)}||${normalizeCacheText(fallbackText).slice(0, 500)}`,
+  );
+  const cached = getCachedValue(responseCache, cacheKey);
+  if (cached) return cached;
+
+  try {
+    const { object } = await generateObject({
+      model: grok.responses(MODEL_REASONING_FAST),
+      system: `You analyze videos from X posts for a Thai content creation workflow.
+Use the available x_search and view_x_video tools when needed.
+Only analyze the specific X post URL provided by the user.
+If the video cannot be inspected directly, fall back conservatively to the supplied tweet text context.
+Return JSON only.`,
+      prompt: [
+        `Analyze the X video from this exact post URL: ${postUrl}`,
+        fallbackText ? `[Fallback post text/context]\n${fallbackText}` : '',
+        'Extract the key idea, important visuals, and hooks that can be turned into a short-form Thai video script.',
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+      tools: {
+        x_search: grok.tools.xSearch({
+          enableVideoUnderstanding: true,
+        }),
+        view_x_video: grok.tools.viewXVideo(),
+      },
+      schema: z.object({
+        available: z.boolean(),
+        summary: z.string(),
+        transcriptExcerpt: z.string(),
+        visualNotes: z.array(z.string()).max(5),
+        keyPoints: z.array(z.string()).max(6),
+        hookAngles: z.array(z.string()).max(4),
+      }),
+      providerOptions: {
+        xai: {
+          reasoningEffort: 'medium',
+        },
+      },
+    });
+
+    return setCachedValue(responseCache, cacheKey, object, X_VIDEO_ANALYSIS_CACHE_TTL_MS);
+  } catch (error) {
+    console.warn('[GrokService] X video analysis failed:', error);
+    return null;
+  }
 };
 
 export const researchAndPreventHallucination = async (input, interactionData = '', options = {}) => {

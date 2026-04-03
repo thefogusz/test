@@ -681,17 +681,117 @@ const normalizeAuthor = (author) => {
   };
 };
 
+const pickFirstString = (...values) =>
+  values.find((value) => typeof value === 'string' && value.trim().length > 0) || '';
+
+const coerceArray = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
+
+const collectTweetMedia = (tweet) => [
+  ...coerceArray(tweet?.extended_entities?.media),
+  ...coerceArray(tweet?.extendedEntities?.media),
+  ...coerceArray(tweet?.entities?.media),
+  ...coerceArray(tweet?.media),
+  ...coerceArray(tweet?.attachments?.media),
+  ...coerceArray(tweet?.attachments?.media_keys),
+  ...coerceArray(tweet?.videos),
+].filter((item) => item && typeof item === 'object');
+
+const getVideoVariants = (media) =>
+  coerceArray(media?.video_info?.variants)
+    .concat(coerceArray(media?.videoInfo?.variants))
+    .concat(coerceArray(media?.variants));
+
+const selectBestVideoUrl = (media) => {
+  const directUrl = pickFirstString(
+    media?.video_url,
+    media?.videoUrl,
+    media?.playback_url,
+    media?.playbackUrl,
+    media?.stream_url,
+    media?.streamUrl,
+  );
+  if (directUrl) return directUrl;
+
+  const rankedVariants = getVideoVariants(media)
+    .map((variant) => ({
+      url: pickFirstString(variant?.url, variant?.src),
+      bitrate: Number(variant?.bitrate || variant?.bitRate || 0),
+      contentType: pickFirstString(variant?.content_type, variant?.contentType),
+    }))
+    .filter((variant) => variant.url)
+    .sort((left, right) => {
+      if (left.contentType.includes('mp4') !== right.contentType.includes('mp4')) {
+        return left.contentType.includes('mp4') ? -1 : 1;
+      }
+      return right.bitrate - left.bitrate;
+    });
+
+  return rankedVariants[0]?.url || '';
+};
+
+const extractVideoMeta = (tweet) => {
+  const mediaItems = collectTweetMedia(tweet);
+  const videoMedia = mediaItems.find((media) => {
+    const mediaType = String(media?.type || media?.media_type || media?.mediaType || '').toLowerCase();
+    return (
+      mediaType === 'video' ||
+      mediaType === 'animated_gif' ||
+      Boolean(media?.video_info || media?.videoInfo) ||
+      getVideoVariants(media).length > 0
+    );
+  });
+
+  if (!videoMedia) return null;
+
+  const videoUrl = selectBestVideoUrl(videoMedia);
+  const thumbnailUrl = pickFirstString(
+    videoMedia?.media_url_https,
+    videoMedia?.media_url,
+    videoMedia?.thumbnail_url,
+    videoMedia?.thumbnailUrl,
+    videoMedia?.preview_image_url,
+    videoMedia?.previewImageUrl,
+    videoMedia?.poster_url,
+    videoMedia?.posterUrl,
+  );
+  const rawDuration = Number(
+    videoMedia?.video_info?.duration_millis ||
+      videoMedia?.videoInfo?.durationMillis ||
+      videoMedia?.duration_millis ||
+      videoMedia?.durationMs ||
+      0,
+  );
+
+  return {
+    videoUrl,
+    thumbnailUrl,
+    videoDurationMs: Number.isFinite(rawDuration) && rawDuration > 0 ? rawDuration : undefined,
+  };
+};
+
 const normalizeTweets = (tweets) =>
-  (tweets || []).map((tweet) => ({
-    ...tweet,
-    author: normalizeAuthor(tweet.author),
-    like_count: tweet.likeCount || tweet.like_count || 0,
-    view_count: tweet.viewCount || tweet.view_count || 0,
-    retweet_count: tweet.retweetCount || tweet.retweet_count || 0,
-    reply_count: tweet.replyCount || tweet.reply_count || 0,
-    quote_count: tweet.quoteCount || tweet.quote_count || 0,
-    created_at: tweet.createdAt || tweet.created_at,
-  }));
+  (tweets || []).map((tweet) => {
+    const videoMeta = extractVideoMeta(tweet);
+
+    return {
+      ...tweet,
+      author: normalizeAuthor(tweet.author),
+      like_count: tweet.likeCount || tweet.like_count || 0,
+      view_count: tweet.viewCount || tweet.view_count || 0,
+      retweet_count: tweet.retweetCount || tweet.retweet_count || 0,
+      reply_count: tweet.replyCount || tweet.reply_count || 0,
+      quote_count: tweet.quoteCount || tweet.quote_count || 0,
+      created_at: tweet.createdAt || tweet.created_at,
+      sourceType:
+        tweet.sourceType ||
+        (tweet.isXVideo || videoMeta ? 'x_video' : tweet.type === 'article' ? 'article' : 'x_post'),
+      isXVideo: Boolean(tweet.isXVideo || videoMeta),
+      supportsVideoAnalysis: Boolean(tweet.supportsVideoAnalysis || tweet.isXVideo || videoMeta),
+      videoUrl: tweet.videoUrl || videoMeta?.videoUrl || '',
+      thumbnailUrl: tweet.thumbnailUrl || videoMeta?.thumbnailUrl || '',
+      videoDurationMs: tweet.videoDurationMs || videoMeta?.videoDurationMs,
+    };
+  });
 
 const isWithinHours = (dateString, hours = RECENT_WINDOW_HOURS) => {
   const timestamp = new Date(dateString).getTime();

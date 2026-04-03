@@ -11,6 +11,7 @@ export const STORAGE_KEYS = {
   contentTab: 'foro_content_tab_v1',
   audienceTab: 'foro_audience_tab_v1',
   searchQuery: 'foro_search_query_v1',
+  searchMediaType: 'foro_search_media_type_v1',
   searchResults: 'foro_search_results_v1',
   searchSummary: 'foro_search_summary_v1',
   searchPresets: 'foro_search_presets_v1',

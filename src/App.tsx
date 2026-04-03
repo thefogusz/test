@@ -150,6 +150,7 @@ const App = () => {
     searchHistoryLabels,
     searchOverflowResults,
     searchPresets,
+    searchMediaType,
     searchQuery,
     searchResults,
     searchStatusMessage,
@@ -159,6 +160,7 @@ const App = () => {
     setIsLatestMode,
     setIsSourcesExpanded,
     setSearchCursor,
+    setSearchMediaType,
     setSearchOverflowResults,
     setSearchQuery,
     setSearchResults,
@@ -648,6 +650,8 @@ const App = () => {
               setGenPhase={setGenPhase}
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
+              searchMediaType={searchMediaType}
+              setSearchMediaType={setSearchMediaType}
               suggestions={suggestions}
               showSuggestions={showSuggestions}
               setShowSuggestions={setShowSuggestions}

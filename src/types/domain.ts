@@ -33,10 +33,18 @@ export interface ContentSource {
 
 export interface AttachedSource {
   id?: string | null;
+  sourceType?: string;
+  isXVideo?: boolean;
+  supportsVideoAnalysis?: boolean;
   title?: string;
   text?: string;
   summary?: string;
   url?: string;
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  videoDurationMs?: number;
+  videoTranscript?: string;
+  videoAnalysis?: string;
   author?: {
     name?: string;
     username?: string;
@@ -47,11 +55,19 @@ export interface AttachedSource {
 export interface Post {
   id?: string;
   type?: string;
+  sourceType?: string;
+  isXVideo?: boolean;
+  supportsVideoAnalysis?: boolean;
   text?: string;
   full_text?: string;
   summary?: string;
   title?: string;
   url?: string;
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  videoDurationMs?: number;
+  videoTranscript?: string;
+  videoAnalysis?: string;
   citation_id?: string;
   created_at?: string;
   createdAt?: string;

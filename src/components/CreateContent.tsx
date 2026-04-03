@@ -1,7 +1,12 @@
 // @ts-nocheck
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, SquarePen, Bookmark, ExternalLink, RefreshCw } from 'lucide-react';
-import { researchAndPreventHallucination, generateStructuredContentV2, normalizeContentIntent } from '../services/GrokService';
+import {
+  analyzeXVideoPost,
+  researchAndPreventHallucination,
+  generateStructuredContentV2,
+  normalizeContentIntent,
+} from '../services/GrokService';
 import { renderMarkdownToHtml } from '../utils/markdown';
 import ContentTabSwitcher from './ContentTabSwitcher';
 
@@ -103,10 +108,18 @@ const serializeAttachedSource = (sourceNode) => {
 
   return {
     id: sourceNode.id || null,
+    sourceType: sourceNode.sourceType || (sourceNode.isXVideo ? 'x_video' : 'x_post'),
+    isXVideo: Boolean(sourceNode.isXVideo),
+    supportsVideoAnalysis: Boolean(sourceNode.supportsVideoAnalysis || sourceNode.isXVideo),
     title: sourceNode.title || '',
     text: sourceNode.text || '',
     summary: sourceNode.summary || '',
     url: buildAttachedTweetUrl(sourceNode),
+    videoUrl: sourceNode.videoUrl || '',
+    thumbnailUrl: sourceNode.thumbnailUrl || '',
+    videoDurationMs: sourceNode.videoDurationMs,
+    videoTranscript: sourceNode.videoTranscript || '',
+    videoAnalysis: sourceNode.videoAnalysis || '',
     author: sourceNode.author
       ? {
           name: sourceNode.author.name || '',
@@ -117,6 +130,17 @@ const serializeAttachedSource = (sourceNode) => {
   };
 };
 
+const isXVideoSource = (sourceNode) =>
+  Boolean(sourceNode?.isXVideo || sourceNode?.sourceType === 'x_video');
+
+const formatDurationLabel = (durationMs) => {
+  const totalSeconds = Math.max(0, Math.round((Number(durationMs) || 0) / 1000));
+  if (!totalSeconds) return '';
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes > 0 ? `${minutes}:${String(seconds).padStart(2, '0')}` : `${seconds}s`;
+};
+
 const buildBookmarkReferenceMarkdown = (attachedSource, sources = []) => {
   const sections = [];
 
@@ -125,13 +149,14 @@ const buildBookmarkReferenceMarkdown = (attachedSource, sources = []) => {
       attachedSource.title ||
       attachedSource.text ||
       (attachedSource.author?.username ? `@${attachedSource.author.username}` : 'Attached source');
+    const attachedPrefix = attachedSource.isXVideo ? 'Attached X video' : 'Attached source';
 
     sections.push([
       '---',
       '',
       '## Sources',
       '',
-      `- Attached source: [${attachedLabel}](${attachedSource.url})`,
+      `- ${attachedPrefix}: [${attachedLabel}](${attachedSource.url})`,
     ].join('\n'));
   }
 
@@ -321,6 +346,8 @@ const CreateContent = ({
   const [progressNow, setProgressNow] = useState(() => Date.now());
   const abortRef = useRef(null);
   const activeFormatHint = FORMAT_HINTS[format] || FORMAT_HINTS['โพสต์โซเชียล'];
+  const attachedIsXVideo = isXVideoSource(sourceNode);
+  const attachedVideoDurationLabel = formatDurationLabel(sourceNode?.videoDurationMs);
   useEffect(() => {
     if (!isGenerating) { setThinkingStep(0); return; }
     const steps = THINKING_PHASES[phase] || THINKING_PHASES.researching;
@@ -366,6 +393,11 @@ const CreateContent = ({
   useEffect(() => { if (factSheet) localStorage.setItem('foro_gen_factsheet_v1', factSheet); else localStorage.removeItem('foro_gen_factsheet_v1'); }, [factSheet]);
   useEffect(() => { localStorage.setItem('foro_gen_sources_v1', JSON.stringify(articleSources)); }, [articleSources]);
   useEffect(() => { localStorage.setItem('foro_gen_markdown_v1', generatedMarkdown); }, [generatedMarkdown]);
+
+  useEffect(() => {
+    if (!attachedIsXVideo) return;
+    setFormat((current) => (current === 'โพสต์โซเชียล' ? 'สคริปต์วิดีโอสั้น' : current));
+  }, [attachedIsXVideo]);
 
   const handleStop = () => {
     if (abortRef.current) {
@@ -417,6 +449,29 @@ const CreateContent = ({
           originalText ? `Original Content: ${originalText}` : '',
           translatedSummary ? `Thai Summary (reference only, do not use as source of truth): ${translatedSummary}` : '',
         ].filter(Boolean).join('\n') + '\n\n';
+
+        if (isXVideoSource(sourceNode) && sourceUrl) {
+          const xVideoAnalysis = await analyzeXVideoPost({
+            postUrl: sourceUrl,
+            fallbackText: [originalText, translatedSummary].filter(Boolean).join('\n'),
+          });
+
+          if (xVideoAnalysis) {
+            factIntel += [
+              '[ATTACHED INTEL - X VIDEO ANALYSIS]',
+              `Video understanding available: ${xVideoAnalysis.available ? 'yes' : 'limited'}`,
+              xVideoAnalysis.summary ? `Video Summary: ${xVideoAnalysis.summary}` : '',
+              xVideoAnalysis.transcriptExcerpt
+                ? `Transcript Excerpt: ${xVideoAnalysis.transcriptExcerpt}`
+                : '',
+              ...(xVideoAnalysis.keyPoints || []).map((point, index) => `Key Point ${index + 1}: ${point}`),
+              ...(xVideoAnalysis.hookAngles || []).map((angle, index) => `Hook Angle ${index + 1}: ${angle}`),
+              ...(xVideoAnalysis.visualNotes || []).map((note, index) => `Visual Note ${index + 1}: ${note}`),
+            ]
+              .filter(Boolean)
+              .join('\n') + '\n\n';
+          }
+        }
 
         if (!researchPrompt) {
           researchPrompt = sourceUrl || originalText || sourceLabel;
@@ -615,7 +670,7 @@ const CreateContent = ({
                     borderRadius: '12px', color: 'var(--text-dim)',
                     border: '1px solid rgba(255,255,255,0.06)'
                   }}>
-                    <FileText size={16} />
+                    {attachedIsXVideo ? <ListVideo size={16} /> : <FileText size={16} />}
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-dim)', letterSpacing: '0.08em', marginBottom: '4px', textTransform: 'uppercase' }}>
@@ -629,6 +684,22 @@ const CreateContent = ({
                         onError={e => { e.target.style.display = 'none'; }}
                       />
                       <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', whiteSpace: 'nowrap' }}>@{sourceNode.author?.username}</div>
+                      {attachedIsXVideo && (
+                        <div
+                          style={{
+                            fontSize: '10px',
+                            fontWeight: '800',
+                            color: '#bfdbfe',
+                            background: 'rgba(96, 165, 250, 0.16)',
+                            border: '1px solid rgba(96, 165, 250, 0.28)',
+                            borderRadius: '999px',
+                            padding: '3px 8px',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          X VIDEO{attachedVideoDurationLabel ? ` • ${attachedVideoDurationLabel}` : ''}
+                        </div>
+                      )}
                       <div style={{ color: 'var(--text-dim)', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {sourceNode.summary || sourceNode.text}
                       </div>
@@ -660,7 +731,13 @@ const CreateContent = ({
               className="create-content-input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={sourceNode ? "อยากให้เล่าเรื่องนี้ในมุมไหน หรือมีประเด็นอะไรที่อยากเน้นเป็นพิเศษ?" : "เริ่มจากหัวข้อเดียวหรือไอเดียสั้น ๆ แล้วระบบจะช่วยต่อยอดให้"}
+              placeholder={
+                sourceNode
+                  ? attachedIsXVideo
+                    ? 'อยากให้ดึงมุมไหนจากวิดีโอนี้ เช่น hook, script, CTA หรือ angle ที่อยากเน้น'
+                    : 'อยากให้เล่าเรื่องนี้ในมุมไหน หรือมีประเด็นอะไรที่อยากเน้นเป็นพิเศษ?'
+                  : 'เริ่มจากหัวข้อเดียวหรือไอเดียสั้น ๆ แล้วระบบจะช่วยต่อยอดให้'
+              }
               disabled={isGenerating}
               style={{ 
                 flex: 1, width: '100%', minHeight: sourceNode ? '240px' : '320px', resize: 'none', fontSize: '17px', lineHeight: '1.72',
@@ -844,9 +921,14 @@ const CreateContent = ({
                   const sources = sanitizeBookmarkSources(articleSources);
                   const referenceMarkdown = buildBookmarkReferenceMarkdown(attachedSource, sources);
                   const contentToSave = [generatedMarkdown, referenceMarkdown].filter(Boolean).join('\n\n');
+                  const generatedTitle =
+                    input.substring(0, 40).trim() ||
+                    sourceNode?.title ||
+                    sourceNode?.text?.substring(0, 40) ||
+                    (attachedIsXVideo ? 'สคริปต์วิดีโอจาก X' : 'บทความ AI');
 
                   if (onSaveArticle) {
-                    onSaveArticle(input.substring(0, 40) + '...', contentToSave, {
+                    onSaveArticle(generatedTitle, contentToSave, {
                       attachedSource,
                       sources,
                     });

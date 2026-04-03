@@ -37,6 +37,8 @@ const ContentWorkspace = ({
   setGenPhase,
   searchQuery,
   setSearchQuery,
+  searchMediaType,
+  setSearchMediaType,
   suggestions,
   showSuggestions,
   setShowSuggestions,
@@ -201,6 +203,36 @@ const ContentWorkspace = ({
                     {isSearching ? <Loader2 size={18} className="animate-spin" /> : <span className="btn-text">{'\u0e04\u0e49\u0e19\u0e2b\u0e32'}</span>}
                   </button>
                 </div>
+              </div>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '8px',
+                  marginTop: '12px',
+                  flexWrap: 'wrap',
+                }}
+              >
+                {[
+                  { id: 'all', label: 'ทั้งหมด' },
+                  { id: 'videos', label: 'วิดีโอ' },
+                ].map((option) => {
+                  const isActive = searchMediaType === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setSearchMediaType(option.id)}
+                      className={`btn-mini-ghost ${isActive ? 'active' : ''}`}
+                      style={{
+                        background: isActive ? 'rgba(96, 165, 250, 0.18)' : 'transparent',
+                        borderColor: isActive ? 'rgba(96, 165, 250, 0.45)' : 'rgba(255,255,255,0.08)',
+                        color: isActive ? '#bfdbfe' : 'var(--text-dim)',
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
               </div>
               {searchResults.length > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>

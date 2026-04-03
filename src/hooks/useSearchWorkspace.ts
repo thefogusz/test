@@ -56,6 +56,8 @@ type SearchCacheSnapshot = {
   searchWebSources: any[];
 };
 
+type SearchMediaType = 'all' | 'videos';
+
 const onlyNews = true;
 
 const getSearchCacheKey = (query: string, mode: string) => [
@@ -63,6 +65,14 @@ const getSearchCacheKey = (query: string, mode: string) => [
   normalizeSearchLabel(query).toLowerCase(),
   mode.toLowerCase(),
 ];
+
+const buildSearchRequestQuery = (query: string, mediaType: SearchMediaType) => {
+  const trimmedQuery = String(query || '').trim();
+  if (!trimmedQuery) return trimmedQuery;
+  if (mediaType !== 'videos') return trimmedQuery;
+  if (/\bfilter:videos\b/i.test(trimmedQuery)) return trimmedQuery;
+  return `${trimmedQuery} filter:videos`;
+};
 
 const readNextCursor = (meta: { next_cursor?: string | null } | null | undefined) =>
   meta?.next_cursor || null;
@@ -78,6 +88,10 @@ export const useSearchWorkspace = ({
   const queryClient = useQueryClient();
 
   const [searchQuery, setSearchQuery] = usePersistentState(STORAGE_KEYS.searchQuery, '');
+  const [searchMediaType, setSearchMediaType] = usePersistentState<SearchMediaType>(
+    STORAGE_KEYS.searchMediaType,
+    'all',
+  );
   const [searchResults, setSearchResults] = useIndexedDbState(STORAGE_KEYS.searchResults, [], {
     deserialize: deserializeStoredCollection,
   });
@@ -161,6 +175,7 @@ export const useSearchWorkspace = ({
       overrideQuery?: string;
     }) => {
       const requestedQuery = overrideQuery || searchQuery;
+      const effectiveRequestedQuery = buildSearchRequestQuery(requestedQuery, searchMediaType);
       const normalizedRequestedQueryLabel = normalizeSearchLabel(requestedQuery);
 
       if (!requestedQuery && !isMore) return;
@@ -189,7 +204,10 @@ export const useSearchWorkspace = ({
       const queryIntent = analyzeSearchQueryIntent(requestedQuery);
       const effectiveBroadDiscoveryQuery = queryIntent.broadDiscoveryIntent || legacyBroadDiscoveryQuery;
       const searchQueryType = isLatestMode || queryIntent.forceLatestMode ? 'Latest' : 'Top';
-      const cacheKey = getSearchCacheKey(requestedQuery, searchQueryType);
+      const cacheKey = getSearchCacheKey(
+        `${requestedQuery}::${searchMediaType}`,
+        searchQueryType,
+      );
 
       if (!isMore) {
         const cached = queryClient.getQueryData<SearchCacheSnapshot>(cacheKey);
@@ -270,15 +288,18 @@ export const useSearchWorkspace = ({
             shouldUseAdaptivePlan || effectiveBroadDiscoveryQuery
               ? tavilySearch(requestedQuery, isLatestMode)
               : Promise.resolve({ results: [], answer: '' });
-          const expandedBroadQueryPromise = expandSearchQuery(requestedQuery, isLatestMode).catch(
+          const expandedBroadQueryPromise = expandSearchQuery(
+            effectiveRequestedQuery,
+            isLatestMode,
+          ).catch(
             (error) => {
               console.warn(`[Search] Failed to expand query: ${requestedQuery}`, error);
-              return requestedQuery;
+              return effectiveRequestedQuery;
             },
           );
           const exactSearchPromise = effectiveBroadDiscoveryQuery
             ? searchEverythingDeep(
-                getScopedQuery(requestedQuery, 'exact'),
+                getScopedQuery(effectiveRequestedQuery, 'exact'),
                 null,
                 onlyNews,
                 searchQueryType,
@@ -289,7 +310,10 @@ export const useSearchWorkspace = ({
               })
             : Promise.resolve({ data: [], meta: {} });
           const broadSearchPromise = expandedBroadQueryPromise.then((expandedBroadQuery) => {
-            const broadQuery = getScopedQuery(expandedBroadQuery || requestedQuery, 'broad');
+            const broadQuery = getScopedQuery(
+              expandedBroadQuery || effectiveRequestedQuery,
+              'broad',
+            );
             return searchEverythingDeep(
               broadQuery,
               null,
@@ -304,7 +328,10 @@ export const useSearchWorkspace = ({
           const entitySearchPromise =
             effectiveBroadDiscoveryQuery && broadBlueprint?.entityQuery
               ? searchEverythingDeep(
-                  getScopedQuery(broadBlueprint.entityQuery, 'entity'),
+                  getScopedQuery(
+                    buildSearchRequestQuery(broadBlueprint.entityQuery, searchMediaType),
+                    'entity',
+                  ),
                   null,
                   onlyNews,
                   searchQueryType,
@@ -317,7 +344,10 @@ export const useSearchWorkspace = ({
           const viralSearchPromise =
             effectiveBroadDiscoveryQuery && broadBlueprint?.viralQuery
               ? searchEverythingDeep(
-                  getScopedQuery(broadBlueprint.viralQuery, 'viral'),
+                  getScopedQuery(
+                    buildSearchRequestQuery(broadBlueprint.viralQuery, searchMediaType),
+                    'viral',
+                  ),
                   null,
                   onlyNews,
                   searchQueryType,
@@ -351,7 +381,10 @@ export const useSearchWorkspace = ({
             const fallbackResults = await Promise.all(
               broadFallbackQueries.map((fallbackQuery, index) =>
                 searchEverythingDeep(
-                  getScopedQuery(fallbackQuery, index === 0 ? 'exact' : 'broad'),
+                  getScopedQuery(
+                    buildSearchRequestQuery(fallbackQuery, searchMediaType),
+                    index === 0 ? 'exact' : 'broad',
+                  ),
                   null,
                   onlyNews,
                   searchQueryType,
@@ -404,7 +437,9 @@ export const useSearchWorkspace = ({
 
             if (snipeQueryRaw) {
               setStatus('[Phase 2] Async Parallel Fetch: X Search Precision Snipe...');
-              const snipeQuery = getScopedQuery(snipeQueryRaw);
+              const snipeQuery = getScopedQuery(
+                buildSearchRequestQuery(snipeQueryRaw, searchMediaType),
+              );
 
               try {
                 const snipeResult = await searchEverything(
@@ -426,10 +461,10 @@ export const useSearchWorkspace = ({
         } else {
           setStatus('[API] ดึงข้อมูล X Search เพิ่มเติม...');
           const planQueries =
-            searchPlan?.queries?.length > 0 ? searchPlan.queries : [requestedQuery];
+            searchPlan?.queries?.length > 0 ? searchPlan.queries : [effectiveRequestedQuery];
 
           for (const query of planQueries) {
-            const scopedQuery = getScopedQuery(query);
+            const scopedQuery = getScopedQuery(buildSearchRequestQuery(query, searchMediaType));
             try {
               const searchResponse = effectiveBroadDiscoveryQuery
                 ? await searchEverythingDeep(scopedQuery, searchCursor, onlyNews, searchQueryType, 2)
@@ -523,7 +558,18 @@ export const useSearchWorkspace = ({
                   }));
           }
 
-          const normalizedResults = cleanData.map((post) => sanitizeStoredPost(post));
+          const normalizedResults = cleanData.map((post) =>
+            sanitizeStoredPost(
+              searchMediaType === 'videos'
+                ? {
+                    ...post,
+                    sourceType: post.sourceType || 'x_video',
+                    isXVideo: true,
+                    supportsVideoAnalysis: true,
+                  }
+                : post,
+            ),
+          );
           const xResults = effectiveBroadDiscoveryQuery
             ? normalizedResults
             : isMore
@@ -683,6 +729,7 @@ export const useSearchWorkspace = ({
     searchHistoryLabels,
     searchOverflowResults,
     searchPresets,
+    searchMediaType,
     searchQuery,
     searchResults,
     searchStatusMessage,
@@ -692,6 +739,7 @@ export const useSearchWorkspace = ({
     setIsLatestMode,
     setIsSourcesExpanded,
     setSearchCursor,
+    setSearchMediaType,
     setSearchOverflowResults,
     setSearchQuery,
     setSearchResults,

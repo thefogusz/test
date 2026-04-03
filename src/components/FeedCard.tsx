@@ -5,6 +5,7 @@ import {
   Check,
   ExternalLink,
   Heart,
+  ListVideo,
   MessageCircle,
   PenTool,
   Repeat,
@@ -274,6 +275,29 @@ const FeedCard = ({
             {getRelativeTime(tweet.created_at)}
           </div>
 
+          {tweet.isXVideo && (
+            <div
+              style={{
+                background: 'rgba(96, 165, 250, 0.14)',
+                padding: '0 10px',
+                borderRadius: '100px',
+                fontSize: '10px',
+                fontWeight: '900',
+                color: '#bfdbfe',
+                border: '1px solid rgba(96, 165, 250, 0.28)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px',
+                height: '26px',
+              }}
+              title="X video source"
+            >
+              <ListVideo size={12} />
+              VIDEO
+            </div>
+          )}
+
           <button
             onClick={handleBookmark}
             className="icon-hover"
@@ -381,8 +405,8 @@ const FeedCard = ({
               }}
               className="btn-forge feed-card-inline-action"
             >
-              <PenTool size={11} strokeWidth={2.5} />
-              <span>สร้างคอนเทนต์</span>
+              {tweet.isXVideo ? <ListVideo size={11} strokeWidth={2.5} /> : <PenTool size={11} strokeWidth={2.5} />}
+              <span>{tweet.isXVideo ? 'สร้างสคริปต์วิดีโอ' : 'สร้างคอนเทนต์'}</span>
             </button>
           )}
         </div>
