@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useEffect, useMemo, useState } from 'react';
 import {
   BarChart2,
   Bookmark,
@@ -8,55 +8,13 @@ import {
   ListVideo,
   MessageCircle,
   PenTool,
-  Play,
   Repeat,
   Reply,
-  X as CloseIcon,
 } from 'lucide-react';
 import type { Post, PostList } from '../types/domain';
 import { STORAGE_KEYS } from '../constants/storageKeys';
 
 const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
-let xWidgetsLoaderPromise = null;
-
-const loadXWidgets = () => {
-  if (typeof window === 'undefined') {
-    return Promise.reject(new Error('X widgets require a browser environment'));
-  }
-
-  if (window.twttr?.widgets) {
-    return Promise.resolve(window.twttr);
-  }
-
-  if (xWidgetsLoaderPromise) {
-    return xWidgetsLoaderPromise;
-  }
-
-  xWidgetsLoaderPromise = new Promise((resolve, reject) => {
-    const existingScript = document.querySelector('script[data-foro-x-widgets="true"]');
-    if (existingScript) {
-      existingScript.addEventListener('load', () => resolve(window.twttr), { once: true });
-      existingScript.addEventListener('error', () => reject(new Error('Failed to load X widgets')), {
-        once: true,
-      });
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://platform.twitter.com/widgets.js';
-    script.async = true;
-    script.charset = 'utf-8';
-    script.setAttribute('data-foro-x-widgets', 'true');
-    script.onload = () => resolve(window.twttr);
-    script.onerror = () => reject(new Error('Failed to load X widgets'));
-    document.body.appendChild(script);
-  }).catch((error) => {
-    xWidgetsLoaderPromise = null;
-    throw error;
-  });
-
-  return xWidgetsLoaderPromise;
-};
 
 const getRelativeTime = (dateString) => {
   if (!dateString) return '';
@@ -123,16 +81,12 @@ const FeedCard = ({
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [optimisticInWatchlist, setOptimisticInWatchlist] = useState(false);
-  const [isVideoOpen, setIsVideoOpen] = useState(false);
-  const [isVideoEmbedLoading, setIsVideoEmbedLoading] = useState(false);
-  const [videoEmbedFailed, setVideoEmbedFailed] = useState(false);
   const displayText = isUsableThaiSummary(tweet.summary, tweet.text) ? tweet.summary : tweet.text;
   const authorUsername = (tweet.author?.username || '').trim().replace(/^@/, '').toLowerCase();
   const postUrl = useMemo(
     () => tweet.url || `https://x.com/${tweet.author?.username || 'i'}/status/${tweet.id}`,
     [tweet.author?.username, tweet.id, tweet.url],
   );
-  const embedContainerRef = useRef(null);
   const fallbackPostLists = useMemo(() => {
     if (Array.isArray(postLists) && postLists.length > 0) return postLists;
     const storedPostLists = safeReadStoredValue(STORAGE_KEYS.postLists, []);
@@ -154,73 +108,6 @@ const FeedCard = ({
   useEffect(() => {
     setOptimisticInWatchlist(false);
   }, [authorUsername, isInWatchlist]);
-
-  useEffect(() => {
-    if (!isVideoOpen) return undefined;
-
-    const handleEscape = (event) => {
-      if (event.key === 'Escape') {
-        setIsVideoOpen(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
-  }, [isVideoOpen]);
-
-  useEffect(() => {
-    if (!isVideoOpen || !tweet.isXVideo || !tweet.id || !embedContainerRef.current) return undefined;
-
-    let cancelled = false;
-    const container = embedContainerRef.current;
-    const timeoutId = window.setTimeout(() => {
-      if (!cancelled) {
-        setVideoEmbedFailed(true);
-        setIsVideoEmbedLoading(false);
-      }
-    }, 6000);
-    container.innerHTML = '';
-    setVideoEmbedFailed(false);
-    setIsVideoEmbedLoading(true);
-
-    loadXWidgets()
-      .then((twttr) => {
-        if (cancelled || !twttr?.widgets?.createTweet) {
-          throw new Error('X widget API unavailable');
-        }
-
-        return twttr.widgets.createTweet(tweet.id, container, {
-          align: 'center',
-          conversation: 'none',
-          dnt: true,
-          theme: 'dark',
-        });
-      })
-      .then((element) => {
-        if (!cancelled && !element) {
-          setVideoEmbedFailed(true);
-        }
-      })
-      .catch((error) => {
-        console.warn('[FeedCard] X embed failed:', error);
-        if (!cancelled) {
-          setVideoEmbedFailed(true);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsVideoEmbedLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timeoutId);
-      if (container) {
-        container.innerHTML = '';
-      }
-    };
-  }, [isVideoOpen, tweet.id, tweet.isXVideo]);
 
   const handleBookmark = () => {
     const next = !bookmarked;
@@ -254,11 +141,6 @@ const FeedCard = ({
     { icon: Repeat, v: tweet.retweet_count },
     { icon: MessageCircle, v: tweet.reply_count },
   ];
-
-  const openVideo = () => {
-    setVideoEmbedFailed(false);
-    setIsVideoOpen(true);
-  };
 
   return (
     <div className="feed-card animate-fade-in">
@@ -511,52 +393,28 @@ const FeedCard = ({
         <div
           style={{
             marginBottom: '16px',
-            borderRadius: '20px',
+            borderRadius: '18px',
             overflow: 'hidden',
             border: '1px solid rgba(96, 165, 250, 0.18)',
             background: 'linear-gradient(180deg, rgba(96, 165, 250, 0.12) 0%, rgba(15, 23, 42, 0.4) 100%)',
           }}
         >
-          <button
-            type="button"
-            onClick={openVideo}
+          <a
+            href={postUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             style={{
+              display: 'block',
               position: 'relative',
               width: '100%',
-              aspectRatio: '16 / 9',
-              border: 'none',
-              padding: 0,
+              aspectRatio: '16 / 7.8',
+              textDecoration: 'none',
               cursor: 'pointer',
               background: tweet.thumbnailUrl
                 ? `linear-gradient(180deg, rgba(2,6,23,0.08) 0%, rgba(2,6,23,0.72) 100%), url(${tweet.thumbnailUrl}) center/cover`
                 : 'linear-gradient(135deg, rgba(96,165,250,0.28) 0%, rgba(15,23,42,0.8) 100%)',
             }}
           >
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <div
-                style={{
-                  width: '62px',
-                  height: '62px',
-                  borderRadius: '50%',
-                  background: 'rgba(15, 23, 42, 0.78)',
-                  border: '1px solid rgba(191, 219, 254, 0.28)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 18px 40px rgba(2, 6, 23, 0.35)',
-                }}
-              >
-                <Play size={24} fill="#bfdbfe" color="#bfdbfe" />
-              </div>
-            </div>
             <div
               style={{
                 position: 'absolute',
@@ -584,7 +442,7 @@ const FeedCard = ({
                 }}
               >
                 <ListVideo size={12} />
-                PLAY IN FORO
+                ดูบน X
               </div>
               {tweet.videoDurationMs ? (
                 <div
@@ -601,7 +459,7 @@ const FeedCard = ({
                 </div>
               ) : null}
             </div>
-          </button>
+          </a>
         </div>
       )}
 
@@ -617,6 +475,17 @@ const FeedCard = ({
           </div>
         </div>
         <div className="feed-card-actions" style={{ display: 'flex', gap: '4px' }}>
+          {tweet.isXVideo && (
+            <a
+              href={postUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-mini-ghost"
+              style={{ textDecoration: 'none' }}
+            >
+              ดูบน X
+            </a>
+          )}
           {onArticleGen && (
             <button
               onClick={(e) => {
@@ -631,171 +500,6 @@ const FeedCard = ({
           )}
         </div>
       </div>
-
-      {isVideoOpen && tweet.isXVideo && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1200,
-            background: 'rgba(2, 6, 23, 0.78)',
-            backdropFilter: 'blur(10px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '24px',
-          }}
-          onClick={() => setIsVideoOpen(false)}
-        >
-          <div
-            style={{
-              width: 'min(960px, 100%)',
-              borderRadius: '28px',
-              overflow: 'hidden',
-              border: '1px solid rgba(255,255,255,0.08)',
-              background: 'linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(2,6,23,0.98) 100%)',
-              boxShadow: '0 32px 80px rgba(0,0,0,0.45)',
-            }}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '16px',
-                padding: '18px 20px',
-                borderBottom: '1px solid rgba(255,255,255,0.06)',
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '12px', fontWeight: '800', color: '#93c5fd', letterSpacing: '0.08em' }}>
-                  X VIDEO
-                </div>
-                <div
-                  style={{
-                    marginTop: '4px',
-                    color: '#fff',
-                    fontSize: '14px',
-                    fontWeight: '700',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  @{tweet.author?.username || 'x'}{displayText ? ` • ${displayText.slice(0, 80)}` : ''}
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <a
-                  href={postUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-mini-ghost"
-                  style={{ textDecoration: 'none' }}
-                >
-                  เปิดบน X
-                </a>
-                <button
-                  type="button"
-                  onClick={() => setIsVideoOpen(false)}
-                  className="icon-hover"
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    cursor: 'pointer',
-                    width: '34px',
-                    height: '34px',
-                    borderRadius: '10px',
-                    color: 'rgba(255,255,255,0.72)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: 0,
-                  }}
-                >
-                  <CloseIcon size={16} />
-                </button>
-              </div>
-            </div>
-
-            <div style={{ padding: '20px' }}>
-              {videoEmbedFailed ? (
-                <div
-                  style={{
-                    borderRadius: '18px',
-                    padding: '28px',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    background: 'rgba(255,255,255,0.03)',
-                    color: 'rgba(255,255,255,0.82)',
-                  }}
-                >
-                  <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff', marginBottom: '8px' }}>
-                    โหลดวิดีโอจาก X ใน FORO ไม่สำเร็จ
-                  </div>
-                  <div style={{ fontSize: '14px', lineHeight: 1.7, color: 'var(--text-dim)' }}>
-                    ลองเปิดโพสต์บน X แทนได้ทันที หาก widget ของ X โหลดไม่สำเร็จในรอบนี้
-                  </div>
-                  <div style={{ marginTop: '16px' }}>
-                    <a
-                      href={postUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-forge"
-                      style={{ textDecoration: 'none' }}
-                    >
-                      เปิดวิดีโอบน X
-                    </a>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  style={{
-                    minHeight: '420px',
-                    borderRadius: '18px',
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    padding: '18px',
-                  }}
-                >
-                  {isVideoEmbedLoading && (
-                    <div
-                      style={{
-                        minHeight: '160px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'rgba(255,255,255,0.72)',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        gap: '14px',
-                      }}
-                    >
-                      <div>กำลังโหลดวิดีโอจาก X...</div>
-                      <a
-                        href={postUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn-mini-ghost"
-                        style={{ textDecoration: 'none' }}
-                      >
-                        ถ้าไม่ขึ้น ให้เปิดบน X
-                      </a>
-                    </div>
-                  )}
-                  <div
-                    ref={embedContainerRef}
-                    style={{
-                      display: isVideoEmbedLoading ? 'none' : 'block',
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
