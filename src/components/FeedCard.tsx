@@ -373,8 +373,8 @@ const FeedCard = ({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '168px minmax(0, 1fr)',
-            gap: '16px',
+            gridTemplateColumns: '136px minmax(0, 1fr)',
+            gap: '14px',
             alignItems: 'start',
             marginBottom: '16px',
           }}
@@ -388,7 +388,7 @@ const FeedCard = ({
               position: 'relative',
               width: '100%',
               aspectRatio: '1 / 1',
-              borderRadius: '18px',
+              borderRadius: '16px',
               overflow: 'hidden',
               textDecoration: 'none',
               border: '1px solid rgba(96, 165, 250, 0.18)',
@@ -401,9 +401,9 @@ const FeedCard = ({
             <div
               style={{
                 position: 'absolute',
-                left: '10px',
-                right: '10px',
-                bottom: '10px',
+                left: '8px',
+                right: '8px',
+                bottom: '8px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -416,25 +416,25 @@ const FeedCard = ({
                   alignItems: 'center',
                   gap: '5px',
                   borderRadius: '999px',
-                  padding: '5px 8px',
+                  padding: '4px 7px',
                   background: 'rgba(2, 6, 23, 0.76)',
                   color: '#e5eefc',
-                  fontSize: '10px',
+                  fontSize: '9px',
                   fontWeight: '800',
                   letterSpacing: '0.03em',
                 }}
               >
-                <ListVideo size={11} />
+                <ListVideo size={10} />
                 ดูบน X
               </div>
               {tweet.videoDurationMs ? (
                 <div
                   style={{
                     borderRadius: '999px',
-                    padding: '5px 8px',
+                    padding: '4px 7px',
                     background: 'rgba(2, 6, 23, 0.76)',
                     color: 'rgba(255,255,255,0.9)',
-                    fontSize: '10px',
+                    fontSize: '9px',
                     fontWeight: '800',
                   }}
                 >
