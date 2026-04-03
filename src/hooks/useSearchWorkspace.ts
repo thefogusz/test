@@ -59,9 +59,11 @@ type SearchCacheSnapshot = {
 type SearchMediaType = 'all' | 'videos';
 
 const onlyNews = true;
+const SEARCH_CACHE_VERSION = 'v2';
 
 const getSearchCacheKey = (query: string, mode: string) => [
   'foro-search',
+  SEARCH_CACHE_VERSION,
   normalizeSearchLabel(query).toLowerCase(),
   mode.toLowerCase(),
 ];
@@ -86,6 +88,15 @@ const buildSearchRequestQuery = (query: string, mediaType: SearchMediaType) => {
 
   return nextQuery;
 };
+
+const buildWebSearchQuery = (query: string, mediaType: SearchMediaType) =>
+  buildSearchRequestQuery(query, mediaType)
+    .replace(/\bfilter:videos\b/gi, ' ')
+    .replace(/\bmin_faves:\d+\b/gi, ' ')
+    .replace(/\bsince:\d{4}-\d{2}-\d{2}\b/gi, ' ')
+    .replace(/\b-filter:replies\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 const readNextCursor = (meta: { next_cursor?: string | null } | null | undefined) =>
   meta?.next_cursor || null;
@@ -296,10 +307,11 @@ export const useSearchWorkspace = ({
 
         if (!isMore) {
           setStatus('[Phase 2] Async Parallel Fetch: Tavily + Broad X Search...');
+          const webSearchQuery = buildWebSearchQuery(requestedQuery, searchMediaType);
 
           const tavilyPromise =
             shouldUseAdaptivePlan || effectiveBroadDiscoveryQuery
-              ? tavilySearch(requestedQuery, isLatestMode)
+              ? tavilySearch(webSearchQuery || requestedQuery, isLatestMode)
               : Promise.resolve({ results: [], answer: '' });
           const expandedBroadQueryPromise = expandSearchQuery(
             effectiveRequestedQuery,
@@ -612,6 +624,9 @@ export const useSearchWorkspace = ({
           if (!isMore) {
             setStatus('[Agent 3/3] กำลังสังเคราะห์ข้อมูลและเขียน Executive Summary...');
             setSearchSummary('');
+            const summaryIntent = analyzeSearchQueryIntent(requestedQuery);
+            const shouldPreferXSummary =
+              searchMediaType === 'videos' || summaryIntent.queryKey === 'viral_video';
 
             generateExecutiveSummary(
               cleanData.slice(0, 10),
@@ -620,6 +635,10 @@ export const useSearchWorkspace = ({
                 setSearchSummary(fullText);
               },
               webContext,
+              {
+                preferXSummary: shouldPreferXSummary,
+                allowWebLead: !shouldPreferXSummary,
+              },
             )
               .then((summaryText) => {
                 if (summaryText) {

@@ -173,6 +173,12 @@ const FeedCard = ({
 
     let cancelled = false;
     const container = embedContainerRef.current;
+    const timeoutId = window.setTimeout(() => {
+      if (!cancelled) {
+        setVideoEmbedFailed(true);
+        setIsVideoEmbedLoading(false);
+      }
+    }, 6000);
     container.innerHTML = '';
     setVideoEmbedFailed(false);
     setIsVideoEmbedLoading(true);
@@ -209,6 +215,7 @@ const FeedCard = ({
 
     return () => {
       cancelled = true;
+      window.clearTimeout(timeoutId);
       if (container) {
         container.innerHTML = '';
       }
@@ -754,16 +761,27 @@ const FeedCard = ({
                   {isVideoEmbedLoading && (
                     <div
                       style={{
-                        minHeight: '120px',
+                        minHeight: '160px',
                         display: 'flex',
+                        flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
                         color: 'rgba(255,255,255,0.72)',
                         fontSize: '14px',
                         fontWeight: '600',
+                        gap: '14px',
                       }}
                     >
-                      กำลังโหลดวิดีโอจาก X...
+                      <div>กำลังโหลดวิดีโอจาก X...</div>
+                      <a
+                        href={postUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-mini-ghost"
+                        style={{ textDecoration: 'none' }}
+                      >
+                        ถ้าไม่ขึ้น ให้เปิดบน X
+                      </a>
                     </div>
                   )}
                   <div

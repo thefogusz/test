@@ -1284,8 +1284,16 @@ const _buildTavilyContextBlock = (label, data) => {
     .join('\n\n');
 };
 
-export const generateExecutiveSummary = async (validTweets, userQuery, onStreamChunk, webContext = '') => {
+export const generateExecutiveSummary = async (
+  validTweets,
+  userQuery,
+  onStreamChunk,
+  webContext = '',
+  options = {},
+) => {
   if (!validTweets?.length) return null;
+  const preferXSummary = Boolean(options.preferXSummary);
+  const allowWebLead = Boolean(options.allowWebLead);
 
   const tweetsForSummary = dedupeByNormalizedText(validTweets, (tweet) => tweet?.text).slice(0, 10);
   if (!tweetsForSummary.length) return null;
@@ -1293,6 +1301,8 @@ export const generateExecutiveSummary = async (validTweets, userQuery, onStreamC
   const cacheKey = buildCacheKey('executive-summary', {
     userQuery,
     webContext,
+    preferXSummary,
+    allowWebLead,
     tweets: tweetsForSummary.map((tweet) => ({
       id: tweet.id,
       text: normalizeCacheText(tweet.text),
@@ -1309,7 +1319,8 @@ export const generateExecutiveSummary = async (validTweets, userQuery, onStreamC
   }
 
   const safeQuery = sanitizeForPrompt(userQuery, 300);
-  const safeWebCtx = webContext ? sanitizeForPrompt(webContext, 2000) : '';
+  const safeWebCtx =
+    webContext && !preferXSummary ? sanitizeForPrompt(webContext, 2000) : '';
 
   const contentToAnalyze = tweetsForSummary
     .map((tweet) => {
@@ -1328,6 +1339,7 @@ ${safeWebCtx}
 Hard rules:
 - Do not invent people, companies, products, events, or numbers.
 - Treat X evidence and web context as the only allowed sources.
+- ${preferXSummary ? 'Prioritize X post evidence first. Build the summary from [F#] citations as the default. Web context is optional and should not lead the summary.' : 'Use X evidence as the primary signal unless the web context adds a crucial confirmed development.'}
 - Do not use wording like "????????", "???????????", or any phrase that implies the summary comes from X alone.
 - Every important claim must end with a citation such as [F1], [F2], [W1], or combined citations like [F2][W1].
 - If a claim cannot be traced to one of the provided sources, do not include it.
@@ -1344,7 +1356,7 @@ Additional citation rules:
 - Use [W1], [W2] for website sources provided in Web Context.
 - If a claim is supported by both X and web, cite both, for example [F2][W1].
 - You may expand to 5 bullets if there are clearly more than 3 important storylines.
-- If the web source contains a crucial confirmed development not obvious from the tweets, you may include it as one bullet with [W#] citation.`;
+- ${allowWebLead ? 'If the web source contains a crucial confirmed development not obvious from the tweets, you may include it as one bullet with [W#] citation.' : 'Do not let [W#] citations dominate the summary. If you use web context at all, keep it secondary and tie it back to [F#] when possible.'}`;
 
   if (onStreamChunk) {
     try {
