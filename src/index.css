@@ -690,6 +690,30 @@ h1, h2, h3, h4, h5, h6 {
   gap: 6px;
 }
 
+.feed-card-reply-badge {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.feed-card-reply-badge-text {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.feed-card-media-layout {
+  width: 100%;
+}
+
+.feed-card-media-copy {
+  min-width: 0;
+}
+
+.feed-card-body-copy {
+  overflow-wrap: anywhere;
+}
+
 /* Search View Hero */
 .hero-search-container {
   display: flex;
@@ -2198,6 +2222,30 @@ h1, h2, h3, h4, h5, h6 {
     white-space: nowrap;
   }
 
+  .feed-card-reply-badge {
+    gap: 5px !important;
+    padding: 5px 10px !important;
+    margin-bottom: 10px !important;
+    font-size: 10.5px !important;
+  }
+
+  .feed-card-reply-badge svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  .feed-card-media-layout {
+    grid-template-columns: 92px minmax(0, 1fr) !important;
+    gap: 10px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .feed-card-body-copy.has-media {
+    font-size: 15px !important;
+    line-height: 1.56 !important;
+    -webkit-line-clamp: 6 !important;
+  }
+
   .dashboard-header h1 {
     font-size: 24px;
   }
@@ -2908,6 +2956,10 @@ h1, h2, h3, h4, h5, h6 {
   border-color: rgba(41, 151, 255, 0.22);
   color: #fff;
   box-shadow: 0 0 8px rgba(41, 151, 255, 0.06);
+}
+
+.home-ai-filter-btn {
+  font-family: "Kanit", "Inter", "Noto Sans Thai", sans-serif;
 }
 
 .home-empty-state {
@@ -4637,6 +4689,24 @@ h1, h2, h3, h4, h5, h6 {
     max-width: none;
     justify-content: flex-end;
     flex-wrap: nowrap;
+  }
+
+  .feed-card-media-layout {
+    grid-template-columns: 84px minmax(0, 1fr) !important;
+    gap: 9px !important;
+  }
+
+  .feed-card-reply-badge {
+    padding: 4px 9px !important;
+    border-left-width: 2px !important;
+    border-radius: 4px 7px 7px 4px !important;
+    margin-bottom: 9px !important;
+  }
+
+  .feed-card-body-copy.has-media {
+    font-size: 14px !important;
+    line-height: 1.52 !important;
+    -webkit-line-clamp: 6 !important;
   }
 
   .audience-category-grid {

@@ -113,7 +113,7 @@ const HomeView = ({
             )}
             <button
               onClick={onOpenFilterModal}
-              className={`btn-pill ${feed.length > 0 ? 'home-ai-filter-ready' : ''}`}
+              className={`btn-pill home-ai-filter-btn ${feed.length > 0 ? 'home-ai-filter-ready' : ''}`}
             >
               FORO Filter
             </button>

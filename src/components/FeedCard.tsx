@@ -94,6 +94,7 @@ const FeedCard = ({
     () => Array.from(new Set((Array.isArray(tweet.imageUrls) ? tweet.imageUrls : []).filter(Boolean))),
     [tweet.imageUrls],
   );
+  const hasMediaPreview = Boolean(tweet.isXVideo || previewImageUrl);
   const authorUsername = (tweet.author?.username || '').trim().replace(/^@/, '').toLowerCase();
   const postUrl = useMemo(
     () => tweet.url || `https://x.com/${tweet.author?.username || 'i'}/status/${tweet.id}`,
@@ -395,6 +396,7 @@ const FeedCard = ({
 
       {tweet.isReply && (
         <div
+          className="feed-card-reply-badge"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -415,12 +417,13 @@ const FeedCard = ({
           }}
         >
           <Reply size={13} strokeWidth={2.5} style={{ opacity: 0.9 }} />
-          <span>ตอบกลับ <b>@{tweet.inReplyToUsername || 'บางคน'}</b></span>
+          <span className="feed-card-reply-badge-text">ตอบกลับ <b>@{tweet.inReplyToUsername || 'บางคน'}</b></span>
         </div>
       )}
 
       {tweet.isXVideo ? (
         <div
+          className="feed-card-media-layout"
           style={{
             display: 'grid',
             gridTemplateColumns: '112px minmax(0, 1fr)',
@@ -494,8 +497,9 @@ const FeedCard = ({
             </div>
           </a>
 
-          <div style={{ minWidth: 0, paddingTop: '2px' }}>
+          <div className="feed-card-media-copy" style={{ minWidth: 0, paddingTop: '2px' }}>
             <p
+              className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
               style={{
                 fontSize: '16px',
                 lineHeight: '1.62',
@@ -516,6 +520,7 @@ const FeedCard = ({
         </div>
       ) : previewImageUrl ? (
         <div
+          className="feed-card-media-layout"
           style={{
             display: 'grid',
             gridTemplateColumns: '112px minmax(0, 1fr)',
@@ -581,8 +586,9 @@ const FeedCard = ({
             )}
           </button>
 
-          <div style={{ minWidth: 0, paddingTop: '2px' }}>
+          <div className="feed-card-media-copy" style={{ minWidth: 0, paddingTop: '2px' }}>
             <p
+              className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
               style={{
                 fontSize: '16px',
                 lineHeight: '1.62',
@@ -604,6 +610,7 @@ const FeedCard = ({
       ) : (
         <div style={{ marginBottom: '12px' }}>
           <p
+            className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
             style={{
               fontSize: '16px',
               lineHeight: '1.6',
