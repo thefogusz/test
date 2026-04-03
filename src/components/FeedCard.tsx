@@ -1,4 +1,5 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   BarChart2,
   Bookmark,
@@ -123,6 +124,9 @@ const FeedCard = ({
   useEffect(() => {
     if (!isImageViewerOpen) return undefined;
 
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setIsImageViewerOpen(false);
@@ -141,7 +145,10 @@ const FeedCard = ({
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [imageUrls.length, isImageViewerOpen]);
 
   const handleBookmark = () => {
@@ -643,25 +650,49 @@ const FeedCard = ({
         </div>
       </div>
 
-      {isImageViewerOpen && activeImageUrl && (
-        <div className="modal-overlay" onClick={() => setIsImageViewerOpen(false)}>
+      {isImageViewerOpen && activeImageUrl && typeof document !== 'undefined' && createPortal(
+        <div
+          className="modal-overlay"
+          onClick={() => setIsImageViewerOpen(false)}
+          style={{
+            background: 'rgba(2, 6, 23, 0.96)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            padding: '0',
+          }}
+        >
           <div
-            className="modal-content animate-fade-in"
+            className="animate-fade-in"
             onClick={(event) => event.stopPropagation()}
             style={{
-              maxWidth: 'min(96vw, 1100px)',
-              width: '100%',
-              padding: '16px',
-              background: 'rgba(10, 10, 12, 0.96)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              width: '100vw',
+              height: '100vh',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              padding: '20px',
+              position: 'relative',
+              boxSizing: 'border-box',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '12px' }}>
+            <div
+              style={{
+                position: 'absolute',
+                top: 'max(16px, env(safe-area-inset-top))',
+                left: '16px',
+                right: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                zIndex: 2,
+              }}
+            >
               <div style={{ minWidth: 0 }}>
                 <div className="modal-title" style={{ fontSize: '16px', marginBottom: '4px' }}>
                   รูปภาพจาก @{tweet.author?.username || 'x'}
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.68)' }}>
                   {imageUrls.length > 1 ? `รูป ${activeImageIndex + 1} จาก ${imageUrls.length}` : 'ดูรูปใน FORO'}
                 </div>
               </div>
@@ -671,12 +702,21 @@ const FeedCard = ({
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-pill"
-                  style={{ height: '36px', padding: '0 14px', fontSize: '12px' }}
+                  style={{ height: '36px', padding: '0 14px', fontSize: '12px', background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)' }}
                 >
                   <ExternalLink size={13} />
                   เปิดบน X
                 </a>
-                <button className="modal-close-btn" onClick={() => setIsImageViewerOpen(false)}>
+                <button
+                  className="modal-close-btn"
+                  onClick={() => setIsImageViewerOpen(false)}
+                  style={{
+                    position: 'static',
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    color: '#fff',
+                  }}
+                >
                   <X size={18} />
                 </button>
               </div>
@@ -688,22 +728,22 @@ const FeedCard = ({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                minHeight: '320px',
-                maxHeight: '78vh',
-                borderRadius: '18px',
-                overflow: 'hidden',
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.06)',
+                width: '100%',
+                height: '100%',
+                minHeight: 0,
               }}
             >
               <img
                 src={activeImageUrl}
                 alt={tweet.text || tweet.summary || 'tweet image'}
                 style={{
-                  maxWidth: '100%',
-                  maxHeight: '78vh',
+                  maxWidth: 'min(92vw, 1200px)',
+                  maxHeight: 'min(82vh, 1200px)',
                   objectFit: 'contain',
                   display: 'block',
+                  borderRadius: '18px',
+                  boxShadow: '0 24px 64px rgba(0,0,0,0.45)',
+                  background: 'rgba(255,255,255,0.02)',
                 }}
               />
 
@@ -757,7 +797,8 @@ const FeedCard = ({
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
