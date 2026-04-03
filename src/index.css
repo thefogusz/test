@@ -353,7 +353,6 @@ h1, h2, h3, h4, h5, h6 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 24px;
-  align-items: start;
 }
 
 @media (max-width: 1300px) {
@@ -372,15 +371,18 @@ h1, h2, h3, h4, h5, h6 {
   background: linear-gradient(145deg, var(--bg-800) 0%, #1a1a1a 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 28px;
-  padding: 24px;
+  padding: 24px 24px 18px;
   font-family: "Inter", sans-serif;
   transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
   position: relative;
-  align-self: start;
   /* Remove overflow-hidden to allow AI Insights badge to be seen correctly if expanded */
+}
+
+.feed-card-footer {
+  margin-top: auto;
 }
 
 .feed-card:hover {
@@ -2160,6 +2162,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .feed-card-footer {
+    margin-top: 12px;
     flex-direction: row;
     align-items: center !important;
     justify-content: space-between;

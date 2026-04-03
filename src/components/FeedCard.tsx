@@ -423,10 +423,10 @@ const FeedCard = ({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '136px minmax(0, 1fr)',
-            gap: '14px',
+            gridTemplateColumns: '112px minmax(0, 1fr)',
+            gap: '12px',
             alignItems: 'start',
-            marginBottom: '16px',
+            marginBottom: '14px',
           }}
         >
           <a
@@ -503,7 +503,7 @@ const FeedCard = ({
                 fontWeight: '500',
                 margin: 0,
                 display: '-webkit-box',
-                WebkitLineClamp: 6,
+                WebkitLineClamp: 5,
                 WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
                 letterSpacing: '-0.01em',
@@ -518,10 +518,10 @@ const FeedCard = ({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '136px minmax(0, 1fr)',
-            gap: '14px',
+            gridTemplateColumns: '112px minmax(0, 1fr)',
+            gap: '12px',
             alignItems: 'start',
-            marginBottom: '16px',
+            marginBottom: '14px',
           }}
         >
           <button
@@ -590,7 +590,7 @@ const FeedCard = ({
                 fontWeight: '500',
                 margin: 0,
                 display: '-webkit-box',
-                WebkitLineClamp: 6,
+                WebkitLineClamp: 5,
                 WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
                 letterSpacing: '-0.01em',
@@ -602,7 +602,7 @@ const FeedCard = ({
           </div>
         </div>
       ) : (
-        <div style={{ marginBottom: '16px' }}>
+        <div style={{ marginBottom: '14px' }}>
           <p
             style={{
               fontSize: '16px',
@@ -611,7 +611,7 @@ const FeedCard = ({
               fontWeight: '500',
               margin: 0,
               display: '-webkit-box',
-              WebkitLineClamp: 10,
+              WebkitLineClamp: 5,
               WebkitBoxOrient: 'vertical',
               overflow: 'hidden',
               letterSpacing: '-0.01em',
@@ -623,7 +623,7 @@ const FeedCard = ({
         </div>
       )}
 
-      <div className="feed-card-footer" style={{ marginTop: '12px', display: 'flex', alignItems: 'center', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+      <div className="feed-card-footer" style={{ display: 'flex', alignItems: 'center', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
         <div className="feed-card-stats" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           <div className="feed-card-stats-group" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             {stats.map((s, i) => (
