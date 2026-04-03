@@ -475,17 +475,6 @@ const FeedCard = ({
           </div>
         </div>
         <div className="feed-card-actions" style={{ display: 'flex', gap: '4px' }}>
-          {tweet.isXVideo && (
-            <a
-              href={postUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-mini-ghost"
-              style={{ textDecoration: 'none' }}
-            >
-              ดูบน X
-            </a>
-          )}
           {onArticleGen && (
             <button
               onClick={(e) => {

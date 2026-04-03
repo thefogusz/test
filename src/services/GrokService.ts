@@ -1054,7 +1054,7 @@ export const generateGrokBatch = async (stories) => {
 
   for (const story of stories) {
     const normalized = normalizeCacheText(story);
-    const cacheKey = buildCacheKey('story-summary-v3', normalized);
+    const cacheKey = buildCacheKey('story-summary-v4', normalized);
     
     if (seenStories.has(cacheKey)) {
       storyToUniqueIndex.push(seenStories.get(cacheKey));
@@ -1111,9 +1111,13 @@ export const generateGrokBatch = async (stories) => {
     // 4. Update results and cache
     object.mapped_summaries.forEach((item) => {
       const cleanSum = cleanGeneratedContent(item.summary);
-      results[item.index] = cleanSum;
+      const polishedSummary = polishThaiContent(cleanSum, {
+        format: 'โพสต์โซเชียล',
+        allowEmoji: false,
+      });
+      results[item.index] = polishedSummary;
       const key = uniqueStories[item.index].key;
-      setCachedValue(responseCache, key, cleanSum, SUMMARY_CACHE_TTL_MS);
+      setCachedValue(responseCache, key, polishedSummary, SUMMARY_CACHE_TTL_MS);
     });
 
     // Final mapping back to original input order

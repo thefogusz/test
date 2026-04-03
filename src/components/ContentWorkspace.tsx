@@ -207,51 +207,69 @@ const ContentWorkspace = ({
               <div
                 style={{
                   display: 'flex',
-                  gap: '8px',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
                   marginTop: '12px',
                   flexWrap: 'wrap',
                 }}
               >
-                {[
-                  { id: 'all', label: 'ทั้งหมด' },
-                  { id: 'videos', label: 'วิดีโอ' },
-                ].map((option) => {
-                  const isActive = searchMediaType === option.id;
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => setSearchMediaType(option.id)}
-                      className={`btn-mini-ghost ${isActive ? 'active' : ''}`}
-                      style={{
-                        background: isActive ? 'rgba(96, 165, 250, 0.18)' : 'transparent',
-                        borderColor: isActive ? 'rgba(96, 165, 250, 0.45)' : 'rgba(255,255,255,0.08)',
-                        color: isActive ? '#bfdbfe' : 'var(--text-dim)',
-                      }}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-              {searchResults.length > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
-                  <button
-                    onClick={() => {
-                      setSearchQuery('');
-                      setSearchResults([]);
-                      setSearchOverflowResults([]);
-                      setSearchSummary('');
-                      setSearchWebSources([]);
-                      setSearchCursor(null);
-                      setStatus('\u0e04\u0e31\u0e14\u0e25\u0e2d\u0e01\u0e1a\u0e17\u0e2a\u0e23\u0e38\u0e1b\u0e41\u0e25\u0e49\u0e27');
-                    }}
-                    className="btn-mini-ghost"
-                    style={{ color: 'var(--text-dim)', background: 'transparent' }}
-                  >
-                    <RefreshCcw size={14} /> {'\u0e25\u0e49\u0e32\u0e07\u0e1c\u0e25\u0e25\u0e31\u0e1e\u0e18\u0e4c'}</button>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {[
+                    { id: 'all', label: 'ทั้งหมด' },
+                    { id: 'videos', label: 'วิดีโอ' },
+                  ].map((option) => {
+                    const isActive = searchMediaType === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => setSearchMediaType(option.id)}
+                        className={`btn-mini-ghost ${isActive ? 'active' : ''}`}
+                        style={{
+                          background: isActive ? 'rgba(96, 165, 250, 0.18)' : 'transparent',
+                          borderColor: isActive ? 'rgba(96, 165, 250, 0.45)' : 'rgba(255,255,255,0.08)',
+                          color: isActive ? '#bfdbfe' : 'var(--text-dim)',
+                        }}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
+
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginLeft: 'auto' }}>
+                  {searchResults.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSearchResults([]);
+                        setSearchOverflowResults([]);
+                        setSearchSummary('');
+                        setSearchWebSources([]);
+                        setSearchCursor(null);
+                        setStatus('\u0e25\u0e49\u0e32\u0e07\u0e1c\u0e25\u0e25\u0e31\u0e1e\u0e18\u0e4c\u0e41\u0e25\u0e49\u0e27');
+                      }}
+                      className="btn-mini-ghost"
+                      style={{ color: 'var(--text-dim)', background: 'transparent' }}
+                    >
+                      <RefreshCcw size={14} /> {'\u0e25\u0e49\u0e32\u0e07\u0e1c\u0e25\u0e25\u0e31\u0e1e\u0e18\u0e4c'}
+                    </button>
+                  )}
+
+                  {canSaveCurrentSearchAsPreset && (
+                    <button
+                      type="button"
+                      className="search-preset-save-btn"
+                      onClick={() => addSearchPreset(searchQuery)}
+                      style={{ marginTop: 0 }}
+                    >
+                      <Sparkles size={14} /> {'\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e40\u0e1b\u0e47\u0e19 Preset'}
+                    </button>
+                  )}
+                </div>
+              </div>
               {shouldInlineSearchStatus && (
                 <SearchInlineStatus
                   badge={isSearching ? AI_WORKSPACES.langGraph.role : AI_WORKSPACES.langChain.role}
@@ -263,17 +281,6 @@ const ContentWorkspace = ({
                   }
                   loading={isSearching}
                 />
-              )}
-              {canSaveCurrentSearchAsPreset && (
-                <div className="search-preset-toolbar">
-                  <button
-                    type="button"
-                    className="search-preset-save-btn"
-                    onClick={() => addSearchPreset(searchQuery)}
-                  >
-                    <Sparkles size={14} /> {'\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e40\u0e1b\u0e47\u0e19 Preset'}
-                  </button>
-                </div>
               )}
               {showSuggestions && suggestions.length > 0 && (
                 <div className="search-suggestions-dropdown">
