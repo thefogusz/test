@@ -227,7 +227,8 @@ export const useSearchWorkspace = ({
         !/from:|since:|until:|@|"/i.test(requestedQuery);
       const queryIntent = analyzeSearchQueryIntent(requestedQuery);
       const effectiveBroadDiscoveryQuery = queryIntent.broadDiscoveryIntent || legacyBroadDiscoveryQuery;
-      const searchQueryType = isLatestMode || queryIntent.forceLatestMode ? 'Latest' : 'Top';
+      const effectiveLatestMode = isLatestMode || queryIntent.forceLatestMode;
+      const searchQueryType = effectiveLatestMode ? 'Latest' : 'Top';
       const cacheKey = getSearchCacheKey(
         `${requestedQuery}::${searchMediaType}`,
         searchQueryType,
@@ -270,7 +271,7 @@ export const useSearchWorkspace = ({
         const getScopedQuery = (query: string, lane = 'default') => {
           let scopedQuery = query;
 
-          if (isLatestMode) {
+          if (effectiveLatestMode) {
             if (!query.includes('since:')) {
               const date = new Date();
               date.setHours(date.getHours() - 24);
@@ -311,11 +312,11 @@ export const useSearchWorkspace = ({
 
           const tavilyPromise =
             shouldUseAdaptivePlan || effectiveBroadDiscoveryQuery
-              ? tavilySearch(webSearchQuery || requestedQuery, isLatestMode)
+              ? tavilySearch(webSearchQuery || requestedQuery, effectiveLatestMode)
               : Promise.resolve({ results: [], answer: '' });
           const expandedBroadQueryPromise = expandSearchQuery(
             effectiveRequestedQuery,
-            isLatestMode,
+            effectiveLatestMode,
           ).catch(
             (error) => {
               console.warn(`[Search] Failed to expand query: ${requestedQuery}`, error);
@@ -453,7 +454,7 @@ export const useSearchWorkspace = ({
 
           if (shouldUseAdaptivePlan) {
             setStatus('[API] ออกแบบกลยุทธ์แสกนเชิงลึก (Precision Snipe) จาก Context...');
-            searchPlan = await buildSearchPlan(requestedQuery, isLatestMode, webContext, isComplexQuery);
+            searchPlan = await buildSearchPlan(requestedQuery, effectiveLatestMode, webContext, isComplexQuery);
             setActiveSearchPlan(searchPlan);
 
             const snipeQueryRaw = searchPlan?.queries?.find(
@@ -511,7 +512,7 @@ export const useSearchWorkspace = ({
         if (data.length > 0) {
           setStatus('[Quality Gate] คัดกรองและประเมิน Engagement...');
           const curated = curateSearchResults(data, rankingQuery, {
-            latestMode: isLatestMode,
+            latestMode: effectiveLatestMode,
             preferCredibleSources: isComplexQuery && !effectiveBroadDiscoveryQuery,
           });
 
@@ -531,7 +532,7 @@ export const useSearchWorkspace = ({
                   (curated.length > 0
                     ? 'Kept from the global-first ranked result set for this broad query.'
                     : 'Kept from the fallback broad-topic result set after the strict quality gate returned empty.'),
-                temporalTag: tweet.temporalTag || (isLatestMode ? 'Breaking' : 'Related'),
+                temporalTag: tweet.temporalTag || (effectiveLatestMode ? 'Breaking' : 'Related'),
                 citation_id: tweet.citation_id || `[F${index + 1}]`,
               }));
 
@@ -578,7 +579,7 @@ export const useSearchWorkspace = ({
                     ai_reasoning:
                       tweet.ai_reasoning ||
                       'Kept as a fallback result after passing the local quality checks.',
-                    temporalTag: tweet.temporalTag || (isLatestMode ? 'Breaking' : 'Related'),
+                    temporalTag: tweet.temporalTag || (effectiveLatestMode ? 'Breaking' : 'Related'),
                     citation_id: tweet.citation_id || `[F${index + 1}]`,
                   }));
           }
