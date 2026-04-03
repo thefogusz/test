@@ -444,7 +444,7 @@ const ContentWorkspace = ({
                         <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>
                           EDITORIAL DIGEST FROM {Math.min(searchResults.length, 10)} KEY SIGNALS
                         </div>
-                        {summaryDateLabel && (
+                        {isLatestMode && summaryDateLabel && (
                           <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', marginTop: '4px' }}>
                             {summaryDateLabel}
                           </div>

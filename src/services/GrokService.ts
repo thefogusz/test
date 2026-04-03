@@ -405,6 +405,7 @@ export const tavilySearch = async (query, isLatest = false, options = {}) => {
         topic: searchOptions.topic,
         time_range: isLatest ? 'day' : undefined,
       }),
+      abortSignal: options.signal,
     });
 
     if (!response.ok) return { results: [], answer: '' };
@@ -1816,8 +1817,9 @@ const extractTweetIdFromInput = (input = '') => {
   return { username: match[1], tweetId: match[2] };
 };
 
-export const analyzeXVideoPost = async ({ postUrl, fallbackText = '' } = {}) => {
+export const analyzeXVideoPost = async ({ postUrl, fallbackText = '', signal } = {}) => {
   if (!postUrl || !/(?:twitter|x)\.com\//i.test(postUrl)) return null;
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
 
   const cacheKey = buildCacheKey(
     'x-video-analysis',
@@ -1860,16 +1862,25 @@ Return JSON only.`,
           reasoningEffort: 'medium',
         },
       },
+      abortSignal: signal,
     });
 
     return setCachedValue(responseCache, cacheKey, object, X_VIDEO_ANALYSIS_CACHE_TTL_MS);
   } catch (error) {
+    if (error?.name === 'AbortError') throw error;
     console.warn('[GrokService] X video analysis failed:', error);
     return null;
   }
 };
 
 export const researchAndPreventHallucination = async (input, interactionData = '', options = {}) => {
+  const throwIfAborted = () => {
+    if (options.signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+  };
+
+  throwIfAborted();
   const rawInput = options.originalInput || input;
   const cacheKey = buildCacheKey('fact-sheet-v2', normalizeCacheText(rawInput) + '||' + normalizeCacheText(input) + '||' + normalizeCacheText((interactionData || '').slice(0, 300)));
   const cached = getCachedValue(responseCache, cacheKey);
@@ -1884,6 +1895,7 @@ export const researchAndPreventHallucination = async (input, interactionData = '
   const tweetRef = extractTweetIdFromInput(input);
   if (tweetRef) {
     try {
+      throwIfAborted();
       const tweet = await fetchTweetById(tweetRef.tweetId);
       if (tweet?.text) {
         const tweetText = tweet.text.replace(/https?:\/\/\S+/g, '').trim();
@@ -1904,6 +1916,7 @@ export const researchAndPreventHallucination = async (input, interactionData = '
   let researchQuery = '';
   const intentProfile = options.intentProfile || null;
   try {
+    throwIfAborted();
     const normalizedInputSeed = intentProfile?.researchHint || input;
     const queryInput = tweetRef ? `${tweetRef.username} ${normalizedInputSeed.replace(TWEET_URL_PATTERN, '').trim()}`.trim() : normalizedInputSeed;
     researchQuery = await deriveResearchQuery(queryInput, interactionData);
@@ -1919,6 +1932,7 @@ export const researchAndPreventHallucination = async (input, interactionData = '
   const hasPrimaryLead = attachedExternalUrls.length > 0;
 
   try {
+    throwIfAborted();
     console.log('[GrokService] Starting research with query:', researchQuery);
     if (options.onProgress) options.onProgress('fetching');
 
@@ -1949,6 +1963,8 @@ export const researchAndPreventHallucination = async (input, interactionData = '
           )
         : Promise.resolve([]),
     ]);
+
+    throwIfAborted();
 
     if (data && (data.results?.length || data.answer)) {
       const webResults = Array.isArray(data.results) ? data.results : [];
@@ -2023,10 +2039,12 @@ export const researchAndPreventHallucination = async (input, interactionData = '
     console.log('[GrokService] Evidence gathering complete:', { web: !!webContext, x: xTweets.length });
     if (options.onProgress) options.onProgress('context-built');
   } catch (error) {
+    if (error?.name === 'AbortError') throw error;
     console.error('[GrokService] Search aggregation error:', error);
   }
 
   try {
+    throwIfAborted();
     if (options.onProgress) options.onProgress('compiling');
     const todayDate = new Date().toISOString().split('T')[0];
     const { object: factSheetObj } = await generateObject({

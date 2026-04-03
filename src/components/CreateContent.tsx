@@ -344,6 +344,7 @@ const CreateContent = ({
   const [_thinkingStep, setThinkingStep] = useState(0);
   const [generationStartedAt, setGenerationStartedAt] = useState(null);
   const [progressNow, setProgressNow] = useState(() => Date.now());
+  const [isStopping, setIsStopping] = useState(false);
   const abortRef = useRef(null);
   const activeFormatHint = FORMAT_HINTS[format] || FORMAT_HINTS['โพสต์โซเชียล'];
   const attachedIsXVideo = isXVideoSource(sourceNode);
@@ -396,6 +397,7 @@ const CreateContent = ({
 
   const handleStop = () => {
     if (abortRef.current) {
+      setIsStopping(true);
       abortRef.current.abort();
       abortRef.current = null;
     }
@@ -410,6 +412,7 @@ const CreateContent = ({
     const controller = new AbortController();
     abortRef.current = controller;
 
+    setIsStopping(false);
     setIsGenerating(true);
     setGenerationStartedAt(Date.now());
     setProgressNow(Date.now());
@@ -449,6 +452,7 @@ const CreateContent = ({
           const xVideoAnalysis = await analyzeXVideoPost({
             postUrl: sourceUrl,
             fallbackText: [originalText, translatedSummary].filter(Boolean).join('\n'),
+            signal: controller.signal,
           });
 
           if (xVideoAnalysis) {
@@ -528,6 +532,7 @@ const CreateContent = ({
       }
     } finally {
       abortRef.current = null;
+      setIsStopping(false);
       setIsGenerating(false);
     }
   };
@@ -567,6 +572,7 @@ const CreateContent = ({
     const controller = new AbortController();
     abortRef.current = controller;
 
+    setIsStopping(false);
     setIsGenerating(true);
     setGenerationStartedAt(Date.now());
     setProgressNow(Date.now());
@@ -610,6 +616,7 @@ const CreateContent = ({
       }
     } finally {
       abortRef.current = null;
+      setIsStopping(false);
       setIsGenerating(false);
     }
   };
@@ -833,13 +840,14 @@ const CreateContent = ({
                 <button
                   className="create-content-stop-btn"
                   onClick={handleStop}
+                  disabled={isStopping}
                   style={{
                     background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
                     borderRadius: '12px', color: '#ef4444', padding: '12px 18px',
-                    fontSize: '14px', fontWeight: '700', cursor: 'pointer',
+                    fontSize: '14px', fontWeight: '700', cursor: isStopping ? 'wait' : 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s', width: '100%'
                   }}
-                  onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)'; }}
+                  onMouseOver={(e) => { if (!isStopping) e.currentTarget.style.background = 'rgba(239,68,68,0.2)'; }}
                   onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; }}
                 >
                   <X size={16} /> หยุด
@@ -849,26 +857,28 @@ const CreateContent = ({
               <button
                 className="create-content-generate-btn"
                 onClick={handleGenerate}
-                disabled={isGenerating || (!input.trim() && !sourceNode)}
+                disabled={isGenerating || isStopping || (!input.trim() && !sourceNode)}
                 style={{
-                  background: (isGenerating || (!input.trim() && !sourceNode)) ? 'rgba(255,255,255,0.02)' : 'linear-gradient(180deg, #6d8dff 0%, #4f6cf7 100%)',
-                  color: (isGenerating || (!input.trim() && !sourceNode)) ? 'var(--text-muted)' : '#ffffff',
-                  border: (isGenerating || (!input.trim() && !sourceNode)) ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(149,177,255,0.42)',
+                  background: (isGenerating || isStopping || (!input.trim() && !sourceNode)) ? 'rgba(255,255,255,0.02)' : 'linear-gradient(180deg, #6d8dff 0%, #4f6cf7 100%)',
+                  color: (isGenerating || isStopping || (!input.trim() && !sourceNode)) ? 'var(--text-muted)' : '#ffffff',
+                  border: (isGenerating || isStopping || (!input.trim() && !sourceNode)) ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(149,177,255,0.42)',
                   borderRadius: '14px',
                   padding: '12px 22px',
                   fontSize: '14px',
                   fontWeight: '700',
-                  cursor: (isGenerating || (!input.trim() && !sourceNode)) ? 'not-allowed' : 'pointer',
+                  cursor: (isGenerating || isStopping || (!input.trim() && !sourceNode)) ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '10px',
-                  boxShadow: (isGenerating || (!input.trim() && !sourceNode)) ? 'none' : '0 10px 24px rgba(79, 108, 247, 0.22)',
+                  boxShadow: (isGenerating || isStopping || (!input.trim() && !sourceNode)) ? 'none' : '0 10px 24px rgba(79, 108, 247, 0.22)',
                   transition: 'all 0.3s ease',
                   width: '100%'
                 }}
               >
-                {isGenerating ? (
+                {isStopping ? (
+                  <><Loader2 size={18} className="animate-spin" /> กำลังหยุด...</>
+                ) : isGenerating ? (
                   <><Loader2 size={18} className="animate-spin" /> กำลังสร้าง...</>
                 ) : (
                   <><SquarePen size={18} /> สร้างคอนเทนต์</>
