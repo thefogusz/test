@@ -365,38 +365,18 @@ const FeedCard = ({
           }}
         >
           <Reply size={13} strokeWidth={2.5} style={{ opacity: 0.9 }} />
-          <span>ตอบกลับ <b>@{tweet.inReplyToUsername || 'ใครบางคน'}</b></span>
+          <span>ตอบกลับ <b>@{tweet.inReplyToUsername || 'บางคน'}</b></span>
         </div>
       )}
 
-      <div style={{ marginBottom: '16px' }}>
-        <p
-          style={{
-            fontSize: '16px',
-            lineHeight: '1.6',
-            color: 'rgba(255, 255, 255, 0.9)',
-            fontWeight: '500',
-            margin: 0,
-            display: '-webkit-box',
-            WebkitLineClamp: 10,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            letterSpacing: '-0.01em',
-            wordBreak: 'break-word',
-          }}
-        >
-          {displayText}
-        </p>
-      </div>
-
-      {tweet.isXVideo && (
+      {tweet.isXVideo ? (
         <div
           style={{
+            display: 'grid',
+            gridTemplateColumns: '168px minmax(0, 1fr)',
+            gap: '16px',
+            alignItems: 'start',
             marginBottom: '16px',
-            borderRadius: '18px',
-            overflow: 'hidden',
-            border: '1px solid rgba(96, 165, 250, 0.18)',
-            background: 'linear-gradient(180deg, rgba(96, 165, 250, 0.12) 0%, rgba(15, 23, 42, 0.4) 100%)',
           }}
         >
           <a
@@ -407,51 +387,54 @@ const FeedCard = ({
               display: 'block',
               position: 'relative',
               width: '100%',
-              aspectRatio: '16 / 7.8',
+              aspectRatio: '1 / 1',
+              borderRadius: '18px',
+              overflow: 'hidden',
               textDecoration: 'none',
-              cursor: 'pointer',
+              border: '1px solid rgba(96, 165, 250, 0.18)',
               background: tweet.thumbnailUrl
                 ? `linear-gradient(180deg, rgba(2,6,23,0.08) 0%, rgba(2,6,23,0.72) 100%), url(${tweet.thumbnailUrl}) center/cover`
                 : 'linear-gradient(135deg, rgba(96,165,250,0.28) 0%, rgba(15,23,42,0.8) 100%)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
             }}
           >
             <div
               style={{
                 position: 'absolute',
-                left: '14px',
-                right: '14px',
-                bottom: '14px',
+                left: '10px',
+                right: '10px',
+                bottom: '10px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                gap: '10px',
+                gap: '8px',
               }}
             >
               <div
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '5px',
                   borderRadius: '999px',
-                  padding: '6px 10px',
-                  background: 'rgba(2, 6, 23, 0.72)',
+                  padding: '5px 8px',
+                  background: 'rgba(2, 6, 23, 0.76)',
                   color: '#e5eefc',
-                  fontSize: '11px',
+                  fontSize: '10px',
                   fontWeight: '800',
-                  letterSpacing: '0.04em',
+                  letterSpacing: '0.03em',
                 }}
               >
-                <ListVideo size={12} />
+                <ListVideo size={11} />
                 ดูบน X
               </div>
               {tweet.videoDurationMs ? (
                 <div
                   style={{
                     borderRadius: '999px',
-                    padding: '6px 10px',
-                    background: 'rgba(2, 6, 23, 0.72)',
-                    color: 'rgba(255,255,255,0.88)',
-                    fontSize: '11px',
+                    padding: '5px 8px',
+                    background: 'rgba(2, 6, 23, 0.76)',
+                    color: 'rgba(255,255,255,0.9)',
+                    fontSize: '10px',
                     fontWeight: '800',
                   }}
                 >
@@ -460,6 +443,46 @@ const FeedCard = ({
               ) : null}
             </div>
           </a>
+
+          <div style={{ minWidth: 0, paddingTop: '2px' }}>
+            <p
+              style={{
+                fontSize: '16px',
+                lineHeight: '1.62',
+                color: 'rgba(255, 255, 255, 0.9)',
+                fontWeight: '500',
+                margin: 0,
+                display: '-webkit-box',
+                WebkitLineClamp: 6,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                letterSpacing: '-0.01em',
+                wordBreak: 'break-word',
+              }}
+            >
+              {displayText}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div style={{ marginBottom: '16px' }}>
+          <p
+            style={{
+              fontSize: '16px',
+              lineHeight: '1.6',
+              color: 'rgba(255, 255, 255, 0.9)',
+              fontWeight: '500',
+              margin: 0,
+              display: '-webkit-box',
+              WebkitLineClamp: 10,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              letterSpacing: '-0.01em',
+              wordBreak: 'break-word',
+            }}
+          >
+            {displayText}
+          </p>
         </div>
       )}
 
