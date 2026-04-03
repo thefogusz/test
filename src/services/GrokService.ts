@@ -1873,6 +1873,61 @@ Return JSON only.`,
   }
 };
 
+export const analyzeXImagePost = async ({ postUrl, imageUrls = [], fallbackText = '', signal } = {}) => {
+  if (!postUrl || !/(?:twitter|x)\.com\//i.test(postUrl)) return null;
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+
+  const cacheKey = buildCacheKey(
+    'x-image-analysis',
+    `${normalizeCacheText(postUrl)}||${normalizeCacheText((imageUrls || []).join(' ')).slice(0, 500)}||${normalizeCacheText(fallbackText).slice(0, 500)}`,
+  );
+  const cached = getCachedValue(responseCache, cacheKey);
+  if (cached) return cached;
+
+  try {
+    const { object } = await generateObject({
+      model: grok.responses(MODEL_REASONING_FAST),
+      system: `You analyze image posts from X for a Thai content creation workflow.
+Use the available x_search tool when needed.
+Only analyze the specific X post URL provided by the user.
+Focus on what is visually evident in the attached image post, any visible text inside the image, and angles that are useful for content creation.
+If the image cannot be inspected directly, fall back conservatively to the supplied post text context and image URLs.
+Return JSON only.`,
+      prompt: [
+        `Analyze the X image post from this exact post URL: ${postUrl}`,
+        imageUrls.length ? `[Image URLs]\n${imageUrls.join('\n')}` : '',
+        fallbackText ? `[Fallback post text/context]\n${fallbackText}` : '',
+        'Extract the core visual idea, any readable text in the image, notable elements, and hooks that can be used for a Thai content brief.',
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+      tools: {
+        x_search: grok.tools.xSearch(),
+      },
+      schema: z.object({
+        available: z.boolean(),
+        summary: z.string(),
+        visibleText: z.array(z.string()).max(8),
+        visualNotes: z.array(z.string()).max(6),
+        keyPoints: z.array(z.string()).max(6),
+        hookAngles: z.array(z.string()).max(4),
+      }),
+      providerOptions: {
+        xai: {
+          reasoningEffort: 'medium',
+        },
+      },
+      abortSignal: signal,
+    });
+
+    return setCachedValue(responseCache, cacheKey, object, X_VIDEO_ANALYSIS_CACHE_TTL_MS);
+  } catch (error) {
+    if (error?.name === 'AbortError') throw error;
+    console.warn('[GrokService] X image analysis failed:', error);
+    return null;
+  }
+};
+
 export const researchAndPreventHallucination = async (input, interactionData = '', options = {}) => {
   const throwIfAborted = () => {
     if (options.signal?.aborted) {

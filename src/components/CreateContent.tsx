@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, FileText, CheckCircle2, ListVideo, ShieldCheck, Copy, MessageSquare, Hash, Plus, Loader2, Info, ChevronDown, Smile, Maximize2, X, PenTool, SquarePen, Bookmark, ExternalLink, RefreshCw, Image as ImageIcon } from 'lucide-react';
 import {
+  analyzeXImagePost,
   analyzeXVideoPost,
   researchAndPreventHallucination,
   generateStructuredContentV2,
@@ -134,6 +135,13 @@ const serializeAttachedSource = (sourceNode) => {
 
 const isXVideoSource = (sourceNode) =>
   Boolean(sourceNode?.isXVideo || sourceNode?.sourceType === 'x_video');
+
+const getSourceImageUrls = (sourceNode) =>
+  Array.from(
+    new Set(
+      [sourceNode?.primaryImageUrl, ...(Array.isArray(sourceNode?.imageUrls) ? sourceNode.imageUrls : [])].filter(Boolean),
+    ),
+  );
 
 const formatDurationLabel = (durationMs) => {
   const totalSeconds = Math.max(0, Math.round((Number(durationMs) || 0) / 1000));
@@ -439,6 +447,7 @@ const CreateContent = ({
       if (sourceNode) {
         const sourceUrl = buildAttachedTweetUrl(sourceNode);
         const primarySourceUrls = extractPrimarySourceUrlsFromNode(sourceNode);
+        const sourceImageUrls = getSourceImageUrls(sourceNode);
         const originalText = (sourceNode.text || '').trim();
         const translatedSummary = (sourceNode.summary || '').trim();
         const sourceLabel = sourceNode.title || originalText || 'Untitled source';
@@ -471,6 +480,27 @@ const CreateContent = ({
               ...(xVideoAnalysis.keyPoints || []).map((point, index) => `Key Point ${index + 1}: ${point}`),
               ...(xVideoAnalysis.hookAngles || []).map((angle, index) => `Hook Angle ${index + 1}: ${angle}`),
               ...(xVideoAnalysis.visualNotes || []).map((note, index) => `Visual Note ${index + 1}: ${note}`),
+            ]
+              .filter(Boolean)
+              .join('\n') + '\n\n';
+          }
+        } else if (sourceUrl && sourceImageUrls.length > 0) {
+          const xImageAnalysis = await analyzeXImagePost({
+            postUrl: sourceUrl,
+            imageUrls: sourceImageUrls,
+            fallbackText: [originalText, translatedSummary].filter(Boolean).join('\n'),
+            signal: controller.signal,
+          });
+
+          if (xImageAnalysis) {
+            factIntel += [
+              '[ATTACHED INTEL - X IMAGE ANALYSIS]',
+              `Image understanding available: ${xImageAnalysis.available ? 'yes' : 'limited'}`,
+              xImageAnalysis.summary ? `Image Summary: ${xImageAnalysis.summary}` : '',
+              ...(xImageAnalysis.visibleText || []).map((line, index) => `Visible Text ${index + 1}: ${line}`),
+              ...(xImageAnalysis.keyPoints || []).map((point, index) => `Key Point ${index + 1}: ${point}`),
+              ...(xImageAnalysis.visualNotes || []).map((note, index) => `Visual Note ${index + 1}: ${note}`),
+              ...(xImageAnalysis.hookAngles || []).map((angle, index) => `Hook Angle ${index + 1}: ${angle}`),
             ]
               .filter(Boolean)
               .join('\n') + '\n\n';
