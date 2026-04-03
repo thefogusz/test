@@ -3,6 +3,8 @@ import {
   BarChart2,
   Bookmark,
   Check,
+  ChevronLeft,
+  ChevronRight,
   ExternalLink,
   Heart,
   Image as ImageIcon,
@@ -11,6 +13,7 @@ import {
   PenTool,
   Repeat,
   Reply,
+  X,
 } from 'lucide-react';
 import type { Post, PostList } from '../types/domain';
 import { STORAGE_KEYS } from '../constants/storageKeys';
@@ -82,8 +85,14 @@ const FeedCard = ({
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [optimisticInWatchlist, setOptimisticInWatchlist] = useState(false);
+  const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const displayText = isUsableThaiSummary(tweet.summary, tweet.text) ? tweet.summary : tweet.text;
   const previewImageUrl = tweet.primaryImageUrl || tweet.imageUrls?.[0] || '';
+  const imageUrls = useMemo(
+    () => Array.from(new Set((Array.isArray(tweet.imageUrls) ? tweet.imageUrls : []).filter(Boolean))),
+    [tweet.imageUrls],
+  );
   const authorUsername = (tweet.author?.username || '').trim().replace(/^@/, '').toLowerCase();
   const postUrl = useMemo(
     () => tweet.url || `https://x.com/${tweet.author?.username || 'i'}/status/${tweet.id}`,
@@ -111,6 +120,30 @@ const FeedCard = ({
     setOptimisticInWatchlist(false);
   }, [authorUsername, isInWatchlist]);
 
+  useEffect(() => {
+    if (!isImageViewerOpen) return undefined;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsImageViewerOpen(false);
+        return;
+      }
+
+      if (imageUrls.length <= 1) return;
+
+      if (event.key === 'ArrowLeft') {
+        setActiveImageIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length);
+      }
+
+      if (event.key === 'ArrowRight') {
+        setActiveImageIndex((prev) => (prev + 1) % imageUrls.length);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [imageUrls.length, isImageViewerOpen]);
+
   const handleBookmark = () => {
     const next = !bookmarked;
     setBookmarked(next);
@@ -127,6 +160,14 @@ const FeedCard = ({
       setOptimisticInWatchlist(false);
     }
   };
+
+  const openImageViewer = (index = 0) => {
+    if (imageUrls.length === 0) return;
+    setActiveImageIndex(Math.max(0, Math.min(index, imageUrls.length - 1)));
+    setIsImageViewerOpen(true);
+  };
+
+  const activeImageUrl = imageUrls[activeImageIndex] || previewImageUrl;
 
   const profileMenuItems = fallbackPostLists.map((list) => {
     const isMember = Array.isArray(list.members) && list.members.some((member) => member?.toLowerCase() === authorUsername);
@@ -476,10 +517,9 @@ const FeedCard = ({
             marginBottom: '16px',
           }}
         >
-          <a
-            href={postUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => openImageViewer(0)}
             style={{
               display: 'block',
               position: 'relative',
@@ -491,6 +531,8 @@ const FeedCard = ({
               border: '1px solid rgba(255,255,255,0.08)',
               background: `linear-gradient(180deg, rgba(2,6,23,0.04) 0%, rgba(2,6,23,0.22) 100%), url(${previewImageUrl}) center/cover`,
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+              cursor: 'zoom-in',
+              padding: 0,
             }}
           >
             <div
@@ -511,9 +553,26 @@ const FeedCard = ({
               }}
             >
               <ImageIcon size={10} />
-              ดูภาพบน X
+              ดูภาพใน FORO
             </div>
-          </a>
+            {imageUrls.length > 1 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  right: '8px',
+                  bottom: '8px',
+                  borderRadius: '999px',
+                  padding: '4px 7px',
+                  background: 'rgba(2, 6, 23, 0.76)',
+                  color: 'rgba(255,255,255,0.92)',
+                  fontSize: '9px',
+                  fontWeight: '800',
+                }}
+              >
+                1/{imageUrls.length}
+              </div>
+            )}
+          </button>
 
           <div style={{ minWidth: 0, paddingTop: '2px' }}>
             <p
@@ -583,6 +642,123 @@ const FeedCard = ({
           )}
         </div>
       </div>
+
+      {isImageViewerOpen && activeImageUrl && (
+        <div className="modal-overlay" onClick={() => setIsImageViewerOpen(false)}>
+          <div
+            className="modal-content animate-fade-in"
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              maxWidth: 'min(96vw, 1100px)',
+              width: '100%',
+              padding: '16px',
+              background: 'rgba(10, 10, 12, 0.96)',
+              border: '1px solid rgba(255,255,255,0.08)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '12px' }}>
+              <div style={{ minWidth: 0 }}>
+                <div className="modal-title" style={{ fontSize: '16px', marginBottom: '4px' }}>
+                  รูปภาพจาก @{tweet.author?.username || 'x'}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
+                  {imageUrls.length > 1 ? `รูป ${activeImageIndex + 1} จาก ${imageUrls.length}` : 'ดูรูปใน FORO'}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <a
+                  href={postUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-pill"
+                  style={{ height: '36px', padding: '0 14px', fontSize: '12px' }}
+                >
+                  <ExternalLink size={13} />
+                  เปิดบน X
+                </a>
+                <button className="modal-close-btn" onClick={() => setIsImageViewerOpen(false)}>
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div
+              style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '320px',
+                maxHeight: '78vh',
+                borderRadius: '18px',
+                overflow: 'hidden',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
+              <img
+                src={activeImageUrl}
+                alt={tweet.text || tweet.summary || 'tweet image'}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '78vh',
+                  objectFit: 'contain',
+                  display: 'block',
+                }}
+              />
+
+              {imageUrls.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setActiveImageIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length)}
+                    style={{
+                      position: 'absolute',
+                      left: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '999px',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      background: 'rgba(2, 6, 23, 0.72)',
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <ChevronLeft size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveImageIndex((prev) => (prev + 1) % imageUrls.length)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '999px',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      background: 'rgba(2, 6, 23, 0.72)',
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <ChevronRight size={18} />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
