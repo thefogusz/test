@@ -178,6 +178,7 @@ const dedupeSources = (sources = []) => {
 
   for (const source of sources) {
     if (!source?.url) continue;
+    if (!isUsableCitationUrl(source.url)) continue;
     if (!byUrl.has(source.url)) {
       byUrl.set(source.url, {
         title: source.title || source.url,
@@ -1303,12 +1304,42 @@ const isSocialPlatformUrl = (url = '') => {
   }
 };
 
+const isXAssetUrl = (url = '') => {
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.replace(/^www\./, '').toLowerCase();
+    const pathname = parsed.pathname.toLowerCase();
+
+    if (hostname === 'pbs.twimg.com' || hostname.endsWith('.pbs.twimg.com')) {
+      return true;
+    }
+
+    if (!['x.com', 'twitter.com'].includes(hostname)) {
+      return false;
+    }
+
+    return pathname.startsWith('/profile_images/')
+      || pathname.startsWith('/profile_banners/')
+      || pathname.startsWith('/media/')
+      || pathname.startsWith('/amplify_video_thumb/')
+      || pathname.startsWith('/ext_tw_video_thumb/')
+      || pathname.startsWith('/tweet_video_thumb/');
+  } catch {
+    return false;
+  }
+};
+
+const isUsableCitationUrl = (url = '') => {
+  if (!url) return false;
+  return !isSocialPlatformUrl(url) && !isXAssetUrl(url);
+};
+
 const extractExternalSourceUrls = (...chunks) =>
   Array.from(
     new Set(
       chunks
         .flatMap((chunk) => extractUrlsFromText(chunk))
-        .filter((url) => !isSocialPlatformUrl(url)),
+        .filter((url) => isUsableCitationUrl(url)),
     ),
   ).slice(0, 2);
 
@@ -1354,7 +1385,7 @@ const mergeExternalSourceUrls = (...collections) =>
         .flat()
         .filter(Boolean)
         .flatMap((item) => (Array.isArray(item) ? item : [item]))
-        .filter((url) => !isSocialPlatformUrl(url)),
+        .filter((url) => isUsableCitationUrl(url)),
     ),
   ).slice(0, 3);
 

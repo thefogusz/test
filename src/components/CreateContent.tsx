@@ -140,8 +140,23 @@ const extractUrlsFromValue = (value, depth = 0, seen = new Set()) => {
 
 const isExternalArticleUrl = (url = '') => {
   try {
-    const hostname = new URL(url).hostname.replace(/^www\./, '').toLowerCase();
-    return !['x.com', 'twitter.com', 't.co'].includes(hostname);
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.replace(/^www\./, '').toLowerCase();
+    const pathname = parsed.pathname.toLowerCase();
+
+    if (['x.com', 'twitter.com', 't.co'].includes(hostname)) return false;
+    if (hostname === 'pbs.twimg.com' || hostname.endsWith('.pbs.twimg.com')) return false;
+
+    if (pathname.startsWith('/profile_images/')
+      || pathname.startsWith('/profile_banners/')
+      || pathname.startsWith('/media/')
+      || pathname.startsWith('/amplify_video_thumb/')
+      || pathname.startsWith('/ext_tw_video_thumb/')
+      || pathname.startsWith('/tweet_video_thumb/')) {
+      return false;
+    }
+
+    return true;
   } catch {
     return false;
   }
@@ -154,7 +169,7 @@ const extractPrimarySourceUrlsFromNode = (sourceNode) =>
 
 const sanitizeBookmarkSources = (sources = []) =>
   sources
-    .filter((source) => source && source.url)
+    .filter((source) => source && source.url && isExternalArticleUrl(source.url))
     .filter((source, idx, self) => idx === self.findIndex((item) => item.url === source.url))
     .map((source) => ({
       title: source.title || source.url,
