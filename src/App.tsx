@@ -32,6 +32,11 @@ import {
   deserializeStoredCollection,
   deserializeWatchlist,
 } from './utils/appPersistence';
+import {
+  decodeShareListPayload,
+  encodeShareListPayload,
+  DEFAULT_POST_LIST_COLOR,
+} from './features/post-lists/shareListCodec';
 
 const AudienceWorkspace = lazy(() => import('./components/AudienceWorkspace'));
 const BookmarksWorkspace = lazy(() => import('./components/BookmarksWorkspace'));
@@ -43,64 +48,6 @@ const READ_ARCHIVE_INITIAL_RENDER = 24;
 const READ_ARCHIVE_RENDER_BATCH = 24;
 
 const shouldRemoveWhenFalsy = (value) => !value;
-const DEFAULT_POST_LIST_COLOR = 'var(--accent-secondary)';
-const textEncoder = new TextEncoder();
-const textDecoder = new TextDecoder();
-
-const bytesToBase64Url = (bytes) =>
-  btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(''))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=+$/g, '');
-
-const base64UrlToBytes = (value) => {
-  const normalized = String(value || '').trim().replace(/-/g, '+').replace(/_/g, '/');
-  const base64 = normalized + '='.repeat((4 - (normalized.length % 4 || 4)) % 4);
-  const binary = atob(base64);
-  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
-};
-
-const compressString = async (value) => {
-  const stream = new Blob([value]).stream().pipeThrough(new CompressionStream('gzip'));
-  const buffer = await new Response(stream).arrayBuffer();
-  return new Uint8Array(buffer);
-};
-
-const decompressString = async (bytes) => {
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
-  const buffer = await new Response(stream).arrayBuffer();
-  return textDecoder.decode(buffer);
-};
-
-const encodeShareListPayload = async (list) => {
-  const compactPayload = {
-    n: String(list?.name || '').slice(0, 60).trim() || 'List',
-    m: Array.isArray(list?.members) ? list.members.map((member) => String(member || '').trim().replace(/^@/, '').toLowerCase()).filter(Boolean) : [],
-    ...(list?.color && list.color !== DEFAULT_POST_LIST_COLOR ? { c: list.color } : {}),
-  };
-
-  const json = JSON.stringify(compactPayload);
-  if (typeof CompressionStream === 'function') {
-    const compressed = await compressString(json);
-    return `z.${bytesToBase64Url(compressed)}`;
-  }
-
-  return bytesToBase64Url(textEncoder.encode(json));
-};
-
-const decodeShareListPayload = async (value) => {
-  const normalized = String(value || '').trim();
-  const raw =
-    normalized.startsWith('z.') && typeof DecompressionStream === 'function'
-      ? JSON.parse(await decompressString(base64UrlToBytes(normalized.slice(2))))
-      : JSON.parse(textDecoder.decode(base64UrlToBytes(normalized)));
-
-  return {
-    name: raw?.n ?? raw?.name,
-    members: raw?.m ?? raw?.members,
-    color: raw?.c ?? raw?.color,
-  };
-};
 
 const App = () => {
   const [watchlist, setWatchlist] = usePersistentState(STORAGE_KEYS.watchlist, [], {
@@ -441,22 +388,12 @@ const App = () => {
     if (!hasPostListRoom()) return;
     let shouldReopenMobileSheet = reopenMobilePostListAfterModal;
     if (listModal.mode === 'create') {
-      const newList = { id: Date.now().toString(), name: listModal.value, color: 'var(--accent-secondary)', members: [], createdAt: new Date().toISOString() };
+      const newList = { id: Date.now().toString(), name: listModal.value, color: DEFAULT_POST_LIST_COLOR, members: [], createdAt: new Date().toISOString() };
       setPostLists([...postLists, newList]);
       setActiveListId(newList.id);
     } else {
       try {
-        const raw = await decodeShareListPayload(listModal.value);
-
-        // Validate decoded payload — reject or sanitize unexpected values
-        const safeName = String(raw.name || '').slice(0, 60).trim() || 'Imported List';
-        const safeColor = /^(var\(--[a-z-]+\)|#[0-9a-fA-F]{3,8}|rgba?\([^)]+\))$/.test(raw.color)
-          ? raw.color
-          : DEFAULT_POST_LIST_COLOR;
-        const safeMembers = (Array.isArray(raw.members) ? raw.members : [])
-          .filter((m) => typeof m === 'string' && /^[a-zA-Z0-9_]{1,50}$/.test(m.trim()));
-
-        const decoded = { name: safeName, color: safeColor, members: safeMembers };
+        const decoded = await decodeShareListPayload(listModal.value);
         const newList = { ...decoded, id: Date.now().toString(), createdAt: new Date().toISOString() };
         
         // Sync members with watchlist

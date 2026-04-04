@@ -1195,14 +1195,14 @@ export const generateGrokBatch = async (stories) => {
   try {
     const { object } = await generateObject({
       model: grok(MODEL_REASONING_FAST),
-      system: `คุณคือบรรณาธิการข่าวผู้เชี่ยวชาญ หน้าที่คือสรุปข่าวภาษาไทยสั้นๆ 1-2 ประโยคต่อเรื่อง
+      _legacySystem: `คุณคือบรรณาธิการข่าวผู้เชี่ยวชาญ หน้าที่คือสรุปข่าวภาษาไทยสั้นๆ 1-2 ประโยคต่อเรื่อง
 กฎเหล็ก:
 - ห้ามระบุชื่อ X หรือ Twitter
 - ห้ามใส่ลิงก์
 - ห้ามมโนข้อมูลที่ไม่มีในต้นฉบับ
 - รักษาความแม่นยำ 100% และคงคำศัพท์เทคนิคภาษาอังกฤษไว้
 - คืนค่าผลลัพธ์เป็น JSON Object ที่ Map ระหว่าง "index" และ "summary" ให้ตรงตามลำดับต้นฉบับเป๊ะๆ`,
-      prompt: `สรุปข่าวเหล่านี้เป็นภาษาไทย (Translate & Summarize):\n${JSON.stringify(
+      _legacyPrompt: `สรุปข่าวเหล่านี้เป็นภาษาไทย (Translate & Summarize):\n${JSON.stringify(
         uncached.map(u => ({ index: u.index, original: u.text })),
         null,
         2

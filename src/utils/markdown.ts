@@ -11,7 +11,7 @@ export const normalizeSummaryMarkdown = (markdown = '') => {
     // Drop repeated citation clusters appended to the end of a sentence.
     .replace(/([^\n])(?:\s*\[(?:F|W)\d{1,2}\]){2,}(?=\s*[.,;:!?]?\s*(?:\n|$))/g, '$1')
     // If the model returns one long paragraph, break after citation badges to improve readability.
-    .replace(/(\[(?:F|W)\d{1,2}\])\s+(?=[\p{L}\p{N}"'(\[])/gu, '$1\n\n')
+    .replace(/(\[(?:F|W)\d{1,2}\])\s+(?=[[\p{L}\p{N}"'(])/gu, '$1\n\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 };

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Bookmark, BookOpen, ChevronDown, Gem, House, Loader2, RefreshCw, SquarePen, UsersRound } from 'lucide-react';
 import { AI_WORKSPACES } from '../config/aiWorkspaces';
 import { FEATURE_LABELS, formatPlanLimit, type MeteredFeature, type PlanId } from '../config/pricingPlans';
@@ -91,7 +91,7 @@ const Sidebar = ({
   planPriceLabel,
   remainingUsage,
   usageLimits,
-  dailyUsage,
+  dailyUsage: _dailyUsage,
   onSwitchPlan,
   onResetUsage,
   onOpenPricing,
@@ -99,12 +99,7 @@ const Sidebar = ({
   onClearPlanNotice,
 }: SidebarProps) => {
   const [isTesterOpen, setIsTesterOpen] = useState(false);
-
-  useEffect(() => {
-    if (planNotice) {
-      setIsTesterOpen(true);
-    }
-  }, [planNotice]);
+  const isPlanPanelOpen = isTesterOpen || Boolean(planNotice);
 
   return (
     <aside className="sidebar">
@@ -160,11 +155,11 @@ const Sidebar = ({
       </nav>
 
       <div className="sidebar-footer">
-        <div className={`sidebar-plan-panel compact ${isTesterOpen ? 'open' : ''}`}>
+        <div className={`sidebar-plan-panel compact ${isPlanPanelOpen ? 'open' : ''}`}>
           <button
             className="sidebar-user-summary"
             onClick={() => setIsTesterOpen((current) => !current)}
-            aria-expanded={isTesterOpen}
+            aria-expanded={isPlanPanelOpen}
           >
             <div className="sidebar-user-summary-main">
               <div className="sidebar-user-avatar">FG</div>
@@ -177,11 +172,11 @@ const Sidebar = ({
             </div>
             <div className="sidebar-user-summary-meta">
               <div className="sidebar-user-plan-badge">{activePlanId}</div>
-              <ChevronDown size={14} className={`sidebar-user-chevron ${isTesterOpen ? 'open' : ''}`} />
+              <ChevronDown size={14} className={`sidebar-user-chevron ${isPlanPanelOpen ? 'open' : ''}`} />
             </div>
           </button>
 
-          {isTesterOpen && (
+          {isPlanPanelOpen && (
             <div className="sidebar-user-mock">
               <div className="sidebar-user-mode-row">
                 {(['free', 'plus', 'admin'] as PlanId[]).map((planId) => (

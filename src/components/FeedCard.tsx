@@ -218,10 +218,12 @@ const FeedCard = ({
         }
       : null,
   ].filter(Boolean);
+  const showRepostBanner = false;
+  const showInlineReplyBanner = false;
 
   return (
     <div className="feed-card animate-fade-in">
-      {false && isRepost && (
+      {showRepostBanner && isRepost && (
         <div
           style={{
             display: 'inline-flex',
@@ -362,7 +364,7 @@ const FeedCard = ({
         </div>
 
         <div className="feed-card-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          {false && displayTweet.isReply && (
+          {showInlineReplyBanner && displayTweet.isReply && (
             <div
               className="feed-card-reply-badge feed-card-reply-badge-inline"
               style={{

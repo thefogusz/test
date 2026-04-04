@@ -10,6 +10,8 @@ import {
   tavilySearch,
 } from '../services/GrokService';
 import { fetchTweetById } from '../services/TwitterService';
+import { STORAGE_KEYS } from '../constants/storageKeys';
+import { usePersistentState } from '../hooks/usePersistentState';
 import { renderMarkdownToHtml } from '../utils/markdown';
 import ContentTabSwitcher from './ContentTabSwitcher';
 
@@ -42,6 +44,8 @@ const safeParse = (value, fallback) => {
     return fallback;
   }
 };
+
+const shouldRemoveWhenFalsy = (value) => !value;
 
 const EMOJI_REQUEST_PATTERN = /(emoji|emojis|อีโมจิ|อิโมจิ|ใส่อีโมจิ|ใส่ emoji|ใช้ emoji|ใช้ emojis)/i;
 
@@ -83,7 +87,9 @@ const buildResolvedUrlSource = async (url, signal) => {
   let hostname = url;
   try {
     hostname = new URL(url).hostname.replace(/^www\./, '');
-  } catch {}
+  } catch {
+    // Keep the raw URL as a fallback label when URL parsing fails.
+  }
 
   return {
     id: url,
@@ -417,22 +423,23 @@ const CreateContent = ({
   contentTab,
   setContentTab
 }) => {
-  const [input, setInput] = useState(() => localStorage.getItem('foro_gen_input_v1') || '');
+  const [input, setInput] = usePersistentState(STORAGE_KEYS.generateInput, '');
   
   // Settings
-  const [length, setLength] = useState(() => localStorage.getItem('foro_gen_length_v1') || 'ขนาดกลาง (มาตรฐาน)');
-  const [tone, setTone] = useState(() => localStorage.getItem('foro_gen_tone_v1') || 'ให้ข้อมูล/ปกติ');
-  const [format, setFormat] = useState(() => localStorage.getItem('foro_gen_format_v1') || 'โพสต์โซเชียล');
+  const [length, setLength] = usePersistentState(STORAGE_KEYS.generateLength, 'ขนาดกลาง (มาตรฐาน)');
+  const [tone, setTone] = usePersistentState(STORAGE_KEYS.generateTone, 'ให้ข้อมูล/ปกติ');
+  const [format, setFormat] = usePersistentState(STORAGE_KEYS.generateFormat, 'โพสต์โซเชียล');
   const [customInstructions, setCustomInstructions] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Generation state (LIFTED TO APP.JSX)
-  const [factSheet, setFactSheet] = useState(() => localStorage.getItem('foro_gen_factsheet_v1') || null);
-  const [articleSources, setArticleSources] = useState(() => {
-    const saved = localStorage.getItem('foro_gen_sources_v1');
-    return safeParse(saved, []);
+  const [factSheet, setFactSheet] = usePersistentState(STORAGE_KEYS.generateFactSheet, null, {
+    shouldRemove: shouldRemoveWhenFalsy,
   });
-  const [generatedMarkdown, setGeneratedMarkdown] = useState(() => localStorage.getItem('foro_gen_markdown_v1') || '');
+  const [articleSources, setArticleSources] = usePersistentState(STORAGE_KEYS.generateSources, [], {
+    deserialize: (storedValue, fallbackValue) => safeParse(storedValue, fallbackValue),
+  });
+  const [generatedMarkdown, setGeneratedMarkdown] = usePersistentState(STORAGE_KEYS.generateMarkdown, '');
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -498,15 +505,6 @@ const CreateContent = ({
   const _crawlDurationMs = 60000;
   const flowDurationMs = 1800;
   const flowAnimationDelay = generationStartedAt ? `-${progressElapsedMs % flowDurationMs}ms` : '0ms';
-
-  // Persistence effects
-  useEffect(() => { localStorage.setItem('foro_gen_input_v1', input); }, [input]);
-  useEffect(() => { localStorage.setItem('foro_gen_length_v1', length); }, [length]);
-  useEffect(() => { localStorage.setItem('foro_gen_tone_v1', tone); }, [tone]);
-  useEffect(() => { localStorage.setItem('foro_gen_format_v1', format); }, [format]);
-  useEffect(() => { if (factSheet) localStorage.setItem('foro_gen_factsheet_v1', factSheet); else localStorage.removeItem('foro_gen_factsheet_v1'); }, [factSheet]);
-  useEffect(() => { localStorage.setItem('foro_gen_sources_v1', JSON.stringify(articleSources)); }, [articleSources]);
-  useEffect(() => { localStorage.setItem('foro_gen_markdown_v1', generatedMarkdown); }, [generatedMarkdown]);
 
   const handleStop = () => {
     if (abortRef.current) {
@@ -717,13 +715,6 @@ const CreateContent = ({
     setIsEditing(false);
     setIsSaved(false);
     setResolvedInputSource(null);
-
-    // Clear Persistence
-    localStorage.removeItem('foro_gen_input_v1');
-    localStorage.removeItem('foro_gen_markdown_v1');
-    localStorage.removeItem('foro_gen_factsheet_v1');
-    localStorage.removeItem('foro_gen_sources_v1');
-    localStorage.removeItem('foro_gen_titleidea_v1');
   };
 
   // Regenerate: skip research phase, reuse cached factSheet
@@ -1267,3 +1258,4 @@ const CreateContent = ({
 };
 
 export default CreateContent;
+

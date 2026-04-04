@@ -397,16 +397,6 @@ export const useSearchWorkspace = ({
         !/ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update|news|ข่าว|รีวิว|เทียบ|vs|หลุด/i.test(requestedQuery) &&
         !/from:|since:|until:|@|"/i.test(requestedQuery);
       const queryIntent = analyzeSearchQueryIntent(requestedQuery);
-      const queryKeyFocusCounts = searchLearningProfile?.queryKeyFocusCounts?.[queryIntent.queryKey] || {};
-      const globalFocusCounts = searchLearningProfile?.globalFocusCounts || {};
-      const learnedFocusCandidates = (Object.keys(SEARCH_FOCUS_LABELS) as SearchFocusMode[])
-        .map((focus) => ({
-          focus,
-          score: toNumber(queryKeyFocusCounts[focus]) * 2 + toNumber(globalFocusCounts[focus]),
-        }))
-        .sort((left, right) => right.score - left.score);
-      const learnedDefaultFocus =
-        learnedFocusCandidates[0]?.score >= 3 ? learnedFocusCandidates[0].focus : null;
       const effectiveFocus = activeSearchFocus;
       const effectiveBroadDiscoveryQuery = queryIntent.broadDiscoveryIntent || legacyBroadDiscoveryQuery;
       const effectiveLatestMode = isLatestMode || queryIntent.forceLatestMode;
