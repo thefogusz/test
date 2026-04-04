@@ -1,4 +1,4 @@
-import { Check, CreditCard, Shield } from 'lucide-react';
+import { Check, CreditCard, Shield, Sparkles } from 'lucide-react';
 import {
   FEATURE_HINTS,
   FEATURE_LABELS,
@@ -21,6 +21,12 @@ const FEATURE_ORDER: MeteredFeature[] = ['feed', 'search', 'generate'];
 const PUBLIC_PLAN_IDS: PlanId[] = ['free', 'plus'];
 const OBJECT_KEYS = ['watchlist', 'postLists'] as const;
 
+const PLAN_PILL_ICON: Record<PlanId, typeof Shield> = {
+  free: CreditCard,
+  plus: Sparkles,
+  admin: Shield,
+};
+
 const PLAN_FEATURES: Record<'free' | 'plus', string[]> = {
   free: [
     'เริ่มใช้ Feed, Search และ Generate ได้ทันที',
@@ -42,6 +48,7 @@ const PricingWorkspace = ({
   onSelectPlan,
 }: PricingWorkspaceProps) => {
   const currentPlan = PLAN_DEFINITIONS[activePlanId];
+  const CurrentPlanIcon = PLAN_PILL_ICON[activePlanId] ?? CreditCard;
 
   return (
     <div className="pricing-shell pricing-shell-minimal animate-fade-in" style={{ display: isVisible ? 'block' : 'none' }}>
@@ -49,7 +56,7 @@ const PricingWorkspace = ({
         <div className="pricing-minimal-topline">
           <span className="pricing-section-kicker">แพ็กเกจ Foro</span>
           <span className="pricing-current-plan-pill">
-            <Shield size={14} />
+            <CurrentPlanIcon size={14} />
             {currentPlan.name}
           </span>
         </div>
