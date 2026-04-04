@@ -14,6 +14,11 @@ type SidebarProps = {
   onNavClick: (view: ActiveView) => void;
   backgroundTasks?: Record<string, boolean>;
   activePlanId: PlanId;
+  plusAccess?: {
+    activatedAt: string;
+    expiresAt: string;
+    source?: 'checkout' | 'manual';
+  } | null;
   planName: string;
   planPriceLabel: string;
   remainingUsage: Record<MeteredFeature, number>;
@@ -89,6 +94,7 @@ const Sidebar = ({
   onNavClick,
   backgroundTasks = {},
   activePlanId,
+  plusAccess,
   planName: _planName,
   planPriceLabel: _planPriceLabel,
   remainingUsage,
@@ -156,6 +162,7 @@ const Sidebar = ({
       <div className="sidebar-footer">
         <PlanPanel
           activePlanId={activePlanId}
+          plusAccess={plusAccess}
           remainingUsage={remainingUsage}
           usageLimits={usageLimits}
           onSwitchPlan={onSwitchPlan}

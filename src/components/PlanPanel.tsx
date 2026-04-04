@@ -1,6 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { FEATURE_LABELS, formatPlanLimit, type MeteredFeature, type PlanId } from '../config/pricingPlans';
+import {
+  FEATURE_LABELS,
+  formatPlanLimit,
+  type MeteredFeature,
+  type PlanId,
+} from '../config/pricingPlans';
 import plusUserProfileSrc from '../assets/plus-userprofile.png';
 
 type PlanNotice = {
@@ -8,6 +13,12 @@ type PlanNotice = {
   body: string;
   tone?: string;
 } | null | undefined;
+
+type PlusAccess = {
+  activatedAt: string;
+  expiresAt: string;
+  source?: 'checkout' | 'manual';
+} | null;
 
 type PlanPanelProps = {
   activePlanId: PlanId;
@@ -18,6 +29,7 @@ type PlanPanelProps = {
   onOpenPricing: () => void;
   planNotice?: PlanNotice;
   onClearPlanNotice: () => void;
+  plusAccess?: PlusAccess;
   defaultOpen?: boolean;
   className?: string;
 };
@@ -40,6 +52,21 @@ const MOCK_USER_CAPTIONS: Record<PlanId, string> = {
   admin: 'Internal mockup',
 };
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const getPlusAccessBadgeLabel = (plusAccess?: PlusAccess) => {
+  if (!plusAccess?.expiresAt) return null;
+
+  const expiresAtMs = Date.parse(plusAccess.expiresAt);
+  if (!Number.isFinite(expiresAtMs)) return null;
+
+  const diffMs = expiresAtMs - Date.now();
+  if (diffMs <= 0) return 'หมดอายุแล้ว';
+
+  const daysLeft = Math.max(1, Math.ceil(diffMs / DAY_MS));
+  return daysLeft <= 1 ? 'เหลือวันนี้' : `เหลือ ${daysLeft} วัน`;
+};
+
 const PlanPanel = ({
   activePlanId,
   remainingUsage,
@@ -47,24 +74,21 @@ const PlanPanel = ({
   onSwitchPlan,
   onResetUsage,
   onOpenPricing,
-  planNotice,
-  onClearPlanNotice,
+  plusAccess,
   defaultOpen = false,
   className = '',
 }: PlanPanelProps) => {
   const [isTesterOpen, setIsTesterOpen] = useState(defaultOpen);
 
-  useEffect(() => {
-    if (planNotice) {
-      setIsTesterOpen(true);
-    }
-  }, [planNotice]);
-
-  const isPlanPanelOpen = isTesterOpen;
   const isPlusPlan = activePlanId === 'plus';
+  const isPlanPanelOpen = isTesterOpen;
   const profileName = MOCK_USER_NAMES[activePlanId] ?? MOCK_USER_NAMES.free;
   const profileInitials = MOCK_USER_INITIALS[activePlanId] ?? MOCK_USER_INITIALS.free;
   const profileCaption = MOCK_USER_CAPTIONS[activePlanId] ?? MOCK_USER_CAPTIONS.free;
+  const plusAccessBadgeLabel = useMemo(
+    () => (isPlusPlan ? getPlusAccessBadgeLabel(plusAccess) : null),
+    [isPlusPlan, plusAccess],
+  );
 
   const renderProfileAvatar = () => (
     <div className={`sidebar-user-avatar ${isPlusPlan ? 'has-image is-plus' : ''}`}>
@@ -83,7 +107,11 @@ const PlanPanel = ({
   );
 
   return (
-    <div className={`sidebar-plan-panel compact ${isPlanPanelOpen ? 'open' : ''} ${isPlusPlan ? 'plan-plus' : ''} ${className}`.trim()}>
+    <div
+      className={`sidebar-plan-panel compact ${isPlanPanelOpen ? 'open' : ''} ${
+        isPlusPlan ? 'plan-plus' : ''
+      } ${className}`.trim()}
+    >
       <button
         className={`sidebar-user-summary ${isPlusPlan ? 'is-plus' : ''}`}
         onClick={() => setIsTesterOpen((current) => !current)}
@@ -92,13 +120,21 @@ const PlanPanel = ({
         <div className="sidebar-user-summary-main">
           {renderProfileAvatar()}
           <div className="sidebar-user-copy">
-            <div className="sidebar-user-name">{profileName}</div>
+            <div className="sidebar-user-name-row">
+              <div className="sidebar-user-name">{profileName}</div>
+              {plusAccessBadgeLabel && (
+                <span className="sidebar-plus-days-badge">{plusAccessBadgeLabel}</span>
+              )}
+            </div>
             <div className="sidebar-user-role">{profileCaption}</div>
           </div>
         </div>
         <div className="sidebar-user-summary-meta">
           <div className="sidebar-user-plan-badge">{activePlanId}</div>
-          <ChevronDown size={14} className={`sidebar-user-chevron ${isPlanPanelOpen ? 'open' : ''}`} />
+          <ChevronDown
+            size={14}
+            className={`sidebar-user-chevron ${isPlanPanelOpen ? 'open' : ''}`}
+          />
         </div>
       </button>
 
@@ -121,28 +157,28 @@ const PlanPanel = ({
               <div key={feature} className="sidebar-user-stat compact">
                 <span>{FEATURE_LABELS[feature]}</span>
                 <strong>
-                  {Number.isFinite(remainingUsage[feature]) ? remainingUsage[feature] : formatPlanLimit(remainingUsage[feature])}
+                  {Number.isFinite(remainingUsage[feature])
+                    ? remainingUsage[feature]
+                    : formatPlanLimit(remainingUsage[feature])}
                 </strong>
                 <small>/ {formatPlanLimit(usageLimits[feature])}</small>
               </div>
             ))}
           </div>
 
-          {planNotice && (
-            <div className={`sidebar-plan-notice ${planNotice.tone === 'warn' ? 'warn' : ''}`}>
-              <div className="sidebar-plan-notice-title">{planNotice.title}</div>
-              <div className="sidebar-plan-notice-body">{planNotice.body}</div>
-              <button className="sidebar-plan-notice-link" onClick={onClearPlanNotice}>
-                ปิดข้อความนี้
-              </button>
-            </div>
-          )}
-
           <div className="sidebar-user-actions compact">
-            <button className="btn-pill" onClick={onResetUsage} style={{ width: '100%', justifyContent: 'center' }}>
+            <button
+              className="btn-pill"
+              onClick={onResetUsage}
+              style={{ width: '100%', justifyContent: 'center' }}
+            >
               Reset usage
             </button>
-            <button className="btn-pill primary" onClick={onOpenPricing} style={{ width: '100%', justifyContent: 'center' }}>
+            <button
+              className="btn-pill primary"
+              onClick={onOpenPricing}
+              style={{ width: '100%', justifyContent: 'center' }}
+            >
               เปิดหน้า Pricing
             </button>
           </div>

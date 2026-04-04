@@ -122,6 +122,7 @@ const App = () => {
     currentPlan,
     dailyUsage,
     remainingUsage,
+    plusAccess,
     setActivePlanId,
     activatePlusForOneMonth,
     consumeUsage,
@@ -883,6 +884,7 @@ const App = () => {
           audienceSearch: aiSearchLoading
         }}
         activePlanId={activePlanId}
+        plusAccess={plusAccess}
         planName={currentPlan.name}
         planPriceLabel={currentPlan.priceLabel}
         remainingUsage={remainingUsage}

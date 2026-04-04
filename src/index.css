@@ -6491,6 +6491,13 @@ h1, h2, h3, h4, h5, h6 {
   flex-direction: column;
 }
 
+.sidebar-user-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .sidebar-user-summary-meta {
   display: flex;
   align-items: center;
@@ -6644,6 +6651,22 @@ h1, h2, h3, h4, h5, h6 {
 .sidebar-user-summary.is-plus .sidebar-user-name {
   font-size: 12px;
   line-height: 1.15;
+}
+
+.sidebar-plus-days-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(116, 168, 255, 0.2), rgba(69, 109, 255, 0.16));
+  border: 1px solid rgba(135, 180, 255, 0.18);
+  color: rgba(225, 238, 255, 0.96);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .sidebar-user-summary.is-plus .sidebar-user-role {
@@ -6875,6 +6898,15 @@ h1, h2, h3, h4, h5, h6 {
 
   .sidebar-user-name {
     font-size: 11.5px;
+  }
+
+  .sidebar-user-name-row {
+    gap: 5px;
+  }
+
+  .sidebar-plus-days-badge {
+    padding: 3px 6px;
+    font-size: 8px;
   }
 
   .sidebar-user-role {
