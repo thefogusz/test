@@ -1,4 +1,5 @@
-import { Bookmark, BookOpen, Gem, House, Loader2, RefreshCw, SquarePen, UsersRound } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Bookmark, BookOpen, ChevronDown, Gem, House, Loader2, RefreshCw, SquarePen, UsersRound } from 'lucide-react';
 import { AI_WORKSPACES } from '../config/aiWorkspaces';
 import { FEATURE_LABELS, formatPlanLimit, type MeteredFeature, type PlanId } from '../config/pricingPlans';
 import type { ActiveView } from '../types/domain';
@@ -97,6 +98,14 @@ const Sidebar = ({
   planNotice,
   onClearPlanNotice,
 }: SidebarProps) => {
+  const [isTesterOpen, setIsTesterOpen] = useState(false);
+
+  useEffect(() => {
+    if (planNotice) {
+      setIsTesterOpen(true);
+    }
+  }, [planNotice]);
+
   return (
     <aside className="sidebar">
       <div className="sidebar-logo" style={{ padding: '24px 16px 20px', display: 'flex', alignItems: 'center', minHeight: '80px' }}>
@@ -151,77 +160,73 @@ const Sidebar = ({
       </nav>
 
       <div className="sidebar-footer">
-        <div className="sidebar-plan-panel">
-          <div className="sidebar-plan-topline">
-            <div>
-              <div style={{ fontSize: '10px', fontWeight: '800', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)' }}>
-                Active plan
-              </div>
-              <div className="sidebar-plan-name">{planName}</div>
-            </div>
-            <div className="sidebar-plan-price">{planPriceLabel}</div>
-          </div>
-
-          <div className="sidebar-plan-usage">
-            {(['feed', 'search', 'generate'] as MeteredFeature[]).map((feature) => (
-              <div key={feature} className="sidebar-plan-usage-row">
-                <span>{FEATURE_LABELS[feature]}</span>
-                <strong style={{ color: '#fff' }}>
-                  {Number.isFinite(remainingUsage[feature]) ? remainingUsage[feature] : formatPlanLimit(remainingUsage[feature])} / {formatPlanLimit(usageLimits[feature])}
-                </strong>
-              </div>
-            ))}
-          </div>
-
-          <div className="sidebar-user-mock">
-            <div className="sidebar-user-mock-top">
+        <div className={`sidebar-plan-panel compact ${isTesterOpen ? 'open' : ''}`}>
+          <button
+            className="sidebar-user-summary"
+            onClick={() => setIsTesterOpen((current) => !current)}
+            aria-expanded={isTesterOpen}
+          >
+            <div className="sidebar-user-summary-main">
               <div className="sidebar-user-avatar">FG</div>
-              <div>
+              <div className="sidebar-user-copy">
                 <div className="sidebar-user-name">Foro Test User</div>
-                <div className="sidebar-user-role">Mode switcher for pricing QA</div>
-              </div>
-            </div>
-
-            <div className="sidebar-user-mode-row">
-              {(['free', 'plus', 'admin'] as PlanId[]).map((planId) => (
-                <button
-                  key={planId}
-                  className={`sidebar-mode-chip ${activePlanId === planId ? 'active' : ''}`}
-                  onClick={() => onSwitchPlan(planId)}
-                >
-                  {planId}
-                </button>
-              ))}
-            </div>
-
-            <div className="sidebar-user-stats">
-              {(['feed', 'search', 'generate'] as MeteredFeature[]).map((feature) => (
-                <div key={feature} className="sidebar-user-stat">
-                  <span>{FEATURE_LABELS[feature]}</span>
-                  <strong>{dailyUsage[feature]}</strong>
+                <div className="sidebar-user-role">
+                  {planName} · {planPriceLabel}
                 </div>
-              ))}
+              </div>
             </div>
+            <div className="sidebar-user-summary-meta">
+              <div className="sidebar-user-plan-badge">{activePlanId}</div>
+              <ChevronDown size={14} className={`sidebar-user-chevron ${isTesterOpen ? 'open' : ''}`} />
+            </div>
+          </button>
 
-            {planNotice && (
-              <div className={`sidebar-plan-notice ${planNotice.tone === 'warn' ? 'warn' : ''}`}>
-                <div className="sidebar-plan-notice-title">{planNotice.title}</div>
-                <div className="sidebar-plan-notice-body">{planNotice.body}</div>
-                <button className="sidebar-plan-notice-link" onClick={onClearPlanNotice}>
-                  ปิดข้อความนี้
+          {isTesterOpen && (
+            <div className="sidebar-user-mock">
+              <div className="sidebar-user-mode-row">
+                {(['free', 'plus', 'admin'] as PlanId[]).map((planId) => (
+                  <button
+                    key={planId}
+                    className={`sidebar-mode-chip ${activePlanId === planId ? 'active' : ''}`}
+                    onClick={() => onSwitchPlan(planId)}
+                  >
+                    {planId}
+                  </button>
+                ))}
+              </div>
+
+              <div className="sidebar-user-stats compact">
+                {(['feed', 'search', 'generate'] as MeteredFeature[]).map((feature) => (
+                  <div key={feature} className="sidebar-user-stat compact">
+                    <span>{FEATURE_LABELS[feature]}</span>
+                    <strong>
+                      {Number.isFinite(remainingUsage[feature]) ? remainingUsage[feature] : formatPlanLimit(remainingUsage[feature])}
+                    </strong>
+                    <small>/ {formatPlanLimit(usageLimits[feature])}</small>
+                  </div>
+                ))}
+              </div>
+
+              {planNotice && (
+                <div className={`sidebar-plan-notice ${planNotice.tone === 'warn' ? 'warn' : ''}`}>
+                  <div className="sidebar-plan-notice-title">{planNotice.title}</div>
+                  <div className="sidebar-plan-notice-body">{planNotice.body}</div>
+                  <button className="sidebar-plan-notice-link" onClick={onClearPlanNotice}>
+                    ปิดข้อความนี้
+                  </button>
+                </div>
+              )}
+
+              <div className="sidebar-user-actions compact">
+                <button className="btn-pill" onClick={onResetUsage} style={{ width: '100%', justifyContent: 'center' }}>
+                  Reset usage
+                </button>
+                <button className="btn-pill primary" onClick={onOpenPricing} style={{ width: '100%', justifyContent: 'center' }}>
+                  เปิดหน้า Pricing
                 </button>
               </div>
-            )}
-
-            <div className="sidebar-user-actions">
-              <button className="btn-pill" onClick={onResetUsage} style={{ width: '100%', justifyContent: 'center' }}>
-                Reset usage
-              </button>
-              <button className="btn-pill primary" onClick={onOpenPricing} style={{ width: '100%', justifyContent: 'center' }}>
-                เปิดหน้า Pricing
-              </button>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </aside>
