@@ -166,7 +166,7 @@ const FeedCard = ({
     if (!authorUsername || effectiveIsInWatchlist || !onAddToWatchlist) return;
     setOptimisticInWatchlist(true);
     try {
-      await Promise.resolve(onAddToWatchlist(tweet));
+      await Promise.resolve(onAddToWatchlist(displayTweet));
     } catch (error) {
       console.error(error);
       setOptimisticInWatchlist(false);
@@ -196,10 +196,32 @@ const FeedCard = ({
     { icon: Repeat, v: displayTweet.retweet_count },
     { icon: MessageCircle, v: displayTweet.reply_count },
   ];
+  const footerBadges = [
+    isRepost
+      ? {
+          key: 'repost',
+          icon: Repeat,
+          label: `รีโพสต์โดย ${repostedByUsername ? `@${repostedByUsername}` : repostedByName || 'บัญชีนี้'}`,
+          color: '#8ec5ff',
+          background: 'rgba(41, 151, 255, 0.08)',
+          border: '1px solid rgba(41, 151, 255, 0.16)',
+        }
+      : null,
+    displayTweet.isReply
+      ? {
+          key: 'reply',
+          icon: Reply,
+          label: `ตอบกลับ @${displayTweet.inReplyToUsername || 'บางคน'}`,
+          color: 'var(--accent-blue)',
+          background: 'linear-gradient(90deg, rgba(41, 151, 255, 0.1) 0%, rgba(157, 117, 255, 0.05) 100%)',
+          border: '1px solid rgba(41, 151, 255, 0.16)',
+        }
+      : null,
+  ].filter(Boolean);
 
   return (
     <div className="feed-card animate-fade-in">
-      {isRepost && (
+      {false && isRepost && (
         <div
           style={{
             display: 'inline-flex',
@@ -315,10 +337,10 @@ const FeedCard = ({
                     className={`discovery-menu-item ${item.active ? 'active' : ''}`}
                     onClick={() => {
                       onTogglePostList?.(item.id, {
-                        id: tweet.author?.id || authorUsername,
+                        id: displayTweet.author?.id || authorUsername,
                         username: authorUsername,
-                        name: tweet.author?.name || authorUsername,
-                        profile_image_url: tweet.author?.profile_image_url || '',
+                        name: displayTweet.author?.name || authorUsername,
+                        profile_image_url: displayTweet.author?.profile_image_url || '',
                       });
                       setShowProfileMenu(false);
                     }}
@@ -340,7 +362,7 @@ const FeedCard = ({
         </div>
 
         <div className="feed-card-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          {displayTweet.isReply && (
+          {false && displayTweet.isReply && (
             <div
               className="feed-card-reply-badge feed-card-reply-badge-inline"
               style={{
@@ -659,8 +681,8 @@ const FeedCard = ({
         </div>
       )}
 
-      <div className="feed-card-footer" style={{ display: 'flex', alignItems: 'center', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-        <div className="feed-card-stats" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+      <div className="feed-card-footer" style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        <div className="feed-card-stats" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
           <div className="feed-card-stats-group" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             {stats.map((s, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-dim)', fontSize: '11px' }}>
@@ -669,13 +691,35 @@ const FeedCard = ({
               </div>
             ))}
           </div>
+          {footerBadges.map((badge) => (
+            <div
+              key={badge.key}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                minHeight: '28px',
+                padding: '0 10px',
+                borderRadius: '999px',
+                background: badge.background,
+                border: badge.border,
+                color: badge.color,
+                fontSize: '11px',
+                fontWeight: '700',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <badge.icon size={12} strokeWidth={2.4} />
+              <span>{badge.label}</span>
+            </div>
+          ))}
         </div>
         <div className="feed-card-actions" style={{ display: 'flex', gap: '4px' }}>
           {onArticleGen && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onArticleGen(tweet);
+                onArticleGen(displayTweet);
               }}
               className="btn-forge feed-card-inline-action"
               title="สร้างคอนเทนต์"
@@ -782,7 +826,7 @@ const FeedCard = ({
               >
                 <img
                   src={activeImageUrl}
-                  alt={tweet.text || tweet.summary || 'tweet image'}
+                  alt={displayTweet.text || displayTweet.summary || 'tweet image'}
                   style={{
                     maxWidth: 'min(92vw, 1200px)',
                     maxHeight: 'min(82vh, 1200px)',
