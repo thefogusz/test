@@ -6398,10 +6398,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sidebar-plan-panel.compact.plan-plus {
-  padding: 10px;
-  border-radius: 20px;
+  padding: 8px;
+  border-radius: 18px;
   background:
-    radial-gradient(circle at top right, rgba(214, 176, 84, 0.16), transparent 34%),
+    radial-gradient(circle at top right, rgba(214, 176, 84, 0.14), transparent 32%),
     radial-gradient(circle at bottom left, rgba(41, 151, 255, 0.1), transparent 38%),
     linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.016));
 }
@@ -6427,8 +6427,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sidebar-user-summary.is-plus {
-  gap: 12px;
-  padding: 10px 11px;
+  gap: 10px;
+  padding: 8px 9px;
 }
 
 .sidebar-user-summary-main {
@@ -6479,8 +6479,8 @@ h1, h2, h3, h4, h5, h6 {
 .sidebar-user-mock {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 10px 4px 4px;
+  gap: 8px;
+  padding: 8px 4px 4px;
   border-top: 1px solid rgba(255, 255, 255, 0.055);
   animation: sidebarUserPanelIn 180ms cubic-bezier(0.22, 1, 0.36, 1);
   transform-origin: top center;
@@ -6558,15 +6558,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sidebar-user-avatar.is-plus {
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
-}
-
-.sidebar-user-avatar.is-large {
-  width: 72px;
-  height: 72px;
-  border-radius: 22px;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
 }
 
 .sidebar-user-avatar-image {
@@ -6586,51 +6580,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sidebar-user-summary.is-plus .sidebar-user-name {
-  font-size: 13px;
+  font-size: 12.5px;
 }
 
 .sidebar-user-summary.is-plus .sidebar-user-role {
-  font-size: 11px;
-}
-
-.sidebar-user-hero {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 11px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.sidebar-user-hero.is-plus {
-  gap: 14px;
-  padding: 12px;
-  background: linear-gradient(135deg, rgba(214, 176, 84, 0.14), rgba(255, 255, 255, 0.028));
-  border-color: rgba(214, 176, 84, 0.22);
-}
-
-.sidebar-user-hero-copy {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.sidebar-user-hero-name {
-  font-size: 14px;
-  font-weight: 800;
-  color: #fff;
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.sidebar-user-hero-role {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--text-dim);
-  line-height: 1.45;
 }
 
 .sidebar-user-role {
@@ -6822,8 +6777,8 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .sidebar-plan-panel.compact.plan-plus {
-    width: min(248px, calc(100vw - 20px));
-    padding: 8px;
+    width: min(236px, calc(100vw - 20px));
+    padding: 7px;
   }
 
   .sidebar-user-summary {
@@ -6831,7 +6786,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .sidebar-user-summary.is-plus {
-    padding: 9px;
+    padding: 8px;
   }
 
   .sidebar-user-avatar {
@@ -6841,15 +6796,9 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .sidebar-user-avatar.is-plus {
-    width: 48px;
-    height: 48px;
-    border-radius: 16px;
-  }
-
-  .sidebar-user-avatar.is-large {
-    width: 64px;
-    height: 64px;
-    border-radius: 20px;
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
   }
 
   .sidebar-user-name {
@@ -6866,21 +6815,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .sidebar-user-mock {
-    padding: 9px 3px 3px;
-  }
-
-  .sidebar-user-hero,
-  .sidebar-user-hero.is-plus {
-    padding: 10px;
-    gap: 10px;
-  }
-
-  .sidebar-user-hero-name {
-    font-size: 13px;
-  }
-
-  .sidebar-user-hero-role {
-    font-size: 10.5px;
+    padding: 8px 3px 3px;
   }
 
   .sidebar-user-actions.compact {

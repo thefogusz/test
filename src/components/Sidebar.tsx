@@ -84,9 +84,9 @@ const NAV_ITEMS: NavItemConfig[] = [
 ];
 
 const MOCK_USER_NAMES: Record<PlanId, string> = {
-  free: 'Foro Test User',
-  plus: 'Foro Plus User',
-  admin: 'Foro Admin User',
+  free: 'Foro Free',
+  plus: 'Foro Plus',
+  admin: 'Foro Admin',
 };
 
 const MOCK_USER_INITIALS: Record<PlanId, string> = {
@@ -95,13 +95,19 @@ const MOCK_USER_INITIALS: Record<PlanId, string> = {
   admin: 'FA',
 };
 
+const MOCK_USER_CAPTIONS: Record<PlanId, string> = {
+  free: 'Mockup · Free',
+  plus: 'Mockup · Plus',
+  admin: 'Internal mockup',
+};
+
 const Sidebar = ({
   activeView,
   onNavClick,
   backgroundTasks = {},
   activePlanId,
-  planName,
-  planPriceLabel,
+  planName: _planName,
+  planPriceLabel: _planPriceLabel,
   remainingUsage,
   usageLimits,
   dailyUsage: _dailyUsage,
@@ -116,9 +122,10 @@ const Sidebar = ({
   const isPlusPlan = activePlanId === 'plus';
   const profileName = MOCK_USER_NAMES[activePlanId] ?? MOCK_USER_NAMES.free;
   const profileInitials = MOCK_USER_INITIALS[activePlanId] ?? MOCK_USER_INITIALS.free;
+  const profileCaption = MOCK_USER_CAPTIONS[activePlanId] ?? MOCK_USER_CAPTIONS.free;
 
-  const renderProfileAvatar = (size: 'default' | 'large' = 'default') => (
-    <div className={`sidebar-user-avatar ${size === 'large' ? 'is-large' : ''} ${isPlusPlan ? 'has-image is-plus' : ''}`}>
+  const renderProfileAvatar = () => (
+    <div className={`sidebar-user-avatar ${isPlusPlan ? 'has-image is-plus' : ''}`}>
       {isPlusPlan ? (
         <img
           src={plusUserProfileSrc}
@@ -197,11 +204,7 @@ const Sidebar = ({
               {renderProfileAvatar()}
               <div className="sidebar-user-copy">
                 <div className="sidebar-user-name">{profileName}</div>
-                <div className="sidebar-user-role">
-                  {planName}
-                  {' · '}
-                  {planPriceLabel}
-                </div>
+                <div className="sidebar-user-role">{profileCaption}</div>
               </div>
             </div>
             <div className="sidebar-user-summary-meta">
@@ -212,18 +215,6 @@ const Sidebar = ({
 
           {isPlanPanelOpen && (
             <div className="sidebar-user-mock">
-              <div className={`sidebar-user-hero ${isPlusPlan ? 'is-plus' : ''}`}>
-                {renderProfileAvatar('large')}
-                <div className="sidebar-user-hero-copy">
-                  <div className="sidebar-user-hero-name">{profileName}</div>
-                  <div className="sidebar-user-hero-role">
-                    {planName}
-                    {' · '}
-                    {planPriceLabel}
-                  </div>
-                </div>
-              </div>
-
               <div className="sidebar-user-mode-row">
                 {(['free', 'plus', 'admin'] as PlanId[]).map((planId) => (
                   <button
