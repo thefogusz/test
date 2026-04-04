@@ -12,6 +12,9 @@ hero:
     - theme: alt
       text: ดูภาพรวมระบบ
       link: /architecture/overview
+    - theme: alt
+      text: Cost Analysis
+      link: /cost-analysis
 
 features:
   - title: Read the Code Fast
@@ -41,6 +44,7 @@ npm run docs:build
 - เริ่มจาก [อ่านเริ่มจากตรงนี้](/getting-started)
 - ต่อด้วย [ภาพรวมระบบ](/architecture/overview)
 - แล้วค่อยไล่หน้าตาม feature ที่สนใจ
+- ถ้ากำลังออกแบบ billing ให้ต่อที่ [Cost Analysis](/cost-analysis)
 
 ## โครงเอกสารปัจจุบัน
 
@@ -51,4 +55,6 @@ npm run docs:build
 - [AI Content Pipeline](/architecture/ai-pipeline)
 - [Proxy และ External APIs](/architecture/integrations)
 - [State และ Persistence](/architecture/state)
+- [API Integrations](/api-integrations)
+- [Cost Analysis](/cost-analysis)
 - [เอกสารฉบับเต็ม](/architecture-th)

@@ -3,7 +3,7 @@ import { defineConfig } from 'vitepress';
 export default defineConfig({
   lang: 'th-TH',
   title: 'Foro Docs',
-  description: 'เอกสารสถาปัตยกรรมและการทำงานของระบบ Foro',
+  description: 'เอกสารสถาปัตยกรรม การทำงานของระบบ และต้นทุนการใช้งานของ Foro',
   themeConfig: {
     search: {
       provider: 'local',
@@ -11,6 +11,8 @@ export default defineConfig({
     nav: [
       { text: 'หน้าหลัก', link: '/' },
       { text: 'Architecture', link: '/architecture/overview' },
+      { text: 'API Integrations', link: '/api-integrations' },
+      { text: 'Cost Analysis', link: '/cost-analysis' },
     ],
     sidebar: [
       {
@@ -18,6 +20,8 @@ export default defineConfig({
         items: [
           { text: 'อ่านเริ่มจากตรงนี้', link: '/getting-started' },
           { text: 'ภาพรวมระบบ', link: '/architecture/overview' },
+          { text: 'API Integrations', link: '/api-integrations' },
+          { text: 'Cost Analysis', link: '/cost-analysis' },
         ],
       },
       {
@@ -29,6 +33,13 @@ export default defineConfig({
           { text: 'Proxy และ External APIs', link: '/architecture/integrations' },
           { text: 'State และ Persistence', link: '/architecture/state' },
           { text: 'ภาพรวม', link: '/architecture/overview' },
+        ],
+      },
+      {
+        text: 'Business',
+        items: [
+          { text: 'API Integrations', link: '/api-integrations' },
+          { text: 'Cost Analysis', link: '/cost-analysis' },
         ],
       },
     ],
