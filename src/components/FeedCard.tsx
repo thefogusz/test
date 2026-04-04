@@ -88,17 +88,21 @@ const FeedCard = ({
   const [optimisticInWatchlist, setOptimisticInWatchlist] = useState(false);
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const displayText = isUsableThaiSummary(tweet.summary, tweet.text) ? tweet.summary : tweet.text;
-  const previewImageUrl = tweet.primaryImageUrl || tweet.imageUrls?.[0] || '';
+  const displayTweet = tweet.repostedPost || tweet;
+  const isRepost = Boolean(tweet.isRepost || tweet.repostedPost);
+  const repostedByUsername = (tweet.repostedByUsername || tweet.author?.username || '').trim().replace(/^@/, '');
+  const repostedByName = (tweet.repostedByName || tweet.author?.name || '').trim();
+  const displayText = isUsableThaiSummary(displayTweet.summary, displayTweet.text) ? displayTweet.summary : displayTweet.text;
+  const previewImageUrl = displayTweet.primaryImageUrl || displayTweet.imageUrls?.[0] || '';
   const imageUrls = useMemo(
-    () => Array.from(new Set((Array.isArray(tweet.imageUrls) ? tweet.imageUrls : []).filter(Boolean))),
-    [tweet.imageUrls],
+    () => Array.from(new Set((Array.isArray(displayTweet.imageUrls) ? displayTweet.imageUrls : []).filter(Boolean))),
+    [displayTweet.imageUrls],
   );
-  const hasMediaPreview = Boolean(tweet.isXVideo || previewImageUrl);
-  const authorUsername = (tweet.author?.username || '').trim().replace(/^@/, '').toLowerCase();
+  const hasMediaPreview = Boolean(displayTweet.isXVideo || previewImageUrl);
+  const authorUsername = (displayTweet.author?.username || '').trim().replace(/^@/, '').toLowerCase();
   const postUrl = useMemo(
-    () => tweet.url || `https://x.com/${tweet.author?.username || 'i'}/status/${tweet.id}`,
-    [tweet.author?.username, tweet.id, tweet.url],
+    () => displayTweet.url || `https://x.com/${displayTweet.author?.username || 'i'}/status/${displayTweet.id}`,
+    [displayTweet.author?.username, displayTweet.id, displayTweet.url],
   );
   const fallbackPostLists = useMemo(() => {
     if (Array.isArray(postLists) && postLists.length > 0) return postLists;
@@ -187,14 +191,38 @@ const FeedCard = ({
   });
 
   const stats = [
-    { icon: BarChart2, v: tweet.view_count },
-    { icon: Heart, v: tweet.like_count },
-    { icon: Repeat, v: tweet.retweet_count },
-    { icon: MessageCircle, v: tweet.reply_count },
+    { icon: BarChart2, v: displayTweet.view_count },
+    { icon: Heart, v: displayTweet.like_count },
+    { icon: Repeat, v: displayTweet.retweet_count },
+    { icon: MessageCircle, v: displayTweet.reply_count },
   ];
 
   return (
     <div className="feed-card animate-fade-in">
+      {isRepost && (
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+            marginBottom: '12px',
+            padding: '6px 10px',
+            borderRadius: '999px',
+            background: 'rgba(41, 151, 255, 0.08)',
+            border: '1px solid rgba(41, 151, 255, 0.16)',
+            color: '#8ec5ff',
+            fontSize: '11px',
+            fontWeight: '700',
+            width: 'fit-content',
+          }}
+          title={repostedByUsername ? `รีโพสต์โดย @${repostedByUsername}` : 'รีโพสต์'}
+        >
+          <Repeat size={12} strokeWidth={2.4} />
+          <span>
+            รีโพสต์โดย <b>{repostedByUsername ? `@${repostedByUsername}` : repostedByName || 'บัญชีนี้'}</b>
+          </span>
+        </div>
+      )}
       <div className="feed-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <button
@@ -225,11 +253,11 @@ const FeedCard = ({
               }}
             >
               <img
-                src={tweet.author?.profile_image_url?.replace('_normal', '')}
+                src={displayTweet.author?.profile_image_url?.replace('_normal', '')}
                 alt=""
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 onError={(e) => {
-                  e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(tweet.author?.name || 'U')}&background=random&color=fff&bold=true`;
+                  e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(displayTweet.author?.name || 'U')}&background=random&color=fff&bold=true`;
                 }}
               />
             </div>
@@ -251,11 +279,11 @@ const FeedCard = ({
                   </span>
                 )}
                 <div style={{ fontWeight: '800', fontSize: '13px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {tweet.author?.name}
+                  {displayTweet.author?.name}
                 </div>
               </div>
               <div style={{ color: 'var(--text-dim)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                <span>@{tweet.author?.username}</span>
+                <span>@{displayTweet.author?.username}</span>
               </div>
             </div>
           </button>
@@ -312,7 +340,7 @@ const FeedCard = ({
         </div>
 
         <div className="feed-card-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          {tweet.isReply && (
+          {displayTweet.isReply && (
             <div
               className="feed-card-reply-badge feed-card-reply-badge-inline"
               style={{
@@ -334,13 +362,13 @@ const FeedCard = ({
             >
               <Reply size={13} strokeWidth={2.5} style={{ opacity: 0.9 }} />
               <span className="feed-card-reply-badge-text-clean">
-                {'\u0E15\u0E2D\u0E1A\u0E01\u0E25\u0E31\u0E1A'} <b>@{tweet.inReplyToUsername || '\u0E1A\u0E32\u0E07\u0E04\u0E19'}</b>
+                {'\u0E15\u0E2D\u0E1A\u0E01\u0E25\u0E31\u0E1A'} <b>@{displayTweet.inReplyToUsername || '\u0E1A\u0E32\u0E07\u0E04\u0E19'}</b>
               </span>
               <span className="feed-card-reply-badge-text">à¸•à¸­à¸šà¸à¸¥à¸±à¸š <b>@{tweet.inReplyToUsername || 'à¸šà¸²à¸‡à¸„à¸™'}</b></span>
             </div>
           )}
 
-          {tweet.isXVideo && (
+          {displayTweet.isXVideo && (
             <div
               style={{
                 background: 'rgba(96, 165, 250, 0.14)',
@@ -378,7 +406,7 @@ const FeedCard = ({
               height: '26px',
             }}
           >
-            {getRelativeTime(tweet.created_at)}
+            {getRelativeTime(displayTweet.created_at)}
           </div>
 
           <button
@@ -402,7 +430,7 @@ const FeedCard = ({
           </button>
 
           <a
-            href={`https://x.com/${tweet.author?.username || 'i'}/status/${tweet.id}`}
+            href={`https://x.com/${displayTweet.author?.username || 'i'}/status/${displayTweet.id}`}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -422,7 +450,7 @@ const FeedCard = ({
         </div>
       </div>
 
-      {tweet.isXVideo ? (
+      {displayTweet.isXVideo ? (
         <div
           className="feed-card-media-layout"
           style={{
@@ -446,8 +474,8 @@ const FeedCard = ({
               overflow: 'hidden',
               textDecoration: 'none',
               border: '1px solid rgba(96, 165, 250, 0.18)',
-              background: tweet.thumbnailUrl
-                ? `linear-gradient(180deg, rgba(2,6,23,0.08) 0%, rgba(2,6,23,0.72) 100%), url(${tweet.thumbnailUrl}) center/cover`
+              background: displayTweet.thumbnailUrl
+                ? `linear-gradient(180deg, rgba(2,6,23,0.08) 0%, rgba(2,6,23,0.72) 100%), url(${displayTweet.thumbnailUrl}) center/cover`
                 : 'linear-gradient(135deg, rgba(96,165,250,0.28) 0%, rgba(15,23,42,0.8) 100%)',
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
             }}
@@ -481,7 +509,7 @@ const FeedCard = ({
                 <ListVideo size={10} />
                 ดูบน X
               </div>
-              {tweet.videoDurationMs ? (
+              {displayTweet.videoDurationMs ? (
                 <div
                   style={{
                     borderRadius: '999px',
@@ -492,7 +520,7 @@ const FeedCard = ({
                     fontWeight: '800',
                   }}
                 >
-                  {Math.max(1, Math.round(tweet.videoDurationMs / 1000))}s
+                  {Math.max(1, Math.round(displayTweet.videoDurationMs / 1000))}s
                 </div>
               ) : null}
             </div>

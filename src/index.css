@@ -6008,29 +6008,18 @@ h1, h2, h3, h4, h5, h6 {
 .pricing-shell {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding-bottom: 40px;
-}
-
-.pricing-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
-  gap: 24px;
-  min-height: 420px;
-}
-
-.pricing-hero-copy {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
   gap: 18px;
-  padding: 28px 8px 18px 0;
+  padding-bottom: 24px;
+}
+
+.pricing-shell-minimal {
+  max-width: 980px;
+  margin: 0 auto;
 }
 
 .pricing-eyebrow,
 .pricing-mini-heading,
 .pricing-section-kicker,
-.pricing-poster-kicker,
 .pricing-current-plan-label {
   display: inline-flex;
   align-items: center;
@@ -6043,16 +6032,10 @@ h1, h2, h3, h4, h5, h6 {
   color: #d5e5ff;
 }
 
-.pricing-current-plan-line {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
 .pricing-current-plan-pill {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   min-height: 32px;
   padding: 0 14px;
   border-radius: 999px;
@@ -6063,115 +6046,73 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
 }
 
-.pricing-hero-title,
-.pricing-section-title {
+.pricing-minimal-header {
+  gap: 16px;
+  padding: 22px 24px;
+}
+
+.pricing-minimal-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.pricing-minimal-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.pricing-minimal-title {
   font-family: "Kanit", "Noto Sans Thai", sans-serif;
+  font-size: clamp(30px, 4.8vw, 48px);
   font-weight: 700;
   letter-spacing: -0.04em;
-  line-height: 0.98;
+  line-height: 0.96;
   color: #f8fbff;
 }
 
-.pricing-hero-title {
-  font-size: clamp(44px, 7vw, 76px);
-  max-width: 12ch;
-}
-
-.pricing-hero-subtitle {
-  max-width: 620px;
-  color: #b6c4d9;
-  font-size: 16px;
-  line-height: 1.75;
-}
-
-.pricing-hero-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding-top: 6px;
-}
-
-.pricing-poster {
-  position: relative;
-  overflow: hidden;
-  border-radius: 28px;
-  min-height: 420px;
-  background:
-    radial-gradient(circle at 15% 15%, rgba(125, 211, 252, 0.22), transparent 28%),
-    radial-gradient(circle at 82% 18%, rgba(157, 117, 255, 0.18), transparent 24%),
-    linear-gradient(145deg, #0b1220 0%, #101824 34%, #0a0f18 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.32);
-  isolation: isolate;
-}
-
-.pricing-poster-noise {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 26%),
-    radial-gradient(circle at 30% 45%, rgba(255, 255, 255, 0.08), transparent 22%);
-  opacity: 0.6;
-  pointer-events: none;
-}
-
-.pricing-poster-panel {
-  position: relative;
-  z-index: 1;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 26px;
-}
-
-.pricing-poster-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  align-items: flex-start;
-}
-
-.pricing-poster-plan-name {
+.pricing-minimal-subtitle {
   margin-top: 8px;
-  font-family: "Kanit", "Noto Sans Thai", sans-serif;
-  font-size: 36px;
-  font-weight: 700;
-  letter-spacing: -0.04em;
+  max-width: 640px;
+  color: #b6c4d9;
+  font-size: 14px;
+  line-height: 1.7;
+  font-family: "Noto Sans Thai", "Inter", sans-serif;
 }
 
-.pricing-poster-price {
-  color: #d9e8fb;
-  font-size: 13px;
-  font-weight: 700;
+.pricing-minimal-cta {
+  flex: 0 0 auto;
 }
 
-.pricing-meter-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.pricing-usage-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 
-.pricing-meter-row {
+.pricing-usage-tile {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  padding: 12px 13px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.028);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.pricing-meter-topline {
+.pricing-usage-tile-top {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
+  align-items: center;
+  color: #f8fbff;
   font-size: 13px;
   font-weight: 700;
-  color: #eff6ff;
-}
-
-.pricing-meter-hint {
-  color: rgba(210, 223, 240, 0.72);
-  font-size: 12px;
-  line-height: 1.55;
+  font-family: "Noto Sans Thai", "Inter", sans-serif;
 }
 
 .pricing-meter-track {
@@ -6179,6 +6120,10 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.1);
   overflow: hidden;
+}
+
+.pricing-meter-track.compact {
+  height: 6px;
 }
 
 .pricing-meter-fill {
@@ -6192,8 +6137,8 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   flex-direction: column;
   gap: 18px;
-  padding: 28px;
-  border-radius: 26px;
+  padding: 24px;
+  border-radius: 24px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.015));
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
@@ -6204,27 +6149,19 @@ h1, h2, h3, h4, h5, h6 {
     linear-gradient(180deg, rgba(255, 255, 255, 0.026), rgba(255, 255, 255, 0.012));
 }
 
-.pricing-band-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  align-items: flex-end;
+.pricing-band-plain {
+  padding: 0;
+  background: transparent;
+  border: none;
 }
 
-.pricing-section-title {
-  font-size: clamp(28px, 4vw, 42px);
-  max-width: 16ch;
-}
-
-.pricing-plan-grid,
-.pricing-system-grid {
+.pricing-plan-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
 }
 
-.pricing-plan-card,
-.pricing-system-panel {
+.pricing-plan-card {
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -6290,7 +6227,6 @@ h1, h2, h3, h4, h5, h6 {
 
 .pricing-plan-usage,
 .pricing-plan-objects,
-.pricing-feature-list,
 .pricing-checklist {
   display: flex;
   flex-direction: column;
@@ -6333,6 +6269,50 @@ h1, h2, h3, h4, h5, h6 {
 .pricing-mini-heading svg {
   flex-shrink: 0;
   color: #7dd3fc;
+}
+
+.pricing-checklist > div {
+  justify-content: flex-start;
+}
+
+.pricing-feature-item strong {
+  color: #ffffff;
+}
+
+.pricing-inline-note {
+  color: #95a6bd;
+  font-size: 12px;
+  line-height: 1.7;
+  font-family: "Noto Sans Thai", "Inter", sans-serif;
+  padding: 0 4px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pricing-band,
+  .pricing-plan-card,
+  .pricing-usage-tile,
+  .pricing-current-plan-pill,
+  .pricing-meter-fill {
+    transition:
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 220ms ease,
+      box-shadow 220ms ease,
+      background 220ms ease,
+      opacity 220ms ease;
+  }
+
+  .pricing-plan-card:hover,
+  .pricing-band:hover,
+  .pricing-usage-tile:hover {
+    transform: translateY(-2px);
+    border-color: rgba(125, 211, 252, 0.14);
+    box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+  }
+
+  .pricing-plan-card:hover .pricing-plan-current-badge {
+    background: rgba(125, 211, 252, 0.16);
+    border-color: rgba(125, 211, 252, 0.28);
+  }
 }
 
 .sidebar-footer {
@@ -6747,40 +6727,50 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 @media (max-width: 1200px) {
-  .pricing-hero,
-  .pricing-plan-grid,
-  .pricing-system-grid {
+  .pricing-plan-grid {
     grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 768px) {
   .pricing-shell {
-    gap: 18px;
+    gap: 14px;
   }
 
   .pricing-band {
-    padding: 18px;
-    border-radius: 20px;
+    padding: 16px;
+    border-radius: 18px;
   }
 
-  .pricing-hero {
-    gap: 18px;
+  .pricing-minimal-header {
+    gap: 14px;
   }
 
-  .pricing-hero-copy {
-    padding: 0;
+  .pricing-minimal-head,
+  .pricing-minimal-topline {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .pricing-hero-title {
+  .pricing-minimal-title {
     max-width: none;
   }
 
-  .pricing-poster {
-    min-height: auto;
+  .pricing-minimal-cta {
+    width: 100%;
+    justify-content: center;
   }
 
-  .pricing-poster-panel {
+  .pricing-usage-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .pricing-usage-tile {
+    border-radius: 14px;
+  }
+
+  .pricing-plan-card {
     padding: 18px;
+    border-radius: 18px;
   }
 }

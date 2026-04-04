@@ -941,32 +941,69 @@ const extractImageMeta = (tweet) => {
   };
 };
 
-const normalizeTweets = (tweets) =>
-  (tweets || []).map((tweet) => {
-    const videoMeta = extractVideoMeta(tweet);
-    const imageMeta = extractImageMeta(tweet);
+const pickNestedTweetCandidate = (tweet) =>
+  tweet?.retweeted_status ||
+  tweet?.retweetedStatus ||
+  tweet?.retweeted_tweet ||
+  tweet?.retweetedTweet ||
+  tweet?.reposted_status ||
+  tweet?.repostedStatus ||
+  tweet?.reposted_tweet ||
+  tweet?.repostedTweet ||
+  tweet?.quoted_status ||
+  tweet?.quotedStatus ||
+  null;
 
-    return {
-      ...tweet,
-      author: normalizeAuthor(tweet.author),
-      like_count: tweet.likeCount || tweet.like_count || 0,
-      view_count: tweet.viewCount || tweet.view_count || 0,
-      retweet_count: tweet.retweetCount || tweet.retweet_count || 0,
-      reply_count: tweet.replyCount || tweet.reply_count || 0,
-      quote_count: tweet.quoteCount || tweet.quote_count || 0,
-      created_at: tweet.createdAt || tweet.created_at,
-      sourceType:
-        tweet.sourceType ||
-        (tweet.isXVideo || videoMeta ? 'x_video' : tweet.type === 'article' ? 'article' : 'x_post'),
-      isXVideo: Boolean(tweet.isXVideo || videoMeta),
-      supportsVideoAnalysis: Boolean(tweet.supportsVideoAnalysis || tweet.isXVideo || videoMeta),
-      videoUrl: tweet.videoUrl || videoMeta?.videoUrl || '',
-      thumbnailUrl: tweet.thumbnailUrl || videoMeta?.thumbnailUrl || '',
-      primaryImageUrl: tweet.primaryImageUrl || imageMeta?.primaryImageUrl || '',
-      imageUrls: Array.isArray(tweet.imageUrls) && tweet.imageUrls.length > 0 ? tweet.imageUrls : imageMeta?.imageUrls || [],
-      videoDurationMs: tweet.videoDurationMs || videoMeta?.videoDurationMs,
-    };
-  });
+const normalizeSingleTweet = (tweet, depth = 0) => {
+  const videoMeta = extractVideoMeta(tweet);
+  const imageMeta = extractImageMeta(tweet);
+  const repostedCandidate = depth < 1 ? pickNestedTweetCandidate(tweet) : null;
+  const repostedPost = repostedCandidate ? normalizeSingleTweet(repostedCandidate, depth + 1) : null;
+  const isRepost = Boolean(
+    tweet?.isRepost ||
+    tweet?.isRetweet ||
+    tweet?.retweeted ||
+    tweet?.retweetedStatus ||
+    tweet?.retweeted_status ||
+    tweet?.repostedTweet ||
+    tweet?.reposted_tweet ||
+    tweet?.repostedStatus ||
+    tweet?.reposted_status,
+  );
+
+  return {
+    ...tweet,
+    author: normalizeAuthor(tweet.author),
+    like_count: tweet.likeCount || tweet.like_count || 0,
+    view_count: tweet.viewCount || tweet.view_count || 0,
+    retweet_count: tweet.retweetCount || tweet.retweet_count || 0,
+    reply_count: tweet.replyCount || tweet.reply_count || 0,
+    quote_count: tweet.quoteCount || tweet.quote_count || 0,
+    created_at: tweet.createdAt || tweet.created_at,
+    sourceType:
+      tweet.sourceType ||
+      (tweet.isXVideo || videoMeta ? 'x_video' : tweet.type === 'article' ? 'article' : 'x_post'),
+    isXVideo: Boolean(tweet.isXVideo || videoMeta),
+    supportsVideoAnalysis: Boolean(tweet.supportsVideoAnalysis || tweet.isXVideo || videoMeta),
+    videoUrl: tweet.videoUrl || videoMeta?.videoUrl || '',
+    thumbnailUrl: tweet.thumbnailUrl || videoMeta?.thumbnailUrl || '',
+    primaryImageUrl: tweet.primaryImageUrl || imageMeta?.primaryImageUrl || '',
+    imageUrls: Array.isArray(tweet.imageUrls) && tweet.imageUrls.length > 0 ? tweet.imageUrls : imageMeta?.imageUrls || [],
+    videoDurationMs: tweet.videoDurationMs || videoMeta?.videoDurationMs,
+    isRepost,
+    repostedByName: tweet.repostedByName || tweet.reposted_by_name || tweet.author?.name || '',
+    repostedByUsername:
+      tweet.repostedByUsername ||
+      tweet.reposted_by_username ||
+      tweet.author?.userName ||
+      tweet.author?.username ||
+      '',
+    repostedPost,
+  };
+};
+
+const normalizeTweets = (tweets) =>
+  (tweets || []).map((tweet) => normalizeSingleTweet(tweet));
 
 const isWithinHours = (dateString, hours = RECENT_WINDOW_HOURS) => {
   const timestamp = new Date(dateString).getTime();

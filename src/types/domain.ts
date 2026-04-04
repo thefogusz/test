@@ -59,6 +59,9 @@ export interface Post {
   type?: string;
   sourceType?: string;
   isXVideo?: boolean;
+  isRepost?: boolean;
+  repostedByName?: string;
+  repostedByUsername?: string;
   supportsVideoAnalysis?: boolean;
   text?: string;
   full_text?: string;
@@ -93,6 +96,7 @@ export interface Post {
   inReplyToStatusId?: string;
   search_score?: number;
   velocityTag?: string | null;
+  repostedPost?: Post | null;
   attachedSource?: AttachedSource | null;
   sources?: ContentSource[];
 }
