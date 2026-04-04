@@ -6400,21 +6400,14 @@ h1, h2, h3, h4, h5, h6 {
 .sidebar-plan-panel.compact.plan-plus {
   padding: 8px;
   border-radius: 18px;
-  border-color: rgba(212, 177, 95, 0.18);
-  background:
-    radial-gradient(120% 140% at 0% 45%, rgba(17, 42, 86, 0.52) 0%, rgba(17, 42, 86, 0.24) 34%, rgba(17, 42, 86, 0) 60%),
-    radial-gradient(88% 110% at 100% 8%, rgba(214, 176, 84, 0.18) 0%, rgba(214, 176, 84, 0.09) 38%, rgba(214, 176, 84, 0) 70%),
-    linear-gradient(104deg, rgba(10, 20, 42, 0.94) 0%, rgba(18, 23, 33, 0.95) 56%, rgba(48, 39, 22, 0.92) 100%);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 16px 34px rgba(0, 0, 0, 0.24);
+  border-color: rgba(191, 158, 92, 0.2);
+  background: linear-gradient(90deg, rgba(12, 33, 67, 0.96) 0%, rgba(18, 24, 34, 0.96) 58%, rgba(70, 54, 28, 0.94) 100%);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.22);
 }
 
 .sidebar-plan-panel.compact.plan-plus.open {
-  border-color: rgba(219, 186, 108, 0.26);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.06),
-    0 18px 38px rgba(0, 0, 0, 0.28);
+  border-color: rgba(207, 174, 104, 0.28);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.26);
 }
 
 .sidebar-user-summary {
@@ -6440,9 +6433,9 @@ h1, h2, h3, h4, h5, h6 {
 .sidebar-user-summary.is-plus {
   gap: 10px;
   padding: 8px 9px;
-  background: linear-gradient(100deg, rgba(13, 31, 62, 0.72) 0%, rgba(20, 24, 33, 0.64) 60%, rgba(65, 51, 28, 0.5) 100%);
-  border: 1px solid rgba(216, 183, 103, 0.18);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .sidebar-user-summary-main {
@@ -6481,10 +6474,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sidebar-plan-panel.compact.plan-plus .sidebar-user-plan-badge {
-  background: linear-gradient(180deg, rgba(255, 238, 205, 0.12), rgba(163, 122, 51, 0.14));
-  border-color: rgba(216, 183, 103, 0.2);
-  color: #f6e8c3;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: rgba(255, 241, 212, 0.06);
+  border-color: rgba(205, 173, 103, 0.18);
+  color: #f1dfb2;
+  box-shadow: none;
 }
 
 .sidebar-user-chevron {
@@ -6493,7 +6486,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sidebar-plan-panel.compact.plan-plus .sidebar-user-chevron {
-  color: rgba(230, 214, 171, 0.72);
+  color: rgba(221, 203, 159, 0.72);
 }
 
 .sidebar-user-chevron.open {
@@ -6577,18 +6570,13 @@ h1, h2, h3, h4, h5, h6 {
   padding: 0;
   border: 1px solid rgba(214, 176, 84, 0.42);
   background: rgba(255, 255, 255, 0.08);
-  box-shadow:
-    0 8px 20px rgba(0, 0, 0, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  box-shadow: none;
 }
 
 .sidebar-plan-panel.compact.plan-plus .sidebar-user-avatar.has-image {
-  border-color: rgba(216, 183, 103, 0.32);
-  background: linear-gradient(145deg, rgba(12, 24, 48, 0.94), rgba(53, 40, 18, 0.82));
-  box-shadow:
-    0 10px 24px rgba(0, 0, 0, 0.28),
-    0 0 0 1px rgba(70, 121, 205, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  border-color: rgba(194, 162, 95, 0.24);
+  background: rgba(10, 19, 34, 0.9);
+  box-shadow: none;
 }
 
 .sidebar-user-avatar.is-plus {
@@ -6771,7 +6759,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .sidebar-plan-panel.compact.plan-plus .sidebar-user-summary.is-plus:hover {
-    background: linear-gradient(100deg, rgba(16, 38, 75, 0.8) 0%, rgba(23, 28, 39, 0.7) 60%, rgba(74, 57, 30, 0.58) 100%);
+    background: rgba(255, 255, 255, 0.02);
   }
 
   .sidebar-user-summary:hover .sidebar-user-chevron {
