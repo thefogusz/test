@@ -31,6 +31,8 @@ const ContentWorkspace = ({
   createContentSource,
   onRemoveSource,
   onSaveGeneratedArticle,
+  onBeforeGenerate,
+  onBeforeRegenerate,
   isGeneratingContent,
   setIsGeneratingContent,
   genPhase,
@@ -116,6 +118,8 @@ const ContentWorkspace = ({
               sourceNode={createContentSource}
               onRemoveSource={onRemoveSource}
               onSaveArticle={onSaveGeneratedArticle}
+              onBeforeGenerate={onBeforeGenerate}
+              onBeforeRegenerate={onBeforeRegenerate}
               isGenerating={isGeneratingContent}
               setIsGenerating={setIsGeneratingContent}
               phase={genPhase}

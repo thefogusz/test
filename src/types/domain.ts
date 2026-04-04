@@ -126,5 +126,5 @@ export interface SearchHistoryEntry {
   lastUsedAt: string;
 }
 
-export type ActiveView = 'home' | 'content' | 'read' | 'audience' | 'bookmarks' | 'search';
+export type ActiveView = 'home' | 'content' | 'read' | 'audience' | 'bookmarks' | 'pricing' | 'search';
 export type ContentTab = 'search' | 'create';

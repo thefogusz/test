@@ -1,5 +1,6 @@
-import { Bookmark, BookOpen, House, Loader2, RefreshCw, SquarePen, UsersRound } from 'lucide-react';
+import { Bookmark, BookOpen, Gem, House, Loader2, RefreshCw, SquarePen, UsersRound } from 'lucide-react';
 import { AI_WORKSPACES } from '../config/aiWorkspaces';
+import { FEATURE_LABELS, formatPlanLimit, type MeteredFeature, type PlanId } from '../config/pricingPlans';
 import type { ActiveView } from '../types/domain';
 import logoSrc from '../assets/logo.png?inline';
 
@@ -11,6 +12,17 @@ type SidebarProps = {
   activeView?: ActiveView;
   onNavClick: (view: ActiveView) => void;
   backgroundTasks?: Record<string, boolean>;
+  activePlanId: PlanId;
+  planName: string;
+  planPriceLabel: string;
+  remainingUsage: Record<MeteredFeature, number>;
+  usageLimits: Record<MeteredFeature, number>;
+  dailyUsage: Record<MeteredFeature, number>;
+  onSwitchPlan: (planId: PlanId) => void;
+  onResetUsage: () => void;
+  onOpenPricing: () => void;
+  planNotice?: { title: string; body: string; tone?: string } | null;
+  onClearPlanNotice: () => void;
 };
 
 type NavItemConfig = {
@@ -61,9 +73,30 @@ const NAV_ITEMS: NavItemConfig[] = [
     Icon: Bookmark,
     isActive: (activeView) => activeView === 'bookmarks',
   },
+  {
+    view: 'pricing',
+    label: 'Pricing',
+    Icon: Gem,
+    isActive: (activeView) => activeView === 'pricing',
+  },
 ];
 
-const Sidebar = ({ activeView, onNavClick, backgroundTasks = {} }: SidebarProps) => {
+const Sidebar = ({
+  activeView,
+  onNavClick,
+  backgroundTasks = {},
+  activePlanId,
+  planName,
+  planPriceLabel,
+  remainingUsage,
+  usageLimits,
+  dailyUsage,
+  onSwitchPlan,
+  onResetUsage,
+  onOpenPricing,
+  planNotice,
+  onClearPlanNotice,
+}: SidebarProps) => {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo" style={{ padding: '24px 16px 20px', display: 'flex', alignItems: 'center', minHeight: '80px' }}>
@@ -116,6 +149,81 @@ const Sidebar = ({ activeView, onNavClick, backgroundTasks = {} }: SidebarProps)
           );
         })}
       </nav>
+
+      <div className="sidebar-footer">
+        <div className="sidebar-plan-panel">
+          <div className="sidebar-plan-topline">
+            <div>
+              <div style={{ fontSize: '10px', fontWeight: '800', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)' }}>
+                Active plan
+              </div>
+              <div className="sidebar-plan-name">{planName}</div>
+            </div>
+            <div className="sidebar-plan-price">{planPriceLabel}</div>
+          </div>
+
+          <div className="sidebar-plan-usage">
+            {(['feed', 'search', 'generate'] as MeteredFeature[]).map((feature) => (
+              <div key={feature} className="sidebar-plan-usage-row">
+                <span>{FEATURE_LABELS[feature]}</span>
+                <strong style={{ color: '#fff' }}>
+                  {Number.isFinite(remainingUsage[feature]) ? remainingUsage[feature] : formatPlanLimit(remainingUsage[feature])} / {formatPlanLimit(usageLimits[feature])}
+                </strong>
+              </div>
+            ))}
+          </div>
+
+          <div className="sidebar-user-mock">
+            <div className="sidebar-user-mock-top">
+              <div className="sidebar-user-avatar">FG</div>
+              <div>
+                <div className="sidebar-user-name">Foro Test User</div>
+                <div className="sidebar-user-role">Mode switcher for pricing QA</div>
+              </div>
+            </div>
+
+            <div className="sidebar-user-mode-row">
+              {(['free', 'plus', 'admin'] as PlanId[]).map((planId) => (
+                <button
+                  key={planId}
+                  className={`sidebar-mode-chip ${activePlanId === planId ? 'active' : ''}`}
+                  onClick={() => onSwitchPlan(planId)}
+                >
+                  {planId}
+                </button>
+              ))}
+            </div>
+
+            <div className="sidebar-user-stats">
+              {(['feed', 'search', 'generate'] as MeteredFeature[]).map((feature) => (
+                <div key={feature} className="sidebar-user-stat">
+                  <span>{FEATURE_LABELS[feature]}</span>
+                  <strong>{dailyUsage[feature]}</strong>
+                </div>
+              ))}
+            </div>
+
+            {planNotice && (
+              <div className={`sidebar-plan-notice ${planNotice.tone === 'warn' ? 'warn' : ''}`}>
+                <div className="sidebar-plan-notice-title">{planNotice.title}</div>
+                <div className="sidebar-plan-notice-body">{planNotice.body}</div>
+                <button className="sidebar-plan-notice-link" onClick={onClearPlanNotice}>
+                  ปิดข้อความนี้
+                </button>
+              </div>
+            )}
+
+            <div className="sidebar-user-actions">
+              <button className="btn-pill" onClick={onResetUsage} style={{ width: '100%', justifyContent: 'center' }}>
+                Reset usage
+              </button>
+              <button className="btn-pill primary" onClick={onOpenPricing} style={{ width: '100%', justifyContent: 'center' }}>
+                เปิดหน้า Pricing
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </aside>
   );
 };

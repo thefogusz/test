@@ -7,6 +7,7 @@ import ListModal from './components/ListModal';
 import Sidebar from './components/Sidebar';
 import StatusToast from './components/StatusToast';
 import RightSidebar from './components/RightSidebar';
+import { type MeteredFeature, type PlanId } from './config/pricingPlans';
 import {
   getUserInfo,
 } from './services/TwitterService';
@@ -18,6 +19,7 @@ import { useHomeFeedWorkspace } from './hooks/useHomeFeedWorkspace';
 import { useIndexedDbState } from './hooks/useIndexedDbState';
 import useLibraryViews from './hooks/useLibraryViews';
 import { usePersistentState } from './hooks/usePersistentState';
+import { usePricingPlan } from './hooks/usePricingPlan';
 import { useSearchWorkspace } from './hooks/useSearchWorkspace';
 import useSearchSuggestions from './hooks/useSearchSuggestions';
 import {
@@ -34,6 +36,7 @@ import {
 const AudienceWorkspace = lazy(() => import('./components/AudienceWorkspace'));
 const BookmarksWorkspace = lazy(() => import('./components/BookmarksWorkspace'));
 const ContentWorkspace = lazy(() => import('./components/ContentWorkspace'));
+const PricingView = lazy(() => import('./components/PricingWorkspace'));
 const ReadWorkspace = lazy(() => import('./components/ReadWorkspace'));
 
 const READ_ARCHIVE_INITIAL_RENDER = 24;
@@ -160,6 +163,16 @@ const App = () => {
   const [aiSearchResults, setAiSearchResults] = useState([]);
   const [manualQuery, setManualQuery] = useState('');
   const [manualPreview, setManualPreview] = useState(null);
+  const [planNotice, setPlanNotice] = useState(null);
+  const {
+    activePlanId,
+    currentPlan,
+    dailyUsage,
+    remainingUsage,
+    setActivePlanId,
+    consumeUsage,
+    resetDailyUsage,
+  } = usePricingPlan();
 
   const {
     activeFilters,
@@ -278,6 +291,87 @@ const App = () => {
     setReadArchive,
   ]);
 
+  const pushPlanNotice = (title, body, tone = 'info') => {
+    setPlanNotice({
+      title,
+      body,
+      tone,
+      at: Date.now(),
+    });
+  };
+
+  const openPricingWithStatus = (message) => {
+    setStatus(message);
+    pushPlanNotice('Plan notice', message, 'warn');
+  };
+
+  const openPricingView = () => {
+    startTransition(() => {
+      setActiveView('pricing');
+    });
+  };
+
+  const tryConsumeFeature = (feature: MeteredFeature) => {
+    const result = consumeUsage(feature);
+    if (!result.ok) {
+      openPricingWithStatus(result.message);
+      return false;
+    }
+
+    return true;
+  };
+
+  const hasWatchlistRoomFor = (handle) => {
+    const normalizedHandle = String(handle || '').trim().replace(/^@/, '').toLowerCase();
+    if (!normalizedHandle) return true;
+    if (watchlist.some((user) => (user.username || '').toLowerCase() === normalizedHandle)) {
+      return true;
+    }
+
+    if (watchlist.length >= currentPlan.objects.watchlist) {
+      openPricingWithStatus(
+        `แพ็ก ${currentPlan.name} เพิ่ม Watchlist ได้สูงสุด ${currentPlan.objects.watchlist} บัญชี`,
+      );
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSwitchPlan = (planId: PlanId) => {
+    setActivePlanId(planId);
+    pushPlanNotice(
+      'Test mode updated',
+      `สลับเป็น ${planId === 'admin' ? 'Admin mode' : `${planId.charAt(0).toUpperCase()}${planId.slice(1)} plan`} แล้ว`,
+      'info',
+    );
+    setStatus(`สลับแพ็กเป็น ${planId === 'admin' ? 'Admin' : planId === 'plus' ? 'Plus' : 'Free'} แล้ว`);
+  };
+
+  const handleResetUsage = () => {
+    resetDailyUsage();
+    pushPlanNotice('Usage reset', 'รีเซ็ตตัวนับรายวันสำหรับการทดสอบแล้ว', 'info');
+    setStatus('รีเซ็ต usage รายวันแล้ว');
+  };
+
+  const hasPostListRoom = () => {
+    if (postLists.length >= currentPlan.objects.postLists) {
+      openPricingWithStatus(
+        `แพ็ก ${currentPlan.name} สร้าง Post Lists ได้สูงสุด ${currentPlan.objects.postLists} รายการ`,
+      );
+      return false;
+    }
+
+    return true;
+  };
+
+  const canUseExportShare = () => {
+    if (currentPlan.features.exportShare) return true;
+
+    openPricingWithStatus('Export / Share เป็นฟีเจอร์ของแพ็ก Plus');
+    return false;
+  };
+
   const handleBookmark = (tweet, isSaving) => {
     if (isSaving) {
       setBookmarks(prev => {
@@ -344,6 +438,7 @@ const App = () => {
 
   const finalizeListAction = async () => {
     if (!listModal.value) return;
+    if (!hasPostListRoom()) return;
     let shouldReopenMobileSheet = reopenMobilePostListAfterModal;
     if (listModal.mode === 'create') {
       const newList = { id: Date.now().toString(), name: listModal.value, color: 'var(--accent-secondary)', members: [], createdAt: new Date().toISOString() };
@@ -413,6 +508,7 @@ const App = () => {
 
   const handleAddMember = (listId, handle) => {
     const cleanHandle = handle.trim().replace(/^@/, '');
+    if (!hasWatchlistRoomFor(cleanHandle)) return;
     setPostLists(prev => prev.map(l => l.id === listId ? { ...l, members: [...new Set([...l.members, cleanHandle.toLowerCase()])] } : l));
     if (!watchlist.find(u => u.username.toLowerCase() === cleanHandle.toLowerCase())) {
       const newUser = { id: cleanHandle, username: cleanHandle, name: cleanHandle, profile_image_url: '', isPlaceholder: true };
@@ -424,6 +520,7 @@ const App = () => {
   const handleRemoveMember = (handle, listId) => setPostLists(prev => prev.map(l => l.id === listId ? { ...l, members: l.members.filter(m => m.toLowerCase() !== handle.toLowerCase()) } : l));
 
   const handleShareList = async (list) => {
+    if (!canUseExportShare()) return;
     const code = await encodeShareListPayload(list);
     navigator.clipboard.writeText(code).then(() => setStatus('คัดลอกรหัสแชร์แล้ว'));
   };
@@ -496,6 +593,7 @@ const App = () => {
   };
 
   const handleAddExpert = async (expert) => {
+    if (!hasWatchlistRoomFor(expert?.username)) return;
     const full = await getUserInfo(expert.username);
     if (full) setWatchlist(prev => [full, ...prev]);
   };
@@ -504,6 +602,7 @@ const App = () => {
     const handle = typeof contributor === 'string' ? contributor : (contributor?.username || '');
     const cleanHandle = handle.trim().replace(/^@/, '').toLowerCase();
     if (!cleanHandle) return;
+    if (!hasWatchlistRoomFor(cleanHandle)) return;
 
     // 1. Ensure user is in global watchlist first
     if (!watchlist.find(u => (u.username || '').toLowerCase() === cleanHandle)) {
@@ -532,6 +631,24 @@ const App = () => {
     }));
   };
 
+  const handlePlanSync = async () => {
+    if (!tryConsumeFeature('feed')) return;
+    await handleSync();
+  };
+
+  const handlePlanLoadMore = async () => {
+    if (!tryConsumeFeature('feed')) return;
+    await handleLoadMore();
+  };
+
+  const handlePlanSearch = async (event, isMore = false, overrideQuery = '') => {
+    if (!isMore && !tryConsumeFeature('search')) return;
+    return handleSearch(event, isMore, overrideQuery);
+  };
+
+  const handleBeforeGenerate = () => tryConsumeFeature('generate');
+  const handleBeforeRegenerate = () => tryConsumeFeature('generate');
+
   const handleManualSearch = async (e) => {
     if (e) e.preventDefault();
     const data = await getUserInfo(manualQuery);
@@ -539,6 +656,7 @@ const App = () => {
   };
 
   const handleAddUser = (user) => {
+    if (!hasWatchlistRoomFor(user?.username)) return;
     setWatchlist(prev => [user, ...prev]);
     setManualPreview(null);
     setManualQuery('');
@@ -547,6 +665,7 @@ const App = () => {
   const handleAddSearchAuthorToWatchlist = async (post) => {
     const username = (post?.author?.username || '').trim().replace(/^@/, '').toLowerCase();
     if (!username) return;
+    if (!hasWatchlistRoomFor(username)) return;
 
     const existingUser = watchlist.find((user) => (user.username || '').toLowerCase() === username);
     if (existingUser) {
@@ -625,6 +744,14 @@ const App = () => {
 
     setListModal({ show: true, mode, value: '' });
   };
+  const handleCreateListRequest = () => {
+    if (!hasPostListRoom()) return;
+    openListModal('create');
+  };
+  const handleImportListRequest = () => {
+    if (!hasPostListRoom()) return;
+    openListModal('import');
+  };
 
   const closeFilterModal = () => {
     setFilterModal((prev) => ({ ...prev, show: false }));
@@ -638,9 +765,10 @@ const App = () => {
       </div>
     </div>
   );
+  const showRightSidebar = activeView !== 'pricing';
 
   return (
-    <div className="foro-layout">
+    <div className={`foro-layout ${showRightSidebar ? '' : 'pricing-open'}`.trim()}>
       <Sidebar 
         activeView={activeView}
         onNavClick={(view) => {
@@ -658,6 +786,17 @@ const App = () => {
           filtering: isFiltering,
           audienceSearch: aiSearchLoading
         }}
+        activePlanId={activePlanId}
+        planName={currentPlan.name}
+        planPriceLabel={currentPlan.priceLabel}
+        remainingUsage={remainingUsage}
+        usageLimits={currentPlan.usage}
+        dailyUsage={dailyUsage}
+        onSwitchPlan={handleSwitchPlan}
+        onResetUsage={handleResetUsage}
+        onOpenPricing={openPricingView}
+        planNotice={planNotice}
+        onClearPlanNotice={() => setPlanNotice(null)}
       />
 
       {isMobilePostListOpen && (
@@ -691,8 +830,8 @@ const App = () => {
             onSort={handleSort}
             onQuickFilter={handleAiFilter}
             onOpenFilterModal={() => setFilterModal({ show: true, prompt: '' })}
-            onSync={handleSync}
-            onLoadMore={handleLoadMore}
+            onSync={handlePlanSync}
+            onLoadMore={handlePlanLoadMore}
             onClearAiFilter={clearAiFilter}
             onBookmark={handleBookmark}
             onArticleGen={openContentComposerFromPost}
@@ -707,6 +846,8 @@ const App = () => {
               createContentSource={createContentSource}
               onRemoveSource={() => setCreateContentSource(null)}
               onSaveGeneratedArticle={handleSaveGeneratedArticle}
+              onBeforeGenerate={handleBeforeGenerate}
+              onBeforeRegenerate={handleBeforeRegenerate}
               isGeneratingContent={isGeneratingContent}
               setIsGeneratingContent={setIsGeneratingContent}
               genPhase={genPhase}
@@ -723,7 +864,7 @@ const App = () => {
               setShowSuggestions={setShowSuggestions}
               activeSuggestionIndex={activeSuggestionIndex}
               setActiveSuggestionIndex={setActiveSuggestionIndex}
-              handleSearch={handleSearch}
+              handleSearch={handlePlanSearch}
               isLatestMode={isLatestMode}
               setIsLatestMode={setIsLatestMode}
               isSearching={isSearching}
@@ -759,6 +900,17 @@ const App = () => {
               isSourcesExpanded={isSourcesExpanded}
               setIsSourcesExpanded={setIsSourcesExpanded}
               onArticleGen={openContentComposerFromPost}
+            />
+          </Suspense>
+
+          <Suspense fallback={workspaceLoadingFallback}>
+            <PricingView
+              isVisible={activeView === 'pricing'}
+              activePlanId={activePlanId}
+              dailyUsage={dailyUsage}
+              remainingUsage={remainingUsage}
+              onSelectPlan={handleSwitchPlan}
+              onOpenContent={() => setActiveView('content')}
             />
           </Suspense>
 
@@ -861,15 +1013,17 @@ const App = () => {
         message={searchStatusMessage}
         hidden={shouldInlineSearchStatus}
       />
-      <RightSidebar 
-        watchlist={watchlist} postLists={postLists} activeListId={activeListId}
-        onSelectList={setActiveListId}
-        onCreateList={() => openListModal('create')}
-        onImportList={() => openListModal('import')}
-        onRemoveList={handleRemoveList} onAddMember={handleAddMember} onRemoveMember={handleRemoveMember}
-        onUpdateList={handleUpdateList} onShareList={handleShareList} onRemoveAccount={handleRemoveAccountGlobal}
-        isMobileOpen={isMobilePostListOpen} onCloseMobile={() => setIsMobilePostListOpen(false)}
-      />
+      {showRightSidebar && (
+        <RightSidebar 
+          watchlist={watchlist} postLists={postLists} activeListId={activeListId}
+          onSelectList={setActiveListId}
+          onCreateList={handleCreateListRequest}
+          onImportList={handleImportListRequest}
+          onRemoveList={handleRemoveList} onAddMember={handleAddMember} onRemoveMember={handleRemoveMember}
+          onUpdateList={handleUpdateList} onShareList={handleShareList} onRemoveAccount={handleRemoveAccountGlobal}
+          isMobileOpen={isMobilePostListOpen} onCloseMobile={() => setIsMobilePostListOpen(false)}
+        />
+      )}
     </div>
   );
 };

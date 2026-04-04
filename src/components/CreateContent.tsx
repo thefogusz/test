@@ -381,6 +381,8 @@ const CreateContent = ({
   sourceNode, 
   onRemoveSource, 
   onSaveArticle,
+  onBeforeGenerate,
+  onBeforeRegenerate,
   isGenerating,
   setIsGenerating,
   phase,
@@ -492,6 +494,7 @@ const CreateContent = ({
     const hasSource = !!activeSourceNode;
 
     if (!isManualInputValid && !hasSource) return;
+    if (onBeforeGenerate && !onBeforeGenerate()) return;
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -697,6 +700,7 @@ const CreateContent = ({
   // Regenerate: skip research phase, reuse cached factSheet
   const handleRegenerate = async () => {
     if (!factSheet || isGenerating) return;
+    if (onBeforeRegenerate && !onBeforeRegenerate()) return;
 
     const controller = new AbortController();
     abortRef.current = controller;

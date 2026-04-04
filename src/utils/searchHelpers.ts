@@ -1,7 +1,7 @@
 import { TOPIC_TRIGGERS } from '../config/topics';
 import { normalizeSearchText, safeParse } from './appUtils';
 
-export const MAX_SEARCH_PRESETS = 4;
+export const MAX_SEARCH_PRESETS = 3;
 
 export const COMMON_KEYWORDS = [
   'AI',
