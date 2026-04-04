@@ -267,7 +267,9 @@ const App = () => {
 
   const openPricingFromPostList = useCallback(() => {
     setIsMobilePostListOpen(false);
-    openPricingView();
+    window.setTimeout(() => {
+      openPricingView();
+    }, 0);
   }, [openPricingView]);
 
   const clearCheckoutParams = () => {
@@ -1118,13 +1120,8 @@ const App = () => {
           onUpdateList={handleUpdateList} onShareList={handleShareList} onRemoveAccount={handleRemoveAccountGlobal}
           isMobileOpen={isMobilePostListOpen} onCloseMobile={() => setIsMobilePostListOpen(false)}
           activePlanId={activePlanId}
-          remainingUsage={remainingUsage}
-          usageLimits={currentPlan.usage}
-          onSwitchPlan={handlePlanSelection}
-          onResetUsage={handleResetUsage}
           onOpenPricing={openPricingFromPostList}
           planNotice={planNotice}
-          onClearPlanNotice={() => setPlanNotice(null)}
         />
       )}
     </div>

@@ -2330,11 +2330,12 @@ h1, h2, h3, h4, h5, h6 {
   .dashboard-header-top {
     display: grid !important;
     grid-template-columns: auto minmax(0, 1fr) auto;
-    align-items: center !important;
+    align-items: flex-start !important;
     justify-content: stretch !important;
     gap: 12px !important;
     position: relative;
     padding-inline: 20px;
+    padding-right: 56px;
   }
 
   .home-mobile-logo {
@@ -2363,9 +2364,11 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .dashboard-header-top .mobile-only-flex.icon-btn-large {
-    position: static;
+    position: absolute;
+    right: 0;
+    top: 0;
     transform: none;
-    justify-self: end;
+    justify-self: auto;
   }
 
   .dashboard-header-actions {
@@ -6898,7 +6901,7 @@ h1, h2, h3, h4, h5, h6 {
 
   .post-list-mobile-plan-section {
     margin-top: 18px;
-    padding: 16px 4px 0;
+    padding: 14px 4px 0;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
   }
 
@@ -6911,17 +6914,101 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--text-dim);
   }
 
-  .post-list-mobile-plan-section .sidebar-plan-panel.compact,
-  .post-list-mobile-plan-section .sidebar-plan-panel.compact.plan-plus {
+  .post-list-mobile-plan-entry,
+  .post-list-mobile-plan-note {
     width: 100%;
-    max-width: none;
-    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.02));
     border-radius: 18px;
-    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.2);
+    color: #fff;
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
   }
 
-  .post-list-mobile-plan-section .sidebar-user-mock {
-    padding: 10px 4px 4px;
+  .post-list-mobile-plan-entry {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px;
+    text-align: left;
+  }
+
+  .post-list-mobile-plan-entry-main,
+  .post-list-mobile-plan-entry-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .post-list-mobile-plan-entry-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .post-list-mobile-plan-entry-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(41, 151, 255, 0.14);
+    color: #cfe4ff;
+    flex: 0 0 auto;
+  }
+
+  .post-list-mobile-plan-entry-name {
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.2;
+  }
+
+  .post-list-mobile-plan-entry-subtitle {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.35;
+  }
+
+  .post-list-mobile-plan-entry-meta {
+    gap: 8px;
+    color: var(--text-dim);
+    flex: 0 0 auto;
+  }
+
+  .post-list-mobile-plan-badge {
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    line-height: 1;
+  }
+
+  .post-list-mobile-plan-note {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 12px 14px;
+    text-align: left;
+  }
+
+  .post-list-mobile-plan-note-title {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .post-list-mobile-plan-note-body {
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-dim);
   }
 }
 

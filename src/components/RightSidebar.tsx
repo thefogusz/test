@@ -1,9 +1,14 @@
 // @ts-nocheck
 import React, { useEffect, useRef, useState } from 'react';
-import { Plus, Trash2, X, FileCode, List, Library, Share2, Pencil, Users } from 'lucide-react';
-import PlanPanel from './PlanPanel';
+import { Plus, Trash2, X, FileCode, List, Library, Share2, Users, CreditCard, ChevronRight } from 'lucide-react';
 
 const normalizeHandle = (value) => (value || '').trim().replace(/^@/, '').toLowerCase();
+
+const PLAN_TITLES = {
+  free: 'Foro Free',
+  plus: 'Foro Plus',
+  admin: 'Foro Admin',
+};
 
 const getMatchPriority = (user, query) => {
   const normalizedQuery = normalizeHandle(query);
@@ -97,13 +102,8 @@ const RightSidebar = ({
   isMobileOpen,
   onCloseMobile,
   activePlanId,
-  remainingUsage,
-  usageLimits,
-  onSwitchPlan,
-  onResetUsage,
   onOpenPricing,
   planNotice,
-  onClearPlanNotice,
 }) => {
   const [expandedId, setExpandedId] = useState(null);
   const [addHandle, setAddHandle] = useState('');
@@ -691,18 +691,27 @@ const RightSidebar = ({
         {isMobileOpen && (
           <section className="post-list-mobile-plan-section">
             <div className="post-list-mobile-plan-label">PLAN & BILLING</div>
-            <PlanPanel
-              activePlanId={activePlanId}
-              remainingUsage={remainingUsage}
-              usageLimits={usageLimits}
-              onSwitchPlan={onSwitchPlan}
-              onResetUsage={onResetUsage}
-              onOpenPricing={onOpenPricing}
-              planNotice={planNotice}
-              onClearPlanNotice={onClearPlanNotice}
-              defaultOpen
-              className="post-list-mobile-plan-panel"
-            />
+            <button type="button" className="post-list-mobile-plan-entry" onClick={onOpenPricing}>
+              <div className="post-list-mobile-plan-entry-main">
+                <div className="post-list-mobile-plan-entry-icon">
+                  <CreditCard size={16} />
+                </div>
+                <div className="post-list-mobile-plan-entry-copy">
+                  <div className="post-list-mobile-plan-entry-name">{PLAN_TITLES[activePlanId] || 'Foro Plan'}</div>
+                  <div className="post-list-mobile-plan-entry-subtitle">เปิดหน้า Pricing และจัดการแพ็ก</div>
+                </div>
+              </div>
+              <div className="post-list-mobile-plan-entry-meta">
+                <span className="post-list-mobile-plan-badge">{String(activePlanId || '').toUpperCase()}</span>
+                <ChevronRight size={16} />
+              </div>
+            </button>
+            {planNotice && (
+              <button type="button" className="post-list-mobile-plan-note" onClick={onOpenPricing}>
+                <span className="post-list-mobile-plan-note-title">{planNotice.title}</span>
+                <span className="post-list-mobile-plan-note-body">{planNotice.body}</span>
+              </button>
+            )}
           </section>
         )}
 
