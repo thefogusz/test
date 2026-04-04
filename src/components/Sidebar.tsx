@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bookmark, BookOpen, ChevronDown, Gem, House, Loader2, RefreshCw, SquarePen, UsersRound } from 'lucide-react';
+import { Bookmark, BookOpen, ChevronDown, CreditCard, House, Loader2, RefreshCw, SquarePen, UsersRound } from 'lucide-react';
 import { AI_WORKSPACES } from '../config/aiWorkspaces';
 import { FEATURE_LABELS, formatPlanLimit, type MeteredFeature, type PlanId } from '../config/pricingPlans';
 import type { ActiveView } from '../types/domain';
@@ -77,7 +77,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   {
     view: 'pricing',
     label: 'Pricing',
-    Icon: Gem,
+    Icon: CreditCard,
     isActive: (activeView) => activeView === 'pricing',
   },
 ];
