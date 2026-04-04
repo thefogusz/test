@@ -2160,8 +2160,24 @@ h1, h2, h3, h4, h5, h6 {
     text-overflow: ellipsis;
   }
 
-  .nav-item-home .nav-text {
-    transform: translateX(-2px);
+  .nav-item-content {
+    order: 1;
+  }
+
+  .nav-item-read {
+    order: 2;
+  }
+
+  .nav-item-home {
+    order: 3;
+  }
+
+  .nav-item-audience {
+    order: 4;
+  }
+
+  .nav-item-bookmarks {
+    order: 5;
   }
 
   .nav-item.active::before {
