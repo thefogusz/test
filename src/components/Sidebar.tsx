@@ -2,6 +2,10 @@ import { Bookmark, BookOpen, House, Loader2, RefreshCw, SquarePen, UsersRound } 
 import { AI_WORKSPACES } from '../config/aiWorkspaces';
 import type { ActiveView } from '../types/domain';
 
+const LOGO_WIDTH = 1024;
+const LOGO_HEIGHT = 642;
+const LOGO_DISPLAY_HEIGHT = 36;
+
 type SidebarProps = {
   activeView?: ActiveView;
   onNavClick: (view: ActiveView) => void;
@@ -62,7 +66,20 @@ const Sidebar = ({ activeView, onNavClick, backgroundTasks = {} }: SidebarProps)
   return (
     <aside className="sidebar">
       <div className="sidebar-logo" style={{ padding: '24px 16px 20px', display: 'flex', alignItems: 'center', minHeight: '80px' }}>
-        <img src="logo.png" alt="RO Logo" style={{ height: '36px', width: '72px', display: 'block' }} loading="eager" />
+        <img
+          src="logo.png"
+          alt="RO Logo"
+          width={LOGO_WIDTH}
+          height={LOGO_HEIGHT}
+          style={{
+            height: `${LOGO_DISPLAY_HEIGHT}px`,
+            width: 'auto',
+            aspectRatio: `${LOGO_WIDTH} / ${LOGO_HEIGHT}`,
+            display: 'block',
+          }}
+          loading="eager"
+          decoding="async"
+        />
         {(backgroundTasks.syncing || backgroundTasks.generating || backgroundTasks.searching || backgroundTasks.filtering) && (
           <div style={{ marginLeft: 'auto', background: 'rgba(41, 151, 255, 0.1)', color: 'var(--accent-secondary)', padding: '4px 8px', borderRadius: '100px', fontSize: '10px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Loader2 size={10} className="animate-spin" /> WORKING...

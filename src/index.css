@@ -4518,7 +4518,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .sidebar-logo img {
-  width: 72px !important;
+  width: auto !important;
   height: 36px !important;
   object-fit: contain;
   flex-shrink: 0;
