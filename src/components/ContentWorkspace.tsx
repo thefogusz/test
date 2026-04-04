@@ -7,11 +7,11 @@ import {
   FileText,
   Link,
   Loader2,
+  BookmarkPlus,
   RefreshCw,
   RefreshCcw,
   Search,
   ShieldCheck,
-  Sparkles,
   X,
   Zap,
 } from 'lucide-react';
@@ -277,7 +277,7 @@ const ContentWorkspace = ({
                       onClick={() => addSearchPreset(searchQuery)}
                       style={{ marginTop: 0 }}
                     >
-                      <Sparkles size={14} /> {'\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e40\u0e1b\u0e47\u0e19 Preset'}
+                      <BookmarkPlus size={14} /> {'\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e40\u0e1b\u0e47\u0e19 Preset'}
                     </button>
                   )}
                 </div>

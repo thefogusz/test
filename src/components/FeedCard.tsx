@@ -11,9 +11,9 @@ import {
   Image as ImageIcon,
   ListVideo,
   MessageCircle,
+  PenSquare,
   Repeat,
   Reply,
-  Sparkles,
   X,
 } from 'lucide-react';
 import type { Post, PostList } from '../types/domain';
@@ -727,7 +727,7 @@ const FeedCard = ({
               title="สร้างคอนเทนต์"
               aria-label="สร้างคอนเทนต์"
             >
-              <Sparkles size={11} strokeWidth={2.35} />
+              <PenSquare size={11} strokeWidth={2.35} />
               <span>สร้างคอนเทนต์</span>
             </button>
           )}

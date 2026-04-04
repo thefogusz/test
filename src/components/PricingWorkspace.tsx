@@ -1,4 +1,4 @@
-import { Check, Crown, Sparkles } from 'lucide-react';
+import { Check, Crown, Shield } from 'lucide-react';
 import {
   FEATURE_HINTS,
   FEATURE_LABELS,
@@ -55,14 +55,17 @@ const PricingWorkspace = ({
         <div className="pricing-minimal-topline">
           <span className="pricing-section-kicker">แพ็กเกจ Foro</span>
           <span className="pricing-current-plan-pill">
-            <Sparkles size={14} />
+            <Shield size={14} />
             {currentPlan.name}
           </span>
         </div>
 
         <div className="pricing-minimal-head">
-          <div>
-            <h1 className="pricing-minimal-title">เลือกแพ็กที่เหมาะกับคุณ</h1>
+          <div className="pricing-minimal-copy">
+            <h1 className="pricing-minimal-title">
+              <span className="pricing-minimal-title-line">เลือกแพ็กที่</span>
+              <span className="pricing-minimal-title-line accent">เหมาะกับคุณ</span>
+            </h1>
             <p className="pricing-minimal-subtitle">
               Search และ Generate ใช้คุณภาพเดียวกัน ต่างกันแค่จำนวนต่อวันและพื้นที่จัดการงาน
             </p>
