@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useEffect, useRef, useState } from 'react';
 import { Plus, Trash2, X, FileCode, List, Library, Share2, Pencil, Users } from 'lucide-react';
+import PlanPanel from './PlanPanel';
 
 const normalizeHandle = (value) => (value || '').trim().replace(/^@/, '').toLowerCase();
 
@@ -95,6 +96,14 @@ const RightSidebar = ({
   onShareList,
   isMobileOpen,
   onCloseMobile,
+  activePlanId,
+  remainingUsage,
+  usageLimits,
+  onSwitchPlan,
+  onResetUsage,
+  onOpenPricing,
+  planNotice,
+  onClearPlanNotice,
 }) => {
   const [expandedId, setExpandedId] = useState(null);
   const [addHandle, setAddHandle] = useState('');
@@ -678,6 +687,24 @@ const RightSidebar = ({
             </div>
           )}
         </div>
+
+        {isMobileOpen && (
+          <section className="post-list-mobile-plan-section">
+            <div className="post-list-mobile-plan-label">PLAN & BILLING</div>
+            <PlanPanel
+              activePlanId={activePlanId}
+              remainingUsage={remainingUsage}
+              usageLimits={usageLimits}
+              onSwitchPlan={onSwitchPlan}
+              onResetUsage={onResetUsage}
+              onOpenPricing={onOpenPricing}
+              planNotice={planNotice}
+              onClearPlanNotice={onClearPlanNotice}
+              defaultOpen
+              className="post-list-mobile-plan-panel"
+            />
+          </section>
+        )}
 
       </div>
     </aside>
