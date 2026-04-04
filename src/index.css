@@ -5980,6 +5980,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .foro-layout.pricing-open .foro-main {
   padding: 20px 28px 24px;
+  display: flex;
+  justify-content: center;
 }
 
 @media (max-width: 768px) {
@@ -6014,11 +6016,11 @@ h1, h2, h3, h4, h5, h6 {
 
 .pricing-shell-minimal {
   width: 100%;
-  max-width: 780px;
-  margin: 0 auto;
+  max-width: 740px;
+  margin: 0;
   align-items: center;
   position: relative;
-  left: 16px;
+  transform: translateX(16px);
 }
 
 .pricing-shell-minimal > * {
@@ -6057,8 +6059,8 @@ h1, h2, h3, h4, h5, h6 {
 .pricing-minimal-header {
   gap: 14px;
   padding: 18px 20px 16px;
-  max-width: 780px;
-  margin: 0 auto;
+  max-width: 740px;
+  margin: 0;
 }
 
 .pricing-minimal-topline {
@@ -6103,7 +6105,7 @@ h1, h2, h3, h4, h5, h6 {
 .pricing-usage-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
 .pricing-usage-tile {
@@ -6168,14 +6170,14 @@ h1, h2, h3, h4, h5, h6 {
   padding: 0;
   background: transparent;
   border: none;
-  max-width: 780px;
-  margin: 0 auto;
+  max-width: 740px;
+  margin: 0;
 }
 
 .pricing-plan-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 20px;
   align-items: stretch;
 }
 
@@ -6184,7 +6186,7 @@ h1, h2, h3, h4, h5, h6 {
   flex-direction: column;
   gap: 12px;
   min-height: 100%;
-  padding: 16px;
+  padding: 18px;
   border-radius: 18px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.032), rgba(255, 255, 255, 0.015));
   border: 1px solid rgba(255, 255, 255, 0.07);
@@ -6306,30 +6308,17 @@ h1, h2, h3, h4, h5, h6 {
   font-family: "Noto Sans Thai", "Inter", sans-serif;
   padding: 0 4px;
   text-align: center;
-  max-width: 780px;
-  margin: 0 auto;
+  max-width: 740px;
+  margin: 0;
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .pricing-plan-card,
-  .pricing-usage-tile,
   .pricing-current-plan-pill {
     transition:
       border-color 220ms ease,
       box-shadow 220ms ease,
       background 220ms ease,
       opacity 220ms ease;
-  }
-
-  .pricing-plan-card:hover,
-  .pricing-usage-tile:hover {
-    border-color: rgba(125, 211, 252, 0.14);
-    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.14);
-  }
-
-  .pricing-plan-card:hover .pricing-plan-current-badge {
-    background: rgba(125, 211, 252, 0.16);
-    border-color: rgba(125, 211, 252, 0.28);
   }
 }
 
@@ -6746,7 +6735,8 @@ h1, h2, h3, h4, h5, h6 {
 
 @media (max-width: 1200px) {
   .pricing-shell-minimal {
-    left: 0;
+    max-width: 700px;
+    transform: none;
   }
 
   .pricing-plan-grid {
@@ -6767,7 +6757,7 @@ h1, h2, h3, h4, h5, h6 {
 
   .pricing-shell-minimal {
     max-width: none;
-    left: 0;
+    transform: none;
   }
 
   .pricing-band {
@@ -6838,7 +6828,7 @@ h1, h2, h3, h4, h5, h6 {
 
   .pricing-plan-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    gap: 12px;
   }
 
   .pricing-plan-top {
