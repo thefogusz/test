@@ -202,9 +202,9 @@ const FeedCard = ({
           key: 'repost',
           icon: Repeat,
           label: `รีโพสต์โดย ${repostedByUsername ? `@${repostedByUsername}` : repostedByName || 'บัญชีนี้'}`,
-          color: '#8ec5ff',
-          background: 'rgba(41, 151, 255, 0.08)',
-          border: '1px solid rgba(41, 151, 255, 0.16)',
+          color: 'rgba(142, 197, 255, 0.72)',
+          background: 'rgba(41, 151, 255, 0.035)',
+          border: '1px solid rgba(41, 151, 255, 0.08)',
         }
       : null,
     displayTweet.isReply
@@ -212,9 +212,9 @@ const FeedCard = ({
           key: 'reply',
           icon: Reply,
           label: `ตอบกลับ @${displayTweet.inReplyToUsername || 'บางคน'}`,
-          color: 'var(--accent-blue)',
-          background: 'linear-gradient(90deg, rgba(41, 151, 255, 0.1) 0%, rgba(157, 117, 255, 0.05) 100%)',
-          border: '1px solid rgba(41, 151, 255, 0.16)',
+          color: 'rgba(120, 186, 255, 0.7)',
+          background: 'rgba(41, 151, 255, 0.03)',
+          border: '1px solid rgba(41, 151, 255, 0.075)',
         }
       : null,
   ].filter(Boolean);
@@ -697,19 +697,19 @@ const FeedCard = ({
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: '6px',
-                minHeight: '28px',
-                padding: '0 10px',
+                gap: '5px',
+                minHeight: '24px',
+                padding: '0 8px',
                 borderRadius: '999px',
                 background: badge.background,
                 border: badge.border,
                 color: badge.color,
-                fontSize: '11px',
-                fontWeight: '700',
+                fontSize: '10px',
+                fontWeight: '600',
                 whiteSpace: 'nowrap',
               }}
             >
-              <badge.icon size={12} strokeWidth={2.4} />
+              <badge.icon size={11} strokeWidth={2.2} />
               <span>{badge.label}</span>
             </div>
           ))}
