@@ -57,16 +57,14 @@ const PricingWorkspace = ({
           <span className="pricing-current-plan-pill">
             <Sparkles size={14} />
             {currentPlan.name}
-            {' · '}
-            {currentPlan.priceLabel}
           </span>
         </div>
 
         <div className="pricing-minimal-head">
           <div>
-            <h1 className="pricing-minimal-title">เลือกแพ็กที่เหมาะกับการใช้งาน</h1>
+            <h1 className="pricing-minimal-title">เลือกแพ็กที่เหมาะกับคุณ</h1>
             <p className="pricing-minimal-subtitle">
-              Search และ Generate คุณภาพเท่ากันทุกแพ็ก ต่างกันที่จำนวนใช้งานต่อวันและพื้นที่จัดการงาน
+              Search และ Generate ใช้คุณภาพเดียวกัน ต่างกันแค่จำนวนต่อวันและพื้นที่จัดการงาน
             </p>
           </div>
 
