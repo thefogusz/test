@@ -312,6 +312,31 @@ const FeedCard = ({
         </div>
 
         <div className="feed-card-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {tweet.isReply && (
+            <div
+              className="feed-card-reply-badge feed-card-reply-badge-inline"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                width: 'fit-content',
+                gap: '6px',
+                padding: '6px 12px',
+                background: 'linear-gradient(90deg, rgba(41, 151, 255, 0.1) 0%, rgba(157, 117, 255, 0.05) 100%)',
+                borderLeft: '3px solid var(--accent-blue)',
+                borderRadius: '4px 8px 8px 4px',
+                color: 'var(--accent-blue)',
+                fontSize: '11.5px',
+                fontWeight: '600',
+                letterSpacing: '0.02em',
+                backdropFilter: 'blur(10px)',
+                boxShadow: '0 2px 10px rgba(41, 151, 255, 0.05)',
+              }}
+            >
+              <Reply size={13} strokeWidth={2.5} style={{ opacity: 0.9 }} />
+              <span className="feed-card-reply-badge-text">à¸•à¸­à¸šà¸à¸¥à¸±à¸š <b>@{tweet.inReplyToUsername || 'à¸šà¸²à¸‡à¸„à¸™'}</b></span>
+            </div>
+          )}
+
           {tweet.isXVideo && (
             <div
               style={{
@@ -393,33 +418,6 @@ const FeedCard = ({
           </a>
         </div>
       </div>
-
-      {tweet.isReply && (
-        <div
-          className="feed-card-reply-badge"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            alignSelf: 'flex-start',
-            width: 'fit-content',
-            gap: '6px',
-            padding: '6px 12px',
-            background: 'linear-gradient(90deg, rgba(41, 151, 255, 0.1) 0%, rgba(157, 117, 255, 0.05) 100%)',
-            borderLeft: '3px solid var(--accent-blue)',
-            borderRadius: '4px 8px 8px 4px',
-            color: 'var(--accent-blue)',
-            fontSize: '11.5px',
-            fontWeight: '600',
-            marginBottom: '14px',
-            letterSpacing: '0.02em',
-            backdropFilter: 'blur(10px)',
-            boxShadow: '0 2px 10px rgba(41, 151, 255, 0.05)',
-          }}
-        >
-          <Reply size={13} strokeWidth={2.5} style={{ opacity: 0.9 }} />
-          <span className="feed-card-reply-badge-text">ตอบกลับ <b>@{tweet.inReplyToUsername || 'บางคน'}</b></span>
-        </div>
-      )}
 
       {tweet.isXVideo ? (
         <div
