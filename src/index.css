@@ -6304,17 +6304,6 @@ h1, h2, h3, h4, h5, h6 {
   color: #ffffff;
 }
 
-.pricing-inline-note {
-  color: #95a6bd;
-  font-size: 11px;
-  line-height: 1.6;
-  font-family: "Noto Sans Thai", "Inter", sans-serif;
-  padding: 0 4px;
-  text-align: center;
-  max-width: 740px;
-  margin: 0 auto;
-}
-
 @media (hover: hover) and (pointer: fine) {
   .pricing-current-plan-pill {
     transition:
@@ -6747,8 +6736,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .pricing-band-plain,
-  .pricing-minimal-header,
-  .pricing-inline-note {
+  .pricing-minimal-header {
     max-width: 700px;
   }
 }
@@ -6852,8 +6840,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .pricing-plan-description,
-  .pricing-checklist,
-  .pricing-inline-note {
+  .pricing-checklist {
     display: none;
   }
 
@@ -6883,8 +6870,7 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 11px;
   }
 
-  .pricing-band-plain,
-  .pricing-inline-note {
+  .pricing-band-plain {
     max-width: none;
   }
 }

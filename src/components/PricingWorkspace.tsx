@@ -168,8 +168,6 @@ const PricingWorkspace = ({
           })}
         </div>
       </section>
-
-      <div className="pricing-inline-note">{SHARED_SYSTEM_NOTES[0]}</div>
     </div>
   );
 };
