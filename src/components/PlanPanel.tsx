@@ -52,8 +52,6 @@ const MOCK_USER_CAPTIONS: Record<PlanId, string> = {
   admin: 'Internal mockup',
 };
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-
 const getPlusAccessBadgeLabel = (plusAccess?: PlusAccess) => {
   if (!plusAccess?.expiresAt) return null;
 
@@ -63,8 +61,21 @@ const getPlusAccessBadgeLabel = (plusAccess?: PlusAccess) => {
   const diffMs = expiresAtMs - Date.now();
   if (diffMs <= 0) return 'หมดอายุแล้ว';
 
-  const daysLeft = Math.max(1, Math.ceil(diffMs / DAY_MS));
-  return daysLeft <= 1 ? 'เหลือวันนี้' : `เหลือ ${daysLeft} วัน`;
+  const now = new Date();
+  const expiresAt = new Date(expiresAtMs);
+  const diffDays = Math.ceil(diffMs / (24 * 60 * 60 * 1000));
+
+  if (diffDays <= 1) return 'ถึงวันนี้';
+  if (diffDays === 2) return 'ถึงพรุ่งนี้';
+
+  const sameYear = now.getFullYear() === expiresAt.getFullYear();
+  const dateLabel = new Intl.DateTimeFormat('th-TH', {
+    day: 'numeric',
+    month: 'short',
+    ...(sameYear ? {} : { year: 'numeric' }),
+  }).format(expiresAt);
+
+  return `ถึง ${dateLabel}`;
 };
 
 const PlanPanel = ({
@@ -120,13 +131,13 @@ const PlanPanel = ({
         <div className="sidebar-user-summary-main">
           {renderProfileAvatar()}
           <div className="sidebar-user-copy">
-            <div className="sidebar-user-name-row">
-              <div className="sidebar-user-name">{profileName}</div>
+            <div className="sidebar-user-name">{profileName}</div>
+            <div className="sidebar-user-meta-row">
+              <div className="sidebar-user-role">{profileCaption}</div>
               {plusAccessBadgeLabel && (
                 <span className="sidebar-plus-days-badge">{plusAccessBadgeLabel}</span>
               )}
             </div>
-            <div className="sidebar-user-role">{profileCaption}</div>
           </div>
         </div>
         <div className="sidebar-user-summary-meta">
