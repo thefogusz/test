@@ -7,7 +7,9 @@ import {
   researchAndPreventHallucination,
   generateStructuredContentV2,
   normalizeContentIntent,
+  tavilySearch,
 } from '../services/GrokService';
+import { fetchTweetById } from '../services/TwitterService';
 import { renderMarkdownToHtml } from '../utils/markdown';
 import ContentTabSwitcher from './ContentTabSwitcher';
 
@@ -42,6 +44,61 @@ const safeParse = (value, fallback) => {
 };
 
 const EMOJI_REQUEST_PATTERN = /(emoji|emojis|อีโมจิ|อิโมจิ|ใส่อีโมจิ|ใส่ emoji|ใช้ emoji|ใช้ emojis)/i;
+
+const TWEET_URL_PATTERN = /(?:twitter|x)\.com\/(?:#!\/)?(\w+)\/status(?:es)?\/(\d+)/i;
+
+const extractTweetRef = (input = '') => {
+  const match = String(input || '').match(TWEET_URL_PATTERN);
+  if (!match) return null;
+
+  return {
+    username: match[1],
+    tweetId: match[2],
+  };
+};
+
+const extractInputUrls = (input = '') =>
+  Array.from(
+    new Set(
+      (String(input || '').match(/https?:\/\/[^\s)\]]+/gi) || [])
+        .map((url) => url.replace(/[),.;!?]+$/g, '').trim())
+        .filter(Boolean),
+    ),
+  );
+
+const buildResolvedUrlSource = async (url, signal) => {
+  if (!url) return null;
+
+  const response = await tavilySearch(url, false, {
+    max_results: 3,
+    include_answer: false,
+    search_depth: 'basic',
+    signal,
+  });
+
+  const exactMatch =
+    (response?.results || []).find((item) => String(item?.url || '').trim() === String(url).trim()) ||
+    (response?.results || [])[0];
+
+  let hostname = url;
+  try {
+    hostname = new URL(url).hostname.replace(/^www\./, '');
+  } catch {}
+
+  return {
+    id: url,
+    sourceType: 'web_article',
+    title: exactMatch?.title || hostname,
+    text: exactMatch?.content || exactMatch?.raw_content || '',
+    summary: exactMatch?.content || '',
+    url,
+    author: {
+      name: hostname,
+      username: hostname,
+      profile_image_url: '',
+    },
+  };
+};
 
 // Safe markdown parser -- prevents streaming partial-chunk crashes from killing the render tree
 let _lastGoodHtml = '';
@@ -355,13 +412,27 @@ const CreateContent = ({
   const [generationStartedAt, setGenerationStartedAt] = useState(null);
   const [progressNow, setProgressNow] = useState(() => Date.now());
   const [isStopping, setIsStopping] = useState(false);
+  const [resolvedInputSource, setResolvedInputSource] = useState(null);
   const abortRef = useRef(null);
+  const activeSourceNode = sourceNode || resolvedInputSource;
   const activeFormatHint = FORMAT_HINTS[format] || FORMAT_HINTS['โพสต์โซเชียล'];
-  const attachedIsXVideo = isXVideoSource(sourceNode);
-  const attachedVideoDurationLabel = formatDurationLabel(sourceNode?.videoDurationMs);
+  const attachedIsXVideo = isXVideoSource(activeSourceNode);
+  const attachedVideoDurationLabel = formatDurationLabel(activeSourceNode?.videoDurationMs);
   const attachedPreviewImageUrl = !attachedIsXVideo
-    ? sourceNode?.primaryImageUrl || sourceNode?.imageUrls?.[0] || sourceNode?.thumbnailUrl || ''
+    ? activeSourceNode?.primaryImageUrl || activeSourceNode?.imageUrls?.[0] || activeSourceNode?.thumbnailUrl || ''
     : '';
+  useEffect(() => {
+    if (sourceNode) {
+      setResolvedInputSource(null);
+      return;
+    }
+
+    const hasResolvableInputUrl = Boolean(extractTweetRef(input) || extractInputUrls(input).find((url) => isExternalArticleUrl(url)));
+    if (!hasResolvableInputUrl) {
+      setResolvedInputSource(null);
+    }
+  }, [input, sourceNode]);
+
   useEffect(() => {
     if (!isGenerating) { setThinkingStep(0); return; }
     const steps = THINKING_PHASES[phase] || THINKING_PHASES.researching;
@@ -418,7 +489,7 @@ const CreateContent = ({
 
   const handleGenerate = async () => {
     const isManualInputValid = input.trim().length > 0;
-    const hasSource = !!sourceNode;
+    const hasSource = !!activeSourceNode;
 
     if (!isManualInputValid && !hasSource) return;
 
@@ -436,33 +507,55 @@ const CreateContent = ({
     setPhase('researching');
 
     try {
+      let workingSourceNode = activeSourceNode;
+      if (!workingSourceNode) {
+        const tweetRef = extractTweetRef(input);
+        if (tweetRef?.tweetId) {
+          const fetchedTweet = await fetchTweetById(tweetRef.tweetId);
+          if (fetchedTweet) {
+            workingSourceNode = fetchedTweet;
+            setResolvedInputSource(fetchedTweet);
+          }
+        }
+        if (!workingSourceNode) {
+          const externalUrl = extractInputUrls(input).find((url) => isExternalArticleUrl(url));
+          if (externalUrl) {
+            const resolvedUrlSource = await buildResolvedUrlSource(externalUrl, controller.signal);
+            if (resolvedUrlSource) {
+              workingSourceNode = resolvedUrlSource;
+              setResolvedInputSource(resolvedUrlSource);
+            }
+          }
+        }
+      }
+
       const intentProfile = await normalizeContentIntent({
         input,
         customInstructions,
-        sourceContext: sourceNode?.text || sourceNode?.summary || sourceNode?.title || '',
+        sourceContext: workingSourceNode?.text || workingSourceNode?.summary || workingSourceNode?.title || '',
       });
 
       let researchPrompt = intentProfile?.researchHint || input.trim();
       let factIntel = '';
-      if (sourceNode) {
-        const sourceUrl = buildAttachedTweetUrl(sourceNode);
-        const primarySourceUrls = extractPrimarySourceUrlsFromNode(sourceNode);
-        const sourceImageUrls = getSourceImageUrls(sourceNode);
-        const originalText = (sourceNode.text || '').trim();
-        const translatedSummary = (sourceNode.summary || '').trim();
-        const sourceLabel = sourceNode.title || originalText || 'Untitled source';
+      if (workingSourceNode) {
+        const sourceUrl = buildAttachedTweetUrl(workingSourceNode);
+        const primarySourceUrls = extractPrimarySourceUrlsFromNode(workingSourceNode);
+        const sourceImageUrls = getSourceImageUrls(workingSourceNode);
+        const originalText = (workingSourceNode.text || '').trim();
+        const translatedSummary = (workingSourceNode.summary || '').trim();
+        const sourceLabel = workingSourceNode.title || originalText || 'Untitled source';
 
         factIntel = [
           '[ATTACHED INTEL - ORIGINAL SOURCE]',
           `Title: ${sourceLabel}`,
-          `Author: @${sourceNode.author?.username || 'Unknown'}`,
+          `Author: @${workingSourceNode.author?.username || 'Unknown'}`,
           sourceUrl ? `URL: ${sourceUrl}` : '',
           ...primarySourceUrls.map((url, index) => `Primary External URL ${index + 1}: ${url}`),
           originalText ? `Original Content: ${originalText}` : '',
           translatedSummary ? `Thai Summary (reference only, do not use as source of truth): ${translatedSummary}` : '',
         ].filter(Boolean).join('\n') + '\n\n';
 
-        if (isXVideoSource(sourceNode) && sourceUrl) {
+        if (isXVideoSource(workingSourceNode) && sourceUrl) {
           const xVideoAnalysis = await analyzeXVideoPost({
             postUrl: sourceUrl,
             fallbackText: [originalText, translatedSummary].filter(Boolean).join('\n'),
@@ -516,7 +609,7 @@ const CreateContent = ({
       const { factSheet: facts, sources: rawSources } = await researchAndPreventHallucination(researchPrompt, factIntel, {
         intentProfile,
         originalInput: input,
-        primarySourceUrls: sourceNode ? extractPrimarySourceUrlsFromNode(sourceNode) : [],
+        primarySourceUrls: workingSourceNode ? extractPrimarySourceUrlsFromNode(workingSourceNode) : [],
         signal: controller.signal,
       });
       setFactSheet(facts);
@@ -591,6 +684,7 @@ const CreateContent = ({
     setError(null);
     setIsEditing(false);
     setIsSaved(false);
+    setResolvedInputSource(null);
 
     // Clear Persistence
     localStorage.removeItem('foro_gen_input_v1');
@@ -619,7 +713,7 @@ const CreateContent = ({
       const intentProfile = await normalizeContentIntent({
         input,
         customInstructions,
-        sourceContext: sourceNode?.text || sourceNode?.summary || sourceNode?.title || '',
+        sourceContext: activeSourceNode?.text || activeSourceNode?.summary || activeSourceNode?.title || '',
       });
 
       const allowEmoji = EMOJI_REQUEST_PATTERN.test(customInstructions);
@@ -681,11 +775,8 @@ const CreateContent = ({
         className="content-view-tabs-mobile-inline"
       />
 
-      <div className="create-content-panel" style={{ 
-        background: 'linear-gradient(180deg, rgba(22, 22, 25, 0.98), rgba(14, 14, 17, 0.98))', 
+      <div className="create-content-panel" style={{
         borderRadius: '24px',
-        border: '1px solid rgba(255,255,255,0.06)',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.24)',
         display: 'flex',
         flexDirection: 'column',
         position: 'relative',
@@ -693,7 +784,7 @@ const CreateContent = ({
       }}>
         <div className="create-content-composer">
           <div className="create-content-main">
-            {sourceNode && (
+            {activeSourceNode && (
               <div style={{ padding: '20px 20px 0', animation: 'fadeIn 0.3s ease-out' }}>
                 <div className="create-content-source-pill" style={{ 
                   display: 'flex', 
@@ -714,12 +805,12 @@ const CreateContent = ({
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
                         <img 
-                          src={sourceNode.author?.profile_image_url} 
+                          src={activeSourceNode.author?.profile_image_url} 
                           alt="" 
                           style={{ width: '18px', height: '18px', borderRadius: '50%' }}
                           onError={e => { e.target.style.display = 'none'; }}
                         />
-                        <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', whiteSpace: 'nowrap' }}>@{sourceNode.author?.username}</div>
+                        <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', whiteSpace: 'nowrap' }}>@{activeSourceNode.author?.username}</div>
                         {attachedIsXVideo && (
                           <div
                             style={{
@@ -737,13 +828,16 @@ const CreateContent = ({
                           </div>
                         )}
                         <div style={{ color: 'var(--text-dim)', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {sourceNode.summary || sourceNode.text}
+                          {activeSourceNode.summary || activeSourceNode.text}
                         </div>
                       </div>
                     </div>
                   </div>
                   <button 
-                    onClick={onRemoveSource} 
+                    onClick={() => {
+                      setResolvedInputSource(null);
+                      if (sourceNode) onRemoveSource?.();
+                    }} 
                     className="icon-hover" 
                     style={{ 
                       padding: '8px', 
@@ -787,7 +881,7 @@ const CreateContent = ({
                 )}
                 {!attachedIsXVideo && attachedPreviewImageUrl && (
                   <a
-                    href={buildAttachedTweetUrl(sourceNode)}
+                    href={buildAttachedTweetUrl(activeSourceNode)}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
@@ -836,7 +930,7 @@ const CreateContent = ({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={
-                sourceNode
+                activeSourceNode
                   ? attachedIsXVideo
                     ? 'อยากให้หยิบเนื้อหาจากวิดีโอนี้ไปทำคอนเทนต์แบบไหน เช่นโพสต์สรุป, insight, hook, caption หรือ angle ที่อยากเน้น'
                     : 'อยากให้เล่าเรื่องนี้ในมุมไหน หรือมีประเด็นอะไรที่อยากเน้นเป็นพิเศษ?'
@@ -844,8 +938,8 @@ const CreateContent = ({
               }
               disabled={isGenerating}
               style={{ 
-                flex: 1, width: '100%', minHeight: sourceNode ? '240px' : '320px', resize: 'none', fontSize: '17px', lineHeight: '1.72',
-                padding: sourceNode ? '10px 24px 24px' : '16px 24px 24px', background: 'transparent', border: 'none', color: '#ffffff', outline: 'none',
+                flex: 1, width: '100%', minHeight: activeSourceNode ? '240px' : '320px', resize: 'none', fontSize: '17px', lineHeight: '1.72',
+                padding: activeSourceNode ? '10px 24px 24px' : '16px 24px 24px', background: 'transparent', border: 'none', color: '#ffffff', outline: 'none',
                 fontFamily: 'inherit'
               }}
             />
@@ -934,21 +1028,21 @@ const CreateContent = ({
               <button
                 className="create-content-generate-btn"
                 onClick={handleGenerate}
-                disabled={isGenerating || isStopping || (!input.trim() && !sourceNode)}
+                disabled={isGenerating || isStopping || (!input.trim() && !activeSourceNode)}
                 style={{
-                  background: (isGenerating || isStopping || (!input.trim() && !sourceNode)) ? 'rgba(255,255,255,0.02)' : 'linear-gradient(180deg, #6d8dff 0%, #4f6cf7 100%)',
-                  color: (isGenerating || isStopping || (!input.trim() && !sourceNode)) ? 'var(--text-muted)' : '#ffffff',
-                  border: (isGenerating || isStopping || (!input.trim() && !sourceNode)) ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(149,177,255,0.42)',
+                  background: (isGenerating || isStopping || (!input.trim() && !activeSourceNode)) ? 'rgba(255,255,255,0.02)' : 'linear-gradient(180deg, #6d8dff 0%, #4f6cf7 100%)',
+                  color: (isGenerating || isStopping || (!input.trim() && !activeSourceNode)) ? 'var(--text-muted)' : '#ffffff',
+                  border: (isGenerating || isStopping || (!input.trim() && !activeSourceNode)) ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(149,177,255,0.42)',
                   borderRadius: '14px',
                   padding: '12px 22px',
                   fontSize: '14px',
                   fontWeight: '700',
-                  cursor: (isGenerating || isStopping || (!input.trim() && !sourceNode)) ? 'not-allowed' : 'pointer',
+                  cursor: (isGenerating || isStopping || (!input.trim() && !activeSourceNode)) ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '10px',
-                  boxShadow: (isGenerating || isStopping || (!input.trim() && !sourceNode)) ? 'none' : '0 10px 24px rgba(79, 108, 247, 0.22)',
+                  boxShadow: (isGenerating || isStopping || (!input.trim() && !activeSourceNode)) ? 'none' : '0 10px 24px rgba(79, 108, 247, 0.22)',
                   transition: 'all 0.3s ease',
                   width: '100%'
                 }}
@@ -1024,14 +1118,14 @@ const CreateContent = ({
               </button>
               <button
                 onClick={() => {
-                  const attachedSource = serializeAttachedSource(sourceNode);
+                  const attachedSource = serializeAttachedSource(activeSourceNode);
                   const sources = sanitizeBookmarkSources(articleSources);
                   const referenceMarkdown = buildBookmarkReferenceMarkdown(attachedSource, sources);
                   const contentToSave = [generatedMarkdown, referenceMarkdown].filter(Boolean).join('\n\n');
                   const generatedTitle =
                     input.substring(0, 40).trim() ||
-                    sourceNode?.title ||
-                    sourceNode?.text?.substring(0, 40) ||
+                    activeSourceNode?.title ||
+                    activeSourceNode?.text?.substring(0, 40) ||
                     (attachedIsXVideo ? 'คอนเทนต์จากวิดีโอ X' : 'บทความ AI');
 
                   if (onSaveArticle) {
