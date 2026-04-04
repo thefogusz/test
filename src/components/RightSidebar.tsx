@@ -116,9 +116,9 @@ const RightSidebar = ({
     '#af52de', // Purple
     '#ff2d55', // Pink
     '#ffd60a', // Yellow
-    '#5e5ce6', // Indigo
-    '#8e8e93', // Gray
-    '#64d2a6', // Seafoam
+    '#6b5bff', // Violet
+    '#8b5e3c', // Brown
+    '#9aa0a6', // Gray
   ];
 
   const accountPool = buildKnownAccountPool(watchlist, postLists);
