@@ -328,8 +328,15 @@ app.use((error, req, res, next) => {
     return next(error);
   }
 
+  const isBillingRoute = String(req?.originalUrl || '').startsWith('/api/billing');
+  const billingMessage =
+    error?.raw?.message ||
+    error?.message ||
+    error?.type ||
+    'Billing request failed';
+
   return res.status(statusCode).json({
-    error: statusCode >= 500 ? 'Internal server error' : error.message,
+    error: statusCode >= 500 ? (isBillingRoute ? billingMessage : 'Internal server error') : error.message,
   });
 });
 
