@@ -250,6 +250,9 @@ app.post(
     const baseUrl = resolveAppBaseUrl(req);
     const price = await stripe.prices.retrieve(config.stripePlusPriceId);
     const isRecurringPrice = Boolean(price.recurring);
+    const paymentMethodTypes = isRecurringPrice
+      ? undefined
+      : ['card', 'link', 'promptpay'];
     const customerEmail =
       typeof req.body?.customerEmail === 'string' && req.body.customerEmail.trim()
         ? req.body.customerEmail.trim()
@@ -257,6 +260,7 @@ app.post(
 
     const session = await stripe.checkout.sessions.create({
       mode: isRecurringPrice ? 'subscription' : 'payment',
+      ...(paymentMethodTypes ? { payment_method_types: paymentMethodTypes } : {}),
       billing_address_collection: 'auto',
       allow_promotion_codes: true,
       line_items: [
