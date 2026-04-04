@@ -21,7 +21,6 @@ import useLibraryViews from './hooks/useLibraryViews';
 import { usePersistentState } from './hooks/usePersistentState';
 import { usePricingPlan } from './hooks/usePricingPlan';
 import { useSearchWorkspace } from './hooks/useSearchWorkspace';
-import { getStripeClient, hasStripePublishableKey } from './lib/stripe';
 import useSearchSuggestions from './hooks/useSearchSuggestions';
 import { apiFetch } from './utils/apiFetch';
 import {
@@ -339,23 +338,12 @@ const App = () => {
         throw new Error(payload?.error || 'ไม่สามารถสร้าง Stripe Checkout session ได้');
       }
 
-      if (hasStripePublishableKey && payload?.sessionId) {
-        const stripe = await getStripeClient();
-        if (stripe) {
-          const result = await stripe.redirectToCheckout({ sessionId: payload.sessionId });
-          if (result?.error) {
-            throw result.error;
-          }
-          return;
-        }
-      }
-
       if (payload?.url) {
         window.location.assign(payload.url);
         return;
       }
 
-      throw new Error('Stripe Checkout session ไม่ส่ง URL หรือ sessionId กลับมา');
+      throw new Error('Stripe Checkout session ไม่ส่ง URL กลับมา');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'เริ่มต้น Stripe Checkout ไม่สำเร็จ';
       pushPlanNotice('Stripe checkout unavailable', message, 'warn');
