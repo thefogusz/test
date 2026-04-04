@@ -25,7 +25,8 @@ export const PLAN_DEFINITIONS: Record<PlanId, PlanDefinition> = {
     name: 'Free',
     priceLabel: 'ใช้ฟรี',
     headline: 'ลองของจริงแบบไม่ลดคุณภาพ',
-    description: 'เหมาะกับผู้ใช้ใหม่ที่อยากเช็กสัญญาณประจำวันและทดลอง workflow หลักของ Foro',
+    description:
+      'เหมาะกับผู้ใช้ใหม่ที่อยากเช็กสัญญาณประจำวันและทดลอง workflow หลักของ Foro',
     accent: '#9fb0c7',
     usage: {
       feed: 5,
@@ -47,9 +48,10 @@ export const PLAN_DEFINITIONS: Record<PlanId, PlanDefinition> = {
   plus: {
     id: 'plus',
     name: 'Plus',
-    priceLabel: '300 บาท / เดือน',
+    priceLabel: '300 บาท / 1 เดือน',
     headline: 'สำหรับคนที่ใช้ Foro เป็นเครื่องมือทำงานทุกวัน',
-    description: 'เพิ่มปริมาณการใช้งานและพื้นที่จัดการงาน โดยยังคง workflow เต็มเหมือนกันทุกจุด',
+    description:
+      'เพิ่มปริมาณการใช้งานและพื้นที่จัดการงาน โดยยังคง workflow เต็มเหมือนกันทุกจุด',
     accent: '#7dd3fc',
     usage: {
       feed: 15,
@@ -114,7 +116,8 @@ export const OBJECT_LABELS: Record<LimitedObject, string> = {
   searchPresets: 'Search Presets',
 };
 
-export const getPlanDefinition = (planId: PlanId) => PLAN_DEFINITIONS[planId] || PLAN_DEFINITIONS.free;
+export const getPlanDefinition = (planId: PlanId) =>
+  PLAN_DEFINITIONS[planId] || PLAN_DEFINITIONS.free;
 
 export const formatPlanLimit = (value: number) =>
   Number.isFinite(value) ? String(value) : 'Unlimited';

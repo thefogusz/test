@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Bookmark, BookOpen, ChevronDown, CreditCard, House, Loader2, RefreshCw, SquarePen, UsersRound } from 'lucide-react';
 import { AI_WORKSPACES } from '../config/aiWorkspaces';
 import { FEATURE_LABELS, formatPlanLimit, type MeteredFeature, type PlanId } from '../config/pricingPlans';
@@ -118,17 +118,11 @@ const Sidebar = ({
   onClearPlanNotice,
 }: SidebarProps) => {
   const [isTesterOpen, setIsTesterOpen] = useState(false);
-  const isPlanPanelOpen = isTesterOpen;
+  const isPlanPanelOpen = isTesterOpen || Boolean(planNotice);
   const isPlusPlan = activePlanId === 'plus';
   const profileName = MOCK_USER_NAMES[activePlanId] ?? MOCK_USER_NAMES.free;
   const profileInitials = MOCK_USER_INITIALS[activePlanId] ?? MOCK_USER_INITIALS.free;
   const profileCaption = MOCK_USER_CAPTIONS[activePlanId] ?? MOCK_USER_CAPTIONS.free;
-
-  useEffect(() => {
-    if (planNotice) {
-      setIsTesterOpen(true);
-    }
-  }, [planNotice]);
 
   const renderProfileAvatar = () => (
     <div className={`sidebar-user-avatar ${isPlusPlan ? 'has-image is-plus' : ''}`}>

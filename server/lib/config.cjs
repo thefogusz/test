@@ -43,6 +43,9 @@ const loadServerConfig = (rootDir) => {
     xaiApiKey: process.env.XAI_API_KEY || '',
     tavilyApiKey: process.env.TAVILY_API_KEY || '',
     internalApiSecret: process.env.INTERNAL_API_SECRET || '',
+    stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
+    stripePlusPriceId: process.env.STRIPE_PLUS_PRICE_ID || '',
+    stripeCheckoutBaseUrl: process.env.STRIPE_CHECKOUT_BASE_URL || '',
     stateStorageMode: resolveStateStorageMode(process.env.APP_STATE_STORAGE),
     stateStorageFile: process.env.APP_STATE_FILE
       ? path.resolve(rootDir, process.env.APP_STATE_FILE)

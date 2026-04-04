@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const Stripe = require('stripe');
 const { createProxyMiddleware, fixRequestBody } = require('http-proxy-middleware');
 const { loadServerConfig } = require('./server/lib/config.cjs');
 const { createAppStateStore } = require('./server/lib/appStateStore.cjs');
@@ -10,6 +11,7 @@ const stateStore = createAppStateStore({
   mode: config.stateStorageMode,
   filePath: config.stateStorageFile,
 });
+let stripeClient = null;
 
 const asyncRoute = (handler) => (req, res, next) =>
   Promise.resolve(handler(req, res, next)).catch(next);
@@ -30,6 +32,44 @@ const sendUpstreamTextResponse = async (upstreamResponse, res) => {
   res.status(upstreamResponse.status);
   res.type(upstreamResponse.headers.get('content-type') || 'application/json');
   res.send(responseText);
+};
+
+const getStripeClient = () => {
+  if (!config.stripeSecretKey) {
+    const error = new Error('Missing STRIPE_SECRET_KEY');
+    error.statusCode = 500;
+    throw error;
+  }
+
+  if (!stripeClient) {
+    stripeClient = new Stripe(config.stripeSecretKey);
+  }
+
+  return stripeClient;
+};
+
+const normalizeStripeIdentifier = (value, label) => {
+  const normalized = String(value || '').trim();
+  if (!/^[a-zA-Z0-9_]{1,255}$/.test(normalized)) {
+    const error = new Error(`Invalid ${label}`);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return normalized;
+};
+
+const resolveAppBaseUrl = (req) => {
+  if (config.stripeCheckoutBaseUrl) {
+    return config.stripeCheckoutBaseUrl.replace(/\/+$/, '');
+  }
+
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+  const forwardedHost = String(req.headers['x-forwarded-host'] || '').split(',')[0].trim();
+  const protocol = forwardedProto || req.protocol;
+  const host = forwardedHost || req.get('host');
+
+  return `${protocol}://${host}`;
 };
 
 app.disable('x-powered-by');
@@ -196,6 +236,77 @@ app.post(
       console.error('[server] Tavily proxy error:', error);
       res.status(502).json({ error: 'Failed to reach Tavily' });
     }
+  }),
+);
+
+app.post(
+  '/api/billing/checkout-session',
+  asyncRoute(async (req, res) => {
+    if (!config.stripePlusPriceId) {
+      return res.status(500).json({ error: 'Missing STRIPE_PLUS_PRICE_ID' });
+    }
+
+    const stripe = getStripeClient();
+    const baseUrl = resolveAppBaseUrl(req);
+    const price = await stripe.prices.retrieve(config.stripePlusPriceId);
+    const isRecurringPrice = Boolean(price.recurring);
+    const customerEmail =
+      typeof req.body?.customerEmail === 'string' && req.body.customerEmail.trim()
+        ? req.body.customerEmail.trim()
+        : undefined;
+
+    const session = await stripe.checkout.sessions.create({
+      mode: isRecurringPrice ? 'subscription' : 'payment',
+      billing_address_collection: 'auto',
+      allow_promotion_codes: true,
+      line_items: [
+        {
+          price: config.stripePlusPriceId,
+          quantity: 1,
+        },
+      ],
+      success_url: `${baseUrl}/test?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/test?checkout=cancelled`,
+      ...(customerEmail ? { customer_email: customerEmail } : {}),
+    });
+
+    return res.json({
+      sessionId: session.id,
+      url: session.url || null,
+      mode: session.mode,
+    });
+  }),
+);
+
+app.get(
+  '/api/billing/checkout-session-status',
+  asyncRoute(async (req, res) => {
+    const sessionId = normalizeStripeIdentifier(req.query.session_id, 'checkout session id');
+    const stripe = getStripeClient();
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['subscription'],
+    });
+
+    const paymentStatus = session.payment_status || 'unpaid';
+    const subscriptionStatus =
+      session.subscription && typeof session.subscription === 'object'
+        ? session.subscription.status
+        : null;
+    const isPlusActive =
+      session.status === 'complete' &&
+      (paymentStatus === 'paid' ||
+        paymentStatus === 'no_payment_required' ||
+        subscriptionStatus === 'active' ||
+        subscriptionStatus === 'trialing');
+
+    return res.json({
+      sessionId: session.id,
+      status: session.status,
+      paymentStatus,
+      subscriptionStatus,
+      planId: isPlusActive ? 'plus' : 'free',
+      customerEmail: session.customer_details?.email || session.customer_email || null,
+    });
   }),
 );
 

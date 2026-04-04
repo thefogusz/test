@@ -1,8 +1,8 @@
 import { useEffect, useMemo } from 'react';
 import { STORAGE_KEYS } from '../constants/storageKeys';
 import {
-  FEATURE_LABELS,
   FEATURE_HINTS,
+  FEATURE_LABELS,
   PLAN_DEFINITIONS,
   type MeteredFeature,
   type PlanId,
@@ -14,6 +14,12 @@ type DailyUsageSnapshot = {
   feed: number;
   search: number;
   generate: number;
+};
+
+type PlusAccessSnapshot = {
+  activatedAt: string;
+  expiresAt: string;
+  source?: 'checkout' | 'manual';
 };
 
 const getLocalDateKey = () => {
@@ -51,10 +57,36 @@ const normalizeUsageForToday = (usage: DailyUsageSnapshot) => {
   return createEmptyUsage(todayKey);
 };
 
+const createPlusAccess = (
+  activatedAt = new Date(),
+  source: PlusAccessSnapshot['source'] = 'checkout',
+) => {
+  const expiresAt = new Date(activatedAt);
+  expiresAt.setMonth(expiresAt.getMonth() + 1);
+
+  return {
+    activatedAt: activatedAt.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+    source,
+  };
+};
+
+const isPlusAccessActive = (plusAccess: PlusAccessSnapshot | null) => {
+  if (!plusAccess?.expiresAt) return false;
+  return Date.parse(plusAccess.expiresAt) > Date.now();
+};
+
 export const usePricingPlan = () => {
   const [activePlanId, setActivePlanId] = usePersistentState<PlanId>(
     STORAGE_KEYS.activePlan,
     'free',
+  );
+  const [plusAccess, setPlusAccess] = usePersistentState<PlusAccessSnapshot | null>(
+    STORAGE_KEYS.plusAccess,
+    null,
+    {
+      shouldRemove: (value) => value == null,
+    },
   );
   const [dailyUsage, setDailyUsage] = usePersistentState<DailyUsageSnapshot>(
     STORAGE_KEYS.dailyUsage,
@@ -64,7 +96,13 @@ export const usePricingPlan = () => {
     },
   );
 
-  const normalizedPlanId = activePlanId in PLAN_DEFINITIONS ? activePlanId : 'free';
+  const hasActivePlusAccess = isPlusAccessActive(plusAccess);
+  const normalizedPlanId =
+    activePlanId === 'plus' && plusAccess && !hasActivePlusAccess
+      ? 'free'
+      : activePlanId in PLAN_DEFINITIONS
+        ? activePlanId
+        : 'free';
   const currentPlan = PLAN_DEFINITIONS[normalizedPlanId];
   const usageForToday = useMemo(() => normalizeUsageForToday(dailyUsage), [dailyUsage]);
 
@@ -73,6 +111,13 @@ export const usePricingPlan = () => {
       setDailyUsage(usageForToday);
     }
   }, [dailyUsage.dateKey, setDailyUsage, usageForToday]);
+
+  useEffect(() => {
+    if (activePlanId === 'plus' && plusAccess && !hasActivePlusAccess) {
+      setActivePlanId('free');
+      setPlusAccess(null);
+    }
+  }, [activePlanId, hasActivePlusAccess, plusAccess, setActivePlanId, setPlusAccess]);
 
   const remainingUsage = {
     feed: Number.isFinite(currentPlan.usage.feed)
@@ -119,12 +164,25 @@ export const usePricingPlan = () => {
     setDailyUsage(createEmptyUsage());
   };
 
+  const activatePlusForOneMonth = (activatedAt = new Date()) => {
+    setPlusAccess(createPlusAccess(activatedAt, 'checkout'));
+    setActivePlanId('plus');
+  };
+
+  const clearPlusAccess = () => {
+    setPlusAccess(null);
+  };
+
   return {
     activePlanId: normalizedPlanId,
     currentPlan,
     dailyUsage: usageForToday,
     remainingUsage,
+    plusAccess,
     setActivePlanId,
+    setPlusAccess,
+    activatePlusForOneMonth,
+    clearPlusAccess,
     consumeUsage,
     resetDailyUsage,
   };

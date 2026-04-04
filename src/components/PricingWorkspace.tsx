@@ -14,6 +14,7 @@ type PricingWorkspaceProps = {
   dailyUsage: Record<MeteredFeature, number>;
   remainingUsage: Record<MeteredFeature, number>;
   onSelectPlan: (planId: PlanId) => void;
+  isCheckoutLoading?: boolean;
   onOpenContent: () => void;
 };
 
@@ -46,12 +47,16 @@ const PricingWorkspace = ({
   dailyUsage,
   remainingUsage,
   onSelectPlan,
+  isCheckoutLoading = false,
 }: PricingWorkspaceProps) => {
   const currentPlan = PLAN_DEFINITIONS[activePlanId];
   const CurrentPlanIcon = PLAN_PILL_ICON[activePlanId] ?? CreditCard;
 
   return (
-    <div className="pricing-shell pricing-shell-minimal animate-fade-in" style={{ display: isVisible ? 'block' : 'none' }}>
+    <div
+      className="pricing-shell pricing-shell-minimal animate-fade-in"
+      style={{ display: isVisible ? 'block' : 'none' }}
+    >
       <section className="pricing-band pricing-band-tinted pricing-minimal-header">
         <div className="pricing-minimal-topline">
           <span className="pricing-section-kicker">แพ็กเกจ Foro</span>
@@ -65,14 +70,19 @@ const PricingWorkspace = ({
           <div className="pricing-minimal-copy">
             <h1 className="pricing-minimal-title">เลือกแพ็กที่เหมาะกับคุณ</h1>
             <p className="pricing-minimal-subtitle">
-              เลือกตามปริมาณการใช้งานต่อวัน พื้นที่จัดการงาน และความต่อเนื่องของ workflow ที่คุณต้องการ
+              เลือกตามปริมาณการใช้งานต่อวัน พื้นที่จัดการงาน และความต่อเนื่องของ workflow
+              ที่คุณต้องการ
             </p>
           </div>
 
           {activePlanId !== 'plus' && (
-            <button className="btn-pill primary pricing-minimal-cta" onClick={() => onSelectPlan('plus')}>
+            <button
+              className="btn-pill primary pricing-minimal-cta"
+              onClick={() => onSelectPlan('plus')}
+              disabled={isCheckoutLoading}
+            >
               <CreditCard size={15} />
-              เลือก Plus
+              {isCheckoutLoading ? 'กำลังพาไปชำระเงิน...' : 'เลือก Plus'}
             </button>
           )}
         </div>
@@ -90,7 +100,11 @@ const PricingWorkspace = ({
               <div key={feature} className="pricing-usage-tile">
                 <div className="pricing-usage-tile-top">
                   <span>{FEATURE_LABELS[feature]}</span>
-                  <strong>{Number.isFinite(remaining) ? `${remaining}/${formatPlanLimit(limit)}` : 'Unlimited'}</strong>
+                  <strong>
+                    {Number.isFinite(remaining)
+                      ? `${remaining}/${formatPlanLimit(limit)}`
+                      : 'Unlimited'}
+                  </strong>
                 </div>
                 <div className="pricing-meter-track compact">
                   <div className="pricing-meter-fill" style={{ width: `${progress}%` }} />
@@ -111,7 +125,9 @@ const PricingWorkspace = ({
             return (
               <article
                 key={planId}
-                className={`pricing-plan-card ${planId === 'plus' ? 'is-plus' : ''} ${isCurrent ? 'is-current' : ''}`}
+                className={`pricing-plan-card ${planId === 'plus' ? 'is-plus' : ''} ${
+                  isCurrent ? 'is-current' : ''
+                }`}
               >
                 <div className="pricing-plan-top">
                   <div>
@@ -160,8 +176,13 @@ const PricingWorkspace = ({
                   className={`btn-pill ${planId === 'plus' ? 'primary' : ''}`}
                   style={{ width: '100%', justifyContent: 'center', marginTop: 'auto' }}
                   onClick={() => onSelectPlan(planId)}
+                  disabled={planId === 'plus' && isCheckoutLoading}
                 >
-                  {isCurrent ? 'แพ็กปัจจุบัน' : `เลือก ${plan.name}`}
+                  {isCurrent
+                    ? 'แพ็กปัจจุบัน'
+                    : planId === 'plus' && isCheckoutLoading
+                      ? 'กำลังพาไป Stripe...'
+                      : `เลือก ${plan.name}`}
                 </button>
               </article>
             );

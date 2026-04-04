@@ -1,5 +1,6 @@
 export const STORAGE_KEYS = {
   activePlan: 'foro_active_plan_v1',
+  plusAccess: 'foro_plus_access_v1',
   dailyUsage: 'foro_daily_usage_v1',
   watchlist: 'foro_watchlist_v2',
   homeFeed: 'foro_home_feed_v1',

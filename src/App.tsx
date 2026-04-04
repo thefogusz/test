@@ -1,5 +1,5 @@
 ﻿// @ts-nocheck
-import React, { Suspense, lazy, startTransition, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, lazy, startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import AiFilterModal from './components/AiFilterModal';
 import HomeView from './components/HomeView';
@@ -21,7 +21,9 @@ import useLibraryViews from './hooks/useLibraryViews';
 import { usePersistentState } from './hooks/usePersistentState';
 import { usePricingPlan } from './hooks/usePricingPlan';
 import { useSearchWorkspace } from './hooks/useSearchWorkspace';
+import { getStripeClient, hasStripePublishableKey } from './lib/stripe';
 import useSearchSuggestions from './hooks/useSearchSuggestions';
+import { apiFetch } from './utils/apiFetch';
 import {
   sanitizeCollectionState,
   sanitizeStoredSingle,
@@ -48,6 +50,8 @@ const READ_ARCHIVE_INITIAL_RENDER = 24;
 const READ_ARCHIVE_RENDER_BATCH = 24;
 
 const shouldRemoveWhenFalsy = (value) => !value;
+const PLUS_SUCCESS_PARAM = 'success';
+const PLUS_CANCELLED_PARAM = 'cancelled';
 
 const App = () => {
   const [watchlist, setWatchlist] = usePersistentState(STORAGE_KEYS.watchlist, [], {
@@ -111,12 +115,15 @@ const App = () => {
   const [manualQuery, setManualQuery] = useState('');
   const [manualPreview, setManualPreview] = useState(null);
   const [planNotice, setPlanNotice] = useState(null);
+  const [isStartingCheckout, setIsStartingCheckout] = useState(false);
+  const handledCheckoutSessionIdRef = useRef(null);
   const {
     activePlanId,
     currentPlan,
     dailyUsage,
     remainingUsage,
     setActivePlanId,
+    activatePlusForOneMonth,
     consumeUsage,
     resetDailyUsage,
   } = usePricingPlan();
@@ -252,10 +259,19 @@ const App = () => {
     pushPlanNotice('Plan notice', message, 'warn');
   };
 
-  const openPricingView = () => {
+  const openPricingView = useCallback(() => {
     startTransition(() => {
       setActiveView('pricing');
     });
+  }, [setActiveView]);
+
+  const clearCheckoutParams = () => {
+    if (typeof window === 'undefined') return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('checkout');
+    url.searchParams.delete('session_id');
+    window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
   };
 
   const tryConsumeFeature = (feature: MeteredFeature) => {
@@ -295,11 +311,147 @@ const App = () => {
     setStatus(`สลับแพ็กเป็น ${planId === 'admin' ? 'Admin' : planId === 'plus' ? 'Plus' : 'Free'} แล้ว`);
   };
 
+  const startPlusCheckout = async () => {
+    if (isStartingCheckout) return;
+
+    setIsStartingCheckout(true);
+    setStatus('กำลังเชื่อมไปยัง Stripe Checkout...');
+
+    try {
+      const response = await apiFetch('/api/billing/checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload?.error || 'ไม่สามารถสร้าง Stripe Checkout session ได้');
+      }
+
+      if (hasStripePublishableKey && payload?.sessionId) {
+        const stripe = await getStripeClient();
+        if (stripe) {
+          const result = await stripe.redirectToCheckout({ sessionId: payload.sessionId });
+          if (result?.error) {
+            throw result.error;
+          }
+          return;
+        }
+      }
+
+      if (payload?.url) {
+        window.location.assign(payload.url);
+        return;
+      }
+
+      throw new Error('Stripe Checkout session ไม่ส่ง URL หรือ sessionId กลับมา');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'เริ่มต้น Stripe Checkout ไม่สำเร็จ';
+      pushPlanNotice('Stripe checkout unavailable', message, 'warn');
+      setStatus(message);
+    } finally {
+      setIsStartingCheckout(false);
+    }
+  };
+
+  const handlePlanSelection = async (planId: PlanId) => {
+    if (planId !== 'plus') {
+      handleSwitchPlan(planId);
+      return;
+    }
+
+    if (activePlanId === 'plus') {
+      setStatus('คุณใช้แพ็ก Plus อยู่แล้ว');
+      return;
+    }
+
+    await startPlusCheckout();
+  };
+
   const handleResetUsage = () => {
     resetDailyUsage();
     pushPlanNotice('Usage reset', 'รีเซ็ตตัวนับรายวันสำหรับการทดสอบแล้ว', 'info');
     setStatus('รีเซ็ต usage รายวันแล้ว');
   };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const url = new URL(window.location.href);
+    const checkoutState = url.searchParams.get('checkout');
+    const sessionId = url.searchParams.get('session_id');
+
+    if (!checkoutState) return;
+
+    if (checkoutState === PLUS_CANCELLED_PARAM) {
+      pushPlanNotice('Checkout cancelled', 'ยกเลิกการชำระเงินแพ็ก Plus แล้ว', 'warn');
+      setStatus('ยกเลิกการชำระเงินแพ็ก Plus แล้ว');
+      openPricingView();
+      clearCheckoutParams();
+      return;
+    }
+
+    if (checkoutState !== PLUS_SUCCESS_PARAM || !sessionId) {
+      clearCheckoutParams();
+      return;
+    }
+
+    if (handledCheckoutSessionIdRef.current === sessionId) {
+      return;
+    }
+
+    handledCheckoutSessionIdRef.current = sessionId;
+
+    let isMounted = true;
+
+    const confirmCheckout = async () => {
+      try {
+        const response = await apiFetch(
+          `/api/billing/checkout-session-status?session_id=${encodeURIComponent(sessionId)}`,
+        );
+        const payload = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+          throw new Error(payload?.error || 'ตรวจสอบสถานะ Stripe Checkout ไม่สำเร็จ');
+        }
+
+        if (!isMounted) return;
+
+        if (payload?.planId === 'plus') {
+          activatePlusForOneMonth();
+          pushPlanNotice('Plus activated', 'เปิดใช้งานแพ็ก Plus เป็นเวลา 1 เดือนเรียบร้อยแล้ว', 'info');
+          setStatus('ชำระเงินสำเร็จ เปิดใช้งานแพ็ก Plus ได้ 1 เดือนแล้ว');
+        } else {
+          pushPlanNotice(
+            'Payment pending',
+            'Stripe ยังยืนยันการสมัครสมาชิกไม่เสร็จ ลองเปิดหน้านี้อีกครั้งในอีกสักครู่',
+            'warn',
+          );
+          setStatus('Stripe ยังยืนยันการสมัครสมาชิกไม่เสร็จ');
+        }
+
+        openPricingView();
+      } catch (error) {
+        if (!isMounted) return;
+        const message =
+          error instanceof Error ? error.message : 'ตรวจสอบสถานะ Stripe Checkout ไม่สำเร็จ';
+        pushPlanNotice('Checkout verification failed', message, 'warn');
+        setStatus(message);
+        openPricingView();
+      } finally {
+        clearCheckoutParams();
+      }
+    };
+
+    confirmCheckout();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activatePlusForOneMonth, openPricingView]);
 
   const hasPostListRoom = () => {
     if (postLists.length >= currentPlan.objects.postLists) {
@@ -729,7 +881,7 @@ const App = () => {
         remainingUsage={remainingUsage}
         usageLimits={currentPlan.usage}
         dailyUsage={dailyUsage}
-        onSwitchPlan={handleSwitchPlan}
+        onSwitchPlan={handlePlanSelection}
         onResetUsage={handleResetUsage}
         onOpenPricing={openPricingView}
         planNotice={planNotice}
@@ -846,7 +998,8 @@ const App = () => {
               activePlanId={activePlanId}
               dailyUsage={dailyUsage}
               remainingUsage={remainingUsage}
-              onSelectPlan={handleSwitchPlan}
+              onSelectPlan={handlePlanSelection}
+              isCheckoutLoading={isStartingCheckout}
               onOpenContent={() => setActiveView('content')}
             />
           </Suspense>
