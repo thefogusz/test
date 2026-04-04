@@ -333,6 +333,9 @@ const FeedCard = ({
               }}
             >
               <Reply size={13} strokeWidth={2.5} style={{ opacity: 0.9 }} />
+              <span className="feed-card-reply-badge-text-clean">
+                {'\u0E15\u0E2D\u0E1A\u0E01\u0E25\u0E31\u0E1A'} <b>@{tweet.inReplyToUsername || '\u0E1A\u0E32\u0E07\u0E04\u0E19'}</b>
+              </span>
               <span className="feed-card-reply-badge-text">à¸•à¸­à¸šà¸à¸¥à¸±à¸š <b>@{tweet.inReplyToUsername || 'à¸šà¸²à¸‡à¸„à¸™'}</b></span>
             </div>
           )}

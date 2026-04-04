@@ -714,6 +714,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .feed-card-reply-badge-text {
+  display: none;
+}
+
+.feed-card-reply-badge-text-clean {
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;
