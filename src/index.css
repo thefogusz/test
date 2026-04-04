@@ -6239,6 +6239,7 @@ h1, h2, h3, h4, h5, h6 {
   background:
     radial-gradient(circle at top right, rgba(41, 151, 255, 0.14), transparent 28%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.042), rgba(255, 255, 255, 0.02));
+  border-color: rgba(195, 164, 103, 0.12);
 }
 
 .pricing-plan-card.is-current {
@@ -6360,14 +6361,34 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   .pricing-plan-card:hover {
-    transform: translateY(-2px);
-    border-color: rgba(125, 211, 252, 0.16);
-    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.18);
+    transform: translateY(-1px);
+    border-color: rgba(125, 211, 252, 0.12);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.14);
+  }
+
+  .pricing-plan-card:not(.is-plus):hover {
+    transform: none;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 6px 14px rgba(0, 0, 0, 0.1);
+  }
+
+  .pricing-plan-card.is-plus:hover {
+    transform: translateY(-1px);
+    border-color: rgba(207, 176, 110, 0.22);
+    box-shadow:
+      0 14px 28px rgba(0, 0, 0, 0.18),
+      0 0 0 1px rgba(207, 176, 110, 0.08),
+      0 10px 24px rgba(120, 88, 33, 0.16);
   }
 
   .pricing-plan-card:hover .pricing-plan-current-badge {
     background: rgba(125, 211, 252, 0.16);
     border-color: rgba(125, 211, 252, 0.28);
+  }
+
+  .pricing-plan-card.is-plus:hover .pricing-plan-current-badge {
+    background: rgba(206, 176, 111, 0.12);
+    border-color: rgba(206, 176, 111, 0.22);
   }
 
   .pricing-usage-tile:hover {

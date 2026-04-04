@@ -279,6 +279,34 @@ app.post(
 );
 
 app.get(
+  '/api/debug/env-check',
+  asyncRoute(async (req, res) => {
+    const maskValue = (value) => {
+      const normalized = String(value || '').trim();
+      if (!normalized) return null;
+      if (normalized.length <= 8) return `${normalized.slice(0, 2)}***`;
+      return `${normalized.slice(0, 6)}...${normalized.slice(-4)}`;
+    };
+
+    return res.json({
+      ok: true,
+      env: {
+        hasInternalApiSecret: Boolean(config.internalApiSecret),
+        hasStripeSecretKey: Boolean(config.stripeSecretKey),
+        hasStripePlusPriceId: Boolean(config.stripePlusPriceId),
+        hasStripeCheckoutBaseUrl: Boolean(config.stripeCheckoutBaseUrl),
+        hasViteStripePublishableKey: Boolean(process.env.VITE_STRIPE_PUBLISHABLE_KEY),
+      },
+      redacted: {
+        stripeSecretKey: maskValue(config.stripeSecretKey),
+        stripePlusPriceId: maskValue(config.stripePlusPriceId),
+        viteStripePublishableKey: maskValue(process.env.VITE_STRIPE_PUBLISHABLE_KEY),
+      },
+    });
+  }),
+);
+
+app.get(
   '/api/billing/checkout-session-status',
   asyncRoute(async (req, res) => {
     const sessionId = normalizeStripeIdentifier(req.query.session_id, 'checkout session id');
