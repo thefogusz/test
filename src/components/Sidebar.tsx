@@ -1,6 +1,7 @@
 import { Bookmark, BookOpen, House, Loader2, RefreshCw, SquarePen, UsersRound } from 'lucide-react';
 import { AI_WORKSPACES } from '../config/aiWorkspaces';
 import type { ActiveView } from '../types/domain';
+import logoSrc from '../assets/logo.png?inline';
 
 const LOGO_WIDTH = 1024;
 const LOGO_HEIGHT = 642;
@@ -67,7 +68,7 @@ const Sidebar = ({ activeView, onNavClick, backgroundTasks = {} }: SidebarProps)
     <aside className="sidebar">
       <div className="sidebar-logo" style={{ padding: '24px 16px 20px', display: 'flex', alignItems: 'center', minHeight: '80px' }}>
         <img
-          src="logo.png"
+          src={logoSrc}
           alt="RO Logo"
           width={LOGO_WIDTH}
           height={LOGO_HEIGHT}
