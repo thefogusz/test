@@ -39,6 +39,9 @@ const ContentWorkspace = ({
   setSearchQuery,
   searchMediaType,
   setSearchMediaType,
+  activeSearchFocus,
+  applySearchFocus,
+  dismissSearchChoices,
   suggestions,
   showSuggestions,
   setShowSuggestions,
@@ -73,8 +76,10 @@ const ContentWorkspace = ({
   removeSearchPreset,
   searchOverflowResults,
   searchCursor,
+  searchChoiceOptions,
   searchSummary,
   searchWebSources,
+  shouldShowSearchChoices,
   isSourcesExpanded,
   setIsSourcesExpanded,
   onArticleGen,
@@ -395,6 +400,62 @@ const ContentWorkspace = ({
         </div>
           {searchResults.length > 0 && (
             <div className="search-results-container">
+              {shouldShowSearchChoices && searchChoiceOptions.length > 1 && (
+                <div
+                  className="animate-fade-in"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    padding: '14px 16px',
+                    marginBottom: '18px',
+                    background: 'rgba(255,255,255,0.02)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: '18px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '12px', fontWeight: '800', color: '#fff', marginBottom: '4px' }}>
+                      อยากให้โฟกัสแบบไหนมากกว่า
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
+                      ไม่กดก็ได้ ระบบจะใช้มุมมองเริ่มต้นให้เอง
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginLeft: 'auto' }}>
+                    {searchChoiceOptions.map((option) => {
+                      const isActive = activeSearchFocus === option.id;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => applySearchFocus(option.id)}
+                          className="btn-mini-ghost"
+                          style={{
+                            background: isActive ? 'rgba(41, 151, 255, 0.16)' : 'rgba(255,255,255,0.02)',
+                            borderColor: isActive ? 'rgba(41, 151, 255, 0.34)' : 'rgba(255,255,255,0.08)',
+                            color: isActive ? '#dbeafe' : 'var(--text-muted)',
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={dismissSearchChoices}
+                      className="btn-mini-ghost"
+                      style={{ color: 'var(--text-dim)' }}
+                    >
+                      ไว้ก่อน
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {searchSummary && (
                 <div
                   className="search-summary-card animate-fade-in"

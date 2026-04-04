@@ -381,6 +381,27 @@ const getBroadTopicFocusPenalty = (tweet, queryProfile) => {
     return 0;
   }
 
+  if (queryProfile.key === 'ai') {
+    const hasExplicitAiPhrase =
+      /artificial intelligence|machine learning|generative ai|genai|large language model|language model|foundation model|ai model|ai agent|chatgpt|copilot|claude|gemini|deepmind|mistral|openai|anthropic|llm|gpt/i.test(text);
+    const listLikeText = (text.match(/[,:|/]/g) || []).length >= 4 || text.split(/\s+/).length > 45;
+
+    if (hasExplicitAiPhrase || primaryTextMatches >= 1) {
+      return 0;
+    }
+
+    // Broad AI queries often pull in posts that only contain the generic token "AI"
+    // without being a meaningful AI development. Penalize those hard so impact-heavy
+    // AI stories from major labs/products rise above generic acronym mentions.
+    if (exactTextMatches > 0 && primaryTextMatches === 0 && secondaryTextMatches === 0) {
+      return listLikeText ? 3.2 : 2.1;
+    }
+
+    if (exactTextMatches === 0 && primaryTextMatches === 0 && secondaryTextMatches > 0) {
+      return 0.6;
+    }
+  }
+
   if (queryProfile.key !== 'gaming') return 0;
 
   const listLikeText = (text.match(/[,:|/]/g) || []).length >= 4 || text.split(/\s+/).length > 45;
@@ -694,6 +715,13 @@ const getTopicBucket = (tweet, queryProfile) => {
     return 'general';
   }
 
+  if (queryProfile.key === 'ai') {
+    if (/(openai|anthropic|google deepmind|deepmind|mistral|meta ai|claude|gemini|chatgpt|gpt-?5|gpt-?4|copilot|cursor|perplexity)/i.test(text)) return 'ai-main';
+    if (/(chip|gpu|nvidia|blackwell|h100|data center|inference|training cluster|semiconductor|compute)/i.test(text)) return 'ai-infra';
+    if (/(llm|language model|foundation model|ai model|agent|agents|reasoning model|benchmark|multimodal|fine-tuning|open source model)/i.test(text)) return 'ai-research';
+    if (/(artificial intelligence|machine learning|generative ai|genai|\bai\b)/i.test(text)) return 'ai-general';
+  }
+
   if (queryProfile.key === 'gaming') {
     if (/(giveaway|gaming pc|rtx|steam deck)/i.test(text)) return 'promo';
     if (/(esports|valorant|league of legends|lolesports|faze|cblol|faker|counter-strike|tournament)/i.test(text)) return 'esports';
@@ -716,9 +744,11 @@ const diversifyBroadResults = (tweets, queryProfile, limit = 30) => {
 
   const bucketOrder = queryProfile.key === 'gaming'
     ? ['gaming-main', 'gaming-general', 'general', 'esports', 'promo']
+    : queryProfile.key === 'ai'
+      ? ['ai-main', 'ai-infra', 'ai-research', 'ai-general', 'general']
     : queryProfile.key === 'viral_video'
       ? ['viral-main', 'meme', 'general', 'fan-share']
-    : ['general'];
+      : ['general'];
 
   const result = [];
   const seenIds = new Set();

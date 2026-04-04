@@ -101,6 +101,108 @@ const buildWebSearchQuery = (query: string, mediaType: SearchMediaType) =>
 const readNextCursor = (meta: { next_cursor?: string | null } | null | undefined) =>
   meta?.next_cursor || null;
 
+type SearchFocusMode = 'impact' | 'latest' | 'companies' | 'research';
+
+const SEARCH_FOCUS_LABELS: Record<SearchFocusMode, string> = {
+  impact: 'ข่าวใหญ่',
+  latest: 'ล่าสุด',
+  companies: 'บริษัท/โปรดักต์',
+  research: 'วิจัย/เทคนิค',
+};
+
+const SEARCH_CHOICE_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
+const toNumber = (value: unknown) => {
+  const normalized = String(value ?? '0').replace(/,/g, '').trim();
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const getHoursAgo = (value: unknown) => {
+  const timestamp = value ? new Date(String(value)).getTime() : NaN;
+  if (!Number.isFinite(timestamp)) return 999;
+  return Math.max(0, (Date.now() - timestamp) / (1000 * 60 * 60));
+};
+
+const getFocusSignals = (post: any) => {
+  const text = String(post?.text || '').toLowerCase();
+  const searchScore = toNumber(post?.search_score);
+  const engagement =
+    toNumber(post?.like_count || post?.likeCount) +
+    toNumber(post?.retweet_count || post?.retweetCount) +
+    toNumber(post?.reply_count || post?.replyCount) +
+    toNumber(post?.quote_count || post?.quoteCount);
+  const followers = toNumber(post?.author?.followers || post?.author?.fastFollowersCount);
+  const views = toNumber(post?.view_count || post?.viewCount);
+  const recencyHours = getHoursAgo(post?.created_at || post?.createdAt);
+  const freshnessBoost = recencyHours <= 6 ? 4 : recencyHours <= 24 ? 2.8 : recencyHours <= 72 ? 1.2 : 0.2;
+  const impactScore =
+    searchScore * 3.2 +
+    Math.log10(engagement + 1) * 2.4 +
+    Math.log10(views + 1) * 0.8 +
+    Math.log10(followers + 1) * 0.5 +
+    (post?.author?.isVerified ? 1.1 : post?.author?.isBlueVerified ? 0.35 : 0);
+  const companiesScore =
+    (/(launch|release|announce|announces|acquire|acquires|funding|raises|valuation|partnership|enterprise|customer|product|feature|rollout|ships|deploy|copilot|chatgpt|claude|gemini|openai|anthropic|microsoft|google|meta|apple|amazon|nvidia|startup)/i.test(text)
+      ? 3
+      : 0) +
+    (/(ceo|founder|company|firm|startup|business|revenue|pricing|valuation)/i.test(text) ? 1.4 : 0);
+  const researchScore =
+    (/(paper|research|study|benchmark|model|llm|dataset|arxiv|reasoning|multimodal|inference|training|agent|open source|weights|architecture|alignment|safety)/i.test(text)
+      ? 3
+      : 0) +
+    (/(researchers|university|lab|labs|stanford|mit|deepmind|anthropic fellows)/i.test(text) ? 1.4 : 0);
+
+  return {
+    impact: impactScore,
+    latest: freshnessBoost + searchScore * 0.35,
+    companies: companiesScore + impactScore * 0.22,
+    research: researchScore + impactScore * 0.18,
+  };
+};
+
+const rerankPostsByFocus = (posts: any[], focus: SearchFocusMode | null) => {
+  if (!focus) return posts;
+
+  return [...posts]
+    .map((post) => {
+      const focusSignals = getFocusSignals(post);
+      const focusBoost = focusSignals[focus] || 0;
+      return {
+        ...post,
+        _focusBoost: focusBoost,
+        _focusSignals: focusSignals,
+      };
+    })
+    .sort((left, right) => {
+      const leftBase = toNumber(left.search_score);
+      const rightBase = toNumber(right.search_score);
+      const leftScore = leftBase * 0.92 + toNumber(left._focusBoost) * 1.25;
+      const rightScore = rightBase * 0.92 + toNumber(right._focusBoost) * 1.25;
+      if (rightScore !== leftScore) return rightScore - leftScore;
+      return new Date(right.created_at || right.createdAt || 0).getTime() - new Date(left.created_at || left.createdAt || 0).getTime();
+    })
+    .map(({ _focusBoost, _focusSignals, ...post }) => post);
+};
+
+const summarizeFocusLandscape = (posts: any[]) => {
+  const totals: Record<SearchFocusMode, number> = {
+    impact: 0,
+    latest: 0,
+    companies: 0,
+    research: 0,
+  };
+
+  posts.slice(0, 12).forEach((post) => {
+    const signals = getFocusSignals(post);
+    (Object.keys(totals) as SearchFocusMode[]).forEach((key) => {
+      totals[key] += signals[key];
+    });
+  });
+
+  return totals;
+};
+
 export const useSearchWorkspace = ({
   activeView,
   contentTab,
@@ -126,6 +228,14 @@ export const useSearchWorkspace = ({
   const [searchHistory, setSearchHistory] = usePersistentState(STORAGE_KEYS.searchHistory, [], {
     deserialize: deserializeSearchHistory,
   });
+  const [searchLearningProfile, setSearchLearningProfile] = usePersistentState(
+    STORAGE_KEYS.searchLearningProfile,
+    {
+      globalFocusCounts: {},
+      queryKeyFocusCounts: {},
+      dismissedChoiceAt: {},
+    },
+  );
   const [searchWebSources, setSearchWebSources] = useIndexedDbState(STORAGE_KEYS.searchWebSources, [], {
     deserialize: deserializeStoredCollection,
   });
@@ -135,6 +245,7 @@ export const useSearchWorkspace = ({
   const [searchCursor, setSearchCursor] = useState<string | null>(null);
   const [activeSearchPlan, setActiveSearchPlan] = useState<any>(null);
   const [isLatestMode, setIsLatestMode] = useState(false);
+  const [activeSearchFocus, setActiveSearchFocus] = useState<SearchFocusMode | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [isLiveSearching, setIsLiveSearching] = useState(false);
@@ -190,6 +301,29 @@ export const useSearchWorkspace = ({
     );
   };
 
+  const persistFocusChoice = (focus: SearchFocusMode, queryLabel: string, queryKey: string) => {
+    setSearchLearningProfile((prev: any) => {
+      const safePrev = prev && typeof prev === 'object' ? prev : {};
+      const nextGlobal = { ...(safePrev.globalFocusCounts || {}) };
+      const nextByQueryKey = { ...(safePrev.queryKeyFocusCounts || {}) };
+      const nextDismissed = { ...(safePrev.dismissedChoiceAt || {}) };
+
+      nextGlobal[focus] = toNumber(nextGlobal[focus]) + 1;
+      nextByQueryKey[queryKey] = {
+        ...(nextByQueryKey[queryKey] || {}),
+        [focus]: toNumber(nextByQueryKey[queryKey]?.[focus]) + 1,
+      };
+      if (queryLabel) delete nextDismissed[queryLabel.toLowerCase()];
+
+      return {
+        ...safePrev,
+        globalFocusCounts: nextGlobal,
+        queryKeyFocusCounts: nextByQueryKey,
+        dismissedChoiceAt: nextDismissed,
+      };
+    });
+  };
+
   const searchMutation = useMutation({
     mutationFn: async ({
       isMore = false,
@@ -226,6 +360,17 @@ export const useSearchWorkspace = ({
         !/ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update|news|ข่าว|รีวิว|เทียบ|vs|หลุด/i.test(requestedQuery) &&
         !/from:|since:|until:|@|"/i.test(requestedQuery);
       const queryIntent = analyzeSearchQueryIntent(requestedQuery);
+      const queryKeyFocusCounts = searchLearningProfile?.queryKeyFocusCounts?.[queryIntent.queryKey] || {};
+      const globalFocusCounts = searchLearningProfile?.globalFocusCounts || {};
+      const learnedFocusCandidates = (Object.keys(SEARCH_FOCUS_LABELS) as SearchFocusMode[])
+        .map((focus) => ({
+          focus,
+          score: toNumber(queryKeyFocusCounts[focus]) * 2 + toNumber(globalFocusCounts[focus]),
+        }))
+        .sort((left, right) => right.score - left.score);
+      const learnedDefaultFocus =
+        learnedFocusCandidates[0]?.score >= 3 ? learnedFocusCandidates[0].focus : null;
+      const effectiveFocus = activeSearchFocus || learnedDefaultFocus;
       const effectiveBroadDiscoveryQuery = queryIntent.broadDiscoveryIntent || legacyBroadDiscoveryQuery;
       const effectiveLatestMode = isLatestMode || queryIntent.forceLatestMode;
       const searchQueryType = effectiveLatestMode ? 'Latest' : 'Top';
@@ -243,6 +388,7 @@ export const useSearchWorkspace = ({
           setSearchWebSources(cached.searchWebSources);
           setSearchCursor(cached.searchCursor);
           setLastSubmittedSearchQuery(cached.lastSubmittedSearchQuery);
+          setActiveSearchFocus(effectiveFocus);
           setIsLiveSearching(false);
           setStatus(`โหลดผลลัพธ์ที่แคชไว้สำหรับ "${requestedQuery}"`);
           return;
@@ -584,7 +730,8 @@ export const useSearchWorkspace = ({
                   }));
           }
 
-          const normalizedResults = cleanData.map((post) =>
+          const prioritizedCleanData = rerankPostsByFocus(cleanData, effectiveFocus);
+          const normalizedResults = prioritizedCleanData.map((post) =>
             sanitizeStoredPost(
               searchMediaType === 'videos'
                 ? {
@@ -605,6 +752,9 @@ export const useSearchWorkspace = ({
           setSearchResults(xResults);
           setSearchOverflowResults(effectiveBroadDiscoveryQuery ? nextOverflowResults : []);
           setSearchCursor(finalCursor);
+          if (!isMore) {
+            setActiveSearchFocus(effectiveFocus);
+          }
 
           if (cleanData.length === 0) {
             setStatus(`ไม่พบเนื้อหาที่มีประโยชน์ หรือถูก AI ปฏิเสธทั้งหมด (จาก ${data.length} โพสต์ที่อ้างอิง)`);
@@ -630,7 +780,7 @@ export const useSearchWorkspace = ({
               searchMediaType === 'videos' || summaryIntent.queryKey === 'viral_video';
 
             generateExecutiveSummary(
-              cleanData.slice(0, 10),
+              prioritizedCleanData.slice(0, 10),
               requestedQuery,
               (_, fullText) => {
                 setSearchSummary(fullText);
@@ -639,6 +789,7 @@ export const useSearchWorkspace = ({
               {
                 preferXSummary: shouldPreferXSummary,
                 allowWebLead: !shouldPreferXSummary,
+                focusMode: effectiveFocus,
               },
             )
               .then((summaryText) => {
@@ -720,6 +871,114 @@ export const useSearchWorkspace = ({
     [interestSeedLabels, searchHistoryLabels, searchPresets],
   );
 
+  const searchFocusLandscape = useMemo(
+    () => summarizeFocusLandscape(searchResults),
+    [searchResults],
+  );
+
+  const currentQueryIntent = useMemo(
+    () => analyzeSearchQueryIntent(lastSubmittedSearchQuery || searchQuery),
+    [lastSubmittedSearchQuery, searchQuery],
+  );
+
+  const learnedFocusForCurrentQuery = useMemo(() => {
+    const queryKeyCounts = searchLearningProfile?.queryKeyFocusCounts?.[currentQueryIntent.queryKey] || {};
+    const globalCounts = searchLearningProfile?.globalFocusCounts || {};
+    const ranked = (Object.keys(SEARCH_FOCUS_LABELS) as SearchFocusMode[])
+      .map((focus) => ({
+        focus,
+        score: toNumber(queryKeyCounts[focus]) * 2 + toNumber(globalCounts[focus]),
+      }))
+      .sort((left, right) => right.score - left.score);
+    return ranked[0]?.score >= 3 ? ranked[0].focus : null;
+  }, [currentQueryIntent.queryKey, searchLearningProfile]);
+
+  const searchChoiceOptions = useMemo(() => {
+    const ranked = (Object.keys(SEARCH_FOCUS_LABELS) as SearchFocusMode[])
+      .map((focus) => ({
+        id: focus,
+        label: SEARCH_FOCUS_LABELS[focus],
+        score: searchFocusLandscape[focus] || 0,
+      }))
+      .sort((left, right) => right.score - left.score);
+
+    return ranked
+      .filter((item, index) => item.score > 0.8 || index < 2)
+      .slice(0, 4);
+  }, [searchFocusLandscape]);
+
+  const shouldShowSearchChoices = useMemo(() => {
+    if (searchResults.length < 6) return false;
+    if (!currentQueryIntent.broadDiscoveryIntent) return false;
+    const queryLabel = normalizeSearchLabel(lastSubmittedSearchQuery || searchQuery).toLowerCase();
+    const dismissedAt = toNumber(searchLearningProfile?.dismissedChoiceAt?.[queryLabel]);
+    if (dismissedAt && Date.now() - dismissedAt < SEARCH_CHOICE_COOLDOWN_MS) return false;
+    if (learnedFocusForCurrentQuery) return false;
+
+    const ranked = [...searchChoiceOptions].sort((left, right) => right.score - left.score);
+    if (ranked.length < 2) return false;
+    const ambiguityRatio = ranked[1].score / Math.max(1, ranked[0].score);
+    return ambiguityRatio >= 0.62;
+  }, [
+    currentQueryIntent.broadDiscoveryIntent,
+    lastSubmittedSearchQuery,
+    learnedFocusForCurrentQuery,
+    searchChoiceOptions,
+    searchLearningProfile,
+    searchQuery,
+    searchResults.length,
+  ]);
+
+  const applySearchFocus = async (focus: SearchFocusMode) => {
+    const normalizedLabel = normalizeSearchLabel(lastSubmittedSearchQuery || searchQuery);
+    const reranked = rerankPostsByFocus(searchResults, focus).map(sanitizeStoredPost);
+    setActiveSearchFocus(focus);
+    setSearchResults(reranked);
+    persistFocusChoice(focus, normalizedLabel, currentQueryIntent.queryKey);
+    setStatus(`ปรับมุมมองผลค้นหาเป็น "${SEARCH_FOCUS_LABELS[focus]}" แล้ว`);
+
+    if (reranked.length > 0) {
+      setSearchSummary('');
+      const shouldPreferXSummary =
+        searchMediaType === 'videos' || currentQueryIntent.queryKey === 'viral_video';
+      const webContext = (searchWebSources || [])
+        .map((src: any) => `${src.citation_id || ''} ${src.title || ''} ${src.content || ''}`.trim())
+        .filter(Boolean)
+        .join('\n');
+
+      try {
+        const summary = await generateExecutiveSummary(
+          reranked.slice(0, 10),
+          normalizedLabel || searchQuery,
+          (_, fullText) => setSearchSummary(fullText),
+          webContext,
+          {
+            preferXSummary: shouldPreferXSummary,
+            allowWebLead: !shouldPreferXSummary,
+            focusMode: focus,
+          },
+        );
+        if (summary) setSearchSummary(summary);
+      } catch (error) {
+        console.warn('[Search] Focus summary refresh failed:', error);
+      }
+    }
+  };
+
+  const dismissSearchChoices = () => {
+    const queryLabel = normalizeSearchLabel(lastSubmittedSearchQuery || searchQuery).toLowerCase();
+    if (!queryLabel) return;
+    setSearchLearningProfile((prev: any) => ({
+      ...(prev || {}),
+      globalFocusCounts: prev?.globalFocusCounts || {},
+      queryKeyFocusCounts: prev?.queryKeyFocusCounts || {},
+      dismissedChoiceAt: {
+        ...(prev?.dismissedChoiceAt || {}),
+        [queryLabel]: Date.now(),
+      },
+    }));
+  };
+
   const canSaveCurrentSearchAsPreset =
     !!normalizeSearchLabel(searchQuery) &&
     !searchPresets.some(
@@ -741,12 +1000,18 @@ export const useSearchWorkspace = ({
     !!searchStatusMessage;
 
   return {
+    activeSearchFocus,
     activeSuggestionIndex,
     addSearchPreset,
+    applySearchFocus,
     canSaveCurrentSearchAsPreset,
+    dismissSearchChoices,
     dynamicSearchTags,
     handleSearch: (event?: FormEvent, isMore = false, overrideQuery = '') => {
       if (event) event.preventDefault();
+      if (!isMore) {
+        setActiveSearchFocus(null);
+      }
       return searchMutation.mutateAsync({ isMore, overrideQuery });
     },
     interestSeedLabels,
@@ -765,6 +1030,7 @@ export const useSearchWorkspace = ({
     searchMediaType,
     searchQuery,
     searchResults,
+    searchChoiceOptions,
     searchStatusMessage,
     searchSummary,
     searchWebSources,
@@ -779,6 +1045,7 @@ export const useSearchWorkspace = ({
     setSearchSummary,
     setSearchWebSources,
     setShowSuggestions,
+    shouldShowSearchChoices,
     shouldInlineSearchStatus,
     showSuggestions,
   };

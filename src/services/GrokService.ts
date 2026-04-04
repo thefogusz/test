@@ -1299,8 +1299,44 @@ export const generateExecutiveSummary = async (
   if (!validTweets?.length) return null;
   const preferXSummary = Boolean(options.preferXSummary);
   const allowWebLead = Boolean(options.allowWebLead);
+  const focusMode = String(options.focusMode || '').trim().toLowerCase();
 
-  const tweetsForSummary = dedupeByNormalizedText(validTweets, (tweet) => tweet?.text).slice(0, 10);
+  const toNum = (value) => {
+    const normalized = String(value ?? '0').replace(/,/g, '').trim();
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const getSummaryPriorityScore = (tweet = {}) => {
+    const likes = toNum(tweet.like_count || tweet.likeCount);
+    const retweets = toNum(tweet.retweet_count || tweet.retweetCount);
+    const replies = toNum(tweet.reply_count || tweet.replyCount);
+    const quotes = toNum(tweet.quote_count || tweet.quoteCount);
+    const views = toNum(tweet.view_count || tweet.viewCount);
+    const engagement = likes + retweets + replies + quotes;
+    const followers = toNum(tweet.author?.followers || tweet.author?.fastFollowersCount);
+    const searchScore = toNum(tweet.search_score);
+    const momentumScore = toNum(tweet.broad_viral_momentum_score);
+    const semanticScore = toNum(tweet.broad_semantic_score);
+    const authorityScore = toNum(tweet.broad_global_authority_score);
+    const verifiedBoost = tweet.author?.isVerified ? 1.25 : tweet.author?.isBlueVerified ? 0.45 : 0;
+
+    return (
+      searchScore * 3.2 +
+      momentumScore * 2.2 +
+      semanticScore * 1.8 +
+      authorityScore * 1.2 +
+      Math.log10(engagement + 1) * 2.4 +
+      Math.log10(views + 1) * 0.8 +
+      Math.log10(followers + 1) * 0.55 +
+      verifiedBoost
+    );
+  };
+
+  const tweetsForSummary = dedupeByNormalizedText(
+    [...validTweets].sort((left, right) => getSummaryPriorityScore(right) - getSummaryPriorityScore(left)),
+    (tweet) => tweet?.text,
+  ).slice(0, 10);
   if (!tweetsForSummary.length) return null;
 
   const cacheKey = buildCacheKey('executive-summary', {
@@ -1308,6 +1344,7 @@ export const generateExecutiveSummary = async (
     webContext,
     preferXSummary,
     allowWebLead,
+    focusMode,
     tweets: tweetsForSummary.map((tweet) => ({
       id: tweet.id,
       text: normalizeCacheText(tweet.text),
@@ -1340,6 +1377,7 @@ Summarize the key developments for the topic "${safeQuery}" using combined signa
 ${safeWebCtx ? `Use the web context below only to verify, clarify, or add confirmed developments that are not obvious from X evidence:
 ${safeWebCtx}
 ` : ""}
+${focusMode ? `Preferred user focus for this summary: ${focusMode}. When there are multiple valid storylines, prioritize the ones that best match this focus without inventing anything.` : ''}
 
 Hard rules:
 - Do not invent people, companies, products, events, or numbers.
@@ -1348,6 +1386,8 @@ Hard rules:
 - Do not use wording like "????????", "???????????", or any phrase that implies the summary comes from X alone.
 - Every important claim must end with a citation such as [F1], [F2], [W1], or combined citations like [F2][W1].
 - If a claim cannot be traced to one of the provided sources, do not include it.
+- Prioritize the biggest developments first: strongest impact, strongest authority, strongest corroboration, or strongest momentum.
+- Ignore minor side-notes or weakly relevant mentions even if they contain the query keyword.
 - Format: 1 short opening sentence plus 3 concise bullet points. You may expand to 5 bullets only if there are clearly more than 3 major storylines.
 - Tone: compact, factual, serious, no fluff.
 - If X and web context conflict, prioritize what is actually supported and make uncertainty clear.

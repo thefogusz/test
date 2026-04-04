@@ -16,6 +16,7 @@ export const STORAGE_KEYS = {
   searchSummary: 'foro_search_summary_v1',
   searchPresets: 'foro_search_presets_v1',
   searchHistory: 'foro_search_history_v1',
+  searchLearningProfile: 'foro_search_learning_profile_v1',
   aiSearchResults: 'foro_ai_search_results_v1',
   searchWebSources: 'foro_search_web_sources_v1',
   activeListId: 'foro_active_list_id_v1',

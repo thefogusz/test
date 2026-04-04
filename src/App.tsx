@@ -190,9 +190,12 @@ const App = () => {
     setStatus,
   });
   const {
+    activeSearchFocus,
     activeSuggestionIndex,
     addSearchPreset,
+    applySearchFocus,
     canSaveCurrentSearchAsPreset,
+    dismissSearchChoices,
     dynamicSearchTags,
     handleSearch,
     interestSeedLabels,
@@ -211,6 +214,7 @@ const App = () => {
     searchMediaType,
     searchQuery,
     searchResults,
+    searchChoiceOptions,
     searchStatusMessage,
     searchSummary,
     searchWebSources,
@@ -225,6 +229,7 @@ const App = () => {
     setSearchSummary,
     setSearchWebSources,
     setShowSuggestions,
+    shouldShowSearchChoices,
     shouldInlineSearchStatus,
     showSuggestions,
   } = useSearchWorkspace({
@@ -710,6 +715,9 @@ const App = () => {
               setSearchQuery={setSearchQuery}
               searchMediaType={searchMediaType}
               setSearchMediaType={setSearchMediaType}
+              activeSearchFocus={activeSearchFocus}
+              applySearchFocus={applySearchFocus}
+              dismissSearchChoices={dismissSearchChoices}
               suggestions={suggestions}
               showSuggestions={showSuggestions}
               setShowSuggestions={setShowSuggestions}
@@ -720,6 +728,7 @@ const App = () => {
               setIsLatestMode={setIsLatestMode}
               isSearching={isSearching}
               searchResults={searchResults}
+              searchChoiceOptions={searchChoiceOptions}
               setSearchResults={setSearchResults}
               setSearchOverflowResults={setSearchOverflowResults}
               setSearchSummary={setSearchSummary}
@@ -746,6 +755,7 @@ const App = () => {
               searchCursor={searchCursor}
               searchSummary={searchSummary}
               searchWebSources={searchWebSources}
+              shouldShowSearchChoices={shouldShowSearchChoices}
               isSourcesExpanded={isSourcesExpanded}
               setIsSourcesExpanded={setIsSourcesExpanded}
               onArticleGen={openContentComposerFromPost}
