@@ -162,6 +162,18 @@ const isExternalArticleUrl = (url = '') => {
   }
 };
 
+const isXPostUrl = (url = '') => {
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.replace(/^www\./, '').toLowerCase();
+    return ['x.com', 'twitter.com'].includes(hostname) && /\/status(?:es)?\/\d+/i.test(parsed.pathname);
+  } catch {
+    return false;
+  }
+};
+
+const isCitationSourceUrl = (url = '') => isExternalArticleUrl(url) || isXPostUrl(url);
+
 const extractPrimarySourceUrlsFromNode = (sourceNode) =>
   Array.from(
     new Set(extractUrlsFromValue(sourceNode).filter((url) => isExternalArticleUrl(url))),
@@ -169,7 +181,7 @@ const extractPrimarySourceUrlsFromNode = (sourceNode) =>
 
 const sanitizeBookmarkSources = (sources = []) =>
   sources
-    .filter((source) => source && source.url && isExternalArticleUrl(source.url))
+    .filter((source) => source && source.url && isCitationSourceUrl(source.url))
     .filter((source, idx, self) => idx === self.findIndex((item) => item.url === source.url))
     .map((source) => ({
       title: source.title || source.url,
@@ -628,6 +640,8 @@ const CreateContent = ({
         intentProfile,
         originalInput: input,
         primarySourceUrls: workingSourceNode ? extractPrimarySourceUrlsFromNode(workingSourceNode) : [],
+        attachedXPostUrl: sourceUrl || '',
+        attachedXPostTitle: sourceLabel || '',
         signal: controller.signal,
       });
       setFactSheet(facts);

@@ -178,7 +178,7 @@ const dedupeSources = (sources = []) => {
 
   for (const source of sources) {
     if (!source?.url) continue;
-    if (!isUsableCitationUrl(source.url)) continue;
+    if (!isCitableSourceUrl(source.url)) continue;
     if (!byUrl.has(source.url)) {
       byUrl.set(source.url, {
         title: source.title || source.url,
@@ -298,6 +298,7 @@ const scoreSourceQuality = (source = {}, { primaryLeadUrl = '', researchQuery = 
   const combinedText = `${title} ${hostname}`;
   const primaryHostname = getHostname(primaryLeadUrl);
   const queryTokens = tokenizeTopicText(`${researchQuery} ${input}`, 3, 12);
+  const isXSource = isXPostUrl(source?.url || '');
 
   let score = 0;
 
@@ -306,10 +307,12 @@ const scoreSourceQuality = (source = {}, { primaryLeadUrl = '', researchQuery = 
 
   if (matchesDomainTier(hostname, SOURCE_TRUST_TIERS.highest)) score += 40;
   else if (matchesDomainTier(hostname, SOURCE_TRUST_TIERS.medium)) score += 18;
-  else if (matchesDomainTier(hostname, SOURCE_TRUST_TIERS.low)) score -= 25;
+  else if (matchesDomainTier(hostname, SOURCE_TRUST_TIERS.low)) score -= isXSource ? 8 : 25;
 
   const tokenHits = queryTokens.filter((token) => combinedText.includes(token)).length;
   score += tokenHits * 4;
+  if (isXSource && tokenHits >= 2) score += 16;
+  if (isXSource && /^@[\w_]+/.test(source?.title || '')) score += 8;
 
   if (/official|press release|statement|reuters/i.test(combinedText)) score += 10;
   if (/recipe|ice break|icebreak|event|walkthrough|guide/i.test(combinedText)) score -= 25;
@@ -521,8 +524,12 @@ const _extractSourcesFromTweets = (tweets, limit = 4) => {
     .map((tweet) => {
       const url = buildTweetUrl(tweet);
       if (!url) return null;
+      const text = (tweet.text || '').replace(/\s+/g, ' ').trim();
+      const clipped = text.length > 90 ? `${text.slice(0, 87)}...` : text;
       return {
-        title: `@${tweet.author?.username || 'unknown'} on X`,
+        title: clipped
+          ? `@${tweet.author?.username || 'unknown'}: ${clipped}`
+          : `@${tweet.author?.username || 'unknown'} on X`,
         url,
       };
     })
@@ -1304,6 +1311,16 @@ const isSocialPlatformUrl = (url = '') => {
   }
 };
 
+const isXPostUrl = (url = '') => {
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.replace(/^www\./, '').toLowerCase();
+    return ['x.com', 'twitter.com'].includes(hostname) && /\/status(?:es)?\/\d+/i.test(parsed.pathname);
+  } catch {
+    return false;
+  }
+};
+
 const isXAssetUrl = (url = '') => {
   try {
     const parsed = new URL(url);
@@ -1332,6 +1349,11 @@ const isXAssetUrl = (url = '') => {
 const isUsableCitationUrl = (url = '') => {
   if (!url) return false;
   return !isSocialPlatformUrl(url) && !isXAssetUrl(url);
+};
+
+const isCitableSourceUrl = (url = '') => {
+  if (!url) return false;
+  return isXPostUrl(url) || isUsableCitationUrl(url);
 };
 
 const extractExternalSourceUrls = (...chunks) =>
@@ -2176,6 +2198,14 @@ export const researchAndPreventHallucination = async (input, interactionData = '
     options.primarySourceUrls || [],
     extractExternalSourceUrls(rawInput, input, interactionData),
   );
+  let webContext = '';
+  let xContext = '';
+  let extractedSources = [];
+  let attachedSourceContext = '';
+  let primaryLeadTitle = '';
+  const hasPrimaryLead = attachedExternalUrls.length > 0;
+  const attachedXPostUrl = options.attachedXPostUrl || '';
+  const attachedXPostTitle = options.attachedXPostTitle || '';
 
   // Detect and fetch tweet when input contains a tweet URL
   const tweetRef = extractTweetIdFromInput(input);
@@ -2186,8 +2216,17 @@ export const researchAndPreventHallucination = async (input, interactionData = '
       if (tweet?.text) {
         const tweetText = tweet.text.replace(/https?:\/\/\S+/g, '').trim();
         const author = tweet.author?.name || tweet.author?.username || tweetRef.username;
+        const tweetUrl = buildTweetUrl(tweet);
         const fetchedTweetIntel = `[ORIGINAL TWEET SOURCE]\nAuthor: @${tweet.author?.username || tweetRef.username} (${author})\nContent: ${tweetText}\nLikes: ${tweet.like_count || 0} | Retweets: ${tweet.retweet_count || 0}`;
         interactionData = [interactionData, fetchedTweetIntel].filter(Boolean).join('\n\n');
+        if (tweetUrl) {
+          extractedSources.push({
+            title: tweetText
+              ? `Original X post by @${tweet.author?.username || tweetRef.username}: ${tweetText.slice(0, 120)}${tweetText.length > 120 ? '...' : ''}`
+              : `Original X post by @${tweet.author?.username || tweetRef.username}`,
+            url: tweetUrl,
+          });
+        }
         attachedExternalUrls = mergeExternalSourceUrls(
           attachedExternalUrls,
           extractExternalSourceUrls(rawInput, input, interactionData, tweet.text),
@@ -2210,12 +2249,6 @@ export const researchAndPreventHallucination = async (input, interactionData = '
     console.warn('[GrokService] Query derivation failed, using raw input:', err.message);
     researchQuery = input.slice(0, 100);
   }
-  let webContext = '';
-  let xContext = '';
-  let extractedSources = [];
-  let attachedSourceContext = '';
-  let primaryLeadTitle = '';
-  const hasPrimaryLead = attachedExternalUrls.length > 0;
 
   try {
     throwIfAborted();
@@ -2321,6 +2354,13 @@ export const researchAndPreventHallucination = async (input, interactionData = '
     );
     if (xTweets.length) {
       xContext = `[X EVIDENCE]\n${toTweetEvidence(xTweets, 6)}`;
+      extractedSources.push(..._extractSourcesFromTweets(xTweets, 4));
+    }
+    if (attachedXPostUrl) {
+      extractedSources.unshift({
+        title: attachedXPostTitle || 'Attached X post',
+        url: attachedXPostUrl,
+      });
     }
     console.log('[GrokService] Evidence gathering complete:', { web: !!webContext, x: xTweets.length });
     if (options.onProgress) options.onProgress('context-built');
