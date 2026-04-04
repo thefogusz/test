@@ -1,5 +1,5 @@
 import { Copy, FileText, List, RefreshCw, ShieldCheck, Trash2, Undo2 } from 'lucide-react';
-import { cleanMarkdownForClipboard, renderMarkdownToHtml } from '../utils/markdown';
+import { cleanMarkdownForClipboard, normalizeSummaryMarkdown, renderMarkdownToHtml } from '../utils/markdown';
 import AiFilteredBadge from './AiFilteredBadge';
 import FeedCard from './FeedCard';
 import HomeCanvas from './HomeCanvas';
@@ -39,6 +39,7 @@ const HomeView = ({
 
   const hasHomeSecondaryActions = originalFeedLength > 0 || deletedFeedLength > 0;
   const showHomeFeedToolbar = feed.length > 0 || isFiltered;
+  const normalizedAiFilterSummary = normalizeSummaryMarkdown(aiFilterSummary);
 
   return (
     <div className="animate-fade-in">
@@ -193,7 +194,7 @@ const HomeView = ({
             </div>
             <button
               onClick={() => {
-                navigator.clipboard.writeText(cleanMarkdownForClipboard(aiFilterSummary));
+                navigator.clipboard.writeText(cleanMarkdownForClipboard(normalizedAiFilterSummary));
                 onSummaryCopied();
               }}
               className="btn-mini-ghost"
@@ -206,7 +207,7 @@ const HomeView = ({
           <div
             className="markdown-body search-summary-content"
             style={{ fontSize: '15px', lineHeight: '1.8', color: 'rgba(255,255,255,0.9)', position: 'relative', zIndex: 1 }}
-            dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(aiFilterSummary) }}
+            dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(normalizedAiFilterSummary) }}
           />
 
           <div

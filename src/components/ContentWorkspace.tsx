@@ -16,7 +16,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { AI_WORKSPACES } from '../config/aiWorkspaces';
-import { cleanMarkdownForClipboard, renderMarkdownToHtml } from '../utils/markdown';
+import { cleanMarkdownForClipboard, normalizeSummaryMarkdown, renderMarkdownToHtml } from '../utils/markdown';
 import { getSummaryDateLabel } from '../utils/summaryDates';
 import ContentErrorBoundary from './ContentErrorBoundary';
 import ContentTabSwitcher from './ContentTabSwitcher';
@@ -514,7 +514,7 @@ const ContentWorkspace = ({
                     </div>
                     <button
                       onClick={() => {
-                        navigator.clipboard.writeText(cleanMarkdownForClipboard(searchSummary));
+                        navigator.clipboard.writeText(cleanMarkdownForClipboard(normalizeSummaryMarkdown(searchSummary)));
                         setStatus('\u0e04\u0e31\u0e14\u0e25\u0e2d\u0e01\u0e1a\u0e17\u0e2a\u0e23\u0e38\u0e1b\u0e41\u0e25\u0e49\u0e27');
                       }}
                       className="icon-btn-large"
@@ -528,13 +528,7 @@ const ContentWorkspace = ({
                   {(() => {
                     const confMatch = searchSummary.match(/\[CONFIDENCE_SCORE:\s*([^\]]+)\]/i);
                     const confidenceScore = confMatch ? confMatch[1] : null;
-                    const cleanSummary = searchSummary
-                      .replace(/\[CONFIDENCE_SCORE:\s*([^\]]+)\]/gi, '')
-                      // Drop standalone citation clusters like "[F1] [F4] [F6]" that duplicate bullet badges.
-                      .replace(/(?:^|\n)\s*(?:\[(?:F|W)\d{1,2}\]\s*){2,}(?=\n|$)/g, '\n')
-                      // Drop citation clusters appended to sentence ends like "... AI [F1] [F4] [F6]."
-                      .replace(/([^\n])(?:\s*\[(?:F|W)\d{1,2}\]){2,}(?=\s*[.,;:!?]?\s*(?:\n|$))/g, '$1')
-                      .trim();
+                    const cleanSummary = normalizeSummaryMarkdown(searchSummary);
 
                     return (
                       <>
