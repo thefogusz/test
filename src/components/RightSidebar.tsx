@@ -109,16 +109,16 @@ const RightSidebar = ({
 
   const COLORS = [
     '#2997ff', // Electric Blue
-    '#00d2ff', // Cyan
+    '#00c7be', // Teal
     '#34c759', // Green
     '#ff3b30', // Red
     '#ff9500', // Orange
     '#af52de', // Purple
     '#ff2d55', // Pink
     '#ffd60a', // Yellow
-    '#64d2ff', // Sky
-    '#30d158', // Mint
-    '#bf5af2', // Lavender
+    '#5e5ce6', // Indigo
+    '#8e8e93', // Gray
+    '#64d2a6', // Seafoam
   ];
 
   const accountPool = buildKnownAccountPool(watchlist, postLists);
