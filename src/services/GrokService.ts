@@ -142,6 +142,14 @@ const normalizeExecutiveSummaryOutput = (text = '') =>
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
+const PROPER_NAME_PRESERVATION_RULES = `
+Proper-name rules:
+- Keep person, company, product, organization, and place names exactly as they appear in the source when they are written in Latin script.
+- Do not translate, localize, or invent Thai spellings for names unless the source already provides that Thai spelling.
+- Never guess that one name is another name. For example, if the source says "Andrej Karpathy", do not rewrite it as "Andrew" or any other variant.
+- If you are not fully sure about a Thai transliteration, keep the original Latin-script name instead.
+`.trim();
+
 const SUMMARY_RULES = `
 คุณต้องเปลี่ยนโพสต์จากโซเชียลมีเดียให้เป็นสรุปข่าวภาษาไทยแบบสั้น
 
@@ -1154,7 +1162,7 @@ export const generateGrokBatch = async (stories) => {
 
   for (const story of stories) {
     const normalized = normalizeCacheText(story);
-    const cacheKey = buildCacheKey('story-summary-v4', normalized);
+    const cacheKey = buildCacheKey('story-summary-v5', normalized);
     
     if (seenStories.has(cacheKey)) {
       storyToUniqueIndex.push(seenStories.get(cacheKey));
@@ -1195,6 +1203,21 @@ export const generateGrokBatch = async (stories) => {
 - รักษาความแม่นยำ 100% และคงคำศัพท์เทคนิคภาษาอังกฤษไว้
 - คืนค่าผลลัพธ์เป็น JSON Object ที่ Map ระหว่าง "index" และ "summary" ให้ตรงตามลำดับต้นฉบับเป๊ะๆ`,
       prompt: `สรุปข่าวเหล่านี้เป็นภาษาไทย (Translate & Summarize):\n${JSON.stringify(
+        uncached.map(u => ({ index: u.index, original: u.text })),
+        null,
+        2
+      )}`,
+      system: `You are an expert Thai news editor. Summarize each source item into concise Thai in 1-2 sentences.
+
+Hard rules:
+- Do not mention X or Twitter.
+- Do not include links.
+- Do not invent any facts that are not present in the source text.
+- Preserve accuracy 100% and keep technical terms in English when appropriate.
+- Write the summary in Thai, but preserve proper names in their original Latin spelling unless the source already provides an official Thai form.
+- Do not transliterate or guess Thai names for people. If the source says "Andrej Karpathy", keep "Andrej Karpathy".
+- Return JSON only and map each "index" to its matching "summary" in the exact original order.`,
+      prompt: `${PROPER_NAME_PRESERVATION_RULES}\n\nSource items:\n${JSON.stringify(
         uncached.map(u => ({ index: u.index, original: u.text })),
         null,
         2
@@ -1511,7 +1534,7 @@ export const generateExecutiveSummary = async (
 
   if (!tweetsForSummary.length) return null;
 
-  const cacheKey = buildCacheKey('executive-summary', {
+  const cacheKey = buildCacheKey('executive-summary-v2', {
     userQuery,
     webContext,
     preferXSummary,
@@ -1580,12 +1603,15 @@ Additional citation rules:
 - If a claim is supported by both X and web, cite both, for example [F2][W1].
 - You may expand to 5 bullets if there are clearly more than 3 important storylines.
 - ${allowWebLead ? 'If the web source contains a crucial confirmed development not obvious from the tweets, you may include it as one bullet with [W#] citation.' : 'Do not let [W#] citations dominate the summary. If you use web context at all, keep it secondary and tie it back to [F#] when possible.'}`;
+  const finalSummarySystem = `${enhancedSummarySystem}
+
+${PROPER_NAME_PRESERVATION_RULES}`;
 
   if (onStreamChunk) {
     try {
       const { textStream } = await streamText({
         model: grok(MODEL_REASONING_FAST),
-        system: enhancedSummarySystem,
+        system: finalSummarySystem,
         prompt: contentToAnalyze,
         maxTokens: 600,
       });
@@ -1609,7 +1635,7 @@ Additional citation rules:
 
   return setCachedValue(responseCache, cacheKey, normalizeExecutiveSummaryOutput(await callGrok({
     modelName: MODEL_NEWS_FAST,
-    system: enhancedSummarySystem,
+    system: finalSummarySystem,
     prompt: contentToAnalyze,
   })), EXECUTIVE_SUMMARY_CACHE_TTL_MS);
 };
