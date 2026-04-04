@@ -252,7 +252,7 @@ app.post(
     const isRecurringPrice = Boolean(price.recurring);
     const paymentMethodTypes = isRecurringPrice
       ? undefined
-      : ['card', 'link', 'promptpay'];
+      : ['card', 'promptpay'];
     const customerEmail =
       typeof req.body?.customerEmail === 'string' && req.body.customerEmail.trim()
         ? req.body.customerEmail.trim()
