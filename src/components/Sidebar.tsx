@@ -4,6 +4,7 @@ import { AI_WORKSPACES } from '../config/aiWorkspaces';
 import { FEATURE_LABELS, formatPlanLimit, type MeteredFeature, type PlanId } from '../config/pricingPlans';
 import type { ActiveView } from '../types/domain';
 import logoSrc from '../assets/logo.png?inline';
+import plusUserProfileSrc from '../assets/plus-userprofile.png';
 
 const LOGO_WIDTH = 1024;
 const LOGO_HEIGHT = 642;
@@ -82,6 +83,18 @@ const NAV_ITEMS: NavItemConfig[] = [
   },
 ];
 
+const MOCK_USER_NAMES: Record<PlanId, string> = {
+  free: 'Foro Test User',
+  plus: 'Foro Plus User',
+  admin: 'Foro Admin User',
+};
+
+const MOCK_USER_INITIALS: Record<PlanId, string> = {
+  free: 'FG',
+  plus: 'FP',
+  admin: 'FA',
+};
+
 const Sidebar = ({
   activeView,
   onNavClick,
@@ -100,6 +113,25 @@ const Sidebar = ({
 }: SidebarProps) => {
   const [isTesterOpen, setIsTesterOpen] = useState(false);
   const isPlanPanelOpen = isTesterOpen || Boolean(planNotice);
+  const isPlusPlan = activePlanId === 'plus';
+  const profileName = MOCK_USER_NAMES[activePlanId] ?? MOCK_USER_NAMES.free;
+  const profileInitials = MOCK_USER_INITIALS[activePlanId] ?? MOCK_USER_INITIALS.free;
+
+  const renderProfileAvatar = (size: 'default' | 'large' = 'default') => (
+    <div className={`sidebar-user-avatar ${size === 'large' ? 'is-large' : ''} ${isPlusPlan ? 'has-image is-plus' : ''}`}>
+      {isPlusPlan ? (
+        <img
+          src={plusUserProfileSrc}
+          alt={`${profileName} avatar`}
+          className="sidebar-user-avatar-image"
+          loading="eager"
+          decoding="async"
+        />
+      ) : (
+        profileInitials
+      )}
+    </div>
+  );
 
   return (
     <aside className="sidebar">
@@ -155,18 +187,20 @@ const Sidebar = ({
       </nav>
 
       <div className="sidebar-footer">
-        <div className={`sidebar-plan-panel compact ${isPlanPanelOpen ? 'open' : ''}`}>
+        <div className={`sidebar-plan-panel compact ${isPlanPanelOpen ? 'open' : ''} ${isPlusPlan ? 'plan-plus' : ''}`}>
           <button
-            className="sidebar-user-summary"
+            className={`sidebar-user-summary ${isPlusPlan ? 'is-plus' : ''}`}
             onClick={() => setIsTesterOpen((current) => !current)}
             aria-expanded={isPlanPanelOpen}
           >
             <div className="sidebar-user-summary-main">
-              <div className="sidebar-user-avatar">FG</div>
+              {renderProfileAvatar()}
               <div className="sidebar-user-copy">
-                <div className="sidebar-user-name">Foro Test User</div>
+                <div className="sidebar-user-name">{profileName}</div>
                 <div className="sidebar-user-role">
-                  {planName} · {planPriceLabel}
+                  {planName}
+                  {' · '}
+                  {planPriceLabel}
                 </div>
               </div>
             </div>
@@ -178,6 +212,18 @@ const Sidebar = ({
 
           {isPlanPanelOpen && (
             <div className="sidebar-user-mock">
+              <div className={`sidebar-user-hero ${isPlusPlan ? 'is-plus' : ''}`}>
+                {renderProfileAvatar('large')}
+                <div className="sidebar-user-hero-copy">
+                  <div className="sidebar-user-hero-name">{profileName}</div>
+                  <div className="sidebar-user-hero-role">
+                    {planName}
+                    {' · '}
+                    {planPriceLabel}
+                  </div>
+                </div>
+              </div>
+
               <div className="sidebar-user-mode-row">
                 {(['free', 'plus', 'admin'] as PlanId[]).map((planId) => (
                   <button
