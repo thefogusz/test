@@ -111,6 +111,37 @@ const dedupeByNormalizedText = (items = [], selector = (item) => item) => {
   return result;
 };
 
+const tokenizeSummaryText = (value = '') =>
+  Array.from(
+    new Set(
+      normalizeCacheText(value)
+        .toLowerCase()
+        .match(/[a-z0-9\u0E00-\u0E7F]{3,}/g) || [],
+    ),
+  );
+
+const textSimilarity = (left = '', right = '') => {
+  const leftTokens = new Set(tokenizeSummaryText(left));
+  const rightTokens = new Set(tokenizeSummaryText(right));
+  if (!leftTokens.size || !rightTokens.size) return 0;
+
+  let intersection = 0;
+  leftTokens.forEach((token) => {
+    if (rightTokens.has(token)) intersection += 1;
+  });
+
+  const union = new Set([...leftTokens, ...rightTokens]).size;
+  return union > 0 ? intersection / union : 0;
+};
+
+const normalizeExecutiveSummaryOutput = (text = '') =>
+  cleanGeneratedContent(text)
+    .replace(/\s+•\s+/g, '\n- ')
+    .replace(/(?:^|\n)•\s*/g, '\n- ')
+    .replace(/(?:^|\n)-\s*/g, '\n- ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
 const SUMMARY_RULES = `
 คุณต้องเปลี่ยนโพสต์จากโซเชียลมีเดียให้เป็นสรุปข่าวภาษาไทยแบบสั้น
 
@@ -1333,10 +1364,38 @@ export const generateExecutiveSummary = async (
     );
   };
 
-  const tweetsForSummary = dedupeByNormalizedText(
+  const rankedSummaryCandidates = dedupeByNormalizedText(
     [...validTweets].sort((left, right) => getSummaryPriorityScore(right) - getSummaryPriorityScore(left)),
     (tweet) => tweet?.text,
-  ).slice(0, 10);
+  );
+
+  const tweetsForSummary = [];
+  const authorUsage = new Map();
+
+  for (const tweet of rankedSummaryCandidates) {
+    const username = String(tweet?.author?.username || '').toLowerCase();
+    const authorCount = username ? (authorUsage.get(username) || 0) : 0;
+    const isTooSimilar = tweetsForSummary.some((existing) => textSimilarity(existing?.text, tweet?.text) >= 0.72);
+
+    // Keep the very top signals, then diversify so the summary covers multiple
+    // major storylines instead of ten versions of the same angle.
+    if (tweetsForSummary.length >= 3 && (authorCount >= 2 || isTooSimilar)) {
+      continue;
+    }
+
+    tweetsForSummary.push(tweet);
+    if (username) authorUsage.set(username, authorCount + 1);
+    if (tweetsForSummary.length >= 10) break;
+  }
+
+  if (tweetsForSummary.length < Math.min(6, rankedSummaryCandidates.length)) {
+    for (const tweet of rankedSummaryCandidates) {
+      if (tweetsForSummary.some((existing) => String(existing.id) === String(tweet.id))) continue;
+      tweetsForSummary.push(tweet);
+      if (tweetsForSummary.length >= 10) break;
+    }
+  }
+
   if (!tweetsForSummary.length) return null;
 
   const cacheKey = buildCacheKey('executive-summary', {
@@ -1388,7 +1447,13 @@ Hard rules:
 - If a claim cannot be traced to one of the provided sources, do not include it.
 - Prioritize the biggest developments first: strongest impact, strongest authority, strongest corroboration, or strongest momentum.
 - Ignore minor side-notes or weakly relevant mentions even if they contain the query keyword.
-- Format: 1 short opening sentence plus 3 concise bullet points. You may expand to 5 bullets only if there are clearly more than 3 major storylines.
+- Format strictly:
+Opening sentence on its own line.
+- bullet 1
+- bullet 2
+- bullet 3
+You may expand to 5 bullets only if there are clearly more than 3 major storylines.
+- Each bullet must describe a distinct major development, not minor examples of the same development.
 - Tone: compact, factual, serious, no fluff.
 - If X and web context conflict, prioritize what is actually supported and make uncertainty clear.
 - Use markdown bold only for the most important terms relevant to the query.
@@ -1415,12 +1480,12 @@ Additional citation rules:
       let fullText = '';
       for await (const textPart of textStream) {
         fullText += textPart;
-        onStreamChunk(textPart, fullText);
+        onStreamChunk(textPart, normalizeExecutiveSummaryOutput(fullText));
       }
       return setCachedValue(
         responseCache,
         cacheKey,
-        cleanGeneratedContent(fullText),
+        normalizeExecutiveSummaryOutput(fullText),
         EXECUTIVE_SUMMARY_CACHE_TTL_MS,
       );
     } catch (error) {
@@ -1429,11 +1494,11 @@ Additional citation rules:
     }
   }
 
-  return setCachedValue(responseCache, cacheKey, await callGrok({
+  return setCachedValue(responseCache, cacheKey, normalizeExecutiveSummaryOutput(await callGrok({
     modelName: MODEL_NEWS_FAST,
     system: enhancedSummarySystem,
     prompt: contentToAnalyze,
-  }), EXECUTIVE_SUMMARY_CACHE_TTL_MS);
+  })), EXECUTIVE_SUMMARY_CACHE_TTL_MS);
 };
 
 export const expandSearchQuery = async (originalQuery, isLatest = false) => {
