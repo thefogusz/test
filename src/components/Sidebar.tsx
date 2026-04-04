@@ -132,7 +132,7 @@ const Sidebar = ({
           return (
             <button
               key={view}
-              className={`nav-item ${hideOnMobile ? 'mobile-hidden' : ''} ${active ? 'active' : ''}`.trim()}
+              className={`nav-item nav-item-${view} ${hideOnMobile ? 'mobile-hidden' : ''} ${active ? 'active' : ''}`.trim()}
               onClick={() => onNavClick(view)}
             >
               <span className="nav-icon-shell" aria-hidden="true">
