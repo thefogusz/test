@@ -56,10 +56,7 @@ const PricingWorkspace = ({
 
         <div className="pricing-minimal-head">
           <div className="pricing-minimal-copy">
-            <h1 className="pricing-minimal-title">
-              <span className="pricing-minimal-title-line">เลือกแพ็กที่</span>
-              <span className="pricing-minimal-title-line accent">เหมาะกับคุณ</span>
-            </h1>
+            <h1 className="pricing-minimal-title">เลือกแพ็กที่เหมาะกับคุณ</h1>
             <p className="pricing-minimal-subtitle">
               เลือกตามปริมาณการใช้งานต่อวัน พื้นที่จัดการงาน และความต่อเนื่องของ workflow ที่คุณต้องการ
             </p>

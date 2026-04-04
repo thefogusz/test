@@ -6087,30 +6087,18 @@ h1, h2, h3, h4, h5, h6 {
 
 .pricing-minimal-title {
   font-family: "Kanit", "Noto Sans Thai", sans-serif;
-  font-size: clamp(28px, 3.8vw, 40px);
+  font-size: clamp(28px, 3.2vw, 38px);
   font-weight: 700;
   letter-spacing: -0.04em;
-  line-height: 1.08;
+  line-height: 1.04;
   color: #f8fbff;
-  max-width: 11ch;
-}
-
-.pricing-minimal-title-line {
-  display: block;
-}
-
-.pricing-minimal-title-line + .pricing-minimal-title-line {
-  margin-top: 2px;
-}
-
-.pricing-minimal-title-line.accent {
-  color: #f3f7ff;
-  text-shadow: 0 0 24px rgba(255, 255, 255, 0.04);
+  max-width: none;
+  text-wrap: nowrap;
 }
 
 .pricing-minimal-subtitle {
-  margin-top: 0;
-  max-width: 500px;
+  margin-top: 4px;
+  max-width: 620px;
   color: #b6c4d9;
   font-size: 12px;
   line-height: 1.55;
