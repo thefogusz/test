@@ -888,7 +888,7 @@ const App = () => {
         remainingUsage={remainingUsage}
         usageLimits={currentPlan.usage}
         dailyUsage={dailyUsage}
-        onSwitchPlan={handlePlanSelection}
+        onSwitchPlan={handleSwitchPlan}
         onResetUsage={handleResetUsage}
         onOpenPricing={openPricingView}
         planNotice={planNotice}

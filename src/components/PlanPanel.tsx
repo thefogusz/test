@@ -60,7 +60,7 @@ const PlanPanel = ({
     }
   }, [planNotice]);
 
-  const isPlanPanelOpen = isTesterOpen || Boolean(planNotice);
+  const isPlanPanelOpen = isTesterOpen;
   const isPlusPlan = activePlanId === 'plus';
   const profileName = MOCK_USER_NAMES[activePlanId] ?? MOCK_USER_NAMES.free;
   const profileInitials = MOCK_USER_INITIALS[activePlanId] ?? MOCK_USER_INITIALS.free;
