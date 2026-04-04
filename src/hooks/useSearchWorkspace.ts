@@ -98,6 +98,43 @@ const buildWebSearchQuery = (query: string, mediaType: SearchMediaType) =>
     .replace(/\s+/g, ' ')
     .trim();
 
+const shouldUseSearchWebContext = ({
+  queryIntent,
+  isComplexQuery,
+  isLatestMode,
+  isBroadDiscoveryQuery,
+  mediaType,
+}: {
+  queryIntent: ReturnType<typeof analyzeSearchQueryIntent>;
+  isComplexQuery: boolean;
+  isLatestMode: boolean;
+  isBroadDiscoveryQuery: boolean;
+  mediaType: SearchMediaType;
+}) => {
+  if (mediaType === 'videos') return false;
+  if (queryIntent.queryKey === 'viral_video') return false;
+  if (isBroadDiscoveryQuery && !isLatestMode && !queryIntent.tavilyFirst) return false;
+
+  return isComplexQuery || isLatestMode || queryIntent.tavilyFirst;
+};
+
+const shouldUseSearchExpansion = ({
+  isComplexQuery,
+  isLatestMode,
+  isBroadDiscoveryQuery,
+  mediaType,
+}: {
+  isComplexQuery: boolean;
+  isLatestMode: boolean;
+  isBroadDiscoveryQuery: boolean;
+  mediaType: SearchMediaType;
+}) => {
+  if (mediaType === 'videos') return false;
+  if (isBroadDiscoveryQuery) return false;
+
+  return isComplexQuery || isLatestMode;
+};
+
 const readNextCursor = (meta: { next_cursor?: string | null } | null | undefined) =>
   meta?.next_cursor || null;
 
@@ -373,6 +410,19 @@ export const useSearchWorkspace = ({
       const effectiveFocus = activeSearchFocus;
       const effectiveBroadDiscoveryQuery = queryIntent.broadDiscoveryIntent || legacyBroadDiscoveryQuery;
       const effectiveLatestMode = isLatestMode || queryIntent.forceLatestMode;
+      const shouldFetchWebContext = shouldUseSearchWebContext({
+        queryIntent,
+        isComplexQuery,
+        isLatestMode: effectiveLatestMode,
+        isBroadDiscoveryQuery: effectiveBroadDiscoveryQuery,
+        mediaType: searchMediaType,
+      });
+      const shouldExpandQuery = shouldUseSearchExpansion({
+        isComplexQuery,
+        isLatestMode: effectiveLatestMode,
+        isBroadDiscoveryQuery: effectiveBroadDiscoveryQuery,
+        mediaType: searchMediaType,
+      });
       const searchQueryType = effectiveLatestMode ? 'Latest' : 'Top';
       const cacheKey = getSearchCacheKey(
         `${requestedQuery}::${searchMediaType}`,
@@ -453,22 +503,22 @@ export const useSearchWorkspace = ({
         };
 
         if (!isMore) {
-          setStatus('[Phase 2] Async Parallel Fetch: Tavily + Broad X Search...');
+          setStatus('[Phase 2] Async Parallel Fetch: Search Context + Broad X Search...');
           const webSearchQuery = buildWebSearchQuery(requestedQuery, searchMediaType);
 
           const tavilyPromise =
-            shouldUseAdaptivePlan || effectiveBroadDiscoveryQuery
+            shouldFetchWebContext
               ? tavilySearch(webSearchQuery || requestedQuery, effectiveLatestMode)
               : Promise.resolve({ results: [], answer: '' });
-          const expandedBroadQueryPromise = expandSearchQuery(
-            effectiveRequestedQuery,
-            effectiveLatestMode,
-          ).catch(
-            (error) => {
-              console.warn(`[Search] Failed to expand query: ${requestedQuery}`, error);
-              return effectiveRequestedQuery;
-            },
-          );
+          const expandedBroadQueryPromise = shouldExpandQuery
+            ? expandSearchQuery(
+                effectiveRequestedQuery,
+                effectiveLatestMode,
+              ).catch((error) => {
+                console.warn(`[Search] Failed to expand query: ${requestedQuery}`, error);
+                return effectiveRequestedQuery;
+              })
+            : Promise.resolve(effectiveRequestedQuery);
           const exactSearchPromise = effectiveBroadDiscoveryQuery
             ? searchEverythingDeep(
                 getScopedQuery(effectiveRequestedQuery, 'exact'),

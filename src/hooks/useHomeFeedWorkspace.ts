@@ -77,9 +77,13 @@ export const useHomeFeedWorkspace = ({
     );
   }, [activeFilters, activeListId, activeView, isFiltered, originalFeed, postLists, watchlist]);
 
-  const translatePostsToThai = async (posts: any[] = []) => {
+  const translatePostsToThai = async (
+    posts: any[] = [],
+    options: { retrySingles?: boolean; maxRetryCount?: number } = {},
+  ) => {
     if (!posts.length) return [];
 
+    const { retrySingles = false, maxRetryCount = 0 } = options;
     const batchSummaries = await generateGrokBatch(posts.map((post) => post.text));
 
     return Promise.all(
@@ -88,6 +92,11 @@ export const useHomeFeedWorkspace = ({
         if (hasUsefulThaiSummary(batchSummary, post.text)) {
           failedThaiSummaryIdsRef.current.delete(post.id);
           return { ...post, summary: batchSummary };
+        }
+
+        if (!retrySingles || index >= maxRetryCount) {
+          failedThaiSummaryIdsRef.current.add(post.id);
+          return post;
         }
 
         try {
@@ -124,7 +133,9 @@ export const useHomeFeedWorkspace = ({
       isBackfillingThaiRef.current = true;
 
       try {
-        const translatedPosts = await translatePostsToThai(candidates);
+        const translatedPosts = await translatePostsToThai(candidates, {
+          retrySingles: false,
+        });
         const translatedSummaryMap = new Map(
           translatedPosts
             .filter((post) => hasUsefulThaiSummary(post.summary, post.text))
@@ -175,7 +186,10 @@ export const useHomeFeedWorkspace = ({
         });
 
         if (toSummarize.length > 0) {
-          const translatedPosts = await translatePostsToThai(toSummarize);
+          const translatedPosts = await translatePostsToThai(toSummarize, {
+            retrySingles: chunkIndex === 1,
+            maxRetryCount: 2,
+          });
           const translatedSummaryMap = new Map(
             translatedPosts
               .filter((post) => hasUsefulThaiSummary(post.summary, post.text))
