@@ -184,6 +184,32 @@ const AudienceWorkspace = ({
                               <div className="expert-name" style={{ fontSize: '14px', color: '#fff', fontWeight: '800' }}>{expert.name}</div>
                               <div className="expert-username" style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>@{expert.username}</div>
                             </a>
+                            {expert.activityLabel && (
+                              <div
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '6px',
+                                  padding: '4px 8px',
+                                  borderRadius: '999px',
+                                  fontSize: '10px',
+                                  fontWeight: '800',
+                                  letterSpacing: '0.04em',
+                                  color: '#bfdbfe',
+                                  background: 'rgba(41, 151, 255, 0.12)',
+                                  border: '1px solid rgba(41, 151, 255, 0.24)',
+                                  marginBottom: '10px',
+                                }}
+                                title={
+                                  Number.isFinite(expert.lastSeenDays)
+                                    ? `Last seen about ${Math.round(expert.lastSeenDays)} days ago`
+                                    : 'Recently verified active'
+                                }
+                              >
+                                <Activity size={10} />
+                                {expert.activityLabel}
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="expert-reasoning audience-expert-reasoning" style={{ fontSize: '13px', marginBottom: '16px', flex: 1, color: 'rgba(255,255,255,0.7)', lineHeight: '1.5' }}>

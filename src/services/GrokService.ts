@@ -407,6 +407,66 @@ const buildTweetUrl = (tweet) => {
   return `https://x.com/${username}/status/${tweet.id}`;
 };
 
+const RECENT_EXPERT_ACTIVITY_DAYS = 120;
+
+const buildRecentExpertActivityMap = async (usernames = []) => {
+  const normalizedUsernames = Array.from(
+    new Set(
+      (usernames || [])
+        .map((username) => String(username || '').replace(/^@/, '').trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  );
+
+  if (normalizedUsernames.length === 0) return new Map();
+
+  const sinceDate = new Date(Date.now() - RECENT_EXPERT_ACTIVITY_DAYS * 86_400_000)
+    .toISOString()
+    .split('T')[0];
+  const query = `(${normalizedUsernames.map((username) => `from:${username}`).join(' OR ')}) since:${sinceDate}`;
+
+  try {
+    const searchResponse = await searchEverything(query, '', false, 'Latest', false);
+    const tweets = Array.isArray(searchResponse?.data) ? searchResponse.data : [];
+    const activityMap = new Map();
+
+    for (const tweet of tweets) {
+      const username = String(tweet?.author?.username || '').replace(/^@/, '').trim().toLowerCase();
+      if (!username) continue;
+
+      const createdAtMs = tweet?.created_at ? new Date(tweet.created_at).getTime() : NaN;
+      const ageDays = Number.isFinite(createdAtMs)
+        ? Math.max(0, (Date.now() - createdAtMs) / 86_400_000)
+        : RECENT_EXPERT_ACTIVITY_DAYS + 999;
+      const existing = activityMap.get(username);
+
+      if (!existing) {
+        activityMap.set(username, {
+          lastSeenDays: ageDays,
+          tweetCount: 1,
+        });
+        continue;
+      }
+
+      existing.tweetCount += 1;
+      existing.lastSeenDays = Math.min(existing.lastSeenDays, ageDays);
+    }
+
+    return activityMap;
+  } catch (error) {
+    console.warn('[GrokService] Could not verify expert recency:', error);
+    return new Map();
+  }
+};
+
+const formatExpertActivityLabel = (lastSeenDays) => {
+  if (!Number.isFinite(lastSeenDays)) return 'Active recently';
+  if (lastSeenDays <= 7) return 'Active this week';
+  if (lastSeenDays <= 30) return 'Active this month';
+  if (lastSeenDays <= 90) return 'Active this quarter';
+  return 'Active recently';
+};
+
 export const tavilySearch = async (query, isLatest = false, options = {}) => {
   const normalizedQuery = normalizeCacheText(query);
   if (!normalizedQuery) return { results: [], answer: '' };
@@ -1720,6 +1780,7 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
   try {
     let activeContext = '';
     let canonicalContext = '';
+    let qualifiedAuthors = [];
 
     const expandedQuery = CATEGORY_QUERY_EXPANSION[categoryQuery] || categoryQuery;
     const nowMs = Date.now();
@@ -1827,7 +1888,7 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
           };
         });
 
-        const qualifiedAuthors = scoredAuthors
+        qualifiedAuthors = scoredAuthors
           .filter((a) => (a.followers || a.fastFollowersCount || 0) >= 500)
           .filter((a) => a._topicSignal >= 2)
           .filter((a) => a._latestTweetAgeDays <= 90)
@@ -1892,12 +1953,46 @@ Hard rules:
       }),
     });
 
-    return (object.experts || [])
+    const normalizedExcludedUsernames = new Set(
+      (excludeUsernames || []).map((item) => String(item || '').replace(/^@/, '').trim().toLowerCase()).filter(Boolean),
+    );
+    const modelExperts = (object.experts || [])
       .map((expert) => ({ ...expert, username: (expert.username || '').replace(/^@/, '').trim() }))
       .filter((expert) => {
         const username = (expert.username || '').toLowerCase();
-        return username && !excludeUsernames.some((item) => String(item || '').toLowerCase() === username);
+        return username && !normalizedExcludedUsernames.has(username);
       });
+
+    const activityMap = await buildRecentExpertActivityMap(modelExperts.map((expert) => expert.username));
+    const verifiedExperts = modelExperts
+      .filter((expert) => activityMap.has(String(expert.username || '').toLowerCase()))
+      .map((expert) => {
+        const activity = activityMap.get(String(expert.username || '').toLowerCase());
+        return {
+          ...expert,
+          lastSeenDays: activity?.lastSeenDays,
+          activityLabel: formatExpertActivityLabel(activity?.lastSeenDays),
+          recentTweetCount: activity?.tweetCount || 0,
+        };
+      });
+    const selectedUsernames = new Set(verifiedExperts.map((expert) => String(expert.username || '').toLowerCase()));
+
+    const fallbackExperts = qualifiedAuthors
+      .filter((author) => {
+        const username = String(author?.username || '').replace(/^@/, '').trim().toLowerCase();
+        return username && !normalizedExcludedUsernames.has(username) && !selectedUsernames.has(username);
+      })
+      .slice(0, Math.max(0, 6 - verifiedExperts.length))
+      .map((author) => ({
+        username: String(author?.username || '').replace(/^@/, '').trim(),
+        name: author?.name || author?.username || 'Unknown',
+        reasoning: `ยังแอคทีฟในหัวข้อ ${categoryQuery} และมีสัญญาณโพสต์สม่ำเสมอพร้อม engagement ที่ดีในช่วงล่าสุด`,
+        lastSeenDays: author?._latestTweetAgeDays,
+        activityLabel: formatExpertActivityLabel(author?._latestTweetAgeDays),
+        recentTweetCount: author?._topicTweetCount || 0,
+      }));
+
+    return [...verifiedExperts, ...fallbackExperts].slice(0, 6);
   } catch (error) {
     console.error('[GrokService] Strict expert discovery LLM error:', error);
     if (error.status === 400) {
