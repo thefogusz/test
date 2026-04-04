@@ -1,4 +1,4 @@
-import { Check, Crown, Shield } from 'lucide-react';
+import { Check, CreditCard, Shield } from 'lucide-react';
 import {
   FEATURE_HINTS,
   FEATURE_LABELS,
@@ -23,22 +23,16 @@ const OBJECT_KEYS = ['watchlist', 'postLists'] as const;
 
 const PLAN_FEATURES: Record<'free' | 'plus', string[]> = {
   free: [
-    'ลอง Feed, Search, Generate ได้ครบโดยไม่ลดคุณภาพ',
-    'เหมาะกับการเช็กสัญญาณประจำวันและสร้างงานสั้น ๆ',
-    'เหมาะกับการเริ่มใช้งานและทดลอง workflow หลัก',
+    'เริ่มใช้ Feed, Search และ Generate ได้ทันที',
+    'เหมาะกับการลองใช้ Foro ในงานประจำวัน',
+    'ยังบันทึก bookmarks และ drafts ได้ไม่จำกัด',
   ],
   plus: [
-    'ปริมาณต่อวันมากพอสำหรับการใช้งานจริงระหว่างวัน',
-    'เพิ่มพื้นที่จัดการ watchlist และ post lists ชัดเจน',
-    'เหมาะกับคนที่ใช้ Foro ติดตามและทำงานต่อเนื่องทุกวัน',
+    'เพิ่มโควตา Search และ Generate สำหรับงานต่อเนื่อง',
+    'เหมาะกับการใช้งานจริงตลอดทั้งวัน',
+    'ได้ Export / Share และพื้นที่จัดการงานมากขึ้น',
   ],
 };
-
-const SHARED_SYSTEM_NOTES = [
-  'Search และ Generate ใช้ workflow คุณภาพเดียวกันทุกแพ็ก',
-  'Bookmarks และ Saved Drafts ไม่จำกัดทั้ง Free และ Plus',
-  'ต่างกันที่จำนวนครั้งต่อวันและขนาดพื้นที่จัดการงาน',
-];
 
 const PricingWorkspace = ({
   isVisible,
@@ -67,13 +61,13 @@ const PricingWorkspace = ({
               <span className="pricing-minimal-title-line accent">เหมาะกับคุณ</span>
             </h1>
             <p className="pricing-minimal-subtitle">
-              Search และ Generate ใช้คุณภาพเดียวกัน ต่างกันแค่จำนวนต่อวันและพื้นที่จัดการงาน
+              เลือกตามปริมาณการใช้งานต่อวัน พื้นที่จัดการงาน และความต่อเนื่องของ workflow ที่คุณต้องการ
             </p>
           </div>
 
           {activePlanId !== 'plus' && (
             <button className="btn-pill primary pricing-minimal-cta" onClick={() => onSelectPlan('plus')}>
-              <Crown size={15} />
+              <CreditCard size={15} />
               เลือก Plus
             </button>
           )}
@@ -97,6 +91,7 @@ const PricingWorkspace = ({
                 <div className="pricing-meter-track compact">
                   <div className="pricing-meter-fill" style={{ width: `${progress}%` }} />
                 </div>
+                <div className="pricing-usage-tile-hint">{FEATURE_HINTS[feature]}</div>
               </div>
             );
           })}
@@ -150,11 +145,9 @@ const PricingWorkspace = ({
 
                 <div className="pricing-checklist">
                   {PLAN_FEATURES[planId].map((item) => (
-                    <div key={item}>
-                      <span className="pricing-feature-item">
-                        <Check size={15} />
-                        {item}
-                      </span>
+                    <div key={item} className="pricing-feature-item">
+                      <Check size={15} />
+                      {item}
                     </div>
                   ))}
                 </div>

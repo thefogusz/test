@@ -1,4 +1,4 @@
-import { Search, SquarePen } from 'lucide-react';
+import { Crown, Search, SquarePen } from 'lucide-react';
 import type { ContentTab } from '../types/domain';
 
 type ContentTabSwitcherProps = {
@@ -6,6 +6,8 @@ type ContentTabSwitcherProps = {
   setContentTab: (tab: ContentTab) => void;
   className?: string;
   hidden?: boolean;
+  disableCreate?: boolean;
+  onLockedCreateClick?: () => void;
 };
 
 const ContentTabSwitcher = ({
@@ -13,6 +15,8 @@ const ContentTabSwitcher = ({
   setContentTab,
   className = '',
   hidden = false,
+  disableCreate = false,
+  onLockedCreateClick,
 }: ContentTabSwitcherProps) => {
   return (
     <div
@@ -26,10 +30,17 @@ const ContentTabSwitcher = ({
         <Search size={16} /> ค้นหา
       </button>
       <button
-        className={`btn-pill content-view-tab-btn ${contentTab === 'create' ? 'primary' : ''}`}
-        onClick={() => setContentTab('create')}
+        className={`btn-pill content-view-tab-btn ${contentTab === 'create' ? 'primary' : ''} ${disableCreate ? 'is-locked' : ''}`}
+        onClick={() => {
+          if (disableCreate) {
+            onLockedCreateClick?.();
+            return;
+          }
+          setContentTab('create');
+        }}
+        title={disableCreate ? 'Generate Studio เป็นฟีเจอร์ของแพ็ก Plus' : undefined}
       >
-        <SquarePen size={16} /> สร้างคอนเทนต์
+        {disableCreate ? <Crown size={16} /> : <SquarePen size={16} />} สร้างคอนเทนต์
       </button>
     </div>
   );

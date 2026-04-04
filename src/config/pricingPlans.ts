@@ -15,6 +15,7 @@ export type PlanDefinition = {
     unlimitedBookmarks: boolean;
     unlimitedDrafts: boolean;
     exportShare: boolean;
+    premiumGenerateStudio: boolean;
   };
 };
 
@@ -40,6 +41,7 @@ export const PLAN_DEFINITIONS: Record<PlanId, PlanDefinition> = {
       unlimitedBookmarks: true,
       unlimitedDrafts: true,
       exportShare: false,
+      premiumGenerateStudio: true,
     },
   },
   plus: {
@@ -51,8 +53,8 @@ export const PLAN_DEFINITIONS: Record<PlanId, PlanDefinition> = {
     accent: '#7dd3fc',
     usage: {
       feed: 15,
-      search: 3,
-      generate: 2,
+      search: 5,
+      generate: 5,
     },
     objects: {
       watchlist: 50,
@@ -63,6 +65,7 @@ export const PLAN_DEFINITIONS: Record<PlanId, PlanDefinition> = {
       unlimitedBookmarks: true,
       unlimitedDrafts: true,
       exportShare: true,
+      premiumGenerateStudio: true,
     },
   },
   admin: {
@@ -86,6 +89,7 @@ export const PLAN_DEFINITIONS: Record<PlanId, PlanDefinition> = {
       unlimitedBookmarks: true,
       unlimitedDrafts: true,
       exportShare: true,
+      premiumGenerateStudio: true,
     },
   },
 };

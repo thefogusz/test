@@ -3,6 +3,7 @@ import React from 'react';
 import {
   Activity,
   Copy,
+  Crown,
   ExternalLink,
   FileText,
   Link,
@@ -85,7 +86,10 @@ const ContentWorkspace = ({
   isSourcesExpanded,
   setIsSourcesExpanded,
   onArticleGen,
+  activePlanId,
+  onOpenPricing,
 }) => {
+  const createLocked = activePlanId === 'free';
   const summaryDateLabel = getSummaryDateLabel(searchResults, 10);
   const summaryTrustLabel = isLatestMode
     ? 'สรุปโดย FORO อ้างอิงจากข้อมูลล่าสุดใน 24-48 ชั่วโมงที่ผ่านมา'
@@ -106,28 +110,80 @@ const ContentWorkspace = ({
   const referencedWebSources = webSourcesWithCitationIds.filter((src) =>
     summaryWebCitationIds.includes(String(src.citation_id || '').replaceAll('[', '').replaceAll(']', '')),
   );
+  const handleLockedCreateClick = () => {
+    onOpenPricing?.();
+  };
 
   return (
     <div className="unified-content-view animate-fade-in" style={{ display: isVisible ? 'block' : 'none' }}>
-      <ContentTabSwitcher contentTab={contentTab} setContentTab={setContentTab} />
+      <ContentTabSwitcher
+        contentTab={contentTab}
+        setContentTab={setContentTab}
+        disableCreate={createLocked}
+        onLockedCreateClick={handleLockedCreateClick}
+      />
 
       <div style={{ display: contentTab === 'create' ? 'block' : 'none' }}>
         <div className="animate-fade-in">
-          <ContentErrorBoundary key={createContentSource?.id ?? 'no-source'}>
-            <CreateContent
-              sourceNode={createContentSource}
-              onRemoveSource={onRemoveSource}
-              onSaveArticle={onSaveGeneratedArticle}
-              onBeforeGenerate={onBeforeGenerate}
-              onBeforeRegenerate={onBeforeRegenerate}
-              isGenerating={isGeneratingContent}
-              setIsGenerating={setIsGeneratingContent}
-              phase={genPhase}
-              setPhase={setGenPhase}
-              contentTab={contentTab}
-              setContentTab={setContentTab}
-            />
-          </ContentErrorBoundary>
+          {createLocked ? (
+            <section className="create-content-premium-gate">
+              <div className="create-content-premium-shell">
+                <div className="create-content-premium-copy">
+                  <div className="create-content-eyebrow">
+                    <Crown size={14} />
+                    Plus only
+                  </div>
+                  <h2 className="create-content-premium-title">Generate Studio</h2>
+                  <p className="create-content-premium-subtitle">
+                    โหมดนี้ไม่ใช่แค่เขียนโพสต์ แต่เป็น workflow สร้างคอนเทนต์แบบเต็มระบบของ Foro
+                    ที่ตีความโจทย์, หาข้อมูล, เช็ก fact, สร้าง brief, เขียน draft และตรวจงานให้อีกชั้น
+                  </p>
+                </div>
+
+                <div className="create-content-premium-grid">
+                  <div className="create-content-premium-card">
+                    <div className="create-content-premium-card-label">What happens inside</div>
+                    <ul className="create-content-premium-list">
+                      <li>ตีความโจทย์และเลือก angle ที่ควรเล่า</li>
+                      <li>ดึง source เพิ่มจาก X และเว็บเมื่อจำเป็น</li>
+                      <li>ประกอบ fact sheet เพื่อลด hallucination</li>
+                      <li>สร้าง content brief ก่อนส่งเข้า writer</li>
+                      <li>เขียน draft และมี review pass ในงานที่ต้องละเอียด</li>
+                    </ul>
+                  </div>
+
+                  <div className="create-content-premium-card accent">
+                    <div className="create-content-premium-card-label">Why it feels premium</div>
+                    <ul className="create-content-premium-list">
+                      <li>ใช้ Generate ได้ 3 ครั้งต่อวันในแพ็ก Plus</li>
+                      <li>รองรับโจทย์ที่มี URL ข่าว, X post, ภาพ และวิดีโอ</li>
+                      <li>เหมาะกับงานที่ต้องการทั้งความเร็วและความน่าเชื่อถือ</li>
+                    </ul>
+                    <button className="btn-pill primary create-content-premium-cta" onClick={handleLockedCreateClick}>
+                      <Crown size={16} />
+                      อัปเกรดเป็น Plus
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          ) : (
+            <ContentErrorBoundary key={createContentSource?.id ?? 'no-source'}>
+              <CreateContent
+                sourceNode={createContentSource}
+                onRemoveSource={onRemoveSource}
+                onSaveArticle={onSaveGeneratedArticle}
+                onBeforeGenerate={onBeforeGenerate}
+                onBeforeRegenerate={onBeforeRegenerate}
+                isGenerating={isGeneratingContent}
+                setIsGenerating={setIsGeneratingContent}
+                phase={genPhase}
+                setPhase={setGenPhase}
+                contentTab={contentTab}
+                setContentTab={setContentTab}
+              />
+            </ContentErrorBoundary>
+          )}
         </div>
       </div>
 
@@ -144,6 +200,8 @@ const ContentWorkspace = ({
               contentTab={contentTab}
               setContentTab={setContentTab}
               className="content-view-tabs-mobile-inline"
+              disableCreate={createLocked}
+              onLockedCreateClick={handleLockedCreateClick}
             />
             <ContentErrorBoundary key="search-form-boundary">
               <div style={{ display: contentTab === 'search' ? 'block' : 'none' }} className="hero-search-wrapper">
