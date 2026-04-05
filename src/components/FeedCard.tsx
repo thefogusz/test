@@ -7,6 +7,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  FileText,
   Heart,
   Image as ImageIcon,
   ListVideo,
@@ -18,9 +19,12 @@ import {
 } from 'lucide-react';
 import type { Post, PostList } from '../types/domain';
 import { STORAGE_KEYS } from '../constants/storageKeys';
-import { getPreferredPostTitle } from '../utils/appUtils';
-
-const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
+import {
+  getRssCardPresentation,
+  getPreferredPostSummary,
+  getPreferredPostTitle,
+  hasUsefulThaiSummary,
+} from '../utils/appUtils';
 
 const getRelativeTime = (dateString) => {
   if (!dateString) return '';
@@ -41,13 +45,6 @@ const fmt = (num) => {
   return n.toString();
 };
 
-const isUsableThaiSummary = (summary, originalText = '') => {
-  const trimmedSummary = (summary || '').trim();
-  if (!trimmedSummary || trimmedSummary.startsWith('(Grok')) return false;
-  if (trimmedSummary === (originalText || '').trim()) return false;
-  return THAI_CHAR_REGEX.test(trimmedSummary);
-};
-
 const safeReadStoredValue = (key, fallbackValue) => {
   if (typeof window === 'undefined') return fallbackValue;
   try {
@@ -63,6 +60,7 @@ const safeReadStoredValue = (key, fallbackValue) => {
 type FeedCardProps = {
   tweet: Post;
   onArticleGen?: (tweet: Post) => void;
+  onReadArticle?: (tweet: Post) => void;
   onBookmark?: (tweet: Post, bookmarked: boolean) => void;
   isBookmarked?: boolean;
   isInWatchlist?: boolean;
@@ -77,6 +75,7 @@ type FeedCardProps = {
 const FeedCard = ({
   tweet,
   onArticleGen,
+  onReadArticle,
   onBookmark,
   isBookmarked: initialBookmarked = false,
   isInWatchlist = false,
@@ -94,15 +93,20 @@ const FeedCard = ({
   const isRssPost = String(displayTweet.sourceType || tweet.sourceType || '').trim().toLowerCase() === 'rss';
   const repostedByUsername = (tweet.repostedByUsername || tweet.author?.username || '').trim().replace(/^@/, '');
   const repostedByName = (tweet.repostedByName || tweet.author?.name || '').trim();
-  const hasThaiSummary = isUsableThaiSummary(displayTweet.summary, displayTweet.text);
+  const hasThaiSummary = hasUsefulThaiSummary(displayTweet.summary, displayTweet.text);
   const displayText = hasThaiSummary ? displayTweet.summary : displayTweet.text;
-  const rssSummaryText = hasThaiSummary ? displayTweet.summary : (displayTweet.text || '');
-  const displayTitle = getPreferredPostTitle(displayTweet);
-  const shouldShowRssTitle =
-    isRssPost &&
-    !!displayTitle &&
-    String(displayTitle).trim() !== String(rssSummaryText || '').trim();
   const previewImageUrl = displayTweet.primaryImageUrl || displayTweet.imageUrls?.[0] || '';
+  const hasMediaPreview = Boolean(displayTweet.isXVideo || previewImageUrl);
+  const rssCardPresentation = isRssPost
+    ? getRssCardPresentation(displayTweet, { hasMediaPreview })
+    : null;
+  const displayTitle = isRssPost
+    ? (rssCardPresentation?.title || '')
+    : getPreferredPostTitle(displayTweet);
+  const rssSummaryText = isRssPost
+    ? (rssCardPresentation?.summary || '')
+    : getPreferredPostSummary(displayTweet);
+  const shouldShowRssTitle = isRssPost && !!String(displayTitle || '').trim();
   const imageUrls = useMemo(
     () =>
       Array.from(
@@ -115,9 +119,11 @@ const FeedCard = ({
   );
   const shouldShowRssSummary =
     isRssPost &&
-    !!String(rssSummaryText || '').trim() &&
-    String(rssSummaryText || '').trim() !== String(displayTitle || '').trim();
-  const hasMediaPreview = Boolean(displayTweet.isXVideo || previewImageUrl);
+    !!String(rssSummaryText || '').trim();
+  const isReadableArticle =
+    Boolean(onReadArticle) &&
+    ['rss', 'web_article'].includes(String(displayTweet.sourceType || '').trim().toLowerCase()) &&
+    Boolean(displayTweet.url);
   const authorUsername = (displayTweet.author?.username || '').trim().replace(/^@/, '').toLowerCase();
   const postUrl = useMemo(
     () => displayTweet.url || `https://x.com/${displayTweet.author?.username || 'i'}/status/${displayTweet.id}`,
@@ -686,13 +692,17 @@ const FeedCard = ({
             {shouldShowRssTitle && (
               <div
                 style={{
-                  display: 'block',
+                  display: '-webkit-box',
                   fontSize: '17px',
                   fontWeight: '800',
                   color: '#fff',
                   marginBottom: shouldShowRssSummary ? '8px' : 0,
                   lineHeight: '1.42',
                   letterSpacing: '-0.01em',
+                  WebkitLineClamp: rssCardPresentation?.titleLineClamp || 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  wordBreak: 'break-word',
                 }}
               >
                 {displayTitle}
@@ -708,7 +718,7 @@ const FeedCard = ({
                   fontWeight: '500',
                   margin: 0,
                   display: '-webkit-box',
-                  WebkitLineClamp: isRssPost ? 4 : 5,
+                  WebkitLineClamp: isRssPost ? (rssCardPresentation?.summaryLineClamp || 2) : 5,
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
                   letterSpacing: '-0.01em',
@@ -725,12 +735,16 @@ const FeedCard = ({
           {shouldShowRssTitle && (
             <div
               style={{
-                display: 'block',
+                display: '-webkit-box',
                 fontSize: '15px',
                 fontWeight: '800',
                 color: '#fff',
-                marginBottom: '6px',
+                marginBottom: shouldShowRssSummary ? '6px' : 0,
                 lineHeight: '1.4',
+                WebkitLineClamp: rssCardPresentation?.titleLineClamp || 2,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                wordBreak: 'break-word',
               }}
             >
               {displayTitle}
@@ -746,7 +760,7 @@ const FeedCard = ({
                 fontWeight: '500',
                 margin: 0,
                 display: '-webkit-box',
-                WebkitLineClamp: isRssPost ? 4 : 5,
+                WebkitLineClamp: isRssPost ? (rssCardPresentation?.summaryLineClamp || 2) : 5,
                 WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
                 letterSpacing: '-0.01em',
@@ -797,6 +811,20 @@ const FeedCard = ({
           </div>
         )}
         <div className="feed-card-actions" style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
+          {isReadableArticle && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onReadArticle?.(displayTweet);
+              }}
+              className="btn-forge feed-card-inline-action"
+              title="อ่านเนื้อหาเต็ม"
+              aria-label="อ่านเนื้อหาเต็ม"
+            >
+              <FileText size={11} strokeWidth={2.35} />
+              <span>อ่านเนื้อหา</span>
+            </button>
+          )}
           {onArticleGen && (
             <button
               onClick={(e) => {

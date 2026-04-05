@@ -33,6 +33,7 @@ const HomeView = ({
   onClearAiFilter,
   onBookmark,
   onArticleGen,
+  onReadArticle,
   onSummaryCopied,
 }) => {
   if (!isVisible) return null;
@@ -254,6 +255,7 @@ const HomeView = ({
               isBookmarked={bookmarks.some((bookmark) => bookmark.id === item.id)}
               onBookmark={onBookmark}
               onArticleGen={onArticleGen}
+              onReadArticle={onReadArticle}
             />
           ))}
       </div>

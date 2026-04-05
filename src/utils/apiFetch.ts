@@ -1,5 +1,6 @@
 interface ApiFetchOptions extends RequestInit {
   timeout?: number;
+  abortSignal?: AbortSignal;
 }
 
 /**
@@ -16,9 +17,30 @@ export const INTERNAL_TOKEN = import.meta.env.VITE_INTERNAL_API_SECRET ?? '';
 
 const DEFAULT_TIMEOUT_MS = 90000; // 90 seconds
 
+const mergeAbortSignals = (
+  primarySignal: AbortSignal,
+  secondarySignal?: AbortSignal,
+) => {
+  if (!secondarySignal) return primarySignal;
+  if (secondarySignal.aborted) return secondarySignal;
+
+  const controller = new AbortController();
+  const forwardAbort = () => controller.abort();
+
+  primarySignal.addEventListener('abort', forwardAbort, { once: true });
+  secondarySignal.addEventListener('abort', forwardAbort, { once: true });
+
+  return controller.signal;
+};
+
 export const apiFetch = (url: RequestInfo | URL, options: ApiFetchOptions = {}) => {
-  const { timeout = DEFAULT_TIMEOUT_MS, ...fetchOptions } = options;
-  
+  const {
+    timeout = DEFAULT_TIMEOUT_MS,
+    abortSignal,
+    signal: requestSignal,
+    ...fetchOptions
+  } = options;
+
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
 
@@ -30,6 +52,6 @@ export const apiFetch = (url: RequestInfo | URL, options: ApiFetchOptions = {}) 
   return fetch(url, { 
     ...fetchOptions, 
     headers,
-    signal: fetchOptions.signal || controller.signal 
+    signal: mergeAbortSignals(controller.signal, requestSignal || abortSignal),
   }).finally(() => clearTimeout(id));
 };

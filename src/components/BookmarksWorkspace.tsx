@@ -13,7 +13,7 @@ const BookmarksWorkspace = ({
   filteredBookmarks,
   handleBookmark,
   onArticleGen,
-  setSelectedArticle,
+  onReadArticle,
   setBookmarks,
 }) => {
   return (
@@ -45,9 +45,16 @@ const BookmarksWorkspace = ({
       <div className="feed-grid">
         {filteredBookmarks.map((item, idx) =>
           bookmarkTab === 'news' ? (
-            <FeedCard key={item.id || idx} tweet={item} isBookmarked={true} onBookmark={handleBookmark} onArticleGen={onArticleGen} />
+            <FeedCard
+              key={item.id || idx}
+              tweet={item}
+              isBookmarked={true}
+              onBookmark={handleBookmark}
+              onArticleGen={onArticleGen}
+              onReadArticle={onReadArticle}
+            />
           ) : (
-            <div key={item.id} className="article-card" onClick={() => setSelectedArticle(item)}>
+            <div key={item.id} className="article-card" onClick={() => onReadArticle(item)}>
               <div className="article-card-header">
                 {item.title && item.title.startsWith('http') ? (
                   <a

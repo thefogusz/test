@@ -86,6 +86,7 @@ const ContentWorkspace = ({
   isSourcesExpanded,
   setIsSourcesExpanded,
   onArticleGen,
+  onReadArticle,
   activePlanId,
   onOpenPricing,
 }) => {
@@ -732,6 +733,7 @@ const ContentWorkspace = ({
                     key={item.id || idx}
                     tweet={item}
                     onArticleGen={onArticleGen}
+                    onReadArticle={onReadArticle}
                     isInWatchlist={watchlistHandleSet?.has((item?.author?.username || '').toLowerCase())}
                     postLists={postLists}
                     onAddToWatchlist={onAddAuthorToWatchlist}

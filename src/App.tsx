@@ -2,6 +2,7 @@
 import React, { Suspense, lazy, startTransition, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import AiFilterModal from './components/AiFilterModal';
+import ArticleReaderModal from './components/ArticleReaderModal';
 import HomeView from './components/HomeView';
 import ListModal from './components/ListModal';
 import Sidebar from './components/Sidebar';
@@ -432,6 +433,10 @@ const App = () => {
     setTimeout(() => setContentTab('create'), 0);
   };
 
+  const openArticleReader = (item) => {
+    setSelectedArticle(item);
+  };
+
   const closeFilterModal = () => setFilterModal((prev) => ({ ...prev, show: false }));
 
   // --- Render ---
@@ -510,6 +515,7 @@ const App = () => {
             onClearAiFilter={clearAiFilter}
             onBookmark={handleBookmark}
             onArticleGen={openContentComposerFromPost}
+            onReadArticle={openArticleReader}
             onSummaryCopied={() => setStatus('คัดลอกบทสรุปแล้ว')}
           />
 
@@ -575,6 +581,7 @@ const App = () => {
               isSourcesExpanded={isSourcesExpanded}
               setIsSourcesExpanded={setIsSourcesExpanded}
               onArticleGen={openContentComposerFromPost}
+              onReadArticle={openArticleReader}
             />
           </Suspense>
 
@@ -609,8 +616,7 @@ const App = () => {
               bookmarkIds={bookmarkIds}
               handleBookmark={handleBookmark}
               onArticleGen={openContentComposerFromPost}
-              selectedArticle={selectedArticle}
-              setSelectedArticle={setSelectedArticle}
+              onReadArticle={openArticleReader}
             />
           </Suspense>
 
@@ -655,7 +661,7 @@ const App = () => {
               filteredBookmarks={filteredBookmarks}
               handleBookmark={handleBookmark}
               onArticleGen={openContentComposerFromPost}
-              setSelectedArticle={setSelectedArticle}
+              onReadArticle={openArticleReader}
               setBookmarks={setBookmarks}
             />
           </Suspense>
@@ -687,6 +693,11 @@ const App = () => {
         status={status}
         message={searchStatusMessage}
         hidden={shouldInlineSearchStatus}
+      />
+      <ArticleReaderModal
+        article={selectedArticle}
+        onClose={() => setSelectedArticle(null)}
+        onArticleGen={openContentComposerFromPost}
       />
       {showRightSidebar && (
         <RightSidebar

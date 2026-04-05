@@ -1,7 +1,6 @@
 // @ts-nocheck
 import React, { startTransition } from 'react';
 import { List, Search, X } from 'lucide-react';
-import { renderMarkdownToHtml } from '../utils/markdown';
 import FeedCard from './FeedCard';
 
 const ReadWorkspace = ({
@@ -22,8 +21,7 @@ const ReadWorkspace = ({
   bookmarkIds,
   handleBookmark,
   onArticleGen,
-  selectedArticle,
-  setSelectedArticle,
+  onReadArticle,
 }) => {
   return (
     <>
@@ -106,6 +104,7 @@ const ReadWorkspace = ({
                 isBookmarked={bookmarkIds.has(item.id)}
                 onBookmark={handleBookmark}
                 onArticleGen={onArticleGen}
+                onReadArticle={onReadArticle}
               />
             ))}
             {readArchive.length === 0 && <div className="empty-state-card">{'\u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e21\u0e35\u0e1a\u0e17\u0e04\u0e27\u0e32\u0e21\u0e43\u0e19\u0e2b\u0e49\u0e2d\u0e07\u0e2a\u0e21\u0e38\u0e14'}</div>}
@@ -135,30 +134,6 @@ const ReadWorkspace = ({
         </div>
       )}
 
-      {selectedArticle && (
-        <div className="modal-overlay" onClick={() => setSelectedArticle(null)}>
-          <div className="modal-content article-reader-modal" style={{ maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close-btn" onClick={() => setSelectedArticle(null)}>
-              <X size={20} />
-            </button>
-            <div className="modal-title article-reader-title" style={{ fontSize: '24px', marginBottom: '20px' }}>
-              {selectedArticle.title && selectedArticle.title.startsWith('http') ? (
-                <a href={selectedArticle.title} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-secondary)' }}>
-                  {selectedArticle.title}
-                </a>
-              ) : (
-                selectedArticle.title
-              )}
-            </div>
-            <div className="markdown-body article-reader-markdown" dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(selectedArticle.summary) }} />
-            <div className="modal-actions" style={{ marginTop: '32px', justifyContent: 'flex-end' }}>
-              <button className="modal-btn modal-btn-secondary" onClick={() => setSelectedArticle(null)}>
-                {'\u0e1b\u0e34\u0e14'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 };

@@ -4,14 +4,17 @@ const Stripe = require('stripe');
 const { createProxyMiddleware, fixRequestBody } = require('http-proxy-middleware');
 const { loadServerConfig } = require('./lib/config.cjs');
 const { createAppStateStore } = require('./lib/appStateStore.cjs');
+const { extractArticleFromHtml } = require('./lib/articleExtractor.cjs');
 
 const createServerApp = ({
   rootDir = path.resolve(__dirname, '..'),
   config: configOverride,
   stateStore: stateStoreOverride,
+  fetchImpl,
 } = {}) => {
   const config = configOverride || loadServerConfig(rootDir);
   const app = express();
+  const fetcher = fetchImpl || fetch;
   const stateStore =
     stateStoreOverride ||
     createAppStateStore({
@@ -64,6 +67,23 @@ const createServerApp = ({
     }
 
     return normalized;
+  };
+
+  const normalizeExternalUrl = (value, label = 'url') => {
+    const normalized = String(value || '').trim();
+
+    try {
+      const parsed = new URL(normalized);
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        throw new Error('Unsupported protocol');
+      }
+
+      return parsed.toString();
+    } catch {
+      const error = new Error(`Invalid ${label}`);
+      error.statusCode = 400;
+      throw error;
+    }
   };
 
   const resolveAppBaseUrl = (req) => {
@@ -169,7 +189,7 @@ const createServerApp = ({
       }
 
       try {
-        const upstreamResponse = await fetch(feedUrl, {
+        const upstreamResponse = await fetcher(feedUrl, {
           headers: {
             'User-Agent': 'FORO-NewsReader/1.0',
             Accept:
@@ -199,7 +219,7 @@ const createServerApp = ({
       )}`;
 
       try {
-        const upstreamResponse = await fetch(upstreamUrl, {
+        const upstreamResponse = await fetcher(upstreamUrl, {
           method: req.method,
           headers: {
             ...(config.twitterApiKey ? { 'X-API-Key': config.twitterApiKey } : {}),
@@ -259,7 +279,7 @@ const createServerApp = ({
       }
 
       try {
-        const upstreamResponse = await fetch('https://api.tavily.com/search', {
+        const upstreamResponse = await fetcher('https://api.tavily.com/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: AbortSignal.timeout(config.upstreamTimeoutMs),
@@ -273,6 +293,54 @@ const createServerApp = ({
       } catch (error) {
         console.error('[server] Tavily proxy error:', error);
         res.status(502).json({ error: 'Failed to reach Tavily' });
+      }
+    }),
+  );
+
+  app.get(
+    '/api/article',
+    asyncRoute(async (req, res) => {
+      const articleUrl = normalizeExternalUrl(req.query.url, 'article url');
+
+      try {
+        const upstreamResponse = await fetcher(articleUrl, {
+          headers: {
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 FORO/1.0',
+            Accept:
+              'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          },
+          redirect: 'follow',
+          signal: AbortSignal.timeout(config.upstreamTimeoutMs),
+        });
+
+        if (!upstreamResponse.ok) {
+          return res.status(upstreamResponse.status).json({
+            error: `Failed to fetch article (${upstreamResponse.status})`,
+          });
+        }
+
+        const html = await upstreamResponse.text();
+        const article = extractArticleFromHtml({
+          html,
+          url: articleUrl,
+        });
+
+        res.set('Cache-Control', 'public, max-age=900');
+        return res.json({
+          ok: true,
+          url: articleUrl,
+          ...article,
+        });
+      } catch (error) {
+        console.error('[server] Article extraction error:', error);
+        const statusCode = Number.isInteger(error?.statusCode) ? error.statusCode : 502;
+        return res.status(statusCode).json({
+          error:
+            statusCode === 422
+              ? 'Could not extract readable article content'
+              : 'Failed to fetch article',
+        });
       }
     }),
   );

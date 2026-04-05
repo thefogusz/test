@@ -987,6 +987,7 @@ const callGrok = async ({
   topP = 0.85,
   frequencyPenalty = 0.35,
   presencePenalty = 0.1,
+  maxTokens,
   allowEmoji = false,
 }) => {
   try {
@@ -999,6 +1000,7 @@ const callGrok = async ({
       topP,
       frequencyPenalty,
       presencePenalty,
+      maxTokens,
     });
 
     return cleanGeneratedContent(text, { allowEmoji });
@@ -1063,6 +1065,143 @@ const deriveResearchQuery = async (input, context = '') => {
 export const generateGrokSummary = async (fullStoryText) => {
   const results = await generateGrokBatch([fullStoryText]);
   return results[0] || fullStoryText;
+};
+
+export const generateArticleInsights = async ({
+  title = '',
+  excerpt = '',
+  content = '',
+  siteName = '',
+} = {}) => {
+  const normalizedTitle = sanitizeForPrompt(title, 220);
+  const normalizedExcerpt = sanitizeForPrompt(excerpt, 320);
+  const normalizedContent = sanitizeForPrompt(content, 6000);
+  const normalizedSite = sanitizeForPrompt(siteName, 120);
+
+  if (!normalizedTitle && !normalizedContent) return null;
+
+  const cacheKey = buildCacheKey('article-insights-v1', {
+    normalizedTitle,
+    normalizedExcerpt,
+    normalizedContent: normalizedContent.slice(0, 2500),
+    normalizedSite,
+  });
+  const cached = getCachedValue(responseCache, cacheKey);
+  if (cached) return cached;
+
+  try {
+    const { object } = await generateObject({
+      model: grok(MODEL_NEWS_FAST),
+      system: `You create compact AI insight cards for a news reader UI.
+
+Rules:
+- Return Thai for insight text, but preserve proper names in Latin script when they appear that way in the source.
+- Never invent facts, names, companies, or numbers.
+- Prefer precision over coverage.
+- Keep every bullet concrete and useful.
+- Only include entities that are truly central to the article.
+- Avoid fluff like "เรื่องนี้น่าสนใจเพราะ..." if it adds no information.`,
+      prompt: [
+        PROPER_NAME_PRESERVATION_RULES,
+        normalizedSite ? `Source: ${normalizedSite}` : '',
+        normalizedTitle ? `Title: ${normalizedTitle}` : '',
+        normalizedExcerpt ? `Excerpt: ${normalizedExcerpt}` : '',
+        normalizedContent ? `Article Body:\n${normalizedContent}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+      schema: z.object({
+        summary: z.string().min(20).max(240),
+        whyItMatters: z.string().min(20).max(220),
+        keyPoints: z.array(z.string()).max(3),
+        companies: z.array(z.string()).max(4),
+        people: z.array(z.string()).max(4),
+        topics: z.array(z.string()).max(4),
+      }),
+      temperature: 0.1,
+    });
+
+    const normalizedInsights = {
+      summary: cleanGeneratedContent(object.summary),
+      whyItMatters: cleanGeneratedContent(object.whyItMatters),
+      keyPoints: dedupeByNormalizedText(object.keyPoints || []).map((item) => cleanGeneratedContent(item)).filter(Boolean).slice(0, 3),
+      companies: dedupeByNormalizedText(object.companies || []).map((item) => cleanGeneratedContent(item)).filter(Boolean).slice(0, 4),
+      people: dedupeByNormalizedText(object.people || []).map((item) => cleanGeneratedContent(item)).filter(Boolean).slice(0, 4),
+      topics: dedupeByNormalizedText(object.topics || []).map((item) => cleanGeneratedContent(item)).filter(Boolean).slice(0, 4),
+    };
+
+    return setCachedValue(responseCache, cacheKey, normalizedInsights, CONTENT_BRIEF_CACHE_TTL_MS);
+  } catch (error) {
+    console.warn('[GrokService] Article insights failed:', error);
+    return null;
+  }
+};
+
+export const translateArticleToThai = async ({
+  title = '',
+  excerpt = '',
+  contentMarkdown = '',
+  content = '',
+  siteName = '',
+} = {}) => {
+  const normalizedTitle = sanitizeForPrompt(title, 220);
+  const normalizedExcerpt = sanitizeForPrompt(excerpt, 320);
+  const normalizedMarkdown = sanitizeForPrompt(contentMarkdown, 12000);
+  const normalizedContent = sanitizeForPrompt(content, 12000);
+  const normalizedSite = sanitizeForPrompt(siteName, 120);
+  const sourceBody = normalizedMarkdown || normalizedContent;
+
+  if (!sourceBody) return null;
+
+  const cacheKey = buildCacheKey('article-translation-th-v1', {
+    normalizedTitle,
+    normalizedExcerpt,
+    normalizedSite,
+    sourceBody: sourceBody.slice(0, 6000),
+  });
+  const cached = getCachedValue(responseCache, cacheKey);
+  if (cached) return cached;
+
+  try {
+    const translatedMarkdown = await callGrok({
+      modelName: MODEL_NEWS_FAST,
+      system: `You translate full news articles into natural Thai for a reader UI.
+
+Rules:
+- Translate the full article body into Thai. Do not summarize or shorten it on purpose.
+- Output markdown only. No preface, no explanation, no code fences.
+- Preserve headings, bullet lists, blockquotes, and links when they carry meaning.
+- Keep person, company, product, organization, and place names in Latin script exactly as they appear when that is how the source writes them.
+- Preserve all important facts, numbers, dates, currencies, percentages, and units exactly.
+- Keep the tone readable, clean, and journalistic in Thai.
+- Do not add extra commentary, disclaimers, or closing notes.`,
+      prompt: [
+        PROPER_NAME_PRESERVATION_RULES,
+        normalizedSite ? `Source: ${normalizedSite}` : '',
+        normalizedTitle ? `Original title: ${normalizedTitle}` : '',
+        normalizedExcerpt ? `Original excerpt: ${normalizedExcerpt}` : '',
+        normalizedMarkdown
+          ? `Translate this article markdown to Thai and preserve its structure:\n${normalizedMarkdown}`
+          : `Translate this article text to Thai:\n${normalizedContent}`,
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
+      temperature: 0.1,
+      topP: 0.4,
+      frequencyPenalty: 0,
+      presencePenalty: 0,
+      maxTokens: 3200,
+    });
+
+    const payload = {
+      markdown: translatedMarkdown,
+    };
+
+    return setCachedValue(responseCache, cacheKey, payload, CONTENT_BRIEF_CACHE_TTL_MS);
+  } catch (error) {
+    console.warn('[GrokService] Article translation failed:', error);
+    return null;
+  }
 };
 
 export const generateGrokBatch = async (stories) => {

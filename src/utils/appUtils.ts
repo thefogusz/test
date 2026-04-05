@@ -27,6 +27,13 @@ export const mergeUniquePostsById = (...collections) => {
 };
 
 const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
+const EDGE_QUOTES_REGEX = /^[\s"'`\u2018\u2019\u201C\u201D]+|[\s"'`\u2018\u2019\u201C\u201D]+$/g;
+const RSS_TITLE_ONLY_MAX_TITLE_WITH_MEDIA = 82;
+const RSS_TITLE_ONLY_MAX_TITLE_NO_MEDIA = 100;
+const RSS_TITLE_ONLY_MAX_SUMMARY_WITH_MEDIA = 72;
+const RSS_TITLE_ONLY_MAX_SUMMARY_NO_MEDIA = 88;
+const RSS_TITLE_ONLY_MAX_COMBINED_WITH_MEDIA = 150;
+const RSS_TITLE_ONLY_MAX_COMBINED_NO_MEDIA = 172;
 
 export const hasThaiCharacters = (value) => THAI_CHAR_REGEX.test((value || '').trim());
 
@@ -61,6 +68,61 @@ const pickThaiHeadlineFromSummary = (summary = '') => {
   return `${firstSentence.slice(0, 87).trimEnd()}...`;
 };
 
+const cleanCardCopy = (value = '') =>
+  String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(EDGE_QUOTES_REGEX, '')
+    .trim();
+
+const normalizeCardCopy = (value = '') =>
+  cleanCardCopy(value)
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const splitSummarySegments = (value = '') =>
+  String(value || '')
+    .split(/\n+/)
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .flatMap((segment) =>
+      segment
+        .split(/(?<=[.!?…])\s+/)
+        .map((part) => part.trim())
+        .filter(Boolean),
+    );
+
+const stripLeadingHeadlineCopy = (summary = '', title = '') => {
+  const cleanedSummary = cleanCardCopy(summary);
+  const cleanedTitle = cleanCardCopy(title).replace(/\.\.\.$/, '').trim();
+
+  if (!cleanedSummary || !cleanedTitle) return '';
+  if (!cleanedSummary.startsWith(cleanedTitle)) return '';
+
+  return cleanCardCopy(
+    cleanedSummary
+      .slice(cleanedTitle.length)
+      .replace(/^[-:,.!?\s]+/, ''),
+  );
+};
+
+const isNearDuplicateCopy = (left = '', right = '') => {
+  const normalizedLeft = normalizeCardCopy(left);
+  const normalizedRight = normalizeCardCopy(right);
+
+  if (!normalizedLeft || !normalizedRight) return false;
+  if (normalizedLeft === normalizedRight) return true;
+
+  const shorter =
+    normalizedLeft.length <= normalizedRight.length ? normalizedLeft : normalizedRight;
+  const longer =
+    normalizedLeft.length <= normalizedRight.length ? normalizedRight : normalizedLeft;
+
+  return shorter.length >= 18 && longer.startsWith(shorter);
+};
+
 export const getPreferredPostTitle = (post) => {
   if (!post || typeof post !== 'object') return '';
 
@@ -74,6 +136,75 @@ export const getPreferredPostTitle = (post) => {
   }
 
   return originalTitle || originalText;
+};
+
+export const getPreferredPostSummary = (post) => {
+  if (!post || typeof post !== 'object') return '';
+
+  const sourceType = String(post?.sourceType || '').trim().toLowerCase();
+  const originalText = cleanCardCopy(post?.text || post?.full_text || '');
+  const summary = cleanCardCopy(post?.summary || '');
+  const title = cleanCardCopy(getPreferredPostTitle(post));
+  const baseSummary =
+    sourceType === 'rss'
+      ? hasUsefulThaiSummary(summary, originalText)
+        ? summary
+        : originalText
+      : hasUsefulThaiSummary(summary, originalText)
+        ? summary
+        : originalText;
+
+  if (!baseSummary) return '';
+  if (!title) return baseSummary;
+  if (normalizeCardCopy(baseSummary) === normalizeCardCopy(title)) return '';
+
+  const segments = splitSummarySegments(baseSummary);
+  const firstSegment = segments[0] || baseSummary;
+
+  if (!isNearDuplicateCopy(firstSegment, title)) {
+    return baseSummary;
+  }
+
+  const remainder = cleanCardCopy(segments.slice(1).join(' '));
+  if (remainder) return remainder;
+
+  const trimmedPrefixRemainder = stripLeadingHeadlineCopy(baseSummary, title);
+  return trimmedPrefixRemainder.length >= 24 ? trimmedPrefixRemainder : '';
+};
+
+export const getRssCardPresentation = (
+  post,
+  options: { hasMediaPreview?: boolean } = {},
+) => {
+  const title = cleanCardCopy(getPreferredPostTitle(post));
+  const summary = cleanCardCopy(getPreferredPostSummary(post));
+  const hasMediaPreview = Boolean(options?.hasMediaPreview);
+  const titleMax = hasMediaPreview
+    ? RSS_TITLE_ONLY_MAX_TITLE_WITH_MEDIA
+    : RSS_TITLE_ONLY_MAX_TITLE_NO_MEDIA;
+  const summaryMax = hasMediaPreview
+    ? RSS_TITLE_ONLY_MAX_SUMMARY_WITH_MEDIA
+    : RSS_TITLE_ONLY_MAX_SUMMARY_NO_MEDIA;
+  const combinedMax = hasMediaPreview
+    ? RSS_TITLE_ONLY_MAX_COMBINED_WITH_MEDIA
+    : RSS_TITLE_ONLY_MAX_COMBINED_NO_MEDIA;
+
+  const shouldPreferTitleOnly =
+    !summary ||
+    (
+      Boolean(title) &&
+      title.length <= titleMax &&
+      summary.length <= summaryMax &&
+      title.length + summary.length <= combinedMax
+    );
+
+  return {
+    title,
+    summary: shouldPreferTitleOnly ? '' : summary,
+    isTitleOnly: shouldPreferTitleOnly,
+    titleLineClamp: shouldPreferTitleOnly ? 3 : 2,
+    summaryLineClamp: hasMediaPreview ? 1 : 2,
+  };
 };
 
 export const getPostSummarySourceText = (post) => {
