@@ -79,6 +79,33 @@ const App = () => {
     handleAddSearchAuthorToWatchlist,
   } = useWatchlist({ currentPlan, openPricingWithStatus, setStatus });
 
+  // --- Subscribed RSS Sources ---
+  const [subscribedSources, setSubscribedSources] = usePersistentState(STORAGE_KEYS.subscribedSources, []);
+  const supportedRssSourcesById = useMemo(
+    () => new Map(Object.values(RSS_CATALOG).flat().map((source) => [String(source.id), source])),
+    [],
+  );
+  const handleToggleSource = (source) => {
+    setSubscribedSources((prev) => {
+      const exists = prev.some((s) => s.id === source.id);
+      return exists ? prev.filter((s) => s.id !== source.id) : [...prev, source];
+    });
+  };
+
+  useEffect(() => {
+    setSubscribedSources((prev) => {
+      const normalized = (Array.isArray(prev) ? prev : [])
+        .map((source) => supportedRssSourcesById.get(String(source?.id || '')))
+        .filter(Boolean);
+
+      if (normalized.length === prev.length && normalized.every((source, index) => source.id === prev[index]?.id)) {
+        return prev;
+      }
+
+      return normalized;
+    });
+  }, [setSubscribedSources, supportedRssSourcesById]);
+
   // --- Post Lists ---
   const {
     postLists,
@@ -104,6 +131,8 @@ const App = () => {
   } = usePostLists({
     watchlist,
     setWatchlist,
+    subscribedSources,
+    setSubscribedSources,
     hasWatchlistRoomFor,
     resolvePlaceholders,
     currentPlan,
@@ -138,33 +167,6 @@ const App = () => {
     hasWatchlistRoomFor,
     handleAddUser: addUserToWatchlist,
   });
-
-  // --- Subscribed RSS Sources ---
-  const [subscribedSources, setSubscribedSources] = usePersistentState(STORAGE_KEYS.subscribedSources, []);
-  const supportedRssSourcesById = useMemo(
-    () => new Map(Object.values(RSS_CATALOG).flat().map((source) => [String(source.id), source])),
-    [],
-  );
-  const handleToggleSource = (source) => {
-    setSubscribedSources((prev) => {
-      const exists = prev.some((s) => s.id === source.id);
-      return exists ? prev.filter((s) => s.id !== source.id) : [...prev, source];
-    });
-  };
-
-  useEffect(() => {
-    setSubscribedSources((prev) => {
-      const normalized = (Array.isArray(prev) ? prev : [])
-        .map((source) => supportedRssSourcesById.get(String(source?.id || '')))
-        .filter(Boolean);
-
-      if (normalized.length === prev.length && normalized.every((source, index) => source.id === prev[index]?.id)) {
-        return prev;
-      }
-
-      return normalized;
-    });
-  }, [setSubscribedSources, supportedRssSourcesById]);
 
   // --- Feed & Content State ---
   const [originalFeed, setOriginalFeed] = useIndexedDbState(STORAGE_KEYS.homeFeed, [], {

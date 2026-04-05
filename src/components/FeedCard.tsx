@@ -357,7 +357,7 @@ const FeedCard = ({
   const shouldShowFooterMeta = showSocialStats || footerBadges.length > 0;
   const showRepostBanner = false;
   const showInlineReplyBanner = false;
-  const feedCardClassName = `feed-card animate-fade-in${isRssPost ? ' feed-card-rss' : ''}`;
+  const feedCardClassName = 'feed-card animate-fade-in';
   const footerClassName = `feed-card-footer${isReadableArticle ? ' feed-card-footer-priority' : ''}`;
 
   const handleReadArticle = (event: React.MouseEvent<HTMLButtonElement>) => {

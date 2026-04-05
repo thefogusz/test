@@ -383,10 +383,6 @@ h1, h2, h3, h4, h5, h6 {
   /* Remove overflow-hidden to allow AI Insights badge to be seen correctly if expanded */
 }
 
-.feed-card-rss {
-  font-family: var(--font-ui);
-}
-
 .feed-card-footer {
   margin-top: auto;
 }
@@ -3860,14 +3856,24 @@ h1, h2, h3, h4, h5, h6 {
     display: none;
   }
 
-  .news-source-filter-btn {
-    width: auto !important;
-    flex: 0 0 auto;
-    white-space: nowrap;
-  }
+.news-source-filter-btn {
+  width: auto !important;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
 
-  .audience-ai-searchbar {
-    flex-direction: column;
+.news-source-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 980px) {
+  .news-source-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.audience-ai-searchbar {
+  flex-direction: column;
     width: 100%;
     margin-left: 0;
     gap: 10px !important;

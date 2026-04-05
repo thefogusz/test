@@ -5,9 +5,14 @@ const textDecoder = new TextDecoder();
 
 const SHARE_LIST_COLOR_PATTERN =
   /^(var\(--[a-z-]+\)|#[0-9a-fA-F]{3,8}|rgba?\([^)]+\))$/;
+const X_HANDLE_PATTERN = /^[a-zA-Z0-9_]{1,50}$/;
+const RSS_MEMBER_PATTERN = /^rss:[a-z0-9_-]{1,80}$/;
 
 const normalizeHandle = (value: string) =>
   String(value || '').trim().replace(/^@/, '').toLowerCase();
+
+const isSupportedShareMember = (value: string) =>
+  X_HANDLE_PATTERN.test(value) || RSS_MEMBER_PATTERN.test(value);
 
 const bytesToBase64Url = (bytes: Uint8Array) =>
   btoa(Array.from(bytes, (byte) => String.fromCharCode(byte)).join(''))
@@ -49,7 +54,7 @@ const sanitizeShareListPayload = (payload: {
       (Array.isArray(payload?.members) ? payload.members : [])
         .filter((member) => typeof member === 'string')
         .map((member) => normalizeHandle(member))
-        .filter((member) => /^[a-zA-Z0-9_]{1,50}$/.test(member)),
+        .filter((member) => isSupportedShareMember(member)),
     ),
   );
 

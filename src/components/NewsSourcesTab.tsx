@@ -391,35 +391,6 @@ const SourceCard = ({
         </div>
       </div>
 
-      {isInAnyPostList && (
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '8px',
-            marginTop: '-4px',
-          }}
-        >
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '5px 10px',
-              borderRadius: '999px',
-              background: 'rgba(34, 197, 94, 0.08)',
-              border: '1px solid rgba(34, 197, 94, 0.18)',
-              color: 'rgba(134, 239, 172, 0.92)',
-              fontSize: '11px',
-              fontWeight: '700',
-            }}
-          >
-            <Check size={11} />
-            อยู่ใน Post List แล้ว {postListCount} รายการ
-          </span>
-        </div>
-      )}
-
       <button
         onClick={onToggle}
         className={`expert-follow-btn ${isSubscribed ? 'added' : ''}`}
@@ -541,7 +512,6 @@ const NewsSourcesTab = ({
             className="news-source-grid"
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
               gap: '12px',
               marginBottom: '8px',
             }}
@@ -583,7 +553,7 @@ const NewsSourcesTab = ({
               {thSources.length} แหล่ง
             </span>
           </div>
-          <div className="news-source-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+          <div className="news-source-grid" style={{ display: 'grid', gap: '12px' }}>
             {thSources.map((source) => (
               <SourceCard
                 key={source.id}
