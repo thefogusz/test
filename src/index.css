@@ -2278,10 +2278,6 @@ h1, h2, h3, h4, h5, h6 {
     white-space: nowrap;
   }
 
-  .feed-card-inline-action > span {
-    display: none;
-  }
-
   .feed-card-inline-action svg {
     width: 12px;
     height: 12px;
@@ -4174,10 +4170,16 @@ h1, h2, h3, h4, h5, h6 {
 
 .article-reader-topbar {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
+  flex-direction: column;
+  gap: 10px;
   margin-bottom: 22px;
+}
+
+.article-reader-topbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .article-reader-title-block {
@@ -4193,7 +4195,6 @@ h1, h2, h3, h4, h5, h6 {
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  margin-bottom: 12px;
   text-transform: uppercase;
 }
 
@@ -4210,11 +4211,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .article-reader-hero-title {
-  font-size: clamp(28px, 3vw, 42px);
-  letter-spacing: -0.03em;
-  line-height: 1.08;
+  font-size: clamp(22px, 2.4vw, 36px);
+  letter-spacing: -0.025em;
+  line-height: 1.12;
   margin-bottom: 14px;
-  max-width: 16ch;
 }
 
 .article-reader-meta-row {
@@ -4457,10 +4457,14 @@ h1, h2, h3, h4, h5, h6 {
     padding: 22px 18px 20px;
   }
 
-  .article-reader-topbar,
   .article-reader-footer {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .article-reader-topbar-row {
+    flex-wrap: wrap;
+    gap: 10px;
   }
 
   .article-reader-hero-title {
@@ -4470,6 +4474,7 @@ h1, h2, h3, h4, h5, h6 {
 
   .article-reader-action-row {
     justify-content: flex-start;
+    flex-wrap: wrap;
   }
 
   .article-reader-action-row .btn-pill {

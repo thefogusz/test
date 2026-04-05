@@ -388,58 +388,59 @@ const ArticleReaderModal = ({
         </button>
 
         <div className="article-reader-topbar">
-          <div className="article-reader-title-block">
+          <div className="article-reader-topbar-row">
             <div className="article-reader-kicker">
               <span className="article-reader-kicker-badge">Reader</span>
               {displaySource ? <span>{displaySource}</span> : null}
             </div>
-            <h2 className="modal-title article-reader-title article-reader-hero-title">
-              {displayTitle}
-            </h2>
-            <div className="article-reader-meta-row">
-              {displayByline ? <span>{displayByline}</span> : null}
-              {displayPublishedAt ? <span>{displayPublishedAt}</span> : null}
-              {displayReadingTime ? (
-                <span className="article-reader-meta-chip">
-                  <Clock3 size={13} />
-                  {displayReadingTime} min read
-                </span>
+            <div className="article-reader-action-row">
+              {articleUrl ? (
+                <a
+                  href={articleUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-pill"
+                >
+                  <ExternalLink size={14} />
+                  Open original
+                </a>
               ) : null}
-              {translatedMarkdown ? (
-                <span className="article-reader-meta-chip">Thai translation</span>
+              <button
+                type="button"
+                className="btn-pill"
+                onClick={() => handleCopy('article', articleCopyValue)}
+              >
+                <Copy size={14} />
+                {copyState === 'article' ? 'Copied article' : 'Copy article'}
+              </button>
+              {onArticleGen ? (
+                <button
+                  type="button"
+                  className="btn-pill primary"
+                  onClick={() => onArticleGen(article)}
+                >
+                  <PenSquare size={14} />
+                  Create content
+                </button>
               ) : null}
             </div>
           </div>
 
-          <div className="article-reader-action-row">
-            {articleUrl ? (
-              <a
-                href={articleUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-pill"
-              >
-                <ExternalLink size={14} />
-                Open original
-              </a>
+          <h2 className="modal-title article-reader-title article-reader-hero-title">
+            {displayTitle}
+          </h2>
+
+          <div className="article-reader-meta-row">
+            {displayByline ? <span>{displayByline}</span> : null}
+            {displayPublishedAt ? <span>{displayPublishedAt}</span> : null}
+            {displayReadingTime ? (
+              <span className="article-reader-meta-chip">
+                <Clock3 size={13} />
+                {displayReadingTime} min read
+              </span>
             ) : null}
-            <button
-              type="button"
-              className="btn-pill"
-              onClick={() => handleCopy('article', articleCopyValue)}
-            >
-              <Copy size={14} />
-              {copyState === 'article' ? 'Copied article' : 'Copy article'}
-            </button>
-            {onArticleGen ? (
-              <button
-                type="button"
-                className="btn-pill primary"
-                onClick={() => onArticleGen(article)}
-              >
-                <PenSquare size={14} />
-                Create content
-              </button>
+            {translatedMarkdown ? (
+              <span className="article-reader-meta-chip">Thai translation</span>
             ) : null}
           </div>
         </div>
