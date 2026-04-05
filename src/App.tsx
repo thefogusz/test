@@ -137,6 +137,15 @@ const App = () => {
     handleAddUser: addUserToWatchlist,
   });
 
+  // --- Subscribed RSS Sources ---
+  const [subscribedSources, setSubscribedSources] = usePersistentState(STORAGE_KEYS.subscribedSources, []);
+  const handleToggleSource = (source) => {
+    setSubscribedSources((prev) => {
+      const exists = prev.some((s) => s.id === source.id);
+      return exists ? prev.filter((s) => s.id !== source.id) : [...prev, source];
+    });
+  };
+
   // --- Feed & Content State ---
   const [originalFeed, setOriginalFeed] = useIndexedDbState(STORAGE_KEYS.homeFeed, [], {
     deserialize: deserializeStoredCollection,
@@ -609,6 +618,8 @@ const App = () => {
               manualPreview={manualPreview}
               handleAddUser={handleAddUser}
               handleRemoveAccountGlobal={handleRemoveAccountGlobal}
+              subscribedSources={subscribedSources}
+              onToggleSource={handleToggleSource}
             />
           </Suspense>
 

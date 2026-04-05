@@ -35,4 +35,5 @@ export const STORAGE_KEYS = {
   generateMarkdown: 'foro_generate_markdown_v1',
   quickFilterPresets: 'foro_quick_filter_presets_v1',
   quickFilterVisiblePresets: 'foro_quick_filter_visible_presets_v1',
+  subscribedSources: 'foro_subscribed_sources_v1',
 } as const;

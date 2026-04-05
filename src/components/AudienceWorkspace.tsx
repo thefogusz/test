@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Activity,
   BadgeDollarSign,
@@ -13,6 +13,7 @@ import {
   HeartPulse,
   Landmark,
   Leaf,
+  Newspaper,
   Plus,
   RefreshCw,
   Search,
@@ -20,6 +21,8 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import UserCard from './UserCard';
+import NewsSourcesTab, { SourceCard } from './NewsSourcesTab';
+import { RSS_CATALOG, TOPIC_LABELS, type RssSource } from '../config/rssCatalog';
 
 const AudienceWorkspace = ({
   isVisible,
@@ -45,6 +48,8 @@ const AudienceWorkspace = ({
   manualPreview,
   handleAddUser,
   handleRemoveAccountGlobal,
+  subscribedSources = [],
+  onToggleSource = () => {},
 }) => {
   const CATEGORIES = [
     { icon: Cpu, label: '\u0e40\u0e17\u0e04\u0e42\u0e19\u0e42\u0e25\u0e22\u0e35', tone: 'blue' },
@@ -82,6 +87,15 @@ const AudienceWorkspace = ({
           <button onClick={() => setAudienceTab('ai')} className={`audience-tab-btn ${audienceTab === 'ai' ? 'active-ai' : ''}`}>
             <Users size={14} strokeWidth={2.1} />
             {'\u0e41\u0e19\u0e30\u0e19\u0e33\u0e42\u0e14\u0e22 FORO'}
+          </button>
+          <button onClick={() => setAudienceTab('sources')} className={`audience-tab-btn ${audienceTab === 'sources' ? 'active-manual' : ''}`}>
+            <Newspaper size={14} strokeWidth={2.1} />
+            แหล่งข่าว
+            {subscribedSources.length > 0 && (
+              <span style={{ fontSize: '10px', fontWeight: '800', background: 'rgba(41, 151, 255, 0.2)', color: '#7eb8ff', padding: '1px 6px', borderRadius: '999px', marginLeft: '4px' }}>
+                {subscribedSources.length}
+              </span>
+            )}
           </button>
           <button onClick={() => setAudienceTab('manual')} className={`audience-tab-btn ${audienceTab === 'manual' ? 'active-manual' : ''}`}>
             <Search size={14} strokeWidth={2.1} />
@@ -230,6 +244,58 @@ const AudienceWorkspace = ({
               </div>
             )}
 
+            {/* Matched RSS sources based on query */}
+            {(() => {
+              const q = (aiQuery || '').toLowerCase().trim();
+              const KEYWORD_TO_TOPIC = {
+                ai: 'ai', 'artificial intelligence': 'ai', 'machine learning': 'ai', ml: 'ai', llm: 'ai', gpt: 'ai',
+                'เทคโนโลยี': 'tech', tech: 'tech', startup: 'tech', เทค: 'tech',
+                'เกม': 'gaming', gaming: 'gaming', game: 'gaming',
+                'คริปโต': 'crypto', crypto: 'crypto', bitcoin: 'crypto', blockchain: 'crypto',
+                'ธุรกิจ': 'business', business: 'business',
+                'การเงิน': 'finance', finance: 'finance', 'การลงทุน': 'finance',
+                'วิทยาศาสตร์': 'science', science: 'science',
+              };
+              const matchedTopic = Object.entries(KEYWORD_TO_TOPIC).find(([kw]) => q.includes(kw))?.[1];
+              const matchedSources = matchedTopic ? (RSS_CATALOG[matchedTopic] || []) : [];
+              const subscribedIds = new Set(subscribedSources.map((s) => s.id));
+
+              if (matchedSources.length === 0 || !q) return null;
+
+              return (
+                <div style={{ marginBottom: '28px', paddingBottom: '24px', borderBottom: '1px solid var(--glass-border)' }} className="animate-fade-in">
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                    <Newspaper size={14} style={{ color: 'var(--accent-secondary)' }} />
+                    <span style={{ fontSize: '12px', fontWeight: '800', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      แหล่งข่าวที่เกี่ยวข้อง
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)' }}>· {matchedSources.length} แหล่ง</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                    {matchedSources.slice(0, 4).map((source) => (
+                      <SourceCard
+                        key={source.id}
+                        source={source}
+                        isSubscribed={subscribedIds.has(source.id)}
+                        onToggle={() => onToggleSource(source)}
+                      />
+                    ))}
+                  </div>
+                  {matchedSources.length > 4 && (
+                    <div style={{ textAlign: 'center', marginTop: '12px' }}>
+                      <button
+                        onClick={() => setAudienceTab('sources')}
+                        className="btn-pill"
+                        style={{ fontSize: '11px' }}
+                      >
+                        ดูแหล่งข่าวทั้งหมด ({matchedSources.length})
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             <div className="audience-category-section" style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '28px' }}>
               <div className="audience-category-heading">Discover By Category</div>
               <div className="audience-category-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
@@ -247,6 +313,10 @@ const AudienceWorkspace = ({
               </div>
             </div>
           </div>
+        )}
+
+        {audienceTab === 'sources' && (
+          <NewsSourcesTab subscribedSources={subscribedSources} onToggleSource={onToggleSource} />
         )}
 
         {audienceTab === 'manual' && (
