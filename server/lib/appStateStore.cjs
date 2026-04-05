@@ -13,6 +13,16 @@ const ensureNamespace = (state, namespace) => {
   return state[namespace];
 };
 
+const createWriteQueue = () => {
+  let pending = Promise.resolve();
+
+  return (task) => {
+    const operation = pending.catch(() => undefined).then(task);
+    pending = operation.catch(() => undefined);
+    return operation;
+  };
+};
+
 const createMemoryStateStore = () => {
   const state = {};
 
@@ -33,15 +43,18 @@ const createMemoryStateStore = () => {
   };
 };
 
-const createFileStateStore = (filePath = DEFAULT_STATE_FILE) => {
+const createFileStateStore = (
+  filePath = DEFAULT_STATE_FILE,
+  { fsModule = fs } = {},
+) => {
   let cachedState = null;
-  let writeQueue = Promise.resolve();
+  const enqueueWrite = createWriteQueue();
 
   const loadState = async () => {
     if (cachedState) return cachedState;
 
     try {
-      const raw = await fs.promises.readFile(filePath, 'utf8');
+      const raw = await fsModule.promises.readFile(filePath, 'utf8');
       const parsed = JSON.parse(raw);
       cachedState = parsed && typeof parsed === 'object' ? parsed : {};
     } catch (error) {
@@ -55,19 +68,17 @@ const createFileStateStore = (filePath = DEFAULT_STATE_FILE) => {
   };
 
   const persistState = async (nextState) => {
-    await fs.promises.mkdir(path.dirname(filePath), { recursive: true });
-    await fs.promises.writeFile(filePath, JSON.stringify(nextState, null, 2), 'utf8');
+    await fsModule.promises.mkdir(path.dirname(filePath), { recursive: true });
+    await fsModule.promises.writeFile(filePath, JSON.stringify(nextState, null, 2), 'utf8');
   };
 
   const mutateState = async (mutator) => {
-    writeQueue = writeQueue.then(async () => {
+    return enqueueWrite(async () => {
       const currentState = cloneState(await loadState());
       mutator(currentState);
-      cachedState = currentState;
       await persistState(currentState);
+      cachedState = currentState;
     });
-
-    return writeQueue;
   };
 
   return {
@@ -95,15 +106,18 @@ const createFileStateStore = (filePath = DEFAULT_STATE_FILE) => {
 const createAppStateStore = ({
   mode = 'file',
   filePath = DEFAULT_STATE_FILE,
+  fsModule = fs,
 } = {}) => {
   if (mode === 'memory') {
     return createMemoryStateStore();
   }
 
-  return createFileStateStore(filePath);
+  return createFileStateStore(filePath, { fsModule });
 };
 
 module.exports = {
   DEFAULT_STATE_FILE,
   createAppStateStore,
+  createFileStateStore,
+  createMemoryStateStore,
 };
