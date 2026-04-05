@@ -68,7 +68,7 @@ export default defineConfig(({ mode }) => {
               res.setHeader('Content-Type', 'text/xml; charset=utf-8')
               res.setHeader('Cache-Control', 'public, max-age=300')
               res.end(responseText)
-            } catch (err) {
+            } catch {
               res.statusCode = 502
               res.setHeader('Content-Type', 'application/json')
               res.end(JSON.stringify({ error: 'Failed to fetch RSS feed' }))

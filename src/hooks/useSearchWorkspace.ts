@@ -37,12 +37,14 @@ import {
   sanitizeStoredPost,
 } from '../utils/appUtils';
 import { deserializeStoredCollection } from '../utils/appPersistence';
+import { fetchAllSubscribedFeeds, type RssSourceInfo } from '../services/RssService';
 
 type UseSearchWorkspaceParams = {
   activeView: string;
   contentTab: string;
   originalFeed: any[];
   readArchive: any[];
+  subscribedSources: RssSourceInfo[];
   setStatus: (value: string) => void;
   status: string;
 };
@@ -133,6 +135,101 @@ const shouldUseSearchExpansion = ({
   if (isBroadDiscoveryQuery) return false;
 
   return isComplexQuery || isLatestMode;
+};
+
+const RSS_SEARCH_STOP_TERMS = new Set([
+  'a',
+  'an',
+  'and',
+  'are',
+  'for',
+  'from',
+  'in',
+  'latest',
+  'news',
+  'of',
+  'on',
+  'or',
+  'the',
+  'to',
+  'update',
+  'updates',
+  'with',
+]);
+
+const buildRssSearchResults = async (
+  query: string,
+  sources: RssSourceInfo[],
+  mediaType: SearchMediaType,
+) => {
+  if (mediaType === 'videos' || !Array.isArray(sources) || sources.length === 0) return [];
+
+  const normalizedQuery = normalizeSearchText(query);
+  if (!normalizedQuery) return [];
+
+  const queryTerms = normalizedQuery
+    .split(' ')
+    .map((term) => term.trim())
+    .filter((term) => term.length > 1 && !RSS_SEARCH_STOP_TERMS.has(term));
+
+  const rssPosts = await fetchAllSubscribedFeeds(sources, 6);
+
+  return rssPosts
+    .map((post) => {
+      const title = String(post?.title || '');
+      const titleText = normalizeSearchText(title);
+      const haystack = normalizeSearchText(
+        `${title} ${post?.text || ''} ${post?.author?.name || ''} ${post?.url || ''}`,
+      );
+      const fullMatch = haystack.includes(normalizedQuery);
+      const matchedTerms = queryTerms.filter((term) => haystack.includes(term));
+      const titleMatches = queryTerms.filter((term) => titleText.includes(term)).length;
+      const recencyHours = Math.max(
+        0,
+        (Date.now() - new Date(post?.created_at || 0).getTime()) / (1000 * 60 * 60),
+      );
+
+      return {
+        post,
+        score:
+          (fullMatch ? 6 : 0) +
+          matchedTerms.length * 2 +
+          titleMatches * 1.5 +
+          Math.max(0, 72 - recencyHours) * 0.04,
+        matchedTerms,
+      };
+    })
+    .filter(({ score, matchedTerms }) => score >= 4 || matchedTerms.length >= Math.min(2, queryTerms.length || 1))
+    .sort((left, right) => right.score - left.score)
+    .slice(0, 8)
+    .map(({ post }) => sanitizeStoredPost(post));
+};
+
+const mergeSearchCards = (xResults: any[], rssResults: any[], latestMode: boolean) => {
+  if (!rssResults.length) return xResults;
+  if (!xResults.length) return rssResults;
+
+  if (latestMode) {
+    return [...xResults, ...rssResults]
+      .sort(
+        (left, right) =>
+          new Date(right?.created_at || right?.createdAt || 0).getTime() -
+          new Date(left?.created_at || left?.createdAt || 0).getTime(),
+      )
+      .map(sanitizeStoredPost);
+  }
+
+  const merged: any[] = [];
+  const xQueue = [...xResults];
+  const rssQueue = [...rssResults];
+
+  while (xQueue.length || rssQueue.length) {
+    if (xQueue.length) merged.push(xQueue.shift());
+    if (xQueue.length) merged.push(xQueue.shift());
+    if (rssQueue.length) merged.push(rssQueue.shift());
+  }
+
+  return mergeUniquePostsById(merged).map(sanitizeStoredPost);
 };
 
 const readNextCursor = (meta: { next_cursor?: string | null } | null | undefined) =>
@@ -245,6 +342,7 @@ export const useSearchWorkspace = ({
   contentTab,
   originalFeed,
   readArchive,
+  subscribedSources,
   setStatus,
   status,
 }: UseSearchWorkspaceParams) => {
@@ -452,6 +550,7 @@ export const useSearchWorkspace = ({
           : [];
         const shouldUseAdaptivePlan = isComplexQuery && !effectiveBroadDiscoveryQuery;
         const rawDataChunks: any[][] = [];
+        let rssSearchResults: any[] = [];
         let finalCursor: string | null = null;
 
         const getScopedQuery = (query: string, lane = 'default') => {
@@ -500,6 +599,14 @@ export const useSearchWorkspace = ({
             shouldFetchWebContext
               ? tavilySearch(webSearchQuery || requestedQuery, effectiveLatestMode)
               : Promise.resolve({ results: [], answer: '' });
+          const rssSearchPromise = buildRssSearchResults(
+            requestedQuery,
+            subscribedSources,
+            searchMediaType,
+          ).catch((error) => {
+            console.warn(`[Search] Failed RSS search: ${requestedQuery}`, error);
+            return [];
+          });
           const expandedBroadQueryPromise = shouldExpandQuery
             ? expandSearchQuery(
                 effectiveRequestedQuery,
@@ -570,13 +677,15 @@ export const useSearchWorkspace = ({
                 })
               : Promise.resolve({ data: [], meta: {} });
 
-          const [webData, exactResult, broadResult, entityResult, viralResult] = await Promise.all([
+          const [webData, exactResult, broadResult, entityResult, viralResult, resolvedRssSearchResults] = await Promise.all([
             tavilyPromise,
             exactSearchPromise,
             broadSearchPromise,
             entitySearchPromise,
             viralSearchPromise,
+            rssSearchPromise,
           ]);
+          rssSearchResults = resolvedRssSearchResults;
 
           if (exactResult.data?.length) rawDataChunks.push(exactResult.data);
           if (broadResult.data?.length) rawDataChunks.push(broadResult.data);
@@ -788,8 +897,11 @@ export const useSearchWorkspace = ({
             : isMore
               ? mergeUniquePostsById(searchResults, normalizedResults).map(sanitizeStoredPost)
               : normalizedResults;
+          const mergedResults = isMore
+            ? xResults
+            : mergeSearchCards(xResults, rssSearchResults, effectiveLatestMode);
 
-          setSearchResults(xResults);
+          setSearchResults(mergedResults);
           setSearchOverflowResults(effectiveBroadDiscoveryQuery ? nextOverflowResults : []);
           setSearchCursor(finalCursor);
           if (!isMore) {
@@ -806,7 +918,7 @@ export const useSearchWorkspace = ({
             lastSubmittedSearchQuery: normalizedRequestedQueryLabel,
             searchCursor: finalCursor,
             searchOverflowResults: effectiveBroadDiscoveryQuery ? nextOverflowResults : [],
-            searchResults: xResults,
+            searchResults: mergedResults,
             searchSummary: '',
             searchWebSources: resolvedSearchWebSources,
           };

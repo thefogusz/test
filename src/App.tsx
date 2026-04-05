@@ -261,6 +261,7 @@ const App = () => {
     contentTab,
     originalFeed,
     readArchive,
+    subscribedSources,
     setStatus,
     status,
   });
