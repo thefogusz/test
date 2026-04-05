@@ -3881,6 +3881,7 @@ h1, h2, h3, h4, h5, h6 {
   .news-source-filter-row::-webkit-scrollbar {
     display: none;
   }
+}
 
 .news-source-filter-btn {
   width: auto !important;
@@ -3898,6 +3899,7 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+@media (max-width: 768px) {
 .audience-ai-searchbar {
   flex-direction: column;
     width: 100%;
