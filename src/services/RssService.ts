@@ -15,6 +15,22 @@ interface RssItem {
   author?: string;
 }
 
+const parseItemTimestamp = (value: string) => {
+  const timestamp = new Date(String(value || '').trim()).getTime();
+  return Number.isFinite(timestamp) ? timestamp : NaN;
+};
+
+const buildStableRssId = (value: string) => {
+  let hash = 0;
+  const input = String(value || '');
+
+  for (let index = 0; index < input.length; index += 1) {
+    hash = (hash * 31 + input.charCodeAt(index)) >>> 0;
+  }
+
+  return hash.toString(36);
+};
+
 const extractImageFromContent = (content: string): string | null => {
   if (!content) return null;
   const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["']/i);
@@ -116,8 +132,11 @@ export interface RssSourceInfo {
 }
 
 const rssItemToPost = (item: RssItem, source: RssSourceInfo): Post => {
-  const postId = `rss-${source.id}-${btoa(item.link || item.title).slice(0, 20)}`;
-  const createdAt = item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString();
+  const itemTimestamp = parseItemTimestamp(item.pubDate);
+  const createdAt = Number.isFinite(itemTimestamp)
+    ? new Date(itemTimestamp).toISOString()
+    : new Date().toISOString();
+  const postId = `rss-${source.id}-${buildStableRssId(`${item.link || item.title}|${createdAt}`)}`;
 
   return {
     id: postId,
@@ -140,11 +159,6 @@ const rssItemToPost = (item: RssItem, source: RssSourceInfo): Post => {
   };
 };
 
-const getPostTimestamp = (post: Post) => {
-  const timestamp = new Date(post?.created_at || post?.createdAt || 0).getTime();
-  return Number.isFinite(timestamp) ? timestamp : NaN;
-};
-
 export const fetchRssFeed = async (source: RssSourceInfo, maxItems = 10): Promise<Post[]> => {
   try {
     const response = await apiFetch(`${RSS_PROXY_URL}?url=${encodeURIComponent(source.url)}`, {
@@ -158,26 +172,35 @@ export const fetchRssFeed = async (source: RssSourceInfo, maxItems = 10): Promis
 
     const xml = await response.text();
     const items = parseRssXml(xml);
-    const posts = items
-      .map((item) => rssItemToPost(item, source))
-      .sort((left, right) => getPostTimestamp(right) - getPostTimestamp(left));
+    const itemsWithTimestamps = items
+      .map((item) => ({
+        item,
+        timestamp: parseItemTimestamp(item.pubDate),
+      }))
+      .sort((left, right) => {
+        const leftTimestamp = Number.isFinite(left.timestamp) ? left.timestamp : -Infinity;
+        const rightTimestamp = Number.isFinite(right.timestamp) ? right.timestamp : -Infinity;
+        return rightTimestamp - leftTimestamp;
+      });
 
-    const validTimestamps = posts
-      .map((post) => getPostTimestamp(post))
+    const validTimestamps = itemsWithTimestamps
+      .map((entry) => entry.timestamp)
       .filter((timestamp) => Number.isFinite(timestamp));
 
     if (validTimestamps.length === 0) {
-      return posts.slice(0, maxItems);
+      return itemsWithTimestamps
+        .slice(0, maxItems)
+        .map(({ item }) => rssItemToPost(item, source));
     }
 
     const latestTimestamp = Math.max(...validTimestamps);
     const cutoffTimestamp = latestTimestamp - RSS_LATEST_LOOKBACK_MS;
 
-    return posts
-      .filter((post) => {
-        const timestamp = getPostTimestamp(post);
+    return itemsWithTimestamps
+      .filter(({ timestamp }) => {
         return Number.isFinite(timestamp) && timestamp >= cutoffTimestamp && timestamp <= latestTimestamp;
       })
+      .map(({ item }) => rssItemToPost(item, source))
       .slice(0, maxItems);
   } catch (error) {
     console.warn(`[RSS] Error fetching ${source.name}:`, error);
