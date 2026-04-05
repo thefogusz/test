@@ -1067,6 +1067,65 @@ export const generateGrokSummary = async (fullStoryText) => {
   return results[0] || fullStoryText;
 };
 
+const shortenInsightText = (value = '', maxLength = 64) => {
+  const cleaned = normalizeCacheText(cleanGeneratedContent(value));
+  if (!cleaned) return '';
+  if (cleaned.length <= maxLength) return cleaned;
+
+  const clipped = cleaned.slice(0, maxLength);
+  const candidateBoundaries = [
+    clipped.lastIndexOf(' '),
+    clipped.lastIndexOf('.'),
+    clipped.lastIndexOf('!'),
+    clipped.lastIndexOf('?'),
+    clipped.lastIndexOf('।'),
+    clipped.lastIndexOf('。'),
+    clipped.lastIndexOf('!'),
+    clipped.lastIndexOf('?'),
+    clipped.lastIndexOf(','),
+    clipped.lastIndexOf(';'),
+    clipped.lastIndexOf(':'),
+  ];
+  const boundary = Math.max(...candidateBoundaries);
+  const shortened =
+    boundary >= Math.floor(maxLength * 0.58) ? clipped.slice(0, boundary) : clipped;
+
+  return `${shortened.replace(/[,:;\s-]+$/u, '').trim()}…`;
+};
+
+const compactInsightEntities = (items = [], maxItems = 3, maxLength = 28) =>
+  dedupeByNormalizedText(items || [])
+    .map((item) => shortenInsightText(item, maxLength))
+    .filter(Boolean)
+    .slice(0, maxItems);
+
+const buildCompactArticleInsights = (rawInsights = {}) => {
+  const summary = shortenInsightText(rawInsights.summary, 68);
+  const whyItMattersCandidate = shortenInsightText(rawInsights.whyItMatters, 68);
+  const whyItMatters =
+    summary && textSimilarity(summary, whyItMattersCandidate) >= 0.72
+      ? ''
+      : whyItMattersCandidate;
+  const dedupeAgainst = [summary, whyItMatters].filter(Boolean);
+
+  const keyPoints = dedupeByNormalizedText(rawInsights.keyPoints || [])
+    .map((item) => shortenInsightText(item, 52))
+    .filter(Boolean)
+    .filter((item) =>
+      dedupeAgainst.every((existing) => textSimilarity(existing, item) < 0.72),
+    )
+    .slice(0, 2);
+
+  return {
+    summary,
+    whyItMatters,
+    keyPoints,
+    companies: compactInsightEntities(rawInsights.companies, 3, 26),
+    people: compactInsightEntities(rawInsights.people, 3, 26),
+    topics: compactInsightEntities(rawInsights.topics, 3, 24),
+  };
+};
+
 export const generateArticleInsights = async ({
   title = '',
   excerpt = '',
@@ -1080,7 +1139,7 @@ export const generateArticleInsights = async ({
 
   if (!normalizedTitle && !normalizedContent) return null;
 
-  const cacheKey = buildCacheKey('article-insights-v1', {
+  const cacheKey = buildCacheKey('article-insights-v2', {
     normalizedTitle,
     normalizedExcerpt,
     normalizedContent: normalizedContent.slice(0, 2500),
@@ -1092,15 +1151,17 @@ export const generateArticleInsights = async ({
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
-      system: `You create compact AI insight cards for a news reader UI.
+      system: `You create ultra-compact AI insight cards for a news reader UI.
 
 Rules:
 - Return Thai for insight text, but preserve proper names in Latin script when they appear that way in the source.
 - Never invent facts, names, companies, or numbers.
-- Prefer precision over coverage.
-- Keep every bullet concrete and useful.
+- This is a pre-read card, not a mini article. If it feels like the user already read the story, it is too long.
+- summary: 1 very short sentence, the single most important fact. Max ~55 Thai chars.
+- whyItMatters: 1 very short sentence explaining impact. Max ~55 Thai chars.
+- keyPoints: prefer 1 bullet, max 2 bullets only if the second fact is essential. Each bullet under 45 chars.
 - Only include entities that are truly central to the article.
-- Avoid fluff like "เรื่องนี้น่าสนใจเพราะ..." if it adds no information.`,
+- No fluff, no filler phrases.`,
       prompt: [
         PROPER_NAME_PRESERVATION_RULES,
         normalizedSite ? `Source: ${normalizedSite}` : '',
@@ -1111,9 +1172,9 @@ Rules:
         .filter(Boolean)
         .join('\n\n'),
       schema: z.object({
-        summary: z.string().min(20).max(240),
-        whyItMatters: z.string().min(20).max(220),
-        keyPoints: z.array(z.string()).max(3),
+        summary: z.string().min(10).max(90),
+        whyItMatters: z.string().min(10).max(90),
+        keyPoints: z.array(z.string().max(64)).max(2),
         companies: z.array(z.string()).max(4),
         people: z.array(z.string()).max(4),
         topics: z.array(z.string()).max(4),
@@ -1121,14 +1182,7 @@ Rules:
       temperature: 0.1,
     });
 
-    const normalizedInsights = {
-      summary: cleanGeneratedContent(object.summary),
-      whyItMatters: cleanGeneratedContent(object.whyItMatters),
-      keyPoints: dedupeByNormalizedText(object.keyPoints || []).map((item) => cleanGeneratedContent(item)).filter(Boolean).slice(0, 3),
-      companies: dedupeByNormalizedText(object.companies || []).map((item) => cleanGeneratedContent(item)).filter(Boolean).slice(0, 4),
-      people: dedupeByNormalizedText(object.people || []).map((item) => cleanGeneratedContent(item)).filter(Boolean).slice(0, 4),
-      topics: dedupeByNormalizedText(object.topics || []).map((item) => cleanGeneratedContent(item)).filter(Boolean).slice(0, 4),
-    };
+    const normalizedInsights = buildCompactArticleInsights(object);
 
     return setCachedValue(responseCache, cacheKey, normalizedInsights, CONTENT_BRIEF_CACHE_TTL_MS);
   } catch (error) {
@@ -1163,13 +1217,14 @@ export const translateArticleToThai = async ({
   if (cached) return cached;
 
   try {
-    const translatedMarkdown = await callGrok({
-      modelName: MODEL_NEWS_FAST,
+    const { object } = await generateObject({
+      model: grok(MODEL_NEWS_FAST),
       system: `You translate full news articles into natural Thai for a reader UI.
 
 Rules:
 - Translate the full article body into Thai. Do not summarize or shorten it on purpose.
-- Output markdown only. No preface, no explanation, no code fences.
+- body: markdown only. No preface, no explanation, no code fences.
+- titleTh: translate the headline into Thai. Keep proper names in Latin script.
 - Preserve headings, bullet lists, blockquotes, and links when they carry meaning.
 - Keep person, company, product, organization, and place names in Latin script exactly as they appear when that is how the source writes them.
 - Preserve all important facts, numbers, dates, currencies, percentages, and units exactly.
@@ -1186,6 +1241,10 @@ Rules:
       ]
         .filter(Boolean)
         .join('\n\n'),
+      schema: z.object({
+        titleTh: z.string(),
+        body: z.string(),
+      }),
       temperature: 0.1,
       topP: 0.4,
       frequencyPenalty: 0,
@@ -1194,7 +1253,8 @@ Rules:
     });
 
     const payload = {
-      markdown: translatedMarkdown,
+      titleTh: object.titleTh || '',
+      markdown: object.body,
     };
 
     return setCachedValue(responseCache, cacheKey, payload, CONTENT_BRIEF_CACHE_TTL_MS);

@@ -3,13 +3,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import DOMPurify from 'dompurify';
 import {
   Building2,
+  ChevronDown,
   Clock3,
   Copy,
   ExternalLink,
   FileText,
   Loader2,
   PenSquare,
-  Sparkles,
   Tag,
   User,
   X,
@@ -89,6 +89,7 @@ const ArticleReaderModal = ({
     error: '',
   });
   const [copyState, setCopyState] = useState('');
+  const [openInsightArticleKey, setOpenInsightArticleKey] = useState('');
 
   const articleUrl = useMemo(() => {
     if (!article) return '';
@@ -103,6 +104,7 @@ const ArticleReaderModal = ({
   const isRemoteArticle =
     Boolean(articleUrl) && ['rss', 'web_article'].includes(sourceType);
   const articleKey = articleUrl || String(article?.id || article?.title || '');
+  const insightsOpen = openInsightArticleKey === articleKey;
   const cachedArticle = articleUrl ? ARTICLE_CACHE.get(articleUrl) : null;
 
   const effectiveArticleState = !article || !isRemoteArticle || !articleUrl
@@ -346,7 +348,8 @@ const ArticleReaderModal = ({
   if (!article) return null;
 
   const articleData = effectiveArticleState.data;
-  const displayTitle = articleData?.title || article?.title || article?.text || 'Untitled article';
+  const translatedTitle = effectiveTranslationState.data?.titleTh || '';
+  const displayTitle = translatedTitle || articleData?.title || article?.title || article?.text || 'Untitled article';
   const displayImage = articleData?.leadImageUrl || article?.primaryImageUrl || article?.imageUrls?.[0] || '';
   const displaySource = articleData?.siteName || article?.author?.name || '';
   const displayByline = articleData?.byline || '';
@@ -388,42 +391,9 @@ const ArticleReaderModal = ({
         </button>
 
         <div className="article-reader-topbar">
-          <div className="article-reader-topbar-row">
-            <div className="article-reader-kicker">
-              <span className="article-reader-kicker-badge">Reader</span>
-              {displaySource ? <span>{displaySource}</span> : null}
-            </div>
-            <div className="article-reader-action-row">
-              {articleUrl ? (
-                <a
-                  href={articleUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-pill"
-                >
-                  <ExternalLink size={14} />
-                  Open original
-                </a>
-              ) : null}
-              <button
-                type="button"
-                className="btn-pill"
-                onClick={() => handleCopy('article', articleCopyValue)}
-              >
-                <Copy size={14} />
-                {copyState === 'article' ? 'Copied article' : 'Copy article'}
-              </button>
-              {onArticleGen ? (
-                <button
-                  type="button"
-                  className="btn-pill primary"
-                  onClick={() => onArticleGen(article)}
-                >
-                  <PenSquare size={14} />
-                  Create content
-                </button>
-              ) : null}
-            </div>
+          <div className="article-reader-kicker">
+            <span className="article-reader-kicker-badge">Reader</span>
+            {displaySource ? <span>{displaySource}</span> : null}
           </div>
 
           <h2 className="modal-title article-reader-title article-reader-hero-title">
@@ -443,104 +413,139 @@ const ArticleReaderModal = ({
               <span className="article-reader-meta-chip">Thai translation</span>
             ) : null}
           </div>
+
+          <div className="article-reader-action-row">
+            <button
+              type="button"
+              className="btn-pill"
+              onClick={() => handleCopy('article', articleCopyValue)}
+            >
+              <Copy size={14} />
+              {copyState === 'article' ? 'Copied' : 'Copy article'}
+            </button>
+            {onArticleGen ? (
+              <button
+                type="button"
+                className="btn-pill primary"
+                onClick={() => onArticleGen(article)}
+              >
+                <PenSquare size={14} />
+                Create content
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {effectiveInsightState.status !== 'idle' && (
-          <section className="article-insights-panel">
-            <div className="article-insights-header">
+          <section className={`article-insights-panel${insightsOpen ? ' is-open' : ''}`}>
+            <button
+              type="button"
+              className="article-insights-toggle"
+              onClick={() => setOpenInsightArticleKey((currentKey) => (currentKey === articleKey ? '' : articleKey))}
+              aria-expanded={insightsOpen}
+            >
               <div className="article-insights-title-row">
-                <span className="article-insights-badge">
-                  <Sparkles size={12} />
-                  AI
-                </span>
+                <span className="article-insights-badge" aria-hidden="true">AI</span>
                 <div>
-                  <div className="article-insights-title">Insights Card</div>
+                  <div className="article-insights-title">Insights</div>
                   <div className="article-insights-subtitle">
-                    Fast read before the full article
+                    {effectiveInsightState.status === 'loading'
+                      ? 'Preparing a tighter read'
+                      : 'สรุป 15 วินาทีก่อนอ่านเต็ม'}
                   </div>
                 </div>
               </div>
+              <ChevronDown
+                size={16}
+                className={`article-insights-chevron${insightsOpen ? ' open' : ''}`}
+              />
+            </button>
 
-              {insightCopyValue ? (
-                <button
-                  type="button"
-                  className="btn-mini-ghost"
-                  onClick={() => handleCopy('insights', insightCopyValue)}
-                >
-                  <Copy size={13} />
-                  {copyState === 'insights' ? 'Copied insights' : 'Copy insights'}
-                </button>
-              ) : null}
-            </div>
-
-            {effectiveInsightState.status === 'loading' && (
+            {insightsOpen && effectiveInsightState.status === 'loading' && (
               <div className="article-insights-loading">
                 <Loader2 size={16} className="animate-spin" />
                 <span>Generating AI insights...</span>
               </div>
             )}
 
-            {effectiveInsightState.status === 'ready' && effectiveInsightState.data && (
-              <div className="article-insights-grid">
-                <div className="article-insights-summary">
-                  <div className="article-insights-summary-line">{effectiveInsightState.data.summary}</div>
-                  <div className="article-insights-summary-note">{effectiveInsightState.data.whyItMatters}</div>
-                  {effectiveInsightState.data.keyPoints?.length > 0 && (
-                    <ul className="article-insights-bullets">
-                      {effectiveInsightState.data.keyPoints.map((point) => (
-                        <li key={point}>{point}</li>
-                      ))}
-                    </ul>
-                  )}
+            {insightsOpen && effectiveInsightState.status === 'ready' && effectiveInsightState.data && (
+              <div className="article-insights-body">
+                <div className="article-insights-grid">
+                  <div className="article-insights-summary">
+                    <div className="article-insights-summary-line">{effectiveInsightState.data.summary}</div>
+                    {effectiveInsightState.data.whyItMatters ? (
+                      <div className="article-insights-summary-note">{effectiveInsightState.data.whyItMatters}</div>
+                    ) : null}
+                    {effectiveInsightState.data.keyPoints?.length > 0 && (
+                      <ul className="article-insights-bullets">
+                        {effectiveInsightState.data.keyPoints.slice(0, 2).map((point) => (
+                          <li key={point}>{point}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div className="article-insights-sidecards">
+                    {effectiveInsightState.data.companies?.length > 0 && (
+                      <div className="article-insights-mini-card">
+                        <div className="article-insights-mini-title">
+                          <Building2 size={14} />
+                          {effectiveInsightState.data.companies.length} Companies
+                        </div>
+                        <div className="article-insights-chip-row">
+                          {effectiveInsightState.data.companies.map((item) => (
+                            <span key={item} className="article-insights-chip">{item}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {effectiveInsightState.data.people?.length > 0 && (
+                      <div className="article-insights-mini-card">
+                        <div className="article-insights-mini-title">
+                          <User size={14} />
+                          People
+                        </div>
+                        <div className="article-insights-chip-row">
+                          {effectiveInsightState.data.people.map((item) => (
+                            <span key={item} className="article-insights-chip">{item}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {effectiveInsightState.data.topics?.length > 0 && (
+                      <div className="article-insights-mini-card">
+                        <div className="article-insights-mini-title">
+                          <Tag size={14} />
+                          Topics
+                        </div>
+                        <div className="article-insights-chip-row">
+                          {effectiveInsightState.data.topics.map((item) => (
+                            <span key={item} className="article-insights-chip">{item}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div className="article-insights-sidecards">
-                  {effectiveInsightState.data.companies?.length > 0 && (
-                    <div className="article-insights-mini-card">
-                      <div className="article-insights-mini-title">
-                        <Building2 size={14} />
-                        {effectiveInsightState.data.companies.length} Companies
-                      </div>
-                      <div className="article-insights-chip-row">
-                        {effectiveInsightState.data.companies.map((item) => (
-                          <span key={item} className="article-insights-chip">{item}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {effectiveInsightState.data.people?.length > 0 && (
-                    <div className="article-insights-mini-card">
-                      <div className="article-insights-mini-title">
-                        <User size={14} />
-                        People
-                      </div>
-                      <div className="article-insights-chip-row">
-                        {effectiveInsightState.data.people.map((item) => (
-                          <span key={item} className="article-insights-chip">{item}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {effectiveInsightState.data.topics?.length > 0 && (
-                    <div className="article-insights-mini-card">
-                      <div className="article-insights-mini-title">
-                        <Tag size={14} />
-                        Topics
-                      </div>
-                      <div className="article-insights-chip-row">
-                        {effectiveInsightState.data.topics.map((item) => (
-                          <span key={item} className="article-insights-chip">{item}</span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {insightCopyValue ? (
+                  <div className="article-insights-footer">
+                    <button
+                      type="button"
+                      className="btn-mini-ghost"
+                      onClick={() => handleCopy('insights', insightCopyValue)}
+                    >
+                      <Copy size={13} />
+                      {copyState === 'insights' ? 'Copied' : 'Copy insights'}
+                    </button>
+                  </div>
+                ) : null}
               </div>
             )}
 
-            {effectiveInsightState.status === 'error' && (
+            {insightsOpen && effectiveInsightState.status === 'error' && (
               <div className="article-insights-error">
                 {effectiveInsightState.error}
               </div>
@@ -604,9 +609,22 @@ const ArticleReaderModal = ({
             <FileText size={13} />
             Reader view is extracted automatically from the source page and may vary by site.
           </div>
-          <button className="modal-btn modal-btn-secondary" onClick={onClose}>
-            Close
-          </button>
+          <div className="article-reader-footer-actions">
+            {articleUrl ? (
+              <a
+                href={articleUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-pill"
+              >
+                <ExternalLink size={14} />
+                Open original source
+              </a>
+            ) : null}
+            <button className="modal-btn modal-btn-secondary" onClick={onClose}>
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>

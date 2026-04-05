@@ -16,6 +16,7 @@ import {
   Repeat,
   Reply,
   X,
+  type LucideIcon,
 } from 'lucide-react';
 import type { Post, PostList } from '../types/domain';
 import { STORAGE_KEYS } from '../constants/storageKeys';
@@ -56,6 +57,115 @@ const safeReadStoredValue = (key, fallbackValue) => {
     return fallbackValue;
   }
 };
+
+const FEED_CARD_FOOTER_STYLE: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px',
+  paddingTop: '10px',
+  borderTop: '1px solid rgba(255,255,255,0.04)',
+};
+
+const FEED_CARD_STATS_STYLE: React.CSSProperties = {
+  display: 'flex',
+  gap: '12px',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+};
+
+const FEED_CARD_STATS_GROUP_STYLE: React.CSSProperties = {
+  display: 'flex',
+  gap: '12px',
+  alignItems: 'center',
+};
+
+const FEED_CARD_STAT_STYLE: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px',
+  color: 'var(--text-dim)',
+  fontSize: '11px',
+};
+
+const FEED_CARD_BADGE_STYLE: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '5px',
+  minHeight: '24px',
+  padding: '0 8px',
+  borderRadius: '999px',
+  fontSize: '10px',
+  fontWeight: '600',
+  whiteSpace: 'nowrap',
+};
+
+const FEED_CARD_ACTIONS_STYLE: React.CSSProperties = {
+  display: 'flex',
+  gap: '4px',
+  marginLeft: 'auto',
+};
+
+type FeedCardStat = {
+  key: string;
+  icon: LucideIcon;
+  value: string | number | null | undefined;
+};
+
+type FeedCardFooterBadge = {
+  key: string;
+  icon: LucideIcon;
+  label: string;
+  color: string;
+  background: string;
+  border: string;
+};
+
+type FeedCardActionButtonProps = {
+  icon: LucideIcon;
+  label: string;
+  title?: string;
+  className?: string;
+  onClick: React.MouseEventHandler<HTMLButtonElement>;
+};
+
+const FeedCardActionButton = ({
+  icon: Icon,
+  label,
+  title = label,
+  className = 'feed-card-inline-action',
+  onClick,
+}: FeedCardActionButtonProps) => (
+  <button
+    onClick={onClick}
+    className={`btn-forge ${className}`}
+    title={title}
+    aria-label={title}
+  >
+    <Icon size={11} strokeWidth={2.35} />
+    <span>{label}</span>
+  </button>
+);
+
+const FeedCardStatItem = ({ icon: Icon, value }: FeedCardStat) => (
+  <div style={FEED_CARD_STAT_STYLE}>
+    <Icon size={12} strokeWidth={2.5} opacity={0.5} />
+    <span style={{ fontWeight: '700' }}>{fmt(value)}</span>
+  </div>
+);
+
+const FeedCardFooterBadgeItem = ({ badge }: { badge: FeedCardFooterBadge }) => (
+  <div
+    style={{
+      ...FEED_CARD_BADGE_STYLE,
+      background: badge.background,
+      border: badge.border,
+      color: badge.color,
+    }}
+  >
+    <badge.icon size={11} strokeWidth={2.2} />
+    <span>{badge.label}</span>
+  </div>
+);
 
 type FeedCardProps = {
   tweet: Post;
@@ -215,13 +325,13 @@ const FeedCard = ({
     };
   });
 
-  const stats = [
-    { icon: BarChart2, v: displayTweet.view_count },
-    { icon: Heart, v: displayTweet.like_count },
-    { icon: Repeat, v: displayTweet.retweet_count },
-    { icon: MessageCircle, v: displayTweet.reply_count },
+  const stats: FeedCardStat[] = [
+    { key: 'views', icon: BarChart2, value: displayTweet.view_count },
+    { key: 'likes', icon: Heart, value: displayTweet.like_count },
+    { key: 'reposts', icon: Repeat, value: displayTweet.retweet_count },
+    { key: 'replies', icon: MessageCircle, value: displayTweet.reply_count },
   ];
-  const footerBadges = [
+  const footerBadges: FeedCardFooterBadge[] = [
     isRepost
       ? {
           key: 'repost',
@@ -242,14 +352,26 @@ const FeedCard = ({
           border: '1px solid rgba(41, 151, 255, 0.075)',
         }
       : null,
-  ].filter(Boolean);
+  ].filter(Boolean) as FeedCardFooterBadge[];
   const showSocialStats = !isRssPost;
   const shouldShowFooterMeta = showSocialStats || footerBadges.length > 0;
   const showRepostBanner = false;
   const showInlineReplyBanner = false;
+  const feedCardClassName = `feed-card animate-fade-in${isRssPost ? ' feed-card-rss' : ''}`;
+  const footerClassName = `feed-card-footer${isReadableArticle ? ' feed-card-footer-priority' : ''}`;
+
+  const handleReadArticle = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onReadArticle?.(displayTweet);
+  };
+
+  const handleCreateContent = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    onArticleGen?.(displayTweet);
+  };
 
   return (
-    <div className="feed-card animate-fade-in">
+    <div className={feedCardClassName}>
       {showRepostBanner && isRepost && (
         <div
           style={{
@@ -773,71 +895,41 @@ const FeedCard = ({
         </div>
       )}
 
-      <div className="feed-card-footer" style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+      <div className={footerClassName} style={FEED_CARD_FOOTER_STYLE}>
+        {isReadableArticle && (
+          <div className="feed-card-priority-action-slot">
+            <FeedCardActionButton
+              icon={FileText}
+              label="อ่านเนื้อหา"
+              title="อ่านเนื้อหาเต็ม"
+              className="feed-card-inline-action feed-card-inline-action-primary"
+              onClick={handleReadArticle}
+            />
+          </div>
+        )}
         {shouldShowFooterMeta && (
-          <div className="feed-card-stats" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="feed-card-stats" style={FEED_CARD_STATS_STYLE}>
             {showSocialStats && (
-              <div className="feed-card-stats-group" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                {stats.map((s, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-dim)', fontSize: '11px' }}>
-                    <s.icon size={12} strokeWidth={2.5} opacity={0.5} />
-                    <span style={{ fontWeight: '700' }}>{fmt(s.v)}</span>
-                  </div>
+              <div className="feed-card-stats-group" style={FEED_CARD_STATS_GROUP_STYLE}>
+                {stats.map((stat) => (
+                  <FeedCardStatItem key={stat.key} {...stat} />
                 ))}
               </div>
             )}
             {footerBadges.map((badge) => (
-              <div
-                key={badge.key}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  minHeight: '24px',
-                  padding: '0 8px',
-                  borderRadius: '999px',
-                  background: badge.background,
-                  border: badge.border,
-                  color: badge.color,
-                  fontSize: '10px',
-                  fontWeight: '600',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <badge.icon size={11} strokeWidth={2.2} />
-                <span>{badge.label}</span>
-              </div>
+              <FeedCardFooterBadgeItem key={badge.key} badge={badge} />
             ))}
           </div>
         )}
-        <div className="feed-card-actions" style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
-          {isReadableArticle && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onReadArticle?.(displayTweet);
-              }}
-              className="btn-forge feed-card-inline-action"
-              title="อ่านเนื้อหาเต็ม"
-              aria-label="อ่านเนื้อหาเต็ม"
-            >
-              <FileText size={11} strokeWidth={2.35} />
-              <span>อ่านเนื้อหา</span>
-            </button>
-          )}
+        <div className="feed-card-actions" style={FEED_CARD_ACTIONS_STYLE}>
           {onArticleGen && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onArticleGen(displayTweet);
-              }}
-              className="btn-forge feed-card-inline-action"
+            <FeedCardActionButton
+              icon={PenSquare}
+              label="สร้างคอนเทนต์"
               title="สร้างคอนเทนต์"
-              aria-label="สร้างคอนเทนต์"
-            >
-              <PenSquare size={11} strokeWidth={2.35} />
-              <span>สร้างคอนเทนต์</span>
-            </button>
+              className="feed-card-inline-action"
+              onClick={handleCreateContent}
+            />
           )}
         </div>
       </div>
