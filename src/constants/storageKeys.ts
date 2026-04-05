@@ -26,6 +26,13 @@ export const STORAGE_KEYS = {
   isSearching: 'foro_is_searching_v1',
   aiSearchLoading: 'foro_ai_search_loading_v1',
   isGeneratingContent: 'foro_is_generating_content_v1',
+  generateInput: 'foro_generate_input_v1',
+  generateLength: 'foro_generate_length_v1',
+  generateTone: 'foro_generate_tone_v1',
+  generateFormat: 'foro_generate_format_v1',
+  generateFactSheet: 'foro_generate_fact_sheet_v1',
+  generateSources: 'foro_generate_sources_v1',
+  generateMarkdown: 'foro_generate_markdown_v1',
   quickFilterPresets: 'foro_quick_filter_presets_v1',
   quickFilterVisiblePresets: 'foro_quick_filter_visible_presets_v1',
 } as const;
