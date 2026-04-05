@@ -152,6 +152,37 @@ app.delete(
   }),
 );
 
+// RSS proxy — fetch RSS feeds server-side to avoid CORS
+app.get(
+  '/api/rss',
+  asyncRoute(async (req, res) => {
+    const feedUrl = req.query.url;
+
+    if (!feedUrl) {
+      return res.status(400).json({ error: 'Missing url parameter' });
+    }
+
+    try {
+      const upstreamResponse = await fetch(feedUrl, {
+        headers: {
+          'User-Agent': 'FORO-NewsReader/1.0',
+          'Accept': 'application/rss+xml, application/xml, text/xml, application/atom+xml, */*',
+        },
+        signal: AbortSignal.timeout(15000),
+      });
+
+      const responseText = await upstreamResponse.text();
+      res.status(upstreamResponse.status);
+      res.type('text/xml; charset=utf-8');
+      res.set('Cache-Control', 'public, max-age=300');
+      res.send(responseText);
+    } catch (error) {
+      console.error('[server] RSS proxy error:', error);
+      res.status(502).json({ error: 'Failed to fetch RSS feed' });
+    }
+  }),
+);
+
 app.use(
   '/api/twitter',
   asyncRoute(async (req, res) => {

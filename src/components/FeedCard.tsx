@@ -307,7 +307,7 @@ const FeedCard = ({
                 </div>
               </div>
               <div style={{ color: 'var(--text-dim)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                <span>@{displayTweet.author?.username}</span>
+                <span>{tweet.sourceType === 'rss' && tweet.url ? new URL(tweet.url).hostname.replace('www.', '') : `@${displayTweet.author?.username}`}</span>
               </div>
             </div>
           </button>
@@ -392,6 +392,28 @@ const FeedCard = ({
             </div>
           )}
 
+          {tweet.sourceType === 'rss' && (
+            <div
+              style={{
+                background: 'rgba(251, 146, 60, 0.14)',
+                padding: '0 10px',
+                borderRadius: '100px',
+                fontSize: '10px',
+                fontWeight: '900',
+                color: '#fdba74',
+                border: '1px solid rgba(251, 146, 60, 0.28)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '5px',
+                height: '26px',
+              }}
+              title="RSS news source"
+            >
+              RSS
+            </div>
+          )}
+
           {displayTweet.isXVideo && (
             <div
               style={{
@@ -454,7 +476,7 @@ const FeedCard = ({
           </button>
 
           <a
-            href={`https://x.com/${displayTweet.author?.username || 'i'}/status/${displayTweet.id}`}
+            href={tweet.sourceType === 'rss' ? (tweet.url || '#') : `https://x.com/${displayTweet.author?.username || 'i'}/status/${displayTweet.id}`}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -662,6 +684,24 @@ const FeedCard = ({
         </div>
       ) : (
         <div style={{ marginBottom: '12px' }}>
+          {tweet.sourceType === 'rss' && tweet.title && (
+            <a
+              href={tweet.url || '#'}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'block',
+                fontSize: '15px',
+                fontWeight: '800',
+                color: '#fff',
+                marginBottom: '6px',
+                lineHeight: '1.4',
+                textDecoration: 'none',
+              }}
+            >
+              {tweet.title}
+            </a>
+          )}
           <p
             className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
             style={{

@@ -210,6 +210,7 @@ const App = () => {
     setPendingFeed,
     setReadArchive,
     setStatus,
+    subscribedSources,
   });
 
   const {

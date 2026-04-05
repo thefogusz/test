@@ -40,6 +40,41 @@ export default defineConfig(({ mode }) => {
             next()
           })
 
+          // RSS proxy — fetch RSS feeds server-side to avoid CORS
+          server.middlewares.use('/api/rss', async (req, res, next) => {
+            if (req.method !== 'GET') { next(); return }
+
+            try {
+              const urlObj = new URL(req.url, 'http://localhost')
+              const feedUrl = urlObj.searchParams.get('url')
+
+              if (!feedUrl) {
+                res.statusCode = 400
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify({ error: 'Missing url parameter' }))
+                return
+              }
+
+              const upstreamResponse = await fetch(feedUrl, {
+                headers: {
+                  'User-Agent': 'FORO-NewsReader/1.0',
+                  'Accept': 'application/rss+xml, application/xml, text/xml, application/atom+xml, */*',
+                },
+                signal: AbortSignal.timeout(15000),
+              })
+
+              const responseText = await upstreamResponse.text()
+              res.statusCode = upstreamResponse.status
+              res.setHeader('Content-Type', 'text/xml; charset=utf-8')
+              res.setHeader('Cache-Control', 'public, max-age=300')
+              res.end(responseText)
+            } catch (err) {
+              res.statusCode = 502
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ error: 'Failed to fetch RSS feed' }))
+            }
+          })
+
           server.middlewares.use('/api/tavily/search', async (req, res, next) => {
             if (req.method !== 'POST') {
               next()

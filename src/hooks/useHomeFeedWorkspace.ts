@@ -13,6 +13,7 @@ import {
   generateGrokSummary,
 } from '../services/GrokService';
 import { fetchWatchlistFeed } from '../services/TwitterService';
+import { fetchAllSubscribedFeeds, type RssSourceInfo } from '../services/RssService';
 import {
   deriveVisibleFeed,
   hasUsefulThaiSummary,
@@ -32,6 +33,7 @@ type UseHomeFeedWorkspaceParams = {
   setPendingFeed: SetState<any[]>;
   setReadArchive: SetState<any[]>;
   setStatus: (value: string) => void;
+  subscribedSources?: RssSourceInfo[];
 };
 
 export const useHomeFeedWorkspace = ({
@@ -45,6 +47,7 @@ export const useHomeFeedWorkspace = ({
   setPendingFeed,
   setReadArchive,
   setStatus,
+  subscribedSources = [],
 }: UseHomeFeedWorkspaceParams) => {
   const [feed, setFeed] = useState<any[]>([]);
   const [deletedFeed, setDeletedFeed] = useState<any[]>([]);
@@ -240,41 +243,63 @@ export const useHomeFeedWorkspace = ({
 
   const syncMutation = useMutation({
     mutationFn: async () => {
-      if (watchlist.length === 0) {
-        setStatus('กรุณาเพิ่มบัญชีที่ต้องการติดตามก่อนซิงค์ข้อมูล');
+      const hasWatchlist = watchlist.length > 0;
+      const hasRss = subscribedSources.length > 0;
+
+      if (!hasWatchlist && !hasRss) {
+        setStatus('กรุณาเพิ่มบัญชีหรือแหล่งข่าวที่ต้องการติดตามก่อนซิงค์ข้อมูล');
         return;
       }
 
       setStatus('กำลังเชื่อมต่อฐานข้อมูล... ดึงฟีดข่าวล่าสุด');
 
-      const activeList = activeListId ? postLists.find((list) => list.id === activeListId) : null;
-      const rawAccounts = activeList ? activeList.members : watchlist;
-      const targetAccounts = Array.isArray(rawAccounts)
-        ? rawAccounts.map((user) => (typeof user === 'string' ? user : user.username)).filter(Boolean)
-        : [];
+      // Fetch Twitter + RSS in parallel
+      const twitterPromise = (async () => {
+        if (!hasWatchlist) return { data: [], meta: { next_cursor: null } };
 
-      if (targetAccounts.length === 0) {
-        setStatus(
-          activeList
-            ? 'Post List นี้ยังไม่มีสมาชิกให้ซิงค์'
-            : 'กรุณาเพิ่มบัญชีที่ต้องการติดตามก่อนซิงค์ข้อมูล',
-        );
-        return;
-      }
+        const activeList = activeListId ? postLists.find((list) => list.id === activeListId) : null;
+        const rawAccounts = activeList ? activeList.members : watchlist;
+        const targetAccounts = Array.isArray(rawAccounts)
+          ? rawAccounts.map((user) => (typeof user === 'string' ? user : user.username)).filter(Boolean)
+          : [];
 
-      const { data, meta } = await fetchWatchlistFeed(targetAccounts, '', 'Latest');
+        if (targetAccounts.length === 0) return { data: [], meta: { next_cursor: null } };
+
+        return fetchWatchlistFeed(targetAccounts, '', 'Latest');
+      })();
+
+      const rssPromise = (async () => {
+        if (!hasRss) return [];
+        setStatus('กำลังดึงข่าวจากแหล่งข่าว RSS...');
+        return fetchAllSubscribedFeeds(subscribedSources, 5);
+      })();
+
+      const [twitterResult, rssPosts] = await Promise.all([twitterPromise, rssPromise]);
+
+      const { data: twitterData, meta } = twitterResult;
       setNextCursor(meta.next_cursor);
 
+      // Combine Twitter + RSS, sort by date
+      const combinedData = [...twitterData, ...rssPosts].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+
       const MAX_SYNC = 20;
-      const displayData = data.slice(0, MAX_SYNC);
-      const remainingData = data.slice(MAX_SYNC);
+      const displayData = combinedData.slice(0, MAX_SYNC);
+      const remainingData = combinedData.slice(MAX_SYNC);
 
       setPendingFeed(remainingData);
+
+      const rssCount = rssPosts.length;
+      const twitterCount = twitterData.length;
+      const statusParts = [];
+      if (twitterCount > 0) statusParts.push(`${twitterCount} โพสต์จาก X`);
+      if (rssCount > 0) statusParts.push(`${rssCount} ข่าวจาก RSS`);
 
       if (displayData.length > 0) {
         await processAndSummarizeFeed(
           displayData,
-          `ดึงข้อมูลสำเร็จ! ได้มา ${data.length} โพสต์ กำลังแปลและแสดงผล`,
+          `ดึงข้อมูลสำเร็จ! ได้มา ${statusParts.join(' + ')} กำลังแปลและแสดงผล`,
         );
       }
 

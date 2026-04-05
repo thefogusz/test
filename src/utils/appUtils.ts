@@ -116,9 +116,13 @@ export const deriveVisibleFeed = ({
       result = originalFeed.filter(
         (post) =>
           post &&
-          post.author &&
-          activeList.members.some(
-            (member) => (member || '').toLowerCase() === (post.author.username || '').toLowerCase(),
+          (
+            // RSS posts always pass through (no watchlist filtering)
+            post.sourceType === 'rss' ||
+            (post.author &&
+              activeList.members.some(
+                (member) => (member || '').toLowerCase() === (post.author.username || '').toLowerCase(),
+              ))
           ),
       );
     }
@@ -130,9 +134,13 @@ export const deriveVisibleFeed = ({
     result = originalFeed.filter(
       (post) =>
         post &&
-        post.author &&
-        (post.author.username || '').toLowerCase() &&
-        watchlistHandles.includes((post.author.username || '').toLowerCase()),
+        (
+          // RSS posts always show in home feed
+          post.sourceType === 'rss' ||
+          (post.author &&
+            (post.author.username || '').toLowerCase() &&
+            watchlistHandles.includes((post.author.username || '').toLowerCase()))
+        ),
     );
   }
 
