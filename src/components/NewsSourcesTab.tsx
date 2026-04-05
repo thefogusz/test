@@ -43,6 +43,15 @@ const SourceCard = ({
   const [showMenu, setShowMenu] = useState(false);
   const faviconUrl = `https://www.google.com/s2/favicons?domain=${new URL(source.siteUrl).hostname}&sz=128`;
   const rssUsername = `rss:${source.id}`;
+  const memberPostLists = postLists.filter(
+    (list) =>
+      Array.isArray(list?.members) &&
+      list.members.some(
+        (member) => String(member || '').toLowerCase() === rssUsername.toLowerCase(),
+      ),
+  );
+  const postListCount = memberPostLists.length;
+  const isInAnyPostList = postListCount > 0;
 
   return (
     <div
@@ -166,9 +175,9 @@ const SourceCard = ({
                   width: '34px',
                   height: '34px',
                   borderRadius: '10px',
-                  background: 'var(--bg-700)',
-                  border: '1px solid var(--glass-border)',
-                  color: '#fff',
+                  background: isInAnyPostList ? 'rgba(41, 151, 255, 0.12)' : 'var(--bg-700)',
+                  border: `1px solid ${isInAnyPostList ? 'rgba(41, 151, 255, 0.32)' : 'var(--glass-border)'}`,
+                  color: isInAnyPostList ? '#8ec5ff' : '#fff',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -183,6 +192,31 @@ const SourceCard = ({
                     transition: 'transform 0.2s',
                   }}
                 />
+                {isInAnyPostList && (
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-6px',
+                      minWidth: '18px',
+                      height: '18px',
+                      padding: '0 5px',
+                      borderRadius: '999px',
+                      background: '#2997ff',
+                      color: '#fff',
+                      border: '2px solid rgba(17, 24, 39, 0.95)',
+                      fontSize: '10px',
+                      fontWeight: '800',
+                      lineHeight: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      boxSizing: 'border-box',
+                    }}
+                  >
+                    {postListCount}
+                  </span>
+                )}
               </button>
 
               {showMenu && (
@@ -271,10 +305,47 @@ const SourceCard = ({
         </div>
       </div>
 
+      {isInAnyPostList && (
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '8px',
+            marginTop: '-4px',
+          }}
+        >
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '5px 10px',
+              borderRadius: '999px',
+              background: 'rgba(34, 197, 94, 0.08)',
+              border: '1px solid rgba(34, 197, 94, 0.18)',
+              color: 'rgba(134, 239, 172, 0.92)',
+              fontSize: '11px',
+              fontWeight: '700',
+            }}
+          >
+            <Check size={11} />
+            อยู่ใน Post List แล้ว {postListCount} รายการ
+          </span>
+        </div>
+      )}
+
       <button
         onClick={onToggle}
         className={`expert-follow-btn ${isSubscribed ? 'added' : ''}`}
-        style={{ padding: '6px', fontSize: '11px', width: '100%' }}
+        style={{
+          padding: '6px',
+          fontSize: '11px',
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px',
+        }}
       >
         {isSubscribed ? 'อยู่ใน Watchlist แล้ว' : '+ เพิ่มเข้า Watchlist'}
       </button>
