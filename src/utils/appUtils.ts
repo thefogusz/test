@@ -41,6 +41,58 @@ export const hasUsefulThaiSummary = (summary, originalText = '') => {
   return hasThaiCharacters(trimmedSummary);
 };
 
+const pickThaiHeadlineFromSummary = (summary = '') => {
+  const trimmedSummary = String(summary || '').trim();
+  if (!trimmedSummary) return '';
+
+  const firstBlock = trimmedSummary
+    .split(/\n+/)
+    .map((part) => part.trim())
+    .find(Boolean) || '';
+
+  if (!firstBlock) return '';
+
+  const firstSentence = firstBlock
+    .split(/(?<=[.!?。！？])\s+/)
+    .map((part) => part.trim())
+    .find(Boolean) || firstBlock;
+
+  if (firstSentence.length <= 90) return firstSentence;
+  return `${firstSentence.slice(0, 87).trimEnd()}...`;
+};
+
+export const getPreferredPostTitle = (post) => {
+  if (!post || typeof post !== 'object') return '';
+
+  const sourceType = String(post?.sourceType || '').trim().toLowerCase();
+  const originalTitle = String(post?.title || '').trim();
+  const originalText = String(post?.full_text || post?.text || '').trim();
+  const summary = String(post?.summary || '').trim();
+
+  if (sourceType === 'rss' && hasUsefulThaiSummary(summary, originalText)) {
+    return pickThaiHeadlineFromSummary(summary) || originalTitle || originalText;
+  }
+
+  return originalTitle || originalText;
+};
+
+export const getPostSummarySourceText = (post) => {
+  if (!post || typeof post !== 'object') return '';
+
+  const sourceType = String(post?.sourceType || '').trim().toLowerCase();
+  const title = String(post?.title || '').trim();
+  const baseText = String(post?.full_text || post?.text || '').trim();
+
+  if (sourceType === 'rss') {
+    if (!title) return baseText;
+    if (!baseText || baseText === title) return title;
+    if (baseText.startsWith(`${title}\n`)) return baseText;
+    return `${title}\n\n${baseText}`;
+  }
+
+  return baseText || title;
+};
+
 export const sanitizeStoredPost = (post) => {
   if (!post || typeof post !== 'object' || post.type === 'article') return post;
   if (!Object.prototype.hasOwnProperty.call(post, 'summary')) return post;
@@ -128,7 +180,6 @@ export const deriveVisibleFeed = ({
   originalFeed,
   postLists,
   subscribedSources,
-  watchlist,
 }) => {
   let result = [];
 
@@ -150,20 +201,10 @@ export const deriveVisibleFeed = ({
       );
     }
   } else if (activeView === 'home') {
-    const watchlistHandles = watchlist
-      .map((user) => (user.username || '').toLowerCase())
-      .filter(Boolean);
-
     result = originalFeed.filter(
       (post) =>
         post &&
-        isSupportedFreshRssPost(post, subscribedSources) &&
-        (
-          post.sourceType === 'rss' ||
-          (post.author &&
-            (post.author.username || '').toLowerCase() &&
-            watchlistHandles.includes((post.author.username || '').toLowerCase()))
-        ),
+        isSupportedFreshRssPost(post, subscribedSources),
     );
   }
 

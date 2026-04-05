@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import type { Post, PostList } from '../types/domain';
 import { STORAGE_KEYS } from '../constants/storageKeys';
+import { getPreferredPostTitle } from '../utils/appUtils';
 
 const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
 
@@ -90,20 +91,32 @@ const FeedCard = ({
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const displayTweet = tweet.repostedPost || tweet;
   const isRepost = Boolean(tweet.isRepost || tweet.repostedPost);
+  const isRssPost = String(displayTweet.sourceType || tweet.sourceType || '').trim().toLowerCase() === 'rss';
   const repostedByUsername = (tweet.repostedByUsername || tweet.author?.username || '').trim().replace(/^@/, '');
   const repostedByName = (tweet.repostedByName || tweet.author?.name || '').trim();
   const hasThaiSummary = isUsableThaiSummary(displayTweet.summary, displayTweet.text);
   const displayText = hasThaiSummary ? displayTweet.summary : displayTweet.text;
+  const rssSummaryText = hasThaiSummary ? displayTweet.summary : (displayTweet.text || '');
+  const displayTitle = getPreferredPostTitle(displayTweet);
   const shouldShowRssTitle =
-    tweet.sourceType === 'rss' &&
-    !!tweet.title &&
-    !hasThaiSummary &&
-    String(tweet.title).trim() !== String(displayText || '').trim();
+    isRssPost &&
+    !!displayTitle &&
+    String(displayTitle).trim() !== String(rssSummaryText || '').trim();
   const previewImageUrl = displayTweet.primaryImageUrl || displayTweet.imageUrls?.[0] || '';
   const imageUrls = useMemo(
-    () => Array.from(new Set((Array.isArray(displayTweet.imageUrls) ? displayTweet.imageUrls : []).filter(Boolean))),
-    [displayTweet.imageUrls],
+    () =>
+      Array.from(
+        new Set([
+          previewImageUrl,
+          ...(Array.isArray(displayTweet.imageUrls) ? displayTweet.imageUrls : []),
+        ].filter(Boolean)),
+      ),
+    [displayTweet.imageUrls, previewImageUrl],
   );
+  const shouldShowRssSummary =
+    isRssPost &&
+    !!String(rssSummaryText || '').trim() &&
+    String(rssSummaryText || '').trim() !== String(displayTitle || '').trim();
   const hasMediaPreview = Boolean(displayTweet.isXVideo || previewImageUrl);
   const authorUsername = (displayTweet.author?.username || '').trim().replace(/^@/, '').toLowerCase();
   const postUrl = useMemo(
@@ -224,7 +237,7 @@ const FeedCard = ({
         }
       : null,
   ].filter(Boolean);
-  const showSocialStats = tweet.sourceType !== 'rss';
+  const showSocialStats = !isRssPost;
   const shouldShowFooterMeta = showSocialStats || footerBadges.length > 0;
   const showRepostBanner = false;
   const showInlineReplyBanner = false;
@@ -315,7 +328,7 @@ const FeedCard = ({
                 </div>
               </div>
               <div style={{ color: 'var(--text-dim)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                <span>{tweet.sourceType === 'rss' && tweet.url ? new URL(tweet.url).hostname.replace('www.', '') : `@${displayTweet.author?.username}`}</span>
+                <span>{isRssPost && tweet.url ? new URL(tweet.url).hostname.replace('www.', '') : `@${displayTweet.author?.username}`}</span>
               </div>
             </div>
           </button>
@@ -400,7 +413,7 @@ const FeedCard = ({
             </div>
           )}
 
-          {tweet.sourceType === 'rss' && (
+          {isRssPost && (
             <div
               style={{
                 background: 'rgba(251, 146, 60, 0.14)',
@@ -484,7 +497,7 @@ const FeedCard = ({
           </button>
 
           <a
-            href={tweet.sourceType === 'rss' ? (tweet.url || '#') : `https://x.com/${displayTweet.author?.username || 'i'}/status/${displayTweet.id}`}
+            href={isRssPost ? (tweet.url || '#') : `https://x.com/${displayTweet.author?.username || 'i'}/status/${displayTweet.id}`}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -670,24 +683,41 @@ const FeedCard = ({
           </button>
 
           <div className="feed-card-media-copy" style={{ minWidth: 0, paddingTop: '2px' }}>
-            <p
-              className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
-              style={{
-                fontSize: '16px',
-                lineHeight: '1.62',
-                color: 'rgba(255, 255, 255, 0.9)',
-                fontWeight: '500',
-                margin: 0,
-                display: '-webkit-box',
-                WebkitLineClamp: 5,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-                letterSpacing: '-0.01em',
-                wordBreak: 'break-word',
-              }}
-            >
-              {displayText}
-            </p>
+            {shouldShowRssTitle && (
+              <div
+                style={{
+                  display: 'block',
+                  fontSize: '17px',
+                  fontWeight: '800',
+                  color: '#fff',
+                  marginBottom: shouldShowRssSummary ? '8px' : 0,
+                  lineHeight: '1.42',
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                {displayTitle}
+              </div>
+            )}
+            {(!isRssPost || shouldShowRssSummary || !shouldShowRssTitle) && (
+              <p
+                className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
+                style={{
+                  fontSize: isRssPost ? '15px' : '16px',
+                  lineHeight: isRssPost ? '1.58' : '1.62',
+                  color: isRssPost ? 'rgba(255, 255, 255, 0.78)' : 'rgba(255, 255, 255, 0.9)',
+                  fontWeight: '500',
+                  margin: 0,
+                  display: '-webkit-box',
+                  WebkitLineClamp: isRssPost ? 4 : 5,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  letterSpacing: '-0.01em',
+                  wordBreak: 'break-word',
+                }}
+              >
+                {isRssPost ? (rssSummaryText || displayTitle) : displayText}
+              </p>
+            )}
           </div>
         </div>
       ) : (
@@ -703,27 +733,29 @@ const FeedCard = ({
                 lineHeight: '1.4',
               }}
             >
-              {tweet.title}
+              {displayTitle}
             </div>
           )}
-          <p
-            className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
-            style={{
-              fontSize: '16px',
-              lineHeight: '1.6',
-              color: 'rgba(255, 255, 255, 0.9)',
-              fontWeight: '500',
-              margin: 0,
-              display: '-webkit-box',
-              WebkitLineClamp: 5,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-              letterSpacing: '-0.01em',
-              wordBreak: 'break-word',
-            }}
-          >
-            {displayText}
-          </p>
+          {(!isRssPost || shouldShowRssSummary || !shouldShowRssTitle) && (
+            <p
+              className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
+              style={{
+                fontSize: isRssPost ? '15px' : '16px',
+                lineHeight: isRssPost ? '1.58' : '1.6',
+                color: isRssPost ? 'rgba(255, 255, 255, 0.78)' : 'rgba(255, 255, 255, 0.9)',
+                fontWeight: '500',
+                margin: 0,
+                display: '-webkit-box',
+                WebkitLineClamp: isRssPost ? 4 : 5,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                letterSpacing: '-0.01em',
+                wordBreak: 'break-word',
+              }}
+            >
+              {isRssPost ? (rssSummaryText || displayTitle) : displayText}
+            </p>
+          )}
         </div>
       )}
 
@@ -822,7 +854,9 @@ const FeedCard = ({
             >
               <div style={{ minWidth: 0 }}>
                 <div className="modal-title" style={{ fontSize: '16px', marginBottom: '4px' }}>
-                  รูปภาพจาก @{tweet.author?.username || 'x'}
+                  {isRssPost
+                    ? `รูปภาพจาก ${displayTweet.author?.name || 'แหล่งข่าว'}`
+                    : `รูปภาพจาก @${tweet.author?.username || 'x'}`}
                 </div>
                 <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.68)' }}>
                   {imageUrls.length > 1 ? `รูป ${activeImageIndex + 1} จาก ${imageUrls.length}` : 'ดูรูปใน FORO'}
@@ -837,7 +871,7 @@ const FeedCard = ({
                   style={{ height: '36px', padding: '0 14px', fontSize: '12px', background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)' }}
                 >
                   <ExternalLink size={13} />
-                  เปิดบน X
+                  {isRssPost ? 'เปิดต้นฉบับ' : 'เปิดบน X'}
                 </a>
                 <button
                   className="modal-close-btn"

@@ -137,15 +137,24 @@ const rssItemToPost = (item: RssItem, source: RssSourceInfo): Post => {
     ? new Date(itemTimestamp).toISOString()
     : new Date().toISOString();
   const postId = `rss-${source.id}-${buildStableRssId(`${item.link || item.title}|${createdAt}`)}`;
+  const normalizedDescription = String(item.description || '').trim();
+  const normalizedTitle = String(item.title || '').trim();
+  const fullText = [normalizedTitle, normalizedDescription]
+    .filter(Boolean)
+    .join('\n\n')
+    .trim();
+  const imageUrls = item.imageUrl ? [item.imageUrl] : [];
 
   return {
     id: postId,
     sourceType: 'rss',
-    text: item.description || item.title,
+    text: normalizedDescription || normalizedTitle,
+    full_text: fullText || normalizedTitle,
     title: item.title,
     url: item.link,
     created_at: createdAt,
     primaryImageUrl: item.imageUrl || undefined,
+    imageUrls,
     author: {
       id: `rss-${source.id}`,
       username: `rss:${source.id}`,

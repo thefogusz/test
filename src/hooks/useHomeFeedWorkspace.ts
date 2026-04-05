@@ -18,6 +18,7 @@ import { fetchWatchlistFeed } from '../services/TwitterService';
 import { fetchAllSubscribedFeeds, type RssSourceInfo } from '../services/RssService';
 import {
   deriveVisibleFeed,
+  getPostSummarySourceText,
   hasUsefulThaiSummary,
   sanitizeStoredPost,
 } from '../utils/appUtils';
@@ -136,10 +137,9 @@ export const useHomeFeedWorkspace = ({
         originalFeed,
         postLists,
         subscribedSources: effectiveRssSources,
-        watchlist,
       }),
     );
-  }, [activeFilters, activeListId, activeView, effectiveRssSources, isFiltered, originalFeed, postLists, watchlist]);
+  }, [activeFilters, activeListId, activeView, effectiveRssSources, isFiltered, originalFeed, postLists]);
 
   const translatePostsToThai = async (
     posts: any[] = [],
@@ -148,12 +148,14 @@ export const useHomeFeedWorkspace = ({
     if (!posts.length) return [];
 
     const { retrySingles = false, maxRetryCount = 0 } = options;
-    const batchSummaries = await generateGrokBatch(posts.map((post) => post.text));
+    const sourceTexts = posts.map((post) => getPostSummarySourceText(post));
+    const batchSummaries = await generateGrokBatch(sourceTexts);
 
     return Promise.all(
       posts.map(async (post, index) => {
+        const sourceText = sourceTexts[index] || getPostSummarySourceText(post);
         const batchSummary = batchSummaries[index] || '';
-        if (hasUsefulThaiSummary(batchSummary, post.text)) {
+        if (hasUsefulThaiSummary(batchSummary, sourceText)) {
           failedThaiSummaryIdsRef.current.delete(post.id);
           return { ...post, summary: batchSummary };
         }
@@ -164,8 +166,8 @@ export const useHomeFeedWorkspace = ({
         }
 
         try {
-          const retrySummary = await generateGrokSummary(post.text);
-          if (hasUsefulThaiSummary(retrySummary, post.text)) {
+          const retrySummary = await generateGrokSummary(sourceText);
+          if (hasUsefulThaiSummary(retrySummary, sourceText)) {
             failedThaiSummaryIdsRef.current.delete(post.id);
             return { ...post, summary: retrySummary };
           }
@@ -184,7 +186,7 @@ export const useHomeFeedWorkspace = ({
       .filter(
         (post) =>
           post?.id &&
-          !hasUsefulThaiSummary(post.summary, post.text) &&
+          !hasUsefulThaiSummary(post.summary, getPostSummarySourceText(post)) &&
           !failedThaiSummaryIdsRef.current.has(post.id),
       )
       .slice(0, 6);
@@ -202,7 +204,7 @@ export const useHomeFeedWorkspace = ({
         });
         const translatedSummaryMap = new Map(
           translatedPosts
-            .filter((post) => hasUsefulThaiSummary(post.summary, post.text))
+            .filter((post) => hasUsefulThaiSummary(post.summary, getPostSummarySourceText(post)))
             .map((post) => [post.id, post.summary]),
         );
 
@@ -247,7 +249,10 @@ export const useHomeFeedWorkspace = ({
         const chunk = newBatch.slice(index, index + CHUNK_SIZE);
         const toSummarize = chunk.filter((tweet) => {
           const existing = runningFeed.find((post) => post.id === tweet.id);
-          return !hasUsefulThaiSummary(existing?.summary || tweet.summary, existing?.text || tweet.text);
+          return !hasUsefulThaiSummary(
+            existing?.summary || tweet.summary,
+            getPostSummarySourceText(existing || tweet),
+          );
         });
 
         if (toSummarize.length > 0) {
@@ -257,7 +262,7 @@ export const useHomeFeedWorkspace = ({
           });
           const translatedSummaryMap = new Map(
             translatedPosts
-              .filter((post) => hasUsefulThaiSummary(post.summary, post.text))
+              .filter((post) => hasUsefulThaiSummary(post.summary, getPostSummarySourceText(post)))
               .map((post) => [post.id, post.summary]),
           );
 
@@ -423,7 +428,6 @@ export const useHomeFeedWorkspace = ({
         originalFeed,
         postLists,
         subscribedSources: effectiveRssSources,
-        watchlist,
       });
 
       if (sourceFeed.length === 0) {

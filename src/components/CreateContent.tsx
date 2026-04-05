@@ -13,6 +13,7 @@ import { fetchTweetById } from '../services/TwitterService';
 import { STORAGE_KEYS } from '../constants/storageKeys';
 import { usePersistentState } from '../hooks/usePersistentState';
 import { renderMarkdownToHtml } from '../utils/markdown';
+import { getPostSummarySourceText, getPreferredPostTitle } from '../utils/appUtils';
 import ContentTabSwitcher from './ContentTabSwitcher';
 
 const THINKING_PHASES = {
@@ -237,6 +238,28 @@ const serializeAttachedSource = (sourceNode) => {
 const isXVideoSource = (sourceNode) =>
   Boolean(sourceNode?.isXVideo || sourceNode?.sourceType === 'x_video');
 
+const isRssSource = (sourceNode) =>
+  String(sourceNode?.sourceType || '').trim().toLowerCase() === 'rss';
+
+const getAttachedSourceLabel = (sourceNode) => {
+  if (!sourceNode) return 'Attached source';
+  if (isXVideoSource(sourceNode)) return 'Attached X video';
+  if (isRssSource(sourceNode)) return 'Attached RSS source';
+  return 'Attached source';
+};
+
+const getAttachedSourceAuthorLabel = (sourceNode) => {
+  if (!sourceNode) return '';
+  if (isRssSource(sourceNode)) {
+    try {
+      return new URL(buildAttachedTweetUrl(sourceNode)).hostname.replace(/^www\./, '');
+    } catch {
+      return sourceNode.author?.name || sourceNode.title || 'rss-source';
+    }
+  }
+  return sourceNode.author?.username ? `@${sourceNode.author.username}` : (sourceNode.author?.name || '');
+};
+
 const getSourceImageUrls = (sourceNode) =>
   Array.from(
     new Set(
@@ -260,7 +283,7 @@ const buildBookmarkReferenceMarkdown = (attachedSource, sources = []) => {
       attachedSource.title ||
       attachedSource.text ||
       (attachedSource.author?.username ? `@${attachedSource.author.username}` : 'Attached source');
-    const attachedPrefix = attachedSource.isXVideo ? 'Attached X video' : 'Attached source';
+    const attachedPrefix = getAttachedSourceLabel(attachedSource);
 
     sections.push([
       '---',
@@ -466,10 +489,15 @@ const CreateContent = ({
   const displayGeneratedMarkdown = ensureDisplayText(generatedMarkdown);
   const activeFormatHint = FORMAT_HINTS[format] || FORMAT_HINTS['โพสต์โซเชียล'];
   const attachedIsXVideo = isXVideoSource(activeSourceNode);
+  const attachedIsRss = isRssSource(activeSourceNode);
   const attachedVideoDurationLabel = formatDurationLabel(activeSourceNode?.videoDurationMs);
   const attachedPreviewImageUrl = !attachedIsXVideo
     ? activeSourceNode?.primaryImageUrl || activeSourceNode?.imageUrls?.[0] || activeSourceNode?.thumbnailUrl || ''
     : '';
+  const attachedHeadline = getPreferredPostTitle(activeSourceNode) || activeSourceNode?.text || '';
+  const attachedSummaryLine = attachedIsRss
+    ? (activeSourceNode?.summary || activeSourceNode?.text || '')
+    : (activeSourceNode?.summary || '');
   useEffect(() => {
     if (sourceNode) {
       setResolvedInputSource(null);
@@ -573,7 +601,7 @@ const CreateContent = ({
       const intentProfile = await normalizeContentIntent({
         input,
         customInstructions,
-        sourceContext: workingSourceNode?.text || workingSourceNode?.summary || workingSourceNode?.title || '',
+        sourceContext: getPostSummarySourceText(workingSourceNode),
       });
 
       let researchPrompt = intentProfile?.researchHint || input.trim();
@@ -585,7 +613,7 @@ const CreateContent = ({
         sourceUrl = buildAttachedTweetUrl(workingSourceNode);
         primarySourceUrls = extractPrimarySourceUrlsFromNode(workingSourceNode);
         const sourceImageUrls = getSourceImageUrls(workingSourceNode);
-        const originalText = (workingSourceNode.text || '').trim();
+        const originalText = getPostSummarySourceText(workingSourceNode).trim();
         const translatedSummary = (workingSourceNode.summary || '').trim();
         sourceLabel = workingSourceNode.title || originalText || 'Untitled source';
 
@@ -753,7 +781,7 @@ const CreateContent = ({
       const intentProfile = await normalizeContentIntent({
         input,
         customInstructions,
-        sourceContext: activeSourceNode?.text || activeSourceNode?.summary || activeSourceNode?.title || '',
+        sourceContext: getPostSummarySourceText(activeSourceNode),
       });
 
       const allowEmoji = EMOJI_REQUEST_PATTERN.test(customInstructions);
@@ -850,7 +878,7 @@ const CreateContent = ({
                           style={{ width: '18px', height: '18px', borderRadius: '50%' }}
                           onError={e => { e.target.style.display = 'none'; }}
                         />
-                        <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', whiteSpace: 'nowrap' }}>@{activeSourceNode.author?.username}</div>
+                        <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', whiteSpace: 'nowrap' }}>{getAttachedSourceAuthorLabel(activeSourceNode)}</div>
                         {attachedIsXVideo && (
                           <div
                             style={{
@@ -868,7 +896,7 @@ const CreateContent = ({
                           </div>
                         )}
                         <div style={{ color: 'var(--text-dim)', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {activeSourceNode.summary || activeSourceNode.text}
+                          {attachedHeadline}
                         </div>
                       </div>
                     </div>
@@ -919,6 +947,19 @@ const CreateContent = ({
                     </div>
                   </div>
                 )}
+                {attachedSummaryLine && (
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      fontSize: '13px',
+                      lineHeight: '1.6',
+                      color: 'rgba(255,255,255,0.72)',
+                      maxWidth: '720px',
+                    }}
+                  >
+                    {attachedSummaryLine}
+                  </div>
+                )}
                 {!attachedIsXVideo && attachedPreviewImageUrl && (
                   <a
                     href={buildAttachedTweetUrl(activeSourceNode)}
@@ -957,7 +998,7 @@ const CreateContent = ({
                       }}
                     >
                       <ImageIcon size={11} />
-                      ดูภาพบน X
+                      {attachedIsRss ? 'ดูภาพต้นฉบับ' : 'ดูภาพบน X'}
                     </div>
                   </a>
                 )}

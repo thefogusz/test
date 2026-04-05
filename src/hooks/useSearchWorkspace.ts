@@ -30,6 +30,7 @@ import {
   normalizeSearchLabel,
 } from '../utils/searchHelpers';
 import {
+  getPostSummarySourceText,
   hasUsefulThaiSummary,
   mergePlanLabelsIntoQuery,
   mergeUniquePostsById,
@@ -1022,7 +1023,7 @@ export const useSearchWorkspace = ({
             try {
               for (let index = 0; index < cleanData.length; index += CHUNK_SIZE) {
                 const chunk = cleanData.slice(index, index + CHUNK_SIZE);
-                const batchTexts = chunk.map((tweet) => tweet.text);
+                const batchTexts = chunk.map((tweet) => getPostSummarySourceText(tweet));
                 const summaries = await generateGrokBatch(batchTexts);
 
                 setSearchResults((prev) =>
@@ -1031,7 +1032,7 @@ export const useSearchWorkspace = ({
                     if (chunkIndex === -1) return post;
 
                     const nextSummary = summaries[chunkIndex] || post.text;
-                    return hasUsefulThaiSummary(nextSummary, post.text)
+                    return hasUsefulThaiSummary(nextSummary, getPostSummarySourceText(post))
                       ? { ...post, summary: nextSummary }
                       : post;
                   }),
