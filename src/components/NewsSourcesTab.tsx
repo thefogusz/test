@@ -251,12 +251,12 @@ const SourceCard = ({
           </a>
         </div>
 
-        <div className="user-card-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
-          <div style={{ position: 'relative' }}>
+        <div className="user-card-actions news-source-card-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+          <div className="news-source-card-menu-wrap" style={{ position: 'relative' }}>
               <button
                 type="button"
                 onClick={() => setShowMenu((prev) => !prev)}
-                className="user-card-icon-btn"
+                className="user-card-icon-btn news-source-card-icon-btn"
                 style={{
                   width: '34px',
                   height: '34px',

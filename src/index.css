@@ -1643,6 +1643,29 @@ h1, h2, h3, h4, h5, h6 {
   transform: translateY(-1px);
 }
 
+.user-card-actions.news-source-card-actions {
+  align-self: flex-start;
+  flex: 0 0 auto;
+}
+
+.user-card-actions.news-source-card-actions > .news-source-card-menu-wrap {
+  width: auto !important;
+  flex: 0 0 auto;
+}
+
+.user-card-actions.news-source-card-actions .news-source-card-icon-btn {
+  width: 34px !important;
+  min-width: 34px;
+  max-width: 34px;
+  height: 34px !important;
+  padding: 0 !important;
+  flex: 0 0 34px;
+  border-radius: 10px !important;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
 .user-card-remove-btn:hover {
   background: rgba(239, 68, 68, 0.18) !important;
 }
