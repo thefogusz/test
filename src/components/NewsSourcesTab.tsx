@@ -46,58 +46,55 @@ const SourceCard = ({
 
   return (
     <div
-      className="animate-fade-in"
+      className="user-card user-list-item animate-fade-in"
       style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+        padding: '14px',
         background: isSubscribed ? 'rgba(41, 151, 255, 0.04)' : 'rgba(255,255,255,0.02)',
         border: `1px solid ${isSubscribed ? 'rgba(41, 151, 255, 0.2)' : 'var(--glass-border)'}`,
-        borderRadius: '14px',
-        padding: '16px',
-        display: 'flex',
-        gap: '12px',
-        transition: 'all 0.15s',
+        borderRadius: '18px',
+        transition: 'all 0.2s',
         position: 'relative',
-        zIndex: showMenu ? 30 : 1,
+        zIndex: showMenu ? 50 : 1,
+        width: '100%',
+        minWidth: 0,
+        overflow: 'visible',
       }}
     >
-      <img
-        src={faviconUrl}
-        alt=""
-        style={{
-          width: '36px',
-          height: '36px',
-          borderRadius: '9px',
-          objectFit: 'cover',
-          background: 'rgba(255,255,255,0.05)',
-          flexShrink: 0,
-          marginTop: '2px',
-        }}
-        onError={(e) => {
-          e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(source.name.charAt(0))}&background=1a1a2e&color=a5b4fc&bold=true&size=64`;
-        }}
-      />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
+      <div className="user-card-top" style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+        <img
+          src={faviconUrl}
+          alt={source.name}
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '8px',
-            marginBottom: '6px',
+            width: '52px',
+            height: '52px',
+            borderRadius: '14px',
+            border: '1px solid var(--bg-700)',
+            flexShrink: 0,
+            objectFit: 'cover',
+            background: 'rgba(255,255,255,0.05)',
           }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-            <span
+          onError={(e) => {
+            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(source.name.charAt(0))}&background=1a1a2e&color=a5b4fc&bold=true&size=128`;
+          }}
+        />
+
+        <div className="user-card-info" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flexWrap: 'wrap' }}>
+            <div
               style={{
-                fontSize: '14px',
                 fontWeight: '800',
+                fontSize: '15px',
                 color: '#fff',
+                lineHeight: '1.25',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
               }}
             >
               {source.name}
-            </span>
+            </div>
             {source.lang === 'en' && (
               <span
                 style={{
@@ -145,15 +142,30 @@ const SourceCard = ({
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-            <div style={{ position: 'relative' }}>
+          <div style={{ color: 'var(--text-dim)', fontSize: '12px', fontWeight: '600', lineHeight: '1.45' }}>
+            {source.description}
+          </div>
+          <a
+            href={source.siteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="user-card-profile-link"
+            style={{ color: 'var(--accent-secondary)', fontSize: '11px', fontWeight: '700', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', width: 'fit-content', marginTop: '2px' }}
+          >
+            {new URL(source.siteUrl).hostname.replace('www.', '')} · {source.frequency}
+          </a>
+        </div>
+
+        <div className="user-card-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+          <div style={{ position: 'relative' }}>
               <button
                 type="button"
                 onClick={() => setShowMenu((prev) => !prev)}
+                className="user-card-icon-btn"
                 style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '9px',
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '10px',
                   background: 'var(--bg-700)',
                   border: '1px solid var(--glass-border)',
                   color: '#fff',
@@ -165,7 +177,7 @@ const SourceCard = ({
                 title="เพิ่มเข้า Post List"
               >
                 <Plus
-                  size={14}
+                  size={16}
                   style={{
                     transform: showMenu ? 'rotate(45deg)' : 'none',
                     transition: 'transform 0.2s',
@@ -255,54 +267,17 @@ const SourceCard = ({
                   </div>
                 </>
               )}
-            </div>
-
-            <button
-              onClick={onToggle}
-              style={{
-                padding: '5px 12px',
-                borderRadius: '7px',
-                border: `1px solid ${isSubscribed ? 'rgba(34,197,94,0.25)' : 'rgba(41, 151, 255, 0.3)'}`,
-                background: isSubscribed ? 'rgba(34,197,94,0.08)' : 'rgba(41, 151, 255, 0.08)',
-                color: isSubscribed ? 'rgba(34,197,94,0.8)' : '#7eb8ff',
-                fontSize: '11px',
-                fontWeight: '700',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                transition: 'all 0.15s',
-              }}
-            >
-              {isSubscribed ? (
-                <>
-                  <Check size={11} /> อยู่ใน Watchlist แล้ว
-                </>
-              ) : (
-                <>
-                  <Plus size={11} /> เพิ่มเข้า Watchlist
-                </>
-              )}
-            </button>
           </div>
         </div>
-
-        <div
-          style={{
-            fontSize: '12.5px',
-            color: 'rgba(255,255,255,0.5)',
-            lineHeight: '1.5',
-            marginBottom: '6px',
-          }}
-        >
-          {source.description}
-        </div>
-        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)' }}>
-          {new URL(source.siteUrl).hostname.replace('www.', '')} · {source.frequency}
-        </div>
       </div>
+
+      <button
+        onClick={onToggle}
+        className={`expert-follow-btn ${isSubscribed ? 'added' : ''}`}
+        style={{ padding: '6px', fontSize: '11px', width: '100%' }}
+      >
+        {isSubscribed ? 'อยู่ใน Watchlist แล้ว' : '+ เพิ่มเข้า Watchlist'}
+      </button>
     </div>
   );
 };
