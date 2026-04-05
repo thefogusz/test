@@ -70,9 +70,7 @@ const PricingWorkspace = ({
   const isBuyModalVisible = isVisible && isBuyModalOpen;
 
   useEffect(() => {
-    if (!isBuyModalVisible) {
-      return undefined;
-    }
+    if (!isBuyModalVisible) return undefined;
 
     ensureStripeBuyButtonScript();
     const previousOverflow = document.body.style.overflow;
@@ -84,9 +82,7 @@ const PricingWorkspace = ({
   }, [isBuyModalVisible]);
 
   useEffect(() => {
-    if (isVisible || !isBuyModalOpen) {
-      return undefined;
-    }
+    if (isVisible || !isBuyModalOpen) return undefined;
 
     const closeTimer = window.setTimeout(() => {
       setIsBuyModalOpen(false);
@@ -254,22 +250,13 @@ const PricingWorkspace = ({
             onClick={() => setIsBuyModalOpen(false)}
           />
           <div className="pricing-buy-modal">
-            <div className="pricing-buy-modal-head">
-              <div>
-                <div className="pricing-buy-modal-kicker">FORO PLUS</div>
-                <h2 className="pricing-buy-modal-title">อัปเกรดแพ็กในหน้านี้</h2>
-                <p className="pricing-buy-modal-subtitle">
-                  ชำระผ่าน Stripe ได้ทันที โดยคงหน้า Pricing เดิมไว้แบบไม่รก
-                </p>
-              </div>
-              <button
-                className="pricing-buy-modal-close"
-                onClick={() => setIsBuyModalOpen(false)}
-                aria-label="ปิด"
-              >
-                <X size={18} />
-              </button>
-            </div>
+            <button
+              className="pricing-buy-modal-close"
+              onClick={() => setIsBuyModalOpen(false)}
+              aria-label="ปิด"
+            >
+              <X size={18} />
+            </button>
 
             <div className="pricing-buy-modal-body">
               {publishableKey ? (
