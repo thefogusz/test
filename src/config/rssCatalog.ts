@@ -55,7 +55,6 @@ export const RSS_CATALOG: Record<string, RssSource[]> = {
     { id: 'securityweek', name: 'SecurityWeek', url: 'https://www.securityweek.com/feed/', siteUrl: 'https://www.securityweek.com', description: 'Cybersecurity news, policy, and vulnerability coverage', frequency: '~5 posts/day', lang: 'en', type: 'news', topic: 'security' },
     { id: 'the-record', name: 'The Record', url: 'https://therecord.media/feed', siteUrl: 'https://therecord.media', description: 'Cybersecurity reporting focused on incidents and national security', frequency: '~3 posts/day', lang: 'en', type: 'news', topic: 'security' },
     { id: 'schneier-on-security', name: 'Schneier on Security', url: 'https://www.schneier.com/feed/atom/', siteUrl: 'https://www.schneier.com', description: 'Security analysis, cryptography, and policy commentary', frequency: '~2-3 posts/week', lang: 'en', type: 'news', topic: 'security' },
-    { id: 'cisa-news', name: 'CISA News', url: 'https://www.cisa.gov/news.xml', siteUrl: 'https://www.cisa.gov/news-events/news', description: 'Official US cyber advisories and agency updates', frequency: '~1-2 posts/week', lang: 'en', type: 'news', topic: 'security' },
     { id: 'krebs-on-security', name: 'Krebs on Security', url: 'https://krebsonsecurity.com/feed/', siteUrl: 'https://krebsonsecurity.com', description: 'Investigative cybersecurity reporting and threat analysis', frequency: '~2-3 posts/week', lang: 'en', type: 'news', topic: 'security' },
   ],
   gaming: [

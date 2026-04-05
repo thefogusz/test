@@ -19,6 +19,90 @@ interface NewsSourcesTabProps {
   ) => void;
 }
 
+const ALL_VIEW_TOPIC_PRIORITY = [
+  'news',
+  'finance',
+  'business',
+  'tech',
+  'ai',
+  'science',
+  'security',
+  'developer',
+  'crypto',
+  'gaming',
+] as const;
+
+const FEATURED_ALL_EN_SOURCE_IDS = [
+  'bbc',
+  'bloomberg',
+  'cnbc',
+  'npr-news',
+  'guardian-world',
+  'al-jazeera',
+  'abc-news',
+  'cbs-news',
+  'time',
+  'bangkok-post',
+  'fortune',
+  'marketwatch',
+  'techcrunch',
+  'verge',
+  'ars-technica',
+  'wired',
+  'mit-tech-review',
+  'openai-blog',
+  'techcrunch-ai',
+] as const;
+
+const FEATURED_ALL_TH_SOURCE_IDS = [
+  'thestandard',
+  'matichon',
+  'prachachat',
+  'brandinside',
+  'techsauce',
+  'beartai',
+] as const;
+
+const TOPIC_PRIORITY_INDEX = new Map(
+  ALL_VIEW_TOPIC_PRIORITY.map((topic, index) => [topic, index]),
+);
+
+const FEATURED_EN_PRIORITY_INDEX = new Map(
+  FEATURED_ALL_EN_SOURCE_IDS.map((id, index) => [id, index]),
+);
+
+const FEATURED_TH_PRIORITY_INDEX = new Map(
+  FEATURED_ALL_TH_SOURCE_IDS.map((id, index) => [id, index]),
+);
+
+const sortSourcesForAllView = (sources: RssSource[], lang: 'en' | 'th') => {
+  const featuredPriorityIndex =
+    lang === 'th' ? FEATURED_TH_PRIORITY_INDEX : FEATURED_EN_PRIORITY_INDEX;
+
+  return [...sources].sort((left, right) => {
+    const leftFeatured = featuredPriorityIndex.has(left.id) ? 0 : 1;
+    const rightFeatured = featuredPriorityIndex.has(right.id) ? 0 : 1;
+    if (leftFeatured !== rightFeatured) return leftFeatured - rightFeatured;
+
+    if (leftFeatured === 0 && rightFeatured === 0) {
+      return (
+        (featuredPriorityIndex.get(left.id) ?? Number.MAX_SAFE_INTEGER) -
+        (featuredPriorityIndex.get(right.id) ?? Number.MAX_SAFE_INTEGER)
+      );
+    }
+
+    const leftTypePriority = left.type === 'news' ? 0 : 1;
+    const rightTypePriority = right.type === 'news' ? 0 : 1;
+    if (leftTypePriority !== rightTypePriority) return leftTypePriority - rightTypePriority;
+
+    const leftTopicPriority = TOPIC_PRIORITY_INDEX.get(left.topic) ?? Number.MAX_SAFE_INTEGER;
+    const rightTopicPriority = TOPIC_PRIORITY_INDEX.get(right.topic) ?? Number.MAX_SAFE_INTEGER;
+    if (leftTopicPriority !== rightTopicPriority) return leftTopicPriority - rightTopicPriority;
+
+    return left.name.localeCompare(right.name);
+  });
+};
+
 const SourceCard = ({
   source,
   isSubscribed,
@@ -371,8 +455,15 @@ const NewsSourcesTab = ({
     return allSources.filter((s) => s.topic === activeTopic);
   }, [activeTopic]);
 
-  const enSources = filteredSources.filter((s) => s.lang === 'en');
-  const thSources = filteredSources.filter((s) => s.lang === 'th');
+  const enSources = useMemo(() => {
+    const sources = filteredSources.filter((s) => s.lang === 'en');
+    return activeTopic === 'all' ? sortSourcesForAllView(sources, 'en') : sources;
+  }, [activeTopic, filteredSources]);
+
+  const thSources = useMemo(() => {
+    const sources = filteredSources.filter((s) => s.lang === 'th');
+    return activeTopic === 'all' ? sortSourcesForAllView(sources, 'th') : sources;
+  }, [activeTopic, filteredSources]);
 
   return (
     <div className="animate-fade-in">
