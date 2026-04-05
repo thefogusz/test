@@ -2118,8 +2118,11 @@ h1, h2, h3, h4, h5, h6 {
     padding-left: 8px !important;
     padding-right: 8px !important;
     padding-bottom: calc(94px + env(safe-area-inset-bottom, 0px)) !important;
+    height: auto !important;
+    min-height: 100vh !important;
     display: block !important;
     overflow-x: clip !important;
+    overflow-y: visible !important;
   }
 
   .sidebar-logo {
