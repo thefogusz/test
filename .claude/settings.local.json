@@ -23,7 +23,8 @@
       "Bash(ls -la /d/TEST/src/*.css)",
       "Bash(find /d/TEST/src -type f \\\\\\(-name *.tsx -o -name *.ts -o -name *.jsx -o -name *.js \\\\\\))",
       "Bash(npx tsc:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(grep -E \"\\\\.\\(md|json\\)$\")"
     ]
   }
 }
