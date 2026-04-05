@@ -75,10 +75,11 @@ export const useHomeFeedWorkspace = ({
         activeView,
         originalFeed,
         postLists,
+        subscribedSources,
         watchlist,
       }),
     );
-  }, [activeFilters, activeListId, activeView, isFiltered, originalFeed, postLists, watchlist]);
+  }, [activeFilters, activeListId, activeView, isFiltered, originalFeed, postLists, subscribedSources, watchlist]);
 
   const translatePostsToThai = async (
     posts: any[] = [],
@@ -399,6 +400,7 @@ export const useHomeFeedWorkspace = ({
         activeView: 'home',
         originalFeed,
         postLists,
+        subscribedSources,
         watchlist,
       });
 

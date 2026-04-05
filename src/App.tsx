@@ -10,6 +10,7 @@ import RightSidebar from './components/RightSidebar';
 import { getSummaryDateLabel } from './utils/summaryDates';
 import './index.css';
 import { STORAGE_KEYS } from './constants/storageKeys';
+import { RSS_CATALOG } from './config/rssCatalog';
 import { useHomeFeedWorkspace } from './hooks/useHomeFeedWorkspace';
 import { useIndexedDbState } from './hooks/useIndexedDbState';
 import useLibraryViews from './hooks/useLibraryViews';
@@ -139,12 +140,30 @@ const App = () => {
 
   // --- Subscribed RSS Sources ---
   const [subscribedSources, setSubscribedSources] = usePersistentState(STORAGE_KEYS.subscribedSources, []);
+  const supportedRssSourcesById = useMemo(
+    () => new Map(Object.values(RSS_CATALOG).flat().map((source) => [String(source.id), source])),
+    [],
+  );
   const handleToggleSource = (source) => {
     setSubscribedSources((prev) => {
       const exists = prev.some((s) => s.id === source.id);
       return exists ? prev.filter((s) => s.id !== source.id) : [...prev, source];
     });
   };
+
+  useEffect(() => {
+    setSubscribedSources((prev) => {
+      const normalized = (Array.isArray(prev) ? prev : [])
+        .map((source) => supportedRssSourcesById.get(String(source?.id || '')))
+        .filter(Boolean);
+
+      if (normalized.length === prev.length && normalized.every((source, index) => source.id === prev[index]?.id)) {
+        return prev;
+      }
+
+      return normalized;
+    });
+  }, [setSubscribedSources, supportedRssSourcesById]);
 
   // --- Feed & Content State ---
   const [originalFeed, setOriginalFeed] = useIndexedDbState(STORAGE_KEYS.homeFeed, [], {
@@ -218,7 +237,6 @@ const App = () => {
     activeSuggestionIndex,
     addSearchPreset,
     applySearchFocus,
-    canUseRssWeightedSummary,
     canSaveCurrentSearchAsPreset,
     dismissSearchChoices,
     dynamicSearchTags,
@@ -240,7 +258,6 @@ const App = () => {
     searchQuery,
     searchResults,
     searchChoiceOptions,
-    searchSummaryMode,
     searchStatusMessage,
     searchSummary,
     searchWebSources,
@@ -253,7 +270,6 @@ const App = () => {
     setSearchQuery,
     setSearchResults,
     setSearchSummary,
-    setSearchSummaryMode,
     setSearchWebSources,
     setShowSuggestions,
     shouldShowSearchChoices,
@@ -517,7 +533,6 @@ const App = () => {
               setSearchMediaType={setSearchMediaType}
               activeSearchFocus={activeSearchFocus}
               applySearchFocus={applySearchFocus}
-              canUseRssWeightedSummary={canUseRssWeightedSummary}
               dismissSearchChoices={dismissSearchChoices}
               suggestions={suggestions}
               showSuggestions={showSuggestions}
@@ -530,11 +545,9 @@ const App = () => {
               isSearching={isSearching}
               searchResults={searchResults}
               searchChoiceOptions={searchChoiceOptions}
-              searchSummaryMode={searchSummaryMode}
               setSearchResults={setSearchResults}
               setSearchOverflowResults={setSearchOverflowResults}
               setSearchSummary={setSearchSummary}
-              setSearchSummaryMode={setSearchSummaryMode}
               setSearchWebSources={setSearchWebSources}
               setSearchCursor={setSearchCursor}
               setStatus={setStatus}

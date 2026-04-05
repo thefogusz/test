@@ -100,12 +100,34 @@ export const getEngagementTotal = (post) =>
   toNumber(post?.like_count) +
   toNumber(post?.quote_count);
 
+const MAX_RSS_FEED_AGE_DAYS = 30;
+
+const isSupportedFreshRssPost = (post, subscribedSources = []) => {
+  if (post?.sourceType !== 'rss') return true;
+
+  const username = String(post?.author?.username || '').trim().toLowerCase();
+  if (!username.startsWith('rss:')) return false;
+
+  const subscribedHandles = new Set(
+    (Array.isArray(subscribedSources) ? subscribedSources : [])
+      .map((source) => `rss:${String(source?.id || '').trim().toLowerCase()}`),
+  );
+
+  if (!subscribedHandles.has(username)) return false;
+
+  const createdAt = new Date(post?.created_at || post?.createdAt || 0).getTime();
+  if (!Number.isFinite(createdAt)) return false;
+
+  return Date.now() - createdAt <= MAX_RSS_FEED_AGE_DAYS * 24 * 60 * 60 * 1000;
+};
+
 export const deriveVisibleFeed = ({
   activeFilters,
   activeListId,
   activeView,
   originalFeed,
   postLists,
+  subscribedSources,
   watchlist,
 }) => {
   let result = [];
@@ -116,6 +138,7 @@ export const deriveVisibleFeed = ({
       result = originalFeed.filter(
         (post) => {
           if (!post) return false;
+          if (!isSupportedFreshRssPost(post, subscribedSources)) return false;
 
           const authorUsername = (post.author?.username || '').toLowerCase();
           const activeMembers = Array.isArray(activeList.members) ? activeList.members : [];
@@ -134,8 +157,8 @@ export const deriveVisibleFeed = ({
     result = originalFeed.filter(
       (post) =>
         post &&
+        isSupportedFreshRssPost(post, subscribedSources) &&
         (
-          // RSS posts always show in home feed
           post.sourceType === 'rss' ||
           (post.author &&
             (post.author.username || '').toLowerCase() &&

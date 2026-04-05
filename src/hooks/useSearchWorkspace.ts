@@ -271,6 +271,17 @@ const buildSummaryCandidates = (
   return mergeUniquePostsById(blended).map(sanitizeStoredPost).slice(0, 10);
 };
 
+const resolveAutomaticSummaryMode = (
+  posts: any[],
+  mediaType: SearchMediaType,
+): SearchSummaryMode => {
+  if (mediaType === 'videos') return 'balanced';
+
+  return posts.some((post) => String(post?.sourceType || '').toLowerCase() === 'rss')
+    ? 'rss_first'
+    : 'balanced';
+};
+
 const readNextCursor = (meta: { next_cursor?: string | null } | null | undefined) =>
   meta?.next_cursor || null;
 
@@ -392,10 +403,6 @@ export const useSearchWorkspace = ({
     STORAGE_KEYS.searchMediaType,
     'all',
   );
-  const [searchSummaryMode, setSearchSummaryMode] = usePersistentState<SearchSummaryMode>(
-    STORAGE_KEYS.searchSummaryMode,
-    'balanced',
-  );
   const [searchResults, setSearchResults] = useIndexedDbState(STORAGE_KEYS.searchResults, [], {
     deserialize: deserializeStoredCollection,
   });
@@ -502,12 +509,6 @@ export const useSearchWorkspace = ({
     });
   };
 
-  const canUseRssWeightedSummary =
-    searchMediaType !== 'videos' && Array.isArray(subscribedSources) && subscribedSources.length > 0;
-  const effectiveSummaryMode: SearchSummaryMode = canUseRssWeightedSummary
-    ? searchSummaryMode
-    : 'balanced';
-
   const searchMutation = useMutation({
     mutationFn: async ({
       isMore = false,
@@ -561,10 +562,7 @@ export const useSearchWorkspace = ({
         mediaType: searchMediaType,
       });
       const searchQueryType = effectiveLatestMode ? 'Latest' : 'Top';
-      const cacheKey = getSearchCacheKey(
-        `${requestedQuery}::${searchMediaType}::${effectiveSummaryMode}`,
-        searchQueryType,
-      );
+      const cacheKey = getSearchCacheKey(`${requestedQuery}::${searchMediaType}`, searchQueryType);
 
       if (!isMore) {
         const cached = queryClient.getQueryData<SearchCacheSnapshot>(cacheKey);
@@ -949,6 +947,7 @@ export const useSearchWorkspace = ({
           const mergedResults = isMore
             ? xResults
             : mergeSearchCards(xResults, rssSearchResults, effectiveLatestMode);
+          const effectiveSummaryMode = resolveAutomaticSummaryMode(mergedResults, searchMediaType);
 
           setSearchResults(mergedResults);
           setSearchOverflowResults(effectiveBroadDiscoveryQuery ? nextOverflowResults : []);
@@ -1149,6 +1148,7 @@ export const useSearchWorkspace = ({
       const shouldPreferXSummary =
         searchMediaType === 'videos' || currentQueryIntent.queryKey === 'viral_video';
       const webContext = buildSearchSummaryWebContext(searchWebSources || []);
+      const effectiveSummaryMode = resolveAutomaticSummaryMode(reranked, searchMediaType);
       const summaryCandidates = buildSummaryCandidates(
         reranked,
         effectiveSummaryMode,
@@ -1175,7 +1175,7 @@ export const useSearchWorkspace = ({
     }
   };
 
-  const handleSearchSummaryModeChange = async (nextMode: SearchSummaryMode) => {
+  /* const handleSearchSummaryModeChange = async (nextMode: SearchSummaryMode) => {
     setSearchSummaryMode(nextMode);
 
     if (searchResults.length === 0 || searchMediaType === 'videos') return;
@@ -1228,7 +1228,7 @@ export const useSearchWorkspace = ({
     } catch (error) {
       console.warn('[Search] Summary mode refresh failed:', error);
     }
-  };
+  }; */
 
   const dismissSearchChoices = () => {
     const queryLabel = normalizeSearchLabel(lastSubmittedSearchQuery || searchQuery).toLowerCase();
@@ -1269,7 +1269,6 @@ export const useSearchWorkspace = ({
     activeSuggestionIndex,
     addSearchPreset,
     applySearchFocus,
-    canUseRssWeightedSummary,
     canSaveCurrentSearchAsPreset,
     dismissSearchChoices,
     dynamicSearchTags,
@@ -1297,7 +1296,6 @@ export const useSearchWorkspace = ({
     searchQuery,
     searchResults,
     searchChoiceOptions,
-    searchSummaryMode,
     searchStatusMessage,
     searchSummary,
     searchWebSources,
@@ -1310,7 +1308,6 @@ export const useSearchWorkspace = ({
     setSearchQuery,
     setSearchResults,
     setSearchSummary,
-    setSearchSummaryMode: handleSearchSummaryModeChange,
     setSearchWebSources,
     setShowSuggestions,
     shouldShowSearchChoices,

@@ -92,7 +92,13 @@ const FeedCard = ({
   const isRepost = Boolean(tweet.isRepost || tweet.repostedPost);
   const repostedByUsername = (tweet.repostedByUsername || tweet.author?.username || '').trim().replace(/^@/, '');
   const repostedByName = (tweet.repostedByName || tweet.author?.name || '').trim();
-  const displayText = isUsableThaiSummary(displayTweet.summary, displayTweet.text) ? displayTweet.summary : displayTweet.text;
+  const hasThaiSummary = isUsableThaiSummary(displayTweet.summary, displayTweet.text);
+  const displayText = hasThaiSummary ? displayTweet.summary : displayTweet.text;
+  const shouldShowRssTitle =
+    tweet.sourceType === 'rss' &&
+    !!tweet.title &&
+    !hasThaiSummary &&
+    String(tweet.title).trim() !== String(displayText || '').trim();
   const previewImageUrl = displayTweet.primaryImageUrl || displayTweet.imageUrls?.[0] || '';
   const imageUrls = useMemo(
     () => Array.from(new Set((Array.isArray(displayTweet.imageUrls) ? displayTweet.imageUrls : []).filter(Boolean))),
@@ -684,11 +690,8 @@ const FeedCard = ({
         </div>
       ) : (
         <div style={{ marginBottom: '12px' }}>
-          {tweet.sourceType === 'rss' && tweet.title && (
-            <a
-              href={tweet.url || '#'}
-              target="_blank"
-              rel="noopener noreferrer"
+          {shouldShowRssTitle && (
+            <div
               style={{
                 display: 'block',
                 fontSize: '15px',
@@ -696,11 +699,10 @@ const FeedCard = ({
                 color: '#fff',
                 marginBottom: '6px',
                 lineHeight: '1.4',
-                textDecoration: 'none',
               }}
             >
               {tweet.title}
-            </a>
+            </div>
           )}
           <p
             className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
