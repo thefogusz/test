@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FORO - Sources Mockup v2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0f; color: #fff; font-family: -apple-system, 'Segoe UI', sans-serif; }
+  .app { display: flex; height: 100vh; }
+
+  /* Sidebar */
+  .sidebar { width: 240px; background: #0d0d14; border-right: 1px solid rgba(255,255,255,0.06); padding: 20px 16px; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+  .sidebar-logo { font-size: 20px; font-weight: 900; padding: 12px 8px 24px; color: #fff; letter-spacing: 0.05em; }
+  .sidebar-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.45); cursor: pointer; transition: all 0.15s; }
+  .sidebar-item:hover { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.7); }
+  .sidebar-item.active { background: rgba(99,102,241,0.12); color: #a5b4fc; }
+
+  /* Main */
+  .main { flex: 1; overflow-y: auto; padding: 32px 40px; }
+  .page-title { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+  .page-subtitle { color: rgba(255,255,255,0.4); font-size: 13px; margin-bottom: 24px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 32px; background: rgba(255,255,255,0.03); border-radius: 12px; padding: 4px; width: fit-content; }
+  .tab { padding: 8px 18px; border-radius: 9px; font-size: 12.5px; font-weight: 700; cursor: pointer; border: none; background: transparent; color: rgba(255,255,255,0.4); transition: all 0.15s; display: flex; align-items: center; gap: 6px; }
+  .tab.active { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+  .tab:hover:not(.active) { color: rgba(255,255,255,0.6); }
+
+  /* Category pills */
+  .cat-heading { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 14px; }
+  .cat-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+  .cat-pill { padding: 7px 16px; border-radius: 999px; font-size: 12px; font-weight: 700; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.02); color: rgba(255,255,255,0.5); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 6px; }
+  .cat-pill:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.12); }
+  .cat-pill.active { border-color: rgba(99,102,241,0.4); background: rgba(99,102,241,0.1); color: #a5b4fc; }
+  .cat-pill .count { font-size: 10px; opacity: 0.5; }
+
+  /* Section divider */
+  .section-banner { display: flex; align-items: center; gap: 10px; margin: 28px 0 16px; }
+  .section-banner-icon { font-size: 16px; }
+  .section-banner-text { font-size: 13px; font-weight: 800; color: rgba(255,255,255,0.55); }
+  .section-banner-desc { font-size: 11px; color: rgba(255,255,255,0.25); margin-left: 4px; }
+  .section-banner-line { flex: 1; height: 1px; background: rgba(255,255,255,0.06); }
+  .section-banner-count { font-size: 11px; color: rgba(255,255,255,0.2); font-weight: 700; }
+
+  /* Source cards */
+  .sources-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .source-card { background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 16px; display: flex; gap: 12px; transition: all 0.15s; }
+  .source-card:hover { border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.04); }
+  .source-card.added { border-color: rgba(99,102,241,0.25); background: rgba(99,102,241,0.04); }
+  .source-favicon { width: 36px; height: 36px; border-radius: 9px; object-fit: cover; background: rgba(255,255,255,0.05); flex-shrink: 0; }
+  .source-info { flex: 1; min-width: 0; }
+  .source-name { font-size: 13px; font-weight: 800; margin-bottom: 1px; display: flex; align-items: center; gap: 6px; }
+  .source-url { font-size: 10.5px; color: rgba(255,255,255,0.25); margin-bottom: 5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .source-desc { font-size: 11.5px; color: rgba(255,255,255,0.45); line-height: 1.5; margin-bottom: 8px; }
+  .source-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .source-freq { font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.04); padding: 2px 7px; border-radius: 5px; }
+  .badge-en { font-size: 9px; font-weight: 800; color: rgba(251,191,36,0.8); background: rgba(251,191,36,0.1); padding: 2px 6px; border-radius: 4px; }
+  .badge-th { font-size: 9px; font-weight: 800; color: rgba(52,211,153,0.8); background: rgba(52,211,153,0.1); padding: 2px 6px; border-radius: 4px; }
+  .badge-community { font-size: 9px; font-weight: 800; color: rgba(168,85,247,0.8); background: rgba(168,85,247,0.1); padding: 2px 6px; border-radius: 4px; }
+  .add-btn { padding: 5px 12px; border-radius: 7px; border: 1px solid rgba(99,102,241,0.3); background: rgba(99,102,241,0.08); color: #a5b4fc; font-size: 10.5px; font-weight: 700; cursor: pointer; transition: all 0.15s; white-space: nowrap; flex-shrink: 0; align-self: flex-start; margin-top: 2px; }
+  .add-btn:hover { background: rgba(99,102,241,0.2); }
+  .add-btn.added { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.2); color: rgba(34,197,94,0.7); }
+  .source-row { display: flex; align-items: flex-start; gap: 12px; }
+
+  /* Subscribed section */
+  .subscribed-section { margin-top: 36px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.06); }
+  .subscribed-heading { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.3); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .subscribed-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .subscribed-chip { display: flex; align-items: center; gap: 7px; padding: 6px 12px; border-radius: 9px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.55); }
+  .subscribed-chip img { width: 16px; height: 16px; border-radius: 4px; }
+  .chip-remove { color: rgba(255,255,255,0.15); cursor: pointer; font-size: 12px; margin-left: 2px; }
+  .chip-remove:hover { color: rgba(255,100,100,0.6); }
+
+  /* Screens */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Feed screen */
+  .feed-filter-bar { display: flex; gap: 6px; margin-bottom: 24px; flex-wrap: wrap; }
+  .feed-filter { padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 700; border: 1px solid rgba(255,255,255,0.06); background: transparent; color: rgba(255,255,255,0.4); cursor: pointer; }
+  .feed-filter.active { background: rgba(99,102,241,0.12); color: #a5b4fc; border-color: rgba(99,102,241,0.25); }
+  .feed-list { display: flex; flex-direction: column; gap: 12px; max-width: 680px; }
+  .feed-item { background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 20px; }
+  .feed-item-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .feed-item-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+  .feed-item-avatar.rss { border-radius: 8px; }
+  .feed-item-author { font-size: 13px; font-weight: 800; }
+  .feed-item-handle { font-size: 11px; color: rgba(255,255,255,0.3); }
+  .feed-item-time { font-size: 10px; color: rgba(255,255,255,0.2); margin-left: auto; }
+  .feed-item-source-badge { font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 4px; margin-left: 6px; }
+  .badge-x { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); }
+  .badge-rss { background: rgba(251,146,60,0.12); color: rgba(251,176,100,0.8); }
+  .badge-rss-th { background: rgba(52,211,153,0.12); color: rgba(52,211,153,0.8); }
+  .feed-item-text { font-size: 13.5px; line-height: 1.65; color: rgba(255,255,255,0.75); margin-bottom: 12px; }
+  .feed-item-title { font-size: 14px; font-weight: 700; line-height: 1.5; color: rgba(255,255,255,0.85); margin-bottom: 6px; }
+  .feed-item-summary-th { font-size: 13px; line-height: 1.65; color: rgba(255,255,255,0.6); padding: 10px 14px; background: rgba(99,102,241,0.04); border-radius: 10px; border-left: 2px solid rgba(99,102,241,0.2); margin-bottom: 12px; }
+  .feed-item-actions { display: flex; gap: 16px; align-items: center; }
+  .feed-action { font-size: 11px; color: rgba(255,255,255,0.25); display: flex; align-items: center; gap: 4px; cursor: pointer; }
+  .feed-action:hover { color: rgba(255,255,255,0.5); }
+  .feed-action-primary { color: rgba(99,102,241,0.6); font-weight: 700; }
+  .feed-action-primary:hover { color: rgba(99,102,241,0.9); }
+
+  /* Empty state */
+  .empty-state { padding: 40px; text-align: center; color: rgba(255,255,255,0.15); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-logo">FORO</div>
+    <div class="sidebar-item" onclick="showScreen('feed')">📋 สรุปข่าววันนี้</div>
+    <div class="sidebar-item">✍️ คอนเทนต์สตูดิโอ</div>
+    <div class="sidebar-item">📖 อ่านข่าว</div>
+    <div class="sidebar-item active" onclick="showScreen('audience')">⚡ กลุ่มเป้าหมาย</div>
+    <div class="sidebar-item">🔖 บุ๊คมาร์ค</div>
+  </div>
+
+  <div class="main">
+
+    <!-- ==================== กลุ่มเป้าหมาย ==================== -->
+    <div class="screen active" id="screen-audience">
+      <h1 class="page-title">⚡ Smart Target Discovery</h1>
+      <p class="page-subtitle">ค้นหาและเพิ่มแหล่งข้อมูลที่ตรงกับความสนใจของคุณ</p>
+
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab(this, 'tab-people')">👥 แนะนำโดย FORO</div>
+        <div class="tab" onclick="switchTab(this, 'tab-sources')">📰 แหล่งข่าว</div>
+        <div class="tab" onclick="switchTab(this, 'tab-manual')">🔍 ค้นหาชื่อ</div>
+      </div>
+
+      <!-- Tab 1: People (existing - unchanged) -->
+      <div id="tab-people" class="tab-content">
+        <div class="cat-heading">Discover By Category</div>
+        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 36px;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;border-radius:14px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);cursor:pointer;"><span style="font-size:22px;">🤖</span><span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);">AI</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;border-radius:14px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);cursor:pointer;"><span style="font-size:22px;">🎮</span><span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);">เกม</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;border-radius:14px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);cursor:pointer;"><span style="font-size:22px;">💼</span><span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);">ธุรกิจ</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;border-radius:14px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);cursor:pointer;"><span style="font-size:22px;">📈</span><span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);">การตลาด</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;border-radius:14px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);cursor:pointer;"><span style="font-size:22px;">💰</span><span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);">การเงิน</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;border-radius:14px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);cursor:pointer;"><span style="font-size:22px;">₿</span><span style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.6);">คริปโต</span></div>
+        </div>
+        <div class="empty-state">เลือกหมวดหมู่เพื่อค้นหาบัญชี X ที่น่าสนใจ</div>
+      </div>
+
+      <!-- Tab 2: แหล่งข่าว (NEW - redesigned) -->
+      <div id="tab-sources" class="tab-content" style="display:none;">
+
+        <!-- Category filter pills -->
+        <div class="cat-heading">กรองตามหมวด</div>
+        <div class="cat-pills">
+          <div class="cat-pill active" onclick="filterCategory('all', this)">ทั้งหมด</div>
+          <div class="cat-pill" onclick="filterCategory('ai', this)">🤖 AI <span class="count">(22)</span></div>
+          <div class="cat-pill" onclick="filterCategory('tech', this)">💻 เทค <span class="count">(24)</span></div>
+          <div class="cat-pill" onclick="filterCategory('gaming', this)">🎮 เกม <span class="count">(18)</span></div>
+          <div class="cat-pill" onclick="filterCategory('crypto', this)">₿ คริปโต <span class="count">(14)</span></div>
+          <div class="cat-pill" onclick="filterCategory('biz', this)">💼 ธุรกิจ <span class="count">(16)</span></div>
+          <div class="cat-pill" onclick="filterCategory('finance', this)">💰 การเงิน <span class="count">(16)</span></div>
+          <div class="cat-pill" onclick="filterCategory('science', this)">🔬 วิทยาศาสตร์ <span class="count">(14)</span></div>
+        </div>
+
+        <!-- ===== Section: International (EN → TH) ===== -->
+        <div class="section-banner">
+          <span class="section-banner-icon">🌍</span>
+          <span class="section-banner-text">แหล่งข่าวต่างประเทศ</span>
+          <span class="section-banner-desc">· FORO แปลและสรุปเป็นไทยให้</span>
+          <span class="section-banner-line"></span>
+          <span class="section-banner-count">120+ แหล่ง</span>
+        </div>
+
+        <div class="sources-grid" style="margin-bottom: 8px;" data-cat="ai">
+          <!-- AI sources -->
+          <div class="source-card added">
+            <img class="source-favicon" src="https://www.google.com/s2/favicons?domain=techcrunch.com&sz=128">
+            <div class="source-info">
+              <div class="source-row">
+                <div style="flex:1; min-width:0;">
+                  <div class="source-name">TechCrunch AI <span class="badge-en">EN → TH</span></div>
+                  <div class="source-url">techcrunch.com/category/ai</div>
+                  <div class="source-desc">ข่าว AI, startup, เปิดตัวผลิตภัณฑ์ใหม่</div>
+                  <div class="source-meta">
+                    <span class="source-freq">~15 บทความ/วัน</span>
+                  </div>
+                </div>
+                <button class="add-btn added">✓ เพิ่มแล้ว</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="source-card added">
+            <img class="source-favicon" src="https://www.google.com/s2/favicons?domain=theverge.com&sz=128">
+            <div class="source-info">
+              <div class="source-row">
+                <div style="flex:1; min-width:0;">
+                  <div class="source-name">The Verge AI <span class="badge-en">EN → TH</span></div>
+                  <div class="source-url">theverge.com/ai-artificial-intelligence</div>
+                  <div class="source-desc">เทคโนโลยี AI สำหรับผู้บริโภค อ่านง่าย</div>
+                  <div class="source-meta">
+                    <span class="source-freq">~8 บทความ/วัน</span>
+                  </div>
+                </div>
+                <button class="add-btn added">✓ เพิ่มแล้ว</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="source-card">
+            <img class="source-favicon" src="https://www.google.com/s2/favicons?domain=technologyreview.com&sz=128">
+            <div class="source-info">
+              <div class="source-row">
+                <div style="flex:1; min-width:0;">
+                  <div class="source-name">MIT Technology Review <span class="badge-en">EN → TH</span></div>
+                  <div class="source-url">technologyreview.com</div>
+                  <div class="source-desc">วิเคราะห์เชิงลึก AI, science, นโยบาย</div>
+                  <div class="source-meta">
+                    <span class="source-freq">~3 บทความ/วัน</span>
+                  </div>
+                </div>
+                <button class="add-btn" onclick="toggleAdd(this)">+ เพิ่มเข้า Feed</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="source-card">
+            <img class="source-favicon" src="https://www.google.com/s2/favicons?domain=openai.com&sz=128">
+            <div class="source-info">
+              <div class="source-row">
+                <div style="flex:1; min-width:0;">
+                  <div class="source-name">OpenAI Blog <span class="badge-en">EN → TH</span></div>
+                  <div class="source-url">openai.com/blog</div>
+                  <div class="source-desc">ประกาศและอัปเดตจาก OpenAI โดยตรง</div>
+                  <div class="source-meta">
+                    <span class="source-freq">~2 บทความ/สัปดาห์</span>
+                  </div>
+                </div>
+                <button class="add-btn" onclick="toggleAdd(this)">+ เพิ่มเข้า Feed</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Community sources -->
+        <div class="sources-grid" style="margin-bottom: 8px;" data-cat="ai">
+          <div class="source-card">
+            <img class="source-favicon" src="https://www.google.com/s2/favicons?domain=news.ycombinator.com&sz=128">
+            <div class="source-info">
+              <div class="source-row">
+                <div style="flex:1; min-width:0;">
+                  <div class="source-name">Hacker News (AI) <span class="badge-community">Community</span></div>
+                  <div class="source-url">hnrss.org · filtered by AI · 50+ upvotes</div>
+                  <div class="source-desc">ลิงก์ยอดนิยมจาก developer community</div>
+                  <div class="source-meta">
+                    <span class="source-freq">~10 ลิงก์/วัน</span>
+                  </div>
+                </div>
+                <button class="add-btn" onclick="toggleAdd(this)">+ เพิ่มเข้า Feed</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="source-card">
+            <img class="source-favicon" src="https://www.google.com/s2/favicons?domain=reddit.com&sz=128">
+            <div class="source-info">
+              <div class="source-row">
+                <div style="flex:1; min-width:0;">
+                  <div class="source-name">Reddit r/artificial <span class="badge-community">Community</span></div>
+                  <div class="source-url">reddit.com/r/artificial</div>
+                  <div class="source-desc">Community discussion เรื่อง AI</div>
+                  <div class="source-meta">
+                    <span class="source-freq">~20 โพสต์/วัน</span>
+                  </div>
+                </div>
+                <button class="add-btn" onclick="toggleAdd(this)">+ เพิ่มเข้า Feed</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gaming EN sources -->
+        <div class="sources-grid" data-cat="gaming">
+          <div class="source-card">
+            <img class="source-favicon" src="https://www.google.com/s2/favicons?domain=ign.com&sz=128">
+            <div class="source-info">
+              <div class="source-row">
+                <div style="flex:1; min-width:0;">
+                  <div class="source-name">IGN <span class="badge-en">EN → TH</span></div>
+                  <div class="source-url">ign.com</div>
+                  <div class="source-desc">รีวิวเกม, ข่าวเกม, trailer ใหม่</div>
+                  <div class="source-meta">
+                    <span class="source-freq">~25 บทความ/วัน</span>
+                  </div>
+                </div>
+                <button class="add-btn" onclick="toggleAdd(this)">+ เพิ่มเข้า Feed</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="source-card">
+            <img class="source-favicon" src="https://www.google.com/s2/favicons?domain=kotaku.com&sz=128">
+            <div class="source-info">
+              <div class="source-row">
+                <div style="flex:1; min-width:0;">
+                  <div class="source-name">Kotaku <span class="badge-en">EN → TH</span></div>
+                  <div class="source-url">kotaku.com</div>
+                  <div class="source-desc">วัฒนธรรมเกม, วิเคราะห์, ข่าววงใน</div>
+                  <div class="source-meta">
+                    <span class="source-freq">~12 บทความ/วัน</span>
+                  </div>
+                </div>
+                <button class="add-btn" onclick="toggleAdd(this)">+ เพิ่มเข้า Feed</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== Section: Thai ===== -->
+        <div class="section-banner" style="margin-top: 36px;">
+          <span class="section-banner-icon">🇹🇭</span>
+          <span class="section-banner-text">แหล่งข่าวไทย</span>
+          <span class="section-banner-desc">· รวมข่าวไทยไว้ในที่เดียว</span>
+          <span class="section-banner-line"></span>
+          <span class="section-banner-count">13 แหล่ง</span>
+        </div>
+
+        <div class="sources-grid" data-cat="tech-th">
+          <div class="source-card added">
+            <img class="source-favicon" src="https://www.google.com/s2/favicons?domain=blognone.com&sz=128">
+            <div class="source-info">
+              <div class="source-row">
+                <div style="flex:1; min-width:0;">
+                  <div class="source-name">Blognone <span class="badge-th">TH</span></div>
+                  <div class="source-url">blognone.com</div>
+                  <div class="source-desc">ข่าว tech อันดับ 1 ของไทย</div>
+                  <div class="source-meta">
+                    <span class="source-freq">~10 บทความ/วัน</span>
+                  </div>
+                </div>
+                <button class="add-btn added">✓ เพิ่มแล้ว</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="source-card">
+            <img class="source-favicon" src="https://www.google.com/s2/favicons?domain=techsauce.co&sz=128">
+            <div class="source-info">
+              <div class="source-row">
+                <div style="flex:1; min-width:0;">
+                  <div class="source-name">Techsauce <span class="badge-th">TH</span></div>
+                  <div class="source-url">techsauce.co</div>
+                  <div class="source-desc">Startup, tech ecosystem ไทย</div>
+                  <div class="source-meta">
+                    <span class="source-freq">~5 บทความ/วัน</span>
+                  </div>
+                </div>
+                <button class="add-btn" onclick="toggleAdd(this)">+ เพิ่มเข้า Feed</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="source-card">
+            <img class="source-favicon" src="https://www.google.com/s2/favicons?domain=beartai.com&sz=128">
+            <div class="source-info">
+              <div class="source-row">
+                <div style="flex:1; min-width:0;">
+                  <div class="source-name">Beartai <span class="badge-th">TH</span></div>
+                  <div class="source-url">beartai.com</div>
+                  <div class="source-desc">Tech, gadget, รีวิวภาษาไทย</div>
+                  <div class="source-meta">
+                    <span class="source-freq">~8 บทความ/วัน</span>
+                  </div>
+                </div>
+                <button class="add-btn" onclick="toggleAdd(this)">+ เพิ่มเข้า Feed</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="source-card">
+            <img class="source-favicon" src="https://www.google.com/s2/favicons?domain=brandinside.asia&sz=128">
+            <div class="source-info">
+              <div class="source-row">
+                <div style="flex:1; min-width:0;">
+                  <div class="source-name">Brand Inside <span class="badge-th">TH</span></div>
+                  <div class="source-url">brandinside.asia</div>
+                  <div class="source-desc">ธุรกิจ, การตลาด, เศรษฐกิจ</div>
+                  <div class="source-meta">
+                    <span class="source-freq">~5 บทความ/วัน</span>
+                  </div>
+                </div>
+                <button class="add-btn" onclick="toggleAdd(this)">+ เพิ่มเข้า Feed</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="source-card">
+            <img class="source-favicon" src="https://www.google.com/s2/favicons?domain=thestandard.co&sz=128">
+            <div class="source-info">
+              <div class="source-row">
+                <div style="flex:1; min-width:0;">
+                  <div class="source-name">The Standard <span class="badge-th">TH</span></div>
+                  <div class="source-url">thestandard.co</div>
+                  <div class="source-desc">ข่าวเชิงลึก, สังคม, ไลฟ์สไตล์</div>
+                  <div class="source-meta">
+                    <span class="source-freq">~8 บทความ/วัน</span>
+                  </div>
+                </div>
+                <button class="add-btn" onclick="toggleAdd(this)">+ เพิ่มเข้า Feed</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="source-card">
+            <img class="source-favicon" src="https://www.google.com/s2/favicons?domain=prachachat.net&sz=128">
+            <div class="source-info">
+              <div class="source-row">
+                <div style="flex:1; min-width:0;">
+                  <div class="source-name">ประชาชาติธุรกิจ <span class="badge-th">TH</span></div>
+                  <div class="source-url">prachachat.net</div>
+                  <div class="source-desc">ข่าวธุรกิจ, เศรษฐกิจ, การเงิน</div>
+                  <div class="source-meta">
+                    <span class="source-freq">~20 บทความ/วัน</span>
+                  </div>
+                </div>
+                <button class="add-btn" onclick="toggleAdd(this)">+ เพิ่มเข้า Feed</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subscribed section -->
+        <div class="subscribed-section">
+          <div class="subscribed-heading">▮ แหล่งข่าวที่ติดตามอยู่ (3)</div>
+          <div class="subscribed-list">
+            <div class="subscribed-chip">
+              <img src="https://www.google.com/s2/favicons?domain=techcrunch.com&sz=64">
+              TechCrunch AI
+              <span class="badge-en" style="font-size:8px;">EN→TH</span>
+              <span class="chip-remove">✕</span>
+            </div>
+            <div class="subscribed-chip">
+              <img src="https://www.google.com/s2/favicons?domain=theverge.com&sz=64">
+              The Verge AI
+              <span class="badge-en" style="font-size:8px;">EN→TH</span>
+              <span class="chip-remove">✕</span>
+            </div>
+            <div class="subscribed-chip">
+              <img src="https://www.google.com/s2/favicons?domain=blognone.com&sz=64">
+              Blognone
+              <span class="badge-th" style="font-size:8px;">TH</span>
+              <span class="chip-remove">✕</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Manual (existing - unchanged) -->
+      <div id="tab-manual" class="tab-content" style="display:none;">
+        <div style="color: rgba(255,255,255,0.3); font-size: 12px; font-weight: 700; margin-bottom: 12px; text-transform: uppercase;">ค้นหาด้วย X Username โดยตรง</div>
+        <div style="display: flex; gap: 12px; max-width: 640px;">
+          <input placeholder="กรอก X Username (เช่น elonmusk)..." style="flex:1; padding: 12px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03); color: #fff; font-size: 14px; outline: none;">
+          <button style="padding: 0 24px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border: none; color: #fff; font-weight: 700; font-size: 13px; cursor: pointer;">ค้นหา</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== สรุปข่าววันนี้ (Feed) ==================== -->
+    <div class="screen" id="screen-feed">
+      <div style="color: rgba(255,255,255,0.35); font-size: 12px; font-weight: 600; margin-bottom: 4px;">WATCHLIST FEED + NEWS SOURCES</div>
+      <h1 class="page-title">หน้าหลัก</h1>
+      <p class="page-subtitle" style="margin-bottom: 16px;">Tweets และบทความจากแหล่งที่คุณติดตาม</p>
+
+      <div class="feed-filter-bar">
+        <button class="feed-filter active">ทั้งหมด</button>
+        <button class="feed-filter">𝕏 Twitter</button>
+        <button class="feed-filter">📰 ข่าว EN</button>
+        <button class="feed-filter">🇹🇭 ข่าวไทย</button>
+        <button class="feed-filter">🤖 AI</button>
+        <button class="feed-filter">🎮 เกม</button>
+      </div>
+
+      <div class="feed-list">
+        <!-- Tweet -->
+        <div class="feed-item">
+          <div class="feed-item-header">
+            <img class="feed-item-avatar" src="https://unavatar.io/twitter/kaborov">
+            <div>
+              <div class="feed-item-author">Andrej Karpathy <span class="feed-item-source-badge badge-x">𝕏</span></div>
+              <div class="feed-item-handle">@karpathy</div>
+            </div>
+            <span class="feed-item-time">2h</span>
+          </div>
+          <div class="feed-item-text">The most interesting thing about the new reasoning models is not the benchmark scores — it's how they change the way we think about prompt engineering...</div>
+          <div class="feed-item-summary-th">🇹🇭 สิ่งที่น่าสนใจที่สุดเกี่ยวกับ reasoning models ใหม่ไม่ใช่คะแนน benchmark แต่เป็นการเปลี่ยนวิธีคิดเรื่อง prompt engineering...</div>
+          <div class="feed-item-actions">
+            <span class="feed-action">👁 124K</span>
+            <span class="feed-action">❤️ 3.2K</span>
+            <span class="feed-action">🔄 890</span>
+            <span class="feed-action feed-action-primary">✍️ สร้างคอนเทนต์</span>
+            <span class="feed-action" style="margin-left:auto;">🔖</span>
+          </div>
+        </div>
+
+        <!-- RSS EN -->
+        <div class="feed-item" style="border-left: 2px solid rgba(251,146,60,0.3);">
+          <div class="feed-item-header">
+            <img class="feed-item-avatar rss" src="https://www.google.com/s2/favicons?domain=techcrunch.com&sz=128">
+            <div>
+              <div class="feed-item-author">TechCrunch <span class="feed-item-source-badge badge-rss">📰 EN</span></div>
+              <div class="feed-item-handle">techcrunch.com · AI</div>
+            </div>
+            <span class="feed-item-time">45m</span>
+          </div>
+          <div class="feed-item-title">OpenAI launches new reasoning model that outperforms GPT-4 on complex tasks</div>
+          <div class="feed-item-summary-th">🇹🇭 OpenAI เปิดตัว reasoning model ใหม่ที่ทำผลงานได้ดีกว่า GPT-4 ในงานที่ซับซ้อน โดยเฉพาะการเขียนโค้ด คณิตศาสตร์ และการวิเคราะห์ข้อมูล รองรับ context window ที่ใหญ่ขึ้นและราคาถูกลง 40%</div>
+          <div class="feed-item-actions">
+            <span class="feed-action feed-action-primary">✍️ สร้างคอนเทนต์</span>
+            <span class="feed-action" style="color: rgba(251,146,60,0.5);">🔗 อ่านต้นฉบับ</span>
+            <span class="feed-action" style="margin-left:auto;">🔖</span>
+          </div>
+        </div>
+
+        <!-- RSS Thai -->
+        <div class="feed-item" style="border-left: 2px solid rgba(52,211,153,0.3);">
+          <div class="feed-item-header">
+            <img class="feed-item-avatar rss" src="https://www.google.com/s2/favicons?domain=blognone.com&sz=128">
+            <div>
+              <div class="feed-item-author">Blognone <span class="feed-item-source-badge badge-rss-th">🇹🇭</span></div>
+              <div class="feed-item-handle">blognone.com · เทค</div>
+            </div>
+            <span class="feed-item-time">1h</span>
+          </div>
+          <div class="feed-item-title">สรุปงาน WWDC 2026: Apple เปิดตัว AI ใหม่ทั้งระบบ</div>
+          <div class="feed-item-text" style="color: rgba(255,255,255,0.6);">Apple ประกาศเปิดตัวระบบ AI ใหม่ในงาน WWDC 2026 ที่ทำงานบนอุปกรณ์ได้ทั้งหมดโดยไม่ต้องส่งข้อมูลไป cloud รองรับทั้ง Siri, Photos, และ Xcode...</div>
+          <div class="feed-item-actions">
+            <span class="feed-action feed-action-primary">✍️ สร้างคอนเทนต์</span>
+            <span class="feed-action" style="color: rgba(52,211,153,0.5);">🔗 อ่านต้นฉบับ</span>
+            <span class="feed-action" style="margin-left:auto;">🔖</span>
+          </div>
+        </div>
+
+        <!-- Tweet -->
+        <div class="feed-item">
+          <div class="feed-item-header">
+            <img class="feed-item-avatar" src="https://unavatar.io/twitter/levelsio">
+            <div>
+              <div class="feed-item-author">Pieter Levels <span class="feed-item-source-badge badge-x">𝕏</span></div>
+              <div class="feed-item-handle">@levelsio</div>
+            </div>
+            <span class="feed-item-time">3h</span>
+          </div>
+          <div class="feed-item-text">Just hit $100K MRR with my AI photo product. The trick? I didn't use any framework. Just vanilla JS and Claude API.</div>
+          <div class="feed-item-summary-th">🇹🇭 ทำรายได้ $100K/เดือนจากผลิตภัณฑ์ AI photo เคล็ดลับคือไม่ได้ใช้ framework เลย ใช้แค่ vanilla JS กับ Claude API</div>
+          <div class="feed-item-actions">
+            <span class="feed-action">👁 89K</span>
+            <span class="feed-action">❤️ 5.1K</span>
+            <span class="feed-action">🔄 1.2K</span>
+            <span class="feed-action feed-action-primary">✍️ สร้างคอนเทนต์</span>
+            <span class="feed-action" style="margin-left:auto;">🔖</span>
+          </div>
+        </div>
+
+        <!-- RSS EN 2 -->
+        <div class="feed-item" style="border-left: 2px solid rgba(251,146,60,0.3);">
+          <div class="feed-item-header">
+            <img class="feed-item-avatar rss" src="https://www.google.com/s2/favicons?domain=theverge.com&sz=128">
+            <div>
+              <div class="feed-item-author">The Verge <span class="feed-item-source-badge badge-rss">📰 EN</span></div>
+              <div class="feed-item-handle">theverge.com · AI</div>
+            </div>
+            <span class="feed-item-time">1h</span>
+          </div>
+          <div class="feed-item-title">Google DeepMind's new AI can solve International Math Olympiad problems</div>
+          <div class="feed-item-summary-th">🇹🇭 AI ตัวใหม่ของ Google DeepMind สามารถแก้โจทย์คณิตศาสตร์โอลิมปิกระดับนานาชาติได้ ถือเป็นก้าวสำคัญในการพัฒนา reasoning capabilities ของ AI</div>
+          <div class="feed-item-actions">
+            <span class="feed-action feed-action-primary">✍️ สร้างคอนเทนต์</span>
+            <span class="feed-action" style="color: rgba(251,146,60,0.5);">🔗 อ่านต้นฉบับ</span>
+            <span class="feed-action" style="margin-left:auto;">🔖</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function switchTab(el, tabId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.tab-content').forEach(tc => tc.style.display = 'none');
+  document.getElementById(tabId).style.display = 'block';
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+function toggleAdd(btn) {
+  const card = btn.closest('.source-card');
+  if (btn.classList.contains('added')) {
+    btn.classList.remove('added');
+    btn.textContent = '+ เพิ่มเข้า Feed';
+    card.classList.remove('added');
+  } else {
+    btn.classList.add('added');
+    btn.textContent = '✓ เพิ่มแล้ว';
+    card.classList.add('added');
+  }
+}
+
+function filterCategory(cat, el) {
+  document.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>
