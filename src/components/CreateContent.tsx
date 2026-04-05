@@ -565,13 +565,16 @@ const CreateContent = ({
 
       let researchPrompt = intentProfile?.researchHint || input.trim();
       let factIntel = '';
+      let sourceUrl = '';
+      let sourceLabel = '';
+      let primarySourceUrls = [];
       if (workingSourceNode) {
-        const sourceUrl = buildAttachedTweetUrl(workingSourceNode);
-        const primarySourceUrls = extractPrimarySourceUrlsFromNode(workingSourceNode);
+        sourceUrl = buildAttachedTweetUrl(workingSourceNode);
+        primarySourceUrls = extractPrimarySourceUrlsFromNode(workingSourceNode);
         const sourceImageUrls = getSourceImageUrls(workingSourceNode);
         const originalText = (workingSourceNode.text || '').trim();
         const translatedSummary = (workingSourceNode.summary || '').trim();
-        const sourceLabel = workingSourceNode.title || originalText || 'Untitled source';
+        sourceLabel = workingSourceNode.title || originalText || 'Untitled source';
 
         factIntel = [
           '[ATTACHED INTEL - ORIGINAL SOURCE]',
@@ -637,7 +640,7 @@ const CreateContent = ({
       const { factSheet: facts, sources: rawSources } = await researchAndPreventHallucination(researchPrompt, factIntel, {
         intentProfile,
         originalInput: input,
-        primarySourceUrls: workingSourceNode ? extractPrimarySourceUrlsFromNode(workingSourceNode) : [],
+        primarySourceUrls,
         attachedXPostUrl: sourceUrl || '',
         attachedXPostTitle: sourceLabel || '',
         signal: controller.signal,
