@@ -278,6 +278,8 @@ const AudienceWorkspace = ({
                         source={source}
                         isSubscribed={subscribedIds.has(source.id)}
                         onToggle={() => onToggleSource(source)}
+                        postLists={postLists}
+                        onTogglePostList={handleToggleMemberInList}
                       />
                     ))}
                   </div>
@@ -316,7 +318,12 @@ const AudienceWorkspace = ({
         )}
 
         {audienceTab === 'sources' && (
-          <NewsSourcesTab subscribedSources={subscribedSources} onToggleSource={onToggleSource} />
+          <NewsSourcesTab
+            subscribedSources={subscribedSources}
+            onToggleSource={onToggleSource}
+            postLists={postLists}
+            onTogglePostList={handleToggleMemberInList}
+          />
         )}
 
         {audienceTab === 'manual' && (

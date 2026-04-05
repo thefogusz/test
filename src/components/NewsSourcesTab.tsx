@@ -1,81 +1,323 @@
 // @ts-nocheck
-import React, { useState, useMemo } from 'react';
-import { Check, Globe2, MessageSquare, Plus, X } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { Check, Globe2, Plus, X } from 'lucide-react';
 import { RSS_CATALOG, TOPIC_LABELS, type RssSource } from '../config/rssCatalog';
+import type { PostList } from '../types/domain';
 
 interface NewsSourcesTabProps {
   subscribedSources: RssSource[];
   onToggleSource: (source: RssSource) => void;
+  postLists?: PostList[];
+  onTogglePostList?: (
+    listId: string,
+    contributor: {
+      id: string;
+      username: string;
+      name: string;
+      profile_image_url: string;
+    },
+  ) => void;
 }
 
-const SourceCard = ({ source, isSubscribed, onToggle }: { source: RssSource; isSubscribed: boolean; onToggle: () => void }) => (
-  <div
-    className="animate-fade-in"
-    style={{
-      background: isSubscribed ? 'rgba(41, 151, 255, 0.04)' : 'rgba(255,255,255,0.02)',
-      border: `1px solid ${isSubscribed ? 'rgba(41, 151, 255, 0.2)' : 'var(--glass-border)'}`,
-      borderRadius: '14px',
-      padding: '16px',
-      display: 'flex',
-      gap: '12px',
-      transition: 'all 0.15s',
-    }}
-  >
-    <img
-      src={`https://www.google.com/s2/favicons?domain=${new URL(source.siteUrl).hostname}&sz=128`}
-      alt=""
-      style={{ width: '36px', height: '36px', borderRadius: '9px', objectFit: 'cover', background: 'rgba(255,255,255,0.05)', flexShrink: 0, marginTop: '2px' }}
-      onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(source.name.charAt(0))}&background=1a1a2e&color=a5b4fc&bold=true&size=64`; }}
-    />
-    <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '6px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-          <span style={{ fontSize: '14px', fontWeight: '800', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{source.name}</span>
-          {source.lang === 'en' && (
-            <span style={{ fontSize: '9px', fontWeight: '800', color: 'rgba(251,191,36,0.85)', background: 'rgba(251,191,36,0.12)', padding: '2px 6px', borderRadius: '4px', flexShrink: 0 }}>EN→TH</span>
-          )}
-          {source.lang === 'th' && (
-            <span style={{ fontSize: '9px', fontWeight: '800', color: 'rgba(52,211,153,0.85)', background: 'rgba(52,211,153,0.12)', padding: '2px 6px', borderRadius: '4px', flexShrink: 0 }}>TH</span>
-          )}
-          {source.type === 'community' && (
-            <span style={{ fontSize: '9px', fontWeight: '800', color: 'rgba(168,85,247,0.85)', background: 'rgba(168,85,247,0.12)', padding: '2px 6px', borderRadius: '4px', flexShrink: 0 }}>Community</span>
-          )}
-        </div>
-        <button
-          onClick={onToggle}
+const SourceCard = ({
+  source,
+  isSubscribed,
+  onToggle,
+  postLists = [],
+  onTogglePostList,
+}: {
+  source: RssSource;
+  isSubscribed: boolean;
+  onToggle: () => void;
+  postLists?: PostList[];
+  onTogglePostList?: (
+    listId: string,
+    contributor: {
+      id: string;
+      username: string;
+      name: string;
+      profile_image_url: string;
+    },
+  ) => void;
+}) => {
+  const [showMenu, setShowMenu] = useState(false);
+  const faviconUrl = `https://www.google.com/s2/favicons?domain=${new URL(source.siteUrl).hostname}&sz=128`;
+  const rssUsername = `rss:${source.id}`;
+
+  return (
+    <div
+      className="animate-fade-in"
+      style={{
+        background: isSubscribed ? 'rgba(41, 151, 255, 0.04)' : 'rgba(255,255,255,0.02)',
+        border: `1px solid ${isSubscribed ? 'rgba(41, 151, 255, 0.2)' : 'var(--glass-border)'}`,
+        borderRadius: '14px',
+        padding: '16px',
+        display: 'flex',
+        gap: '12px',
+        transition: 'all 0.15s',
+        position: 'relative',
+        zIndex: showMenu ? 30 : 1,
+      }}
+    >
+      <img
+        src={faviconUrl}
+        alt=""
+        style={{
+          width: '36px',
+          height: '36px',
+          borderRadius: '9px',
+          objectFit: 'cover',
+          background: 'rgba(255,255,255,0.05)',
+          flexShrink: 0,
+          marginTop: '2px',
+        }}
+        onError={(e) => {
+          e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(source.name.charAt(0))}&background=1a1a2e&color=a5b4fc&bold=true&size=64`;
+        }}
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
           style={{
-            padding: '5px 12px',
-            borderRadius: '7px',
-            border: `1px solid ${isSubscribed ? 'rgba(34,197,94,0.25)' : 'rgba(41, 151, 255, 0.3)'}`,
-            background: isSubscribed ? 'rgba(34,197,94,0.08)' : 'rgba(41, 151, 255, 0.08)',
-            color: isSubscribed ? 'rgba(34,197,94,0.8)' : '#7eb8ff',
-            fontSize: '11px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
-            gap: '4px',
-            transition: 'all 0.15s',
+            justifyContent: 'space-between',
+            gap: '8px',
+            marginBottom: '6px',
           }}
         >
-          {isSubscribed ? <><Check size={11} /> เพิ่มแล้ว</> : <><Plus size={11} /> เพิ่มเข้า Feed</>}
-        </button>
-      </div>
-      <div style={{ fontSize: '12.5px', color: 'rgba(255,255,255,0.5)', lineHeight: '1.5', marginBottom: '6px' }}>
-        {source.description}
-      </div>
-      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)' }}>
-        {new URL(source.siteUrl).hostname.replace('www.', '')} · {source.frequency}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+            <span
+              style={{
+                fontSize: '14px',
+                fontWeight: '800',
+                color: '#fff',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {source.name}
+            </span>
+            {source.lang === 'en' && (
+              <span
+                style={{
+                  fontSize: '9px',
+                  fontWeight: '800',
+                  color: 'rgba(251,191,36,0.85)',
+                  background: 'rgba(251,191,36,0.12)',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  flexShrink: 0,
+                }}
+              >
+                EN→TH
+              </span>
+            )}
+            {source.lang === 'th' && (
+              <span
+                style={{
+                  fontSize: '9px',
+                  fontWeight: '800',
+                  color: 'rgba(52,211,153,0.85)',
+                  background: 'rgba(52,211,153,0.12)',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  flexShrink: 0,
+                }}
+              >
+                TH
+              </span>
+            )}
+            {source.type === 'community' && (
+              <span
+                style={{
+                  fontSize: '9px',
+                  fontWeight: '800',
+                  color: 'rgba(168,85,247,0.85)',
+                  background: 'rgba(168,85,247,0.12)',
+                  padding: '2px 6px',
+                  borderRadius: '4px',
+                  flexShrink: 0,
+                }}
+              >
+                Community
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            <div style={{ position: 'relative' }}>
+              <button
+                type="button"
+                onClick={() => setShowMenu((prev) => !prev)}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '9px',
+                  background: 'var(--bg-700)',
+                  border: '1px solid var(--glass-border)',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                title="เพิ่มเข้า Post List"
+              >
+                <Plus
+                  size={14}
+                  style={{
+                    transform: showMenu ? 'rotate(45deg)' : 'none',
+                    transition: 'transform 0.2s',
+                  }}
+                />
+              </button>
+
+              {showMenu && (
+                <>
+                  <div
+                    style={{ position: 'fixed', inset: 0, zIndex: 90 }}
+                    onClick={() => setShowMenu(false)}
+                  />
+                  <div
+                    className="discovery-menu"
+                    style={{
+                      display: 'block',
+                      position: 'absolute',
+                      top: 'calc(100% + 8px)',
+                      right: 0,
+                      zIndex: 100,
+                      minWidth: '220px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: '800',
+                        color: 'var(--text-muted)',
+                        padding: '8px 12px',
+                        borderBottom: '1px solid var(--glass-border)',
+                      }}
+                    >
+                      ADD TO POST LIST
+                    </div>
+                    <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                      {postLists.map((list) => {
+                        const isMember =
+                          Array.isArray(list.members) &&
+                          list.members.some(
+                            (member) =>
+                              String(member || '').toLowerCase() === rssUsername.toLowerCase(),
+                          );
+
+                        return (
+                          <button
+                            key={list.id}
+                            type="button"
+                            className={`discovery-menu-item ${isMember ? 'active' : ''}`}
+                            onClick={() => {
+                              onTogglePostList?.(list.id, {
+                                id: `rss-${source.id}`,
+                                username: rssUsername,
+                                name: source.name,
+                                profile_image_url: faviconUrl,
+                              });
+                              setShowMenu(false);
+                            }}
+                          >
+                            <span
+                              style={{
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                marginRight: '8px',
+                              }}
+                            >
+                              {list.name}
+                            </span>
+                            {isMember && <Check size={12} />}
+                          </button>
+                        );
+                      })}
+                      {postLists.length === 0 && (
+                        <div
+                          style={{
+                            padding: '12px',
+                            fontSize: '12px',
+                            color: 'var(--text-dim)',
+                            textAlign: 'center',
+                          }}
+                        >
+                          ยังไม่มี Post List
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <button
+              onClick={onToggle}
+              style={{
+                padding: '5px 12px',
+                borderRadius: '7px',
+                border: `1px solid ${isSubscribed ? 'rgba(34,197,94,0.25)' : 'rgba(41, 151, 255, 0.3)'}`,
+                background: isSubscribed ? 'rgba(34,197,94,0.08)' : 'rgba(41, 151, 255, 0.08)',
+                color: isSubscribed ? 'rgba(34,197,94,0.8)' : '#7eb8ff',
+                fontSize: '11px',
+                fontWeight: '700',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                transition: 'all 0.15s',
+              }}
+            >
+              {isSubscribed ? (
+                <>
+                  <Check size={11} /> อยู่ใน Watchlist แล้ว
+                </>
+              ) : (
+                <>
+                  <Plus size={11} /> เพิ่มเข้า Watchlist
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div
+          style={{
+            fontSize: '12.5px',
+            color: 'rgba(255,255,255,0.5)',
+            lineHeight: '1.5',
+            marginBottom: '6px',
+          }}
+        >
+          {source.description}
+        </div>
+        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)' }}>
+          {new URL(source.siteUrl).hostname.replace('www.', '')} · {source.frequency}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
-const NewsSourcesTab = ({ subscribedSources, onToggleSource }: NewsSourcesTabProps) => {
+const NewsSourcesTab = ({
+  subscribedSources,
+  onToggleSource,
+  postLists = [],
+  onTogglePostList,
+}: NewsSourcesTabProps) => {
   const [activeTopic, setActiveTopic] = useState<string>('all');
-  const subscribedIds = useMemo(() => new Set(subscribedSources.map((s) => s.id)), [subscribedSources]);
+  const subscribedIds = useMemo(
+    () => new Set(subscribedSources.map((s) => s.id)),
+    [subscribedSources],
+  );
 
   const filteredSources = useMemo(() => {
     const allSources = Object.values(RSS_CATALOG).flat();
@@ -88,8 +330,16 @@ const NewsSourcesTab = ({ subscribedSources, onToggleSource }: NewsSourcesTabPro
 
   return (
     <div className="animate-fade-in">
-      {/* Category filter pills */}
-      <div style={{ fontSize: '11px', fontWeight: '800', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '14px' }}>
+      <div
+        style={{
+          fontSize: '11px',
+          fontWeight: '800',
+          color: 'rgba(255,255,255,0.3)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          marginBottom: '14px',
+        }}
+      >
         กรองตามหมวด
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '28px' }}>
@@ -107,52 +357,102 @@ const NewsSourcesTab = ({ subscribedSources, onToggleSource }: NewsSourcesTabPro
             className={`audience-tab-btn ${activeTopic === key ? 'active-manual' : ''}`}
             style={{ minHeight: '34px', padding: '0 14px', fontSize: '12px' }}
           >
-            {icon} {label} <span style={{ opacity: 0.4, fontSize: '10px', marginLeft: '2px' }}>({count})</span>
+            {icon} {label}{' '}
+            <span style={{ opacity: 0.4, fontSize: '10px', marginLeft: '2px' }}>
+              ({count})
+            </span>
           </button>
         ))}
       </div>
 
-      {/* International sources */}
       {enSources.length > 0 && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
             <Globe2 size={16} style={{ color: 'rgba(255,255,255,0.4)' }} />
-            <span style={{ fontSize: '13px', fontWeight: '800', color: 'rgba(255,255,255,0.55)' }}>แหล่งข่าวต่างประเทศ</span>
-            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)' }}>· FORO แปลและสรุปเป็นไทยให้</span>
+            <span style={{ fontSize: '13px', fontWeight: '800', color: 'rgba(255,255,255,0.55)' }}>
+              แหล่งข่าวต่างประเทศ
+            </span>
+            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)' }}>
+              · FORO แปลและสรุปเป็นไทยให้
+            </span>
             <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }} />
-            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', fontWeight: '700' }}>{enSources.length} แหล่ง</span>
+            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', fontWeight: '700' }}>
+              {enSources.length} แหล่ง
+            </span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '8px' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '12px',
+              marginBottom: '8px',
+            }}
+          >
             {enSources.map((source) => (
-              <SourceCard key={source.id} source={source} isSubscribed={subscribedIds.has(source.id)} onToggle={() => onToggleSource(source)} />
+              <SourceCard
+                key={source.id}
+                source={source}
+                isSubscribed={subscribedIds.has(source.id)}
+                onToggle={() => onToggleSource(source)}
+                postLists={postLists}
+                onTogglePostList={onTogglePostList}
+              />
             ))}
           </div>
         </>
       )}
 
-      {/* Thai sources */}
       {thSources.length > 0 && (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '36px', marginBottom: '16px' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              marginTop: '36px',
+              marginBottom: '16px',
+            }}
+          >
             <span style={{ fontSize: '16px' }}>🇹🇭</span>
-            <span style={{ fontSize: '13px', fontWeight: '800', color: 'rgba(255,255,255,0.55)' }}>แหล่งข่าวไทย</span>
-            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)' }}>· รวมข่าวไทยไว้ในที่เดียว</span>
+            <span style={{ fontSize: '13px', fontWeight: '800', color: 'rgba(255,255,255,0.55)' }}>
+              แหล่งข่าวไทย
+            </span>
+            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)' }}>
+              · รวมข่าวไทยไว้ในที่เดียว
+            </span>
             <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }} />
-            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', fontWeight: '700' }}>{thSources.length} แหล่ง</span>
+            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', fontWeight: '700' }}>
+              {thSources.length} แหล่ง
+            </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
             {thSources.map((source) => (
-              <SourceCard key={source.id} source={source} isSubscribed={subscribedIds.has(source.id)} onToggle={() => onToggleSource(source)} />
+              <SourceCard
+                key={source.id}
+                source={source}
+                isSubscribed={subscribedIds.has(source.id)}
+                onToggle={() => onToggleSource(source)}
+                postLists={postLists}
+                onTogglePostList={onTogglePostList}
+              />
             ))}
           </div>
         </>
       )}
 
-      {/* Subscribed list */}
       {subscribedSources.length > 0 && (
         <div style={{ marginTop: '36px', paddingTop: '24px', borderTop: '1px solid var(--glass-border)' }}>
-          <div style={{ fontSize: '11px', fontWeight: '800', color: 'rgba(255,255,255,0.3)', marginBottom: '14px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            ▮ แหล่งข่าวที่ติดตามอยู่ ({subscribedSources.length})
+          <div
+            style={{
+              fontSize: '11px',
+              fontWeight: '800',
+              color: 'rgba(255,255,255,0.3)',
+              marginBottom: '14px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}
+          >
+            ▮ รายการใน Watchlist ({subscribedSources.length})
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {subscribedSources.map((source) => (
@@ -178,14 +478,41 @@ const NewsSourcesTab = ({ subscribedSources, onToggleSource }: NewsSourcesTabPro
                 />
                 {source.name}
                 {source.lang === 'en' && (
-                  <span style={{ fontSize: '8px', fontWeight: '800', color: 'rgba(251,191,36,0.7)', background: 'rgba(251,191,36,0.08)', padding: '1px 5px', borderRadius: '3px' }}>EN→TH</span>
+                  <span
+                    style={{
+                      fontSize: '8px',
+                      fontWeight: '800',
+                      color: 'rgba(251,191,36,0.7)',
+                      background: 'rgba(251,191,36,0.08)',
+                      padding: '1px 5px',
+                      borderRadius: '3px',
+                    }}
+                  >
+                    EN→TH
+                  </span>
                 )}
                 {source.lang === 'th' && (
-                  <span style={{ fontSize: '8px', fontWeight: '800', color: 'rgba(52,211,153,0.7)', background: 'rgba(52,211,153,0.08)', padding: '1px 5px', borderRadius: '3px' }}>TH</span>
+                  <span
+                    style={{
+                      fontSize: '8px',
+                      fontWeight: '800',
+                      color: 'rgba(52,211,153,0.7)',
+                      background: 'rgba(52,211,153,0.08)',
+                      padding: '1px 5px',
+                      borderRadius: '3px',
+                    }}
+                  >
+                    TH
+                  </span>
                 )}
                 <span
                   onClick={() => onToggleSource(source)}
-                  style={{ color: 'rgba(255,255,255,0.15)', cursor: 'pointer', fontSize: '12px', marginLeft: '2px' }}
+                  style={{
+                    color: 'rgba(255,255,255,0.15)',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    marginLeft: '2px',
+                  }}
                 >
                   <X size={12} />
                 </span>

@@ -43,6 +43,19 @@ const getAvailableAccounts = (watchlist, members) => {
   });
 };
 
+const getAvailableSources = (subscribedSources, members) => {
+  const memberHandles = new Set(
+    (Array.isArray(members) ? members : [])
+      .map((member) => String(member || '').trim().toLowerCase())
+      .filter(Boolean),
+  );
+
+  return (Array.isArray(subscribedSources) ? subscribedSources : []).filter((source) => {
+    const sourceHandle = `rss:${String(source?.id || '').trim().toLowerCase()}`;
+    return source?.id && !memberHandles.has(sourceHandle);
+  });
+};
+
 const buildKnownAccountPool = (watchlist, postLists) => {
   const byHandle = new Map();
 
@@ -87,8 +100,33 @@ const buildKnownAccountPool = (watchlist, postLists) => {
   });
 };
 
+const buildSourceLookup = (sources) => {
+  const byHandle = new Map();
+
+  (Array.isArray(sources) ? sources : []).forEach((source) => {
+    const sourceId = String(source?.id || '').trim().toLowerCase();
+    if (!sourceId) return;
+
+    const hostname = source?.siteUrl
+      ? new URL(source.siteUrl).hostname.replace('www.', '')
+      : '';
+
+    byHandle.set(`rss:${sourceId}`, {
+      id: sourceId,
+      name: source?.name || sourceId,
+      hostname,
+      profile_image_url: source?.siteUrl
+        ? `https://www.google.com/s2/favicons?domain=${new URL(source.siteUrl).hostname}&sz=128`
+        : '',
+    });
+  });
+
+  return byHandle;
+};
+
 const RightSidebar = ({
   watchlist,
+  subscribedSources,
   postLists,
   activeListId,
   onSelectList,
@@ -131,6 +169,7 @@ const RightSidebar = ({
   ];
 
   const accountPool = buildKnownAccountPool(watchlist, postLists);
+  const sourceLookup = buildSourceLookup(subscribedSources);
   const currentExpandedId = expandedId
     && (Array.isArray(postLists) ? postLists : []).some((list) => list?.id === expandedId)
     ? expandedId
@@ -260,6 +299,7 @@ const RightSidebar = ({
                 .filter(Boolean),
             );
             const availableAccounts = getAvailableAccounts(accountPool, list.members);
+            const availableSources = getAvailableSources(subscribedSources, list.members);
             const normalizedQuery = normalizeHandle(addHandle);
             const matchingAccounts = (normalizedQuery
               ? availableAccounts.filter((user) => {
@@ -273,6 +313,23 @@ const RightSidebar = ({
               if (priorityDiff !== 0) return priorityDiff;
               return (left?.name || left?.username || '').localeCompare(right?.name || right?.username || '');
             });
+            const matchingSources = (normalizedQuery
+              ? availableSources.filter((source) => {
+                  const sourceHandle = `rss:${String(source?.id || '').trim().toLowerCase()}`;
+                  const sourceName = String(source?.name || '').trim().toLowerCase();
+                  const hostname = source?.siteUrl
+                    ? new URL(source.siteUrl).hostname.replace('www.', '').toLowerCase()
+                    : '';
+                  return (
+                    sourceHandle.includes(normalizedQuery) ||
+                    sourceName.includes(normalizedQuery) ||
+                    hostname.includes(normalizedQuery)
+                  );
+                })
+              : availableSources
+            ).sort((left, right) =>
+              String(left?.name || left?.id || '').localeCompare(String(right?.name || right?.id || '')),
+            );
             const typeaheadAccounts = matchingAccounts.slice(0, 6);
             const exactMatch = normalizedQuery
               ? matchingAccounts.find((user) => normalizeHandle(user?.username) === normalizedQuery)
@@ -281,14 +338,14 @@ const RightSidebar = ({
             const canAddManually = normalizedQuery && !normalizedMembers.has(normalizedQuery) && matchingAccounts.length === 0;
             const highlightedAccount = typeaheadAccounts[highlightedSuggestion] || null;
             const helperText = !normalizedQuery
-              ? `Browse all ${availableAccounts.length} available accounts from your saved people and lists.`
+              ? `Browse ${availableAccounts.length} accounts and ${availableSources.length} sources from your saved watchlist.`
               : exactMatch
                 ? `Press Enter to add @${exactMatch.username}.`
                 : singleMatch
                   ? `Press Enter to add @${singleMatch.username}.`
                   : canAddManually
                     ? `No watchlist match found. Press Enter to add @${normalizedQuery} manually.`
-                    : `Found ${matchingAccounts.length} matching accounts in your saved people and lists.`;
+                    : `Found ${matchingAccounts.length} accounts and ${matchingSources.length} sources in your saved watchlist.`;
             const handleSubmitAdd = () => {
               if (!normalizedQuery) return;
 
@@ -312,10 +369,13 @@ const RightSidebar = ({
             };
 
             const showTypeahead = isAddInputFocused && (typeaheadAccounts.length > 0 || canAddManually || normalizedQuery);
-            const showAvailableAccounts = !normalizedQuery;
+            const showAvailableAccounts = true;
+            const showAvailableSources = true;
             const showAllAvailable = Boolean(showAllAvailableByList[list.id]);
             const availableAccountsPreview = showAllAvailable ? matchingAccounts : matchingAccounts.slice(0, 6);
+            const availableSourcesPreview = showAllAvailable ? matchingSources : matchingSources.slice(0, 6);
             const hiddenAvailableCount = Math.max(0, matchingAccounts.length - availableAccountsPreview.length);
+            const hiddenSourceCount = Math.max(0, matchingSources.length - availableSourcesPreview.length);
 
             const handleInputKeyDown = (e) => {
               if (e.key === 'ArrowDown') {
@@ -522,7 +582,7 @@ const RightSidebar = ({
                   <div ref={addInputAreaRef} style={{ position: 'relative', marginBottom: '16px', padding: '0 4px' }}>
                     <input 
                       type="text" 
-                      placeholder="Search your watchlist or type @handle" 
+                      placeholder="Search accounts, sources, or type @handle" 
                       value={addHandle}
                       onChange={(e) => {
                         setAddHandle(e.target.value);
@@ -596,19 +656,23 @@ const RightSidebar = ({
                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginBottom: '20px' }}>
                      {list.members.length > 0 && list.members.map(handle => {
                        const userAcc = watchlist.find(u => normalizeHandle(u?.username) === normalizeHandle(handle));
+                       const sourceMeta = sourceLookup.get(String(handle || '').trim().toLowerCase());
+                       const isRssMember = String(handle || '').trim().toLowerCase().startsWith('rss:');
                        return (
                          <div key={handle} className="member-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', borderRadius: '8px', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                            <img 
-                             src={userAcc?.profile_image_url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png'} 
+                             src={sourceMeta?.profile_image_url || userAcc?.profile_image_url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png'} 
                              alt={handle}
                              style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }}
                              onError={e => { 
-                               e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(handle)}&background=random&color=fff&bold=true`; 
+                               e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(sourceMeta?.name || handle)}&background=random&color=fff&bold=true`; 
                              }}
                            />
                            <div style={{ flex: 1, minWidth: 0 }}>
-                             <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{userAcc?.name || handle}</div>
-                             <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>@{handle}</div>
+                             <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sourceMeta?.name || userAcc?.name || handle}</div>
+                             <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>
+                               {isRssMember ? (sourceMeta?.hostname || handle) : `@${handle}`}
+                             </div>
                            </div>
                            <button onClick={() => onRemoveMember(handle, list.id)} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', cursor: 'pointer', padding: '4px' }} onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-dim)'}>
                              <X size={16} />
@@ -672,6 +736,64 @@ const RightSidebar = ({
                         </div>
                       </div>
                     )}
+
+                   {(showAvailableSources && availableSources.length > 0) && (
+                     <div className="animate-fade-in" style={{ marginTop: showAvailableAccounts && availableAccounts.length > 0 ? '22px' : 0 }}>
+                       <div style={{ padding: '0 8px 12px', fontSize: '14px', fontWeight: '800', color: '#fff', letterSpacing: '-0.01em' }}>
+                         {`Available sources (${availableSources.length})`}
+                       </div>
+                       <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                         {availableSourcesPreview.map((source) => {
+                           const faviconUrl = source?.siteUrl
+                             ? `https://www.google.com/s2/favicons?domain=${new URL(source.siteUrl).hostname}&sz=128`
+                             : '';
+                           const hostname = source?.siteUrl
+                             ? new URL(source.siteUrl).hostname.replace('www.', '')
+                             : source?.id;
+
+                           return (
+                             <div key={source.id} className="suggestion-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', borderRadius: '8px', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                               <img
+                                 src={faviconUrl || 'https://ui-avatars.com/api/?name=R&background=random&color=fff&bold=true'}
+                                 alt={source.name}
+                                 style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', opacity: 0.9 }}
+                                 onError={e => {
+                                   e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(source.name || source.id)}&background=random&color=fff&bold=true`;
+                                 }}
+                               />
+                               <div style={{ flex: 1, minWidth: 0 }}>
+                                 <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{source.name}</div>
+                                 <div style={{ fontSize: '12px', color: 'var(--text-dim)' }}>{hostname}</div>
+                               </div>
+                               <button
+                                 onClick={() => {
+                                   onAddMember(list.id, `rss:${source.id}`);
+                                   setAddHandle('');
+                                 }}
+                                 style={{ border: '1px solid var(--text-dim)', background: 'transparent', borderRadius: '999px', color: '#fff', padding: '6px 16px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s' }}
+                                 onMouseEnter={e => { e.currentTarget.style.borderColor = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
+                                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--text-dim)'; e.currentTarget.style.background = 'transparent'; }}
+                               >Add</button>
+                             </div>
+                           );
+                         })}
+                         {matchingSources.length > 6 && (
+                           <button
+                             type="button"
+                             onClick={() => {
+                               setShowAllAvailableByList((current) => ({
+                                 ...current,
+                                 [list.id]: !showAllAvailable,
+                               }));
+                             }}
+                             style={{ marginTop: '8px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', borderRadius: '999px', color: '#fff', padding: '8px 14px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', alignSelf: 'flex-start' }}
+                           >
+                             {showAllAvailable ? 'Show less' : `View all${hiddenSourceCount > 0 ? ` (+${hiddenSourceCount})` : ''}`}
+                           </button>
+                         )}
+                       </div>
+                     </div>
+                   )}
                  </div>
                )}
              </React.Fragment>

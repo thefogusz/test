@@ -670,7 +670,7 @@ const App = () => {
       />
       {showRightSidebar && (
         <RightSidebar
-          watchlist={watchlist} postLists={postLists} activeListId={activeListId}
+          watchlist={watchlist} subscribedSources={subscribedSources} postLists={postLists} activeListId={activeListId}
           onSelectList={setActiveListId}
           onCreateList={handleCreateListRequest}
           onImportList={handleImportListRequest}
