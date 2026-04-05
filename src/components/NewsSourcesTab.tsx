@@ -14,69 +14,59 @@ const SourceCard = ({ source, isSubscribed, onToggle }: { source: RssSource; isS
     style={{
       background: isSubscribed ? 'rgba(41, 151, 255, 0.04)' : 'rgba(255,255,255,0.02)',
       border: `1px solid ${isSubscribed ? 'rgba(41, 151, 255, 0.2)' : 'var(--glass-border)'}`,
-      borderRadius: '14px',
-      padding: '16px',
+      borderRadius: '12px',
+      padding: '12px 14px',
       display: 'flex',
-      gap: '12px',
+      alignItems: 'center',
+      gap: '10px',
       transition: 'all 0.15s',
     }}
   >
     <img
       src={`https://www.google.com/s2/favicons?domain=${new URL(source.siteUrl).hostname}&sz=128`}
       alt=""
-      style={{ width: '36px', height: '36px', borderRadius: '9px', objectFit: 'cover', background: 'rgba(255,255,255,0.05)', flexShrink: 0 }}
+      style={{ width: '28px', height: '28px', borderRadius: '7px', objectFit: 'cover', background: 'rgba(255,255,255,0.05)', flexShrink: 0 }}
       onError={(e) => { e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(source.name.charAt(0))}&background=1a1a2e&color=a5b4fc&bold=true&size=64`; }}
     />
     <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '1px' }}>
-            <span style={{ fontSize: '13px', fontWeight: '800', color: '#fff' }}>{source.name}</span>
-            {source.lang === 'en' && (
-              <span style={{ fontSize: '9px', fontWeight: '800', color: 'rgba(251,191,36,0.8)', background: 'rgba(251,191,36,0.1)', padding: '2px 6px', borderRadius: '4px' }}>EN → TH</span>
-            )}
-            {source.lang === 'th' && (
-              <span style={{ fontSize: '9px', fontWeight: '800', color: 'rgba(52,211,153,0.8)', background: 'rgba(52,211,153,0.1)', padding: '2px 6px', borderRadius: '4px' }}>TH</span>
-            )}
-            {source.type === 'community' && (
-              <span style={{ fontSize: '9px', fontWeight: '800', color: 'rgba(168,85,247,0.8)', background: 'rgba(168,85,247,0.1)', padding: '2px 6px', borderRadius: '4px' }}>Community</span>
-            )}
-          </div>
-          <div style={{ fontSize: '10.5px', color: 'rgba(255,255,255,0.25)', marginBottom: '5px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {new URL(source.siteUrl).hostname.replace('www.', '')}
-          </div>
-          <div style={{ fontSize: '11.5px', color: 'rgba(255,255,255,0.45)', lineHeight: '1.5', marginBottom: '8px' }}>
-            {source.description}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '10px', fontWeight: '700', color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.04)', padding: '2px 7px', borderRadius: '5px' }}>
-              {source.frequency}
-            </span>
-          </div>
-        </div>
-        <button
-          onClick={onToggle}
-          style={{
-            padding: '5px 12px',
-            borderRadius: '7px',
-            border: `1px solid ${isSubscribed ? 'rgba(34,197,94,0.2)' : 'rgba(41, 151, 255, 0.3)'}`,
-            background: isSubscribed ? 'rgba(34,197,94,0.08)' : 'rgba(41, 151, 255, 0.08)',
-            color: isSubscribed ? 'rgba(34,197,94,0.7)' : '#7eb8ff',
-            fontSize: '10.5px',
-            fontWeight: '700',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            transition: 'all 0.15s',
-          }}
-        >
-          {isSubscribed ? <><Check size={11} /> เพิ่มแล้ว</> : <><Plus size={11} /> เพิ่มเข้า Feed</>}
-        </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '2px' }}>
+        <span style={{ fontSize: '12.5px', fontWeight: '800', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{source.name}</span>
+        {source.lang === 'en' && (
+          <span style={{ fontSize: '8px', fontWeight: '800', color: 'rgba(251,191,36,0.8)', background: 'rgba(251,191,36,0.1)', padding: '1px 5px', borderRadius: '3px', flexShrink: 0 }}>EN→TH</span>
+        )}
+        {source.lang === 'th' && (
+          <span style={{ fontSize: '8px', fontWeight: '800', color: 'rgba(52,211,153,0.8)', background: 'rgba(52,211,153,0.1)', padding: '1px 5px', borderRadius: '3px', flexShrink: 0 }}>TH</span>
+        )}
+        {source.type === 'community' && (
+          <span style={{ fontSize: '8px', fontWeight: '800', color: 'rgba(168,85,247,0.8)', background: 'rgba(168,85,247,0.1)', padding: '1px 5px', borderRadius: '3px', flexShrink: 0 }}>Community</span>
+        )}
+      </div>
+      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {source.description}
+        <span style={{ color: 'rgba(255,255,255,0.2)', marginLeft: '6px' }}>{source.frequency}</span>
       </div>
     </div>
+    <button
+      onClick={onToggle}
+      style={{
+        padding: '4px 10px',
+        borderRadius: '6px',
+        border: `1px solid ${isSubscribed ? 'rgba(34,197,94,0.2)' : 'rgba(41, 151, 255, 0.25)'}`,
+        background: isSubscribed ? 'rgba(34,197,94,0.08)' : 'rgba(41, 151, 255, 0.06)',
+        color: isSubscribed ? 'rgba(34,197,94,0.7)' : '#7eb8ff',
+        fontSize: '10px',
+        fontWeight: '700',
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+        flexShrink: 0,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '3px',
+        transition: 'all 0.15s',
+      }}
+    >
+      {isSubscribed ? <><Check size={10} /> เพิ่มแล้ว</> : <><Plus size={10} /> เพิ่ม</>}
+    </button>
   </div>
 );
 
@@ -129,7 +119,7 @@ const NewsSourcesTab = ({ subscribedSources, onToggleSource }: NewsSourcesTabPro
             <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }} />
             <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', fontWeight: '700' }}>{enSources.length} แหล่ง</span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '8px' }}>
             {enSources.map((source) => (
               <SourceCard key={source.id} source={source} isSubscribed={subscribedIds.has(source.id)} onToggle={() => onToggleSource(source)} />
             ))}
@@ -147,7 +137,7 @@ const NewsSourcesTab = ({ subscribedSources, onToggleSource }: NewsSourcesTabPro
             <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }} />
             <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', fontWeight: '700' }}>{thSources.length} แหล่ง</span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
             {thSources.map((source) => (
               <SourceCard key={source.id} source={source} isSubscribed={subscribedIds.has(source.id)} onToggle={() => onToggleSource(source)} />
             ))}
