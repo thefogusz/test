@@ -19,6 +19,7 @@ import { fetchAllSubscribedFeeds, type RssSourceInfo } from '../services/RssServ
 import {
   deriveVisibleFeed,
   getPostSummarySourceText,
+  hasSubstantialThaiContent,
   hasUsefulThaiSummary,
   sanitizeStoredPost,
 } from '../utils/appUtils';
@@ -126,6 +127,19 @@ export const useHomeFeedWorkspace = ({
     setPendingFeed([]);
   }, [activeListId, activeView, setPendingFeed]);
 
+  const isThaiNativeRssPost = (post: any) => {
+    if (String(post?.sourceType || '').trim().toLowerCase() !== 'rss') return false;
+
+    const normalizedLang = String(post?.lang || '').trim().toLowerCase();
+    if (normalizedLang.startsWith('th')) return true;
+
+    return hasSubstantialThaiContent(getPostSummarySourceText(post), {
+      minThaiChars: 18,
+      minThaiRatio: 0.22,
+      minLetterCount: 36,
+    });
+  };
+
   useEffect(() => {
     if (activeView === 'search' || isFiltered) return;
 
@@ -186,6 +200,7 @@ export const useHomeFeedWorkspace = ({
       .filter(
         (post) =>
           post?.id &&
+          !isThaiNativeRssPost(post) &&
           !hasUsefulThaiSummary(post.summary, getPostSummarySourceText(post)) &&
           !failedThaiSummaryIdsRef.current.has(post.id),
       )
@@ -249,6 +264,7 @@ export const useHomeFeedWorkspace = ({
         const chunk = newBatch.slice(index, index + CHUNK_SIZE);
         const toSummarize = chunk.filter((tweet) => {
           const existing = runningFeed.find((post) => post.id === tweet.id);
+          if (isThaiNativeRssPost(existing || tweet)) return false;
           return !hasUsefulThaiSummary(
             existing?.summary || tweet.summary,
             getPostSummarySourceText(existing || tweet),

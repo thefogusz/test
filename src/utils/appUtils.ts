@@ -27,6 +27,7 @@ export const mergeUniquePostsById = (...collections) => {
 };
 
 const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
+const UNICODE_LETTER_REGEX = /\p{L}/gu;
 const EDGE_QUOTES_REGEX = /^[\s"'`\u2018\u2019\u201C\u201D]+|[\s"'`\u2018\u2019\u201C\u201D]+$/g;
 const RSS_TITLE_ONLY_MAX_TITLE_WITH_MEDIA = 82;
 const RSS_TITLE_ONLY_MAX_TITLE_NO_MEDIA = 100;
@@ -37,6 +38,35 @@ const RSS_TITLE_ONLY_MAX_COMBINED_NO_MEDIA = 172;
 
 export const hasThaiCharacters = (value) => THAI_CHAR_REGEX.test((value || '').trim());
 
+export const hasSubstantialThaiContent = (
+  value,
+  options: {
+    minThaiChars?: number;
+    minThaiRatio?: number;
+    minLetterCount?: number;
+  } = {},
+) => {
+  const {
+    minThaiChars = 10,
+    minThaiRatio = 0.18,
+    minLetterCount = 18,
+  } = options;
+
+  const trimmedValue = String(value || '').trim();
+  if (!trimmedValue) return false;
+
+  const thaiCount = (trimmedValue.match(/[\u0E00-\u0E7F]/g) || []).length;
+  if (thaiCount < minThaiChars) return false;
+
+  const letterMatches = trimmedValue.match(UNICODE_LETTER_REGEX) || [];
+  const letterCount = letterMatches.length;
+  if (letterCount < minLetterCount) {
+    return thaiCount >= minThaiChars;
+  }
+
+  return thaiCount / letterCount >= minThaiRatio;
+};
+
 export const hasUsefulThaiSummary = (summary, originalText = '') => {
   const trimmedSummary = (summary || '').trim();
   const trimmedOriginal = (originalText || '').trim();
@@ -45,7 +75,11 @@ export const hasUsefulThaiSummary = (summary, originalText = '') => {
   if (trimmedSummary.startsWith('(Grok')) return false;
   if (trimmedOriginal && trimmedSummary === trimmedOriginal) return false;
 
-  return hasThaiCharacters(trimmedSummary);
+  return hasSubstantialThaiContent(trimmedSummary, {
+    minThaiChars: 10,
+    minThaiRatio: 0.18,
+    minLetterCount: 18,
+  });
 };
 
 const pickThaiHeadlineFromSummary = (summary = '') => {

@@ -148,6 +148,7 @@ const rssItemToPost = (item: RssItem, source: RssSourceInfo): Post => {
   return {
     id: postId,
     sourceType: 'rss',
+    lang: source.lang,
     text: normalizedDescription || normalizedTitle,
     full_text: fullText || normalizedTitle,
     title: item.title,

@@ -58,6 +58,7 @@ export interface Post {
   id?: string;
   type?: string;
   sourceType?: string;
+  lang?: string;
   isXVideo?: boolean;
   isRepost?: boolean;
   repostedByName?: string;

@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { fetchReadableArticle } from '../services/ArticleService';
 import { generateArticleInsights, translateArticleToThai } from '../services/GrokService';
-import { hasThaiCharacters } from '../utils/appUtils';
+import { hasSubstantialThaiContent } from '../utils/appUtils';
 import { cleanMarkdownForClipboard, normalizeSummaryMarkdown, renderMarkdownToHtml } from '../utils/markdown';
 
 const ARTICLE_CACHE = new Map();
@@ -183,7 +183,11 @@ const ArticleReaderModal = ({
       .slice(0, 500)
       .trim();
 
-    return Boolean(textSample) && !hasThaiCharacters(textSample);
+    return Boolean(textSample) && !hasSubstantialThaiContent(textSample, {
+      minThaiChars: 40,
+      minThaiRatio: 0.24,
+      minLetterCount: 80,
+    });
   }, [article, effectiveArticleState.data, effectiveArticleState.status, isRemoteArticle]);
 
   const translationKey = useMemo(() => {
@@ -361,6 +365,10 @@ const ArticleReaderModal = ({
     : effectiveTranslationState.status === 'loading' && shouldTranslateArticle
       ? '<p>กำลังแปลบทความเป็นภาษาไทย...</p>'
       : renderSourceBodyHtml(article, articleData);
+  const articleBodyHtml =
+    effectiveTranslationState.status === 'loading' && shouldTranslateArticle
+      ? renderSourceBodyHtml(article, articleData)
+      : bodyHtml;
   const articleCopyValue = translatedMarkdown
     ? cleanMarkdownForClipboard(translatedMarkdown)
     : articleData?.textContent
@@ -601,7 +609,7 @@ const ArticleReaderModal = ({
 
         <div
           className="markdown-body article-reader-markdown article-reader-body"
-          dangerouslySetInnerHTML={{ __html: bodyHtml }}
+          dangerouslySetInnerHTML={{ __html: articleBodyHtml }}
         />
 
         <div className="article-reader-footer">
