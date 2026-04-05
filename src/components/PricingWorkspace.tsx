@@ -84,7 +84,7 @@ const PricingWorkspace = ({
   }, [isBuyModalVisible]);
 
   useEffect(() => {
-    if (!isVisible || !isBuyModalOpen) {
+    if (isVisible || !isBuyModalOpen) {
       return undefined;
     }
 
