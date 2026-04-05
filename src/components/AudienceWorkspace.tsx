@@ -7,6 +7,7 @@ import {
   Bot,
   BrainCircuit,
   BriefcaseBusiness,
+  Code2,
   ChartColumn,
   Cpu,
   Globe2,
@@ -17,6 +18,7 @@ import {
   Plus,
   RefreshCw,
   Search,
+  Shield,
   Users,
   TrendingUp,
 } from 'lucide-react';
@@ -59,6 +61,8 @@ const AudienceWorkspace = ({
     { icon: BadgeDollarSign, label: '\u0e01\u0e32\u0e23\u0e40\u0e07\u0e34\u0e19', tone: 'emerald' },
     { icon: ChartColumn, label: '\u0e01\u0e32\u0e23\u0e25\u0e07\u0e17\u0e38\u0e19', tone: 'cyan' },
     { icon: Bitcoin, label: '\u0e04\u0e23\u0e34\u0e1b\u0e42\u0e15', tone: 'orange' },
+    { icon: Shield, label: '\u0e44\u0e0b\u0e40\u0e1a\u0e2d\u0e23\u0e4c', tone: 'slate' },
+    { icon: Code2, label: '\u0e19\u0e31\u0e01\u0e1e\u0e31\u0e12\u0e19\u0e32', tone: 'indigo' },
     { icon: HeartPulse, label: '\u0e2a\u0e38\u0e02\u0e20\u0e32\u0e1e', tone: 'red' },
     { icon: Leaf, label: '\u0e44\u0e25\u0e1f\u0e4c\u0e2a\u0e44\u0e15\u0e25\u0e4c', tone: 'green' },
     { icon: Globe2, label: '\u0e40\u0e28\u0e23\u0e29\u0e10\u0e01\u0e34\u0e08', tone: 'sky' },
@@ -256,6 +260,21 @@ const AudienceWorkspace = ({
                 'การเงิน': 'finance', finance: 'finance', 'การลงทุน': 'finance',
                 'วิทยาศาสตร์': 'science', science: 'science',
               };
+              Object.assign(KEYWORD_TO_TOPIC, {
+                '\u0e44\u0e0b\u0e40\u0e1a\u0e2d\u0e23\u0e4c': 'security',
+                security: 'security',
+                cybersecurity: 'security',
+                infosec: 'security',
+                threat: 'security',
+                malware: 'security',
+                '\u0e19\u0e31\u0e01\u0e1e\u0e31\u0e12\u0e19\u0e32': 'developer',
+                developer: 'developer',
+                dev: 'developer',
+                coding: 'developer',
+                programming: 'developer',
+                devops: 'developer',
+                cloud: 'developer',
+              });
               const matchedTopic = Object.entries(KEYWORD_TO_TOPIC).find(([kw]) => q.includes(kw))?.[1];
               const matchedSources = matchedTopic ? (RSS_CATALOG[matchedTopic] || []) : [];
               const subscribedIds = new Set(subscribedSources.map((s) => s.id));
