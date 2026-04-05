@@ -59,6 +59,7 @@ type SearchCacheSnapshot = {
 };
 
 type SearchMediaType = 'all' | 'videos';
+type SearchSummaryMode = 'balanced' | 'rss_first';
 
 const onlyNews = true;
 const SEARCH_CACHE_VERSION = 'v2';
@@ -136,6 +137,12 @@ const shouldUseSearchExpansion = ({
 
   return isComplexQuery || isLatestMode;
 };
+
+const buildSearchSummaryWebContext = (sources: any[] = []) =>
+  sources
+    .map((src: any) => `${src.citation_id || ''} ${src.title || ''} ${src.content || ''}`.trim())
+    .filter(Boolean)
+    .join('\n');
 
 const RSS_SEARCH_STOP_TERMS = new Set([
   'a',
@@ -230,6 +237,38 @@ const mergeSearchCards = (xResults: any[], rssResults: any[], latestMode: boolea
   }
 
   return mergeUniquePostsById(merged).map(sanitizeStoredPost);
+};
+
+const buildSummaryCandidates = (
+  posts: any[],
+  summaryMode: SearchSummaryMode,
+  latestMode: boolean,
+) => {
+  const normalizedPosts = mergeUniquePostsById(posts).map(sanitizeStoredPost);
+  if (summaryMode !== 'rss_first') return normalizedPosts.slice(0, 10);
+
+  const sortForSummary = (items: any[]) =>
+    latestMode
+      ? [...items].sort(
+          (left, right) =>
+            new Date(right?.created_at || right?.createdAt || 0).getTime() -
+            new Date(left?.created_at || left?.createdAt || 0).getTime(),
+        )
+      : [...items];
+
+  const rssPosts = sortForSummary(normalizedPosts.filter((post) => post?.sourceType === 'rss'));
+  const xPosts = sortForSummary(normalizedPosts.filter((post) => post?.sourceType !== 'rss'));
+
+  if (!rssPosts.length || !xPosts.length) return normalizedPosts.slice(0, 10);
+
+  const blended: any[] = [];
+  while ((rssPosts.length || xPosts.length) && blended.length < 10) {
+    if (rssPosts.length) blended.push(rssPosts.shift());
+    if (rssPosts.length) blended.push(rssPosts.shift());
+    if (xPosts.length) blended.push(xPosts.shift());
+  }
+
+  return mergeUniquePostsById(blended).map(sanitizeStoredPost).slice(0, 10);
 };
 
 const readNextCursor = (meta: { next_cursor?: string | null } | null | undefined) =>
@@ -353,6 +392,10 @@ export const useSearchWorkspace = ({
     STORAGE_KEYS.searchMediaType,
     'all',
   );
+  const [searchSummaryMode, setSearchSummaryMode] = usePersistentState<SearchSummaryMode>(
+    STORAGE_KEYS.searchSummaryMode,
+    'balanced',
+  );
   const [searchResults, setSearchResults] = useIndexedDbState(STORAGE_KEYS.searchResults, [], {
     deserialize: deserializeStoredCollection,
   });
@@ -459,6 +502,12 @@ export const useSearchWorkspace = ({
     });
   };
 
+  const canUseRssWeightedSummary =
+    searchMediaType !== 'videos' && Array.isArray(subscribedSources) && subscribedSources.length > 0;
+  const effectiveSummaryMode: SearchSummaryMode = canUseRssWeightedSummary
+    ? searchSummaryMode
+    : 'balanced';
+
   const searchMutation = useMutation({
     mutationFn: async ({
       isMore = false,
@@ -513,7 +562,7 @@ export const useSearchWorkspace = ({
       });
       const searchQueryType = effectiveLatestMode ? 'Latest' : 'Top';
       const cacheKey = getSearchCacheKey(
-        `${requestedQuery}::${searchMediaType}`,
+        `${requestedQuery}::${searchMediaType}::${effectiveSummaryMode}`,
         searchQueryType,
       );
 
@@ -930,9 +979,14 @@ export const useSearchWorkspace = ({
             const summaryIntent = analyzeSearchQueryIntent(requestedQuery);
             const shouldPreferXSummary =
               searchMediaType === 'videos' || summaryIntent.queryKey === 'viral_video';
+            const summaryCandidates = buildSummaryCandidates(
+              mergedResults,
+              effectiveSummaryMode,
+              effectiveLatestMode,
+            );
 
             generateExecutiveSummary(
-              prioritizedCleanData.slice(0, 10),
+              summaryCandidates,
               requestedQuery,
               (_, fullText) => {
                 setSearchSummary(fullText);
@@ -942,6 +996,7 @@ export const useSearchWorkspace = ({
                 preferXSummary: shouldPreferXSummary,
                 allowWebLead: !shouldPreferXSummary,
                 focusMode: effectiveFocus,
+                summaryMode: effectiveSummaryMode,
               },
             )
               .then((summaryText) => {
@@ -1093,14 +1148,16 @@ export const useSearchWorkspace = ({
       setSearchSummary('');
       const shouldPreferXSummary =
         searchMediaType === 'videos' || currentQueryIntent.queryKey === 'viral_video';
-      const webContext = (searchWebSources || [])
-        .map((src: any) => `${src.citation_id || ''} ${src.title || ''} ${src.content || ''}`.trim())
-        .filter(Boolean)
-        .join('\n');
+      const webContext = buildSearchSummaryWebContext(searchWebSources || []);
+      const summaryCandidates = buildSummaryCandidates(
+        reranked,
+        effectiveSummaryMode,
+        isLatestMode,
+      );
 
       try {
         const summary = await generateExecutiveSummary(
-          reranked.slice(0, 10),
+          summaryCandidates,
           normalizedLabel || searchQuery,
           (_, fullText) => setSearchSummary(fullText),
           webContext,
@@ -1108,12 +1165,68 @@ export const useSearchWorkspace = ({
             preferXSummary: shouldPreferXSummary,
             allowWebLead: !shouldPreferXSummary,
             focusMode: focus,
+            summaryMode: effectiveSummaryMode,
           },
         );
         if (summary) setSearchSummary(summary);
       } catch (error) {
         console.warn('[Search] Focus summary refresh failed:', error);
       }
+    }
+  };
+
+  const handleSearchSummaryModeChange = async (nextMode: SearchSummaryMode) => {
+    setSearchSummaryMode(nextMode);
+
+    if (searchResults.length === 0 || searchMediaType === 'videos') return;
+
+    const normalizedLabel = normalizeSearchLabel(lastSubmittedSearchQuery || searchQuery);
+    const queryLabel = normalizedLabel || searchQuery;
+    if (!queryLabel) return;
+
+    setSearchSummary('');
+    setStatus(
+      nextMode === 'rss_first'
+        ? 'กำลังสรุปแบบให้น้ำหนัก RSS มากขึ้น พร้อมเก็บสัญญาณจาก X...'
+        : 'กำลังสรุปแบบสมดุลระหว่าง RSS และ X...',
+    );
+
+    const shouldPreferXSummary = currentQueryIntent.queryKey === 'viral_video';
+    const webContext = buildSearchSummaryWebContext(searchWebSources || []);
+    const summaryCandidates = buildSummaryCandidates(searchResults, nextMode, isLatestMode);
+    const queryMode = isLatestMode || currentQueryIntent.forceLatestMode ? 'Latest' : 'Top';
+    const nextCacheKey = getSearchCacheKey(
+      `${queryLabel}::${searchMediaType}::${nextMode}`,
+      queryMode,
+    );
+
+    try {
+      const summary = await generateExecutiveSummary(
+        summaryCandidates,
+        queryLabel,
+        (_, fullText) => setSearchSummary(fullText),
+        webContext,
+        {
+          preferXSummary: shouldPreferXSummary,
+          allowWebLead: !shouldPreferXSummary,
+          focusMode: activeSearchFocus,
+          summaryMode: nextMode,
+        },
+      );
+
+      if (summary) {
+        setSearchSummary(summary);
+        queryClient.setQueryData<SearchCacheSnapshot>(nextCacheKey, (prev) => ({
+          lastSubmittedSearchQuery: queryLabel,
+          searchCursor: prev?.searchCursor ?? searchCursor,
+          searchOverflowResults: prev?.searchOverflowResults ?? searchOverflowResults,
+          searchResults: prev?.searchResults ?? searchResults,
+          searchSummary: summary,
+          searchWebSources: searchWebSources,
+        }));
+      }
+    } catch (error) {
+      console.warn('[Search] Summary mode refresh failed:', error);
     }
   };
 
@@ -1156,6 +1269,7 @@ export const useSearchWorkspace = ({
     activeSuggestionIndex,
     addSearchPreset,
     applySearchFocus,
+    canUseRssWeightedSummary,
     canSaveCurrentSearchAsPreset,
     dismissSearchChoices,
     dynamicSearchTags,
@@ -1183,6 +1297,7 @@ export const useSearchWorkspace = ({
     searchQuery,
     searchResults,
     searchChoiceOptions,
+    searchSummaryMode,
     searchStatusMessage,
     searchSummary,
     searchWebSources,
@@ -1195,6 +1310,7 @@ export const useSearchWorkspace = ({
     setSearchQuery,
     setSearchResults,
     setSearchSummary,
+    setSearchSummaryMode: handleSearchSummaryModeChange,
     setSearchWebSources,
     setShowSuggestions,
     shouldShowSearchChoices,

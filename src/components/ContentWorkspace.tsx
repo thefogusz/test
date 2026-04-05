@@ -44,6 +44,7 @@ const ContentWorkspace = ({
   setSearchMediaType,
   activeSearchFocus,
   applySearchFocus,
+  canUseRssWeightedSummary,
   dismissSearchChoices,
   suggestions,
   showSuggestions,
@@ -80,16 +81,20 @@ const ContentWorkspace = ({
   searchOverflowResults,
   searchCursor,
   searchChoiceOptions,
+  searchSummaryMode,
   searchSummary,
   searchWebSources,
   shouldShowSearchChoices,
   isSourcesExpanded,
   setIsSourcesExpanded,
+  setSearchSummaryMode,
   onArticleGen,
   activePlanId,
   onOpenPricing,
 }) => {
   const createLocked = activePlanId === 'free';
+  const summaryModeLabel =
+    searchSummaryMode === 'rss_first' ? 'RSS นำ + X เสริม' : 'สมดุล RSS และ X';
   const summaryDateLabel = getSummaryDateLabel(searchResults, 10);
   const summaryTrustLabel = isLatestMode
     ? 'สรุปโดย FORO อ้างอิงจากข้อมูลล่าสุดใน 24-48 ชั่วโมงที่ผ่านมา'
@@ -307,6 +312,32 @@ const ContentWorkspace = ({
                     );
                   })}
                 </div>
+
+                {canUseRssWeightedSummary && (
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {[
+                      { id: 'balanced', label: 'สรุปสมดุล' },
+                      { id: 'rss_first', label: 'RSS นำ' },
+                    ].map((option) => {
+                      const isActive = searchSummaryMode === option.id;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => setSearchSummaryMode(option.id)}
+                          className={`btn-mini-ghost ${isActive ? 'active' : ''}`}
+                          style={{
+                            background: isActive ? 'rgba(34, 197, 94, 0.16)' : 'transparent',
+                            borderColor: isActive ? 'rgba(34, 197, 94, 0.32)' : 'rgba(255,255,255,0.08)',
+                            color: isActive ? '#dcfce7' : 'var(--text-dim)',
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', marginLeft: 'auto' }}>
                   {searchResults.length > 0 && (
@@ -561,8 +592,26 @@ const ContentWorkspace = ({
                         <FileText size={18} strokeWidth={2.2} />
                       </div>
                       <div>
-                        <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>
-                          FORO SUMMARY
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>
+                            FORO SUMMARY
+                          </div>
+                          {canUseRssWeightedSummary && (
+                            <span
+                              style={{
+                                padding: '3px 8px',
+                                borderRadius: '999px',
+                                border: '1px solid rgba(255,255,255,0.08)',
+                                background: 'rgba(255,255,255,0.03)',
+                                color: 'var(--text-dim)',
+                                fontSize: '10px',
+                                fontWeight: '700',
+                                letterSpacing: '0.04em',
+                              }}
+                            >
+                              {summaryModeLabel}
+                            </span>
+                          )}
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>
                           EDITORIAL DIGEST FROM {Math.min(searchResults.length, 10)} KEY SIGNALS

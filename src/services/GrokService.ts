@@ -1380,6 +1380,7 @@ export const generateExecutiveSummary = async (
   const preferXSummary = Boolean(options.preferXSummary);
   const allowWebLead = Boolean(options.allowWebLead);
   const focusMode = String(options.focusMode || '').trim().toLowerCase();
+  const summaryMode = String(options.summaryMode || 'balanced').trim().toLowerCase();
 
   const toNum = (value) => {
     const normalized = String(value ?? '0').replace(/,/g, '').trim();
@@ -1400,6 +1401,12 @@ export const generateExecutiveSummary = async (
     const semanticScore = toNum(tweet.broad_semantic_score);
     const authorityScore = toNum(tweet.broad_global_authority_score);
     const verifiedBoost = tweet.author?.isVerified ? 1.25 : tweet.author?.isBlueVerified ? 0.45 : 0;
+    const rssBoost =
+      summaryMode === 'rss_first'
+        ? String(tweet.sourceType || '').toLowerCase() === 'rss'
+          ? 8.5
+          : 0.6
+        : 0;
 
     return (
       searchScore * 3.2 +
@@ -1409,7 +1416,8 @@ export const generateExecutiveSummary = async (
       Math.log10(engagement + 1) * 2.4 +
       Math.log10(views + 1) * 0.8 +
       Math.log10(followers + 1) * 0.55 +
-      verifiedBoost
+      verifiedBoost +
+      rssBoost
     );
   };
 
@@ -1453,6 +1461,7 @@ export const generateExecutiveSummary = async (
     preferXSummary,
     allowWebLead,
     focusMode,
+    summaryMode,
     tweets: tweetsForSummary.map((tweet) => ({
       id: tweet.id,
       text: normalizeCacheText(tweet.text),
@@ -1474,8 +1483,17 @@ export const generateExecutiveSummary = async (
 
   const contentToAnalyze = tweetsForSummary
     .map((tweet) => {
-      const authorLabel = tweet.author?.username ? `@${tweet.author.username}` : tweet.author?.name || 'unknown';
-      return `${tweet.citation_id || '[F?]'} (${authorLabel}) ${sanitizeForPrompt(tweet.text, 400)}`;
+      const authorLabel =
+        String(tweet.sourceType || '').toLowerCase() === 'rss'
+          ? tweet.author?.name || tweet.author?.username || 'rss-source'
+          : tweet.author?.username
+            ? `@${tweet.author.username}`
+            : tweet.author?.name || 'unknown';
+      const titlePrefix =
+        String(tweet.sourceType || '').toLowerCase() === 'rss' && tweet.title
+          ? `${sanitizeForPrompt(tweet.title, 160)} :: `
+          : '';
+      return `${tweet.citation_id || '[F?]'} (${authorLabel}) ${titlePrefix}${sanitizeForPrompt(tweet.text, 400)}`;
     })
     .join('\n---\n');
 
@@ -1486,6 +1504,7 @@ ${safeWebCtx ? `Use the web context below only to verify, clarify, or add confir
 ${safeWebCtx}
 ` : ""}
 ${focusMode ? `Preferred user focus for this summary: ${focusMode}. When there are multiple valid storylines, prioritize the ones that best match this focus without inventing anything.` : ''}
+${summaryMode === 'rss_first' ? 'When RSS/news-source items and X posts both appear, treat RSS items as the primary factual spine for confirmed developments, while using X posts to capture reaction, momentum, and angles that matter.' : ''}
 
 Hard rules:
 - Do not invent people, companies, products, events, or numbers.

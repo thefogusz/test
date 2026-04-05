@@ -218,6 +218,7 @@ const App = () => {
     activeSuggestionIndex,
     addSearchPreset,
     applySearchFocus,
+    canUseRssWeightedSummary,
     canSaveCurrentSearchAsPreset,
     dismissSearchChoices,
     dynamicSearchTags,
@@ -239,6 +240,7 @@ const App = () => {
     searchQuery,
     searchResults,
     searchChoiceOptions,
+    searchSummaryMode,
     searchStatusMessage,
     searchSummary,
     searchWebSources,
@@ -251,6 +253,7 @@ const App = () => {
     setSearchQuery,
     setSearchResults,
     setSearchSummary,
+    setSearchSummaryMode,
     setSearchWebSources,
     setShowSuggestions,
     shouldShowSearchChoices,
@@ -514,6 +517,7 @@ const App = () => {
               setSearchMediaType={setSearchMediaType}
               activeSearchFocus={activeSearchFocus}
               applySearchFocus={applySearchFocus}
+              canUseRssWeightedSummary={canUseRssWeightedSummary}
               dismissSearchChoices={dismissSearchChoices}
               suggestions={suggestions}
               showSuggestions={showSuggestions}
@@ -526,9 +530,11 @@ const App = () => {
               isSearching={isSearching}
               searchResults={searchResults}
               searchChoiceOptions={searchChoiceOptions}
+              searchSummaryMode={searchSummaryMode}
               setSearchResults={setSearchResults}
               setSearchOverflowResults={setSearchOverflowResults}
               setSearchSummary={setSearchSummary}
+              setSearchSummaryMode={setSearchSummaryMode}
               setSearchWebSources={setSearchWebSources}
               setSearchCursor={setSearchCursor}
               setStatus={setStatus}
