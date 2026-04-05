@@ -1175,61 +1175,6 @@ export const useSearchWorkspace = ({
     }
   };
 
-  /* const handleSearchSummaryModeChange = async (nextMode: SearchSummaryMode) => {
-    setSearchSummaryMode(nextMode);
-
-    if (searchResults.length === 0 || searchMediaType === 'videos') return;
-
-    const normalizedLabel = normalizeSearchLabel(lastSubmittedSearchQuery || searchQuery);
-    const queryLabel = normalizedLabel || searchQuery;
-    if (!queryLabel) return;
-
-    setSearchSummary('');
-    setStatus(
-      nextMode === 'rss_first'
-        ? 'กำลังสรุปแบบให้น้ำหนัก RSS มากขึ้น พร้อมเก็บสัญญาณจาก X...'
-        : 'กำลังสรุปแบบสมดุลระหว่าง RSS และ X...',
-    );
-
-    const shouldPreferXSummary = currentQueryIntent.queryKey === 'viral_video';
-    const webContext = buildSearchSummaryWebContext(searchWebSources || []);
-    const summaryCandidates = buildSummaryCandidates(searchResults, nextMode, isLatestMode);
-    const queryMode = isLatestMode || currentQueryIntent.forceLatestMode ? 'Latest' : 'Top';
-    const nextCacheKey = getSearchCacheKey(
-      `${queryLabel}::${searchMediaType}::${nextMode}`,
-      queryMode,
-    );
-
-    try {
-      const summary = await generateExecutiveSummary(
-        summaryCandidates,
-        queryLabel,
-        (_, fullText) => setSearchSummary(fullText),
-        webContext,
-        {
-          preferXSummary: shouldPreferXSummary,
-          allowWebLead: !shouldPreferXSummary,
-          focusMode: activeSearchFocus,
-          summaryMode: nextMode,
-        },
-      );
-
-      if (summary) {
-        setSearchSummary(summary);
-        queryClient.setQueryData<SearchCacheSnapshot>(nextCacheKey, (prev) => ({
-          lastSubmittedSearchQuery: queryLabel,
-          searchCursor: prev?.searchCursor ?? searchCursor,
-          searchOverflowResults: prev?.searchOverflowResults ?? searchOverflowResults,
-          searchResults: prev?.searchResults ?? searchResults,
-          searchSummary: summary,
-          searchWebSources: searchWebSources,
-        }));
-      }
-    } catch (error) {
-      console.warn('[Search] Summary mode refresh failed:', error);
-    }
-  }; */
-
   const dismissSearchChoices = () => {
     const queryLabel = normalizeSearchLabel(lastSubmittedSearchQuery || searchQuery).toLowerCase();
     if (!queryLabel) return;

@@ -3,6 +3,8 @@ import type { Post } from '../types/domain';
 import { apiFetch } from '../utils/apiFetch';
 
 const RSS_PROXY_URL = '/api/rss';
+const RSS_LATEST_LOOKBACK_HOURS = 48;
+const RSS_LATEST_LOOKBACK_MS = RSS_LATEST_LOOKBACK_HOURS * 60 * 60 * 1000;
 
 interface RssItem {
   title: string;
@@ -138,6 +140,11 @@ const rssItemToPost = (item: RssItem, source: RssSourceInfo): Post => {
   };
 };
 
+const getPostTimestamp = (post: Post) => {
+  const timestamp = new Date(post?.created_at || post?.createdAt || 0).getTime();
+  return Number.isFinite(timestamp) ? timestamp : NaN;
+};
+
 export const fetchRssFeed = async (source: RssSourceInfo, maxItems = 10): Promise<Post[]> => {
   try {
     const response = await apiFetch(`${RSS_PROXY_URL}?url=${encodeURIComponent(source.url)}`, {
@@ -151,10 +158,27 @@ export const fetchRssFeed = async (source: RssSourceInfo, maxItems = 10): Promis
 
     const xml = await response.text();
     const items = parseRssXml(xml);
+    const posts = items
+      .map((item) => rssItemToPost(item, source))
+      .sort((left, right) => getPostTimestamp(right) - getPostTimestamp(left));
 
-    return items
-      .slice(0, maxItems)
-      .map((item) => rssItemToPost(item, source));
+    const validTimestamps = posts
+      .map((post) => getPostTimestamp(post))
+      .filter((timestamp) => Number.isFinite(timestamp));
+
+    if (validTimestamps.length === 0) {
+      return posts.slice(0, maxItems);
+    }
+
+    const latestTimestamp = Math.max(...validTimestamps);
+    const cutoffTimestamp = latestTimestamp - RSS_LATEST_LOOKBACK_MS;
+
+    return posts
+      .filter((post) => {
+        const timestamp = getPostTimestamp(post);
+        return Number.isFinite(timestamp) && timestamp >= cutoffTimestamp && timestamp <= latestTimestamp;
+      })
+      .slice(0, maxItems);
   } catch (error) {
     console.warn(`[RSS] Error fetching ${source.name}:`, error);
     return [];
