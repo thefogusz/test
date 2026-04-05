@@ -2354,17 +2354,23 @@ export const researchAndPreventHallucination = async (input, interactionData = '
 
     // Query Gating: Only fetch X Latest if query seems time-sensitive
     const isLatestNeeded = /ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update/i.test(rawInput) || /ล่าสุด|วันนี้|breaking|เปิดตัว|ประกาศ|ด่วน|now|today|update/i.test(interactionData);
-    
+
+    // When skipWebSearch is true (e.g. RSS source attached with full article body),
+    // skip general Tavily + X search — still fetch attached URLs via Tavily as fallback.
+    const skipWebSearch = Boolean(options.skipWebSearch);
+
     const [data, xTopResponse, xLatestResponse, attachedUrlResponses] = await Promise.all([
-      tavilySearch(researchQuery, false, hasPrimaryLead
-        ? {
-            max_results: 4,
-            include_answer: true,
-            search_depth: 'advanced',
-          }
-        : {}),
-      searchEverything(researchQuery, '', false, 'Top').catch(() => ({ data: [] })),
-      !isLatestNeeded ? Promise.resolve({ data: [] }) : searchEverything(researchQuery, '', false, 'Latest').catch(() => ({ data: [] })),
+      skipWebSearch
+        ? Promise.resolve({ results: [], answer: '' })
+        : tavilySearch(researchQuery, false, hasPrimaryLead
+            ? { max_results: 4, include_answer: true, search_depth: 'advanced' }
+            : {}),
+      skipWebSearch
+        ? Promise.resolve({ data: [] })
+        : searchEverything(researchQuery, '', false, 'Top').catch(() => ({ data: [] })),
+      skipWebSearch || !isLatestNeeded
+        ? Promise.resolve({ data: [] })
+        : searchEverything(researchQuery, '', false, 'Latest').catch(() => ({ data: [] })),
       attachedExternalUrls.length
         ? Promise.all(
             attachedExternalUrls.map((url) =>

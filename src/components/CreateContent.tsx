@@ -9,6 +9,7 @@ import {
   normalizeContentIntent,
   tavilySearch,
 } from '../services/GrokService';
+import { fetchReadableArticle } from '../services/ArticleService';
 import { fetchTweetById } from '../services/TwitterService';
 import { STORAGE_KEYS } from '../constants/storageKeys';
 import { usePersistentState } from '../hooks/usePersistentState';
@@ -675,6 +676,22 @@ const CreateContent = ({
         if (!researchPrompt) {
           researchPrompt = sourceUrl || originalText || sourceLabel;
         }
+
+        if (isRssSource(workingSourceNode) && sourceUrl) {
+          try {
+            const fullArticle = await fetchReadableArticle(sourceUrl, controller.signal);
+            if (fullArticle?.textContent) {
+              factIntel += [
+                '[ATTACHED INTEL - FULL ARTICLE BODY]',
+                fullArticle.byline ? `Byline: ${fullArticle.byline}` : '',
+                fullArticle.publishedAt ? `Published: ${fullArticle.publishedAt}` : '',
+                `Content:\n${fullArticle.textContent.slice(0, 8000)}`,
+              ].filter(Boolean).join('\n') + '\n\n';
+            }
+          } catch {
+            // silently continue — factIntel already has the RSS summary as fallback
+          }
+        }
       }
 
       // 1. Research Phase
@@ -684,6 +701,7 @@ const CreateContent = ({
         primarySourceUrls,
         attachedXPostUrl: sourceUrl || '',
         attachedXPostTitle: sourceLabel || '',
+        skipWebSearch: isRssSource(workingSourceNode),
         signal: controller.signal,
       });
       setFactSheet(ensureDisplayText(facts));
