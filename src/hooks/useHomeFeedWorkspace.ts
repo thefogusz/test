@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type Dispatch,
@@ -12,6 +13,7 @@ import {
   generateGrokBatch,
   generateGrokSummary,
 } from '../services/GrokService';
+import { RSS_CATALOG } from '../config/rssCatalog';
 import { fetchWatchlistFeed } from '../services/TwitterService';
 import { fetchAllSubscribedFeeds, type RssSourceInfo } from '../services/RssService';
 import {
@@ -60,6 +62,64 @@ export const useHomeFeedWorkspace = ({
   const isBackfillingThaiRef = useRef(false);
   const failedThaiSummaryIdsRef = useRef(new Set<string>());
 
+  const activeListMembers = useMemo(() => {
+    if (!activeListId) {
+      return {
+        twitterHandles: watchlist
+          .map((user) => (typeof user === 'string' ? user : user?.username))
+          .filter(Boolean)
+          .map((handle) => String(handle).trim().toLowerCase()),
+        rssSourceIds: [],
+      };
+    }
+
+    const activeList = postLists.find((list) => list.id === activeListId);
+    const members = Array.isArray(activeList?.members) ? activeList.members : [];
+
+    return members.reduce(
+      (acc, member) => {
+        const normalizedMember = String(member || '').trim().toLowerCase();
+        if (!normalizedMember) return acc;
+
+        if (normalizedMember.startsWith('rss:')) {
+          acc.rssSourceIds.push(normalizedMember.slice(4));
+        } else {
+          acc.twitterHandles.push(normalizedMember);
+        }
+
+        return acc;
+      },
+      { twitterHandles: [], rssSourceIds: [] } as { twitterHandles: string[]; rssSourceIds: string[] },
+    );
+  }, [activeListId, postLists, watchlist]);
+
+  const rssSourcesById = useMemo(() => {
+    const allSources = [...Object.values(RSS_CATALOG).flat(), ...subscribedSources];
+
+    return new Map(
+      allSources.map((source) => [
+        String(source?.id || '').trim().toLowerCase(),
+        source,
+      ]),
+    );
+  }, [subscribedSources]);
+
+  const effectiveRssSources = useMemo(() => {
+    if (!activeListId) return subscribedSources;
+
+    const seenSourceIds = new Set<string>();
+
+    return activeListMembers.rssSourceIds
+      .map((sourceId) => rssSourcesById.get(sourceId))
+      .filter((source): source is RssSourceInfo => Boolean(source))
+      .filter((source) => {
+        const normalizedId = String(source.id || '').trim().toLowerCase();
+        if (!normalizedId || seenSourceIds.has(normalizedId)) return false;
+        seenSourceIds.add(normalizedId);
+        return true;
+      });
+  }, [activeListId, activeListMembers.rssSourceIds, rssSourcesById, subscribedSources]);
+
   useEffect(() => {
     setNextCursor(null);
     setPendingFeed([]);
@@ -75,11 +135,11 @@ export const useHomeFeedWorkspace = ({
         activeView,
         originalFeed,
         postLists,
-        subscribedSources,
+        subscribedSources: effectiveRssSources,
         watchlist,
       }),
     );
-  }, [activeFilters, activeListId, activeView, isFiltered, originalFeed, postLists, subscribedSources, watchlist]);
+  }, [activeFilters, activeListId, activeView, effectiveRssSources, isFiltered, originalFeed, postLists, watchlist]);
 
   const translatePostsToThai = async (
     posts: any[] = [],
@@ -170,36 +230,6 @@ export const useHomeFeedWorkspace = ({
     return () => clearTimeout(timer);
   }, [originalFeed, setOriginalFeed, setReadArchive]);
 
-  const getActiveListMembers = () => {
-    if (!activeListId) {
-      return {
-        twitterHandles: watchlist
-          .map((user) => (typeof user === 'string' ? user : user?.username))
-          .filter(Boolean)
-          .map((handle) => String(handle).trim().toLowerCase()),
-        rssSourceIds: [],
-      };
-    }
-
-    const activeList = postLists.find((list) => list.id === activeListId);
-    const members = Array.isArray(activeList?.members) ? activeList.members : [];
-
-    return members.reduce(
-      (acc, member) => {
-        const normalizedMember = String(member || '').trim().toLowerCase();
-        if (!normalizedMember) return acc;
-
-        if (normalizedMember.startsWith('rss:')) {
-          acc.rssSourceIds.push(normalizedMember.slice(4));
-        } else {
-          acc.twitterHandles.push(normalizedMember);
-        }
-
-        return acc;
-      },
-      { twitterHandles: [], rssSourceIds: [] } as { twitterHandles: string[]; rssSourceIds: string[] },
-    );
-  };
 
   const processAndSummarizeFeed = async (newBatch: any[], statusPrefix = 'พบ') => {
     if (newBatch.length === 0 || isSummarizingRef.current) return;
@@ -275,8 +305,8 @@ export const useHomeFeedWorkspace = ({
 
   const syncMutation = useMutation({
     mutationFn: async () => {
-      const hasWatchlist = watchlist.length > 0;
-      const hasRss = subscribedSources.length > 0;
+      const hasWatchlist = activeListMembers.twitterHandles.length > 0;
+      const hasRss = effectiveRssSources.length > 0;
 
       if (!hasWatchlist && !hasRss) {
         setStatus('กรุณาเพิ่มบัญชีหรือแหล่งข่าวที่ต้องการติดตามก่อนซิงค์ข้อมูล');
@@ -289,8 +319,7 @@ export const useHomeFeedWorkspace = ({
       const twitterPromise = (async () => {
         if (!hasWatchlist) return { data: [], meta: { next_cursor: null } };
 
-        const { twitterHandles } = getActiveListMembers();
-        const targetAccounts = twitterHandles;
+        const targetAccounts = activeListMembers.twitterHandles;
 
         if (targetAccounts.length === 0) return { data: [], meta: { next_cursor: null } };
 
@@ -300,13 +329,7 @@ export const useHomeFeedWorkspace = ({
       const rssPromise = (async () => {
         if (!hasRss) return [];
         setStatus('กำลังดึงข่าวจากแหล่งข่าว RSS...');
-        const { rssSourceIds } = getActiveListMembers();
-        const targetSources = activeListId
-          ? subscribedSources.filter((source) =>
-              rssSourceIds.includes(String(source.id || '').trim().toLowerCase()),
-            )
-          : subscribedSources;
-        return fetchAllSubscribedFeeds(targetSources, 5);
+        return fetchAllSubscribedFeeds(effectiveRssSources, 5);
       })();
 
       const [twitterResult, rssPosts] = await Promise.all([twitterPromise, rssPromise]);
@@ -363,8 +386,7 @@ export const useHomeFeedWorkspace = ({
         nextBatch = pendingFeed.slice(0, MAX_SYNC);
         setPendingFeed(pendingFeed.slice(MAX_SYNC));
       } else {
-        const { twitterHandles } = getActiveListMembers();
-        const targetAccounts = twitterHandles;
+        const targetAccounts = activeListMembers.twitterHandles;
         const { data, meta } = await fetchWatchlistFeed(targetAccounts, nextCursor, 'Latest');
         setNextCursor(meta.next_cursor);
 
@@ -400,7 +422,7 @@ export const useHomeFeedWorkspace = ({
         activeView: 'home',
         originalFeed,
         postLists,
-        subscribedSources,
+        subscribedSources: effectiveRssSources,
         watchlist,
       });
 
