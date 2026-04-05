@@ -1,6 +1,5 @@
 // @ts-nocheck
 import { apiFetch } from '../utils/apiFetch';
-import { toNumber } from '../utils/appUtils';
 import {
   RECENT_WINDOW_HOURS,
   buildQueryProfile,
@@ -8,7 +7,6 @@ import {
   diversifyByAuthor,
   diversifyBroadResults,
   ensureQueryCoverage,
-  getAgeHours,
   getBroadGlobalAuthorityScore,
   getBroadLocalCasualPenalty,
   getBroadSemanticScore,
@@ -21,17 +19,13 @@ import {
   getProviderRankScore,
   getRelevanceScore,
   getSignalScore,
-  getTermMatches,
   getVelocityTag,
-  isBroadDiscoveryIntent,
   isNewsIntent,
 } from './scoring';
 
 export { RECENT_WINDOW_HOURS } from './scoring';
 
 const BASE_URL = '/api/twitter';
-
-const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 
 const normalizeAuthor = (author) => {
   if (!author) return null;

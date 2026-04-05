@@ -1,4 +1,5 @@
-import { Check, CreditCard, Shield, Sparkles } from 'lucide-react';
+import { createElement, useEffect, useState } from 'react';
+import { Check, CreditCard, Shield, Sparkles, X } from 'lucide-react';
 import {
   FEATURE_HINTS,
   FEATURE_LABELS,
@@ -21,6 +22,8 @@ type PricingWorkspaceProps = {
 const FEATURE_ORDER: MeteredFeature[] = ['feed', 'search', 'generate'];
 const PUBLIC_PLAN_IDS: PlanId[] = ['free', 'plus'];
 const OBJECT_KEYS = ['watchlist', 'postLists'] as const;
+const STRIPE_BUY_BUTTON_ID = 'buy_btn_1TIdPdCGBiAw3E86dhqAoTWe';
+const STRIPE_BUY_BUTTON_SCRIPT_ID = 'stripe-buy-button-script';
 
 const PLAN_PILL_ICON: Record<PlanId, typeof Shield> = {
   free: CreditCard,
@@ -41,6 +44,17 @@ const PLAN_FEATURES: Record<'free' | 'plus', string[]> = {
   ],
 };
 
+const ensureStripeBuyButtonScript = () => {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById(STRIPE_BUY_BUTTON_SCRIPT_ID)) return;
+
+  const script = document.createElement('script');
+  script.id = STRIPE_BUY_BUTTON_SCRIPT_ID;
+  script.async = true;
+  script.src = 'https://js.stripe.com/v3/buy-button.js';
+  document.body.appendChild(script);
+};
+
 const PricingWorkspace = ({
   isVisible,
   activePlanId,
@@ -49,15 +63,56 @@ const PricingWorkspace = ({
   onSelectPlan,
   isCheckoutLoading = false,
 }: PricingWorkspaceProps) => {
+  const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
   const currentPlan = PLAN_DEFINITIONS[activePlanId];
   const CurrentPlanIcon = PLAN_PILL_ICON[activePlanId] ?? CreditCard;
+  const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.trim() ?? '';
+  const isBuyModalVisible = isVisible && isBuyModalOpen;
+
+  useEffect(() => {
+    if (!isBuyModalVisible) {
+      return undefined;
+    }
+
+    ensureStripeBuyButtonScript();
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isBuyModalVisible]);
+
+  useEffect(() => {
+    if (!isVisible || !isBuyModalOpen) {
+      return undefined;
+    }
+
+    const closeTimer = window.setTimeout(() => {
+      setIsBuyModalOpen(false);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(closeTimer);
+    };
+  }, [isBuyModalOpen, isVisible]);
+
+  const openBuyModal = () => {
+    setIsBuyModalOpen(true);
+  };
 
   const handlePlanAction = (planId: PlanId) => {
+    if (planId === 'plus') {
+      openBuyModal();
+      return;
+    }
+
     onSelectPlan(planId);
   };
 
   return (
-    <div
+    <>
+      <div
         className="pricing-shell pricing-shell-minimal animate-fade-in"
         style={{ display: isVisible ? 'block' : 'none' }}
       >
@@ -189,7 +244,49 @@ const PricingWorkspace = ({
             })}
           </div>
         </section>
-    </div>
+      </div>
+
+      {isBuyModalVisible && (
+        <div className="pricing-buy-modal-layer" role="dialog" aria-modal="true">
+          <button
+            className="pricing-buy-modal-backdrop"
+            aria-label="ปิดหน้าต่างซื้อแพ็ก"
+            onClick={() => setIsBuyModalOpen(false)}
+          />
+          <div className="pricing-buy-modal">
+            <div className="pricing-buy-modal-head">
+              <div>
+                <div className="pricing-buy-modal-kicker">FORO PLUS</div>
+                <h2 className="pricing-buy-modal-title">อัปเกรดแพ็กในหน้านี้</h2>
+                <p className="pricing-buy-modal-subtitle">
+                  ชำระผ่าน Stripe ได้ทันที โดยคงหน้า Pricing เดิมไว้แบบไม่รก
+                </p>
+              </div>
+              <button
+                className="pricing-buy-modal-close"
+                onClick={() => setIsBuyModalOpen(false)}
+                aria-label="ปิด"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="pricing-buy-modal-body">
+              {publishableKey ? (
+                createElement('stripe-buy-button', {
+                  'buy-button-id': STRIPE_BUY_BUTTON_ID,
+                  'publishable-key': publishableKey,
+                })
+              ) : (
+                <div className="pricing-buy-modal-fallback">
+                  ไม่พบ VITE_STRIPE_PUBLISHABLE_KEY สำหรับแสดง Buy Button
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 

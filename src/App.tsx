@@ -80,7 +80,6 @@ const App = () => {
   // --- Post Lists ---
   const {
     postLists,
-    setPostLists,
     activeListId,
     setActiveListId,
     currentActiveList,

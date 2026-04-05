@@ -202,7 +202,7 @@ export const useBilling = ({ setActiveView, setStatus }: UseBillingParams) => {
     return () => {
       isMounted = false;
     };
-  }, [activatePlusForOneMonth, openPricingView]);
+  }, [activatePlusForOneMonth, openPricingView, setStatus]);
 
   return {
     activePlanId,
