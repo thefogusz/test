@@ -45,6 +45,16 @@ const safeParse = (value, fallback) => {
   }
 };
 
+const ensureDisplayText = (value, fallback = '') => {
+  if (typeof value === 'string') return value;
+  if (value == null) return fallback;
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+};
+
 const shouldRemoveWhenFalsy = (value) => !value;
 
 const EMOJI_REQUEST_PATTERN = /(emoji|emojis|อีโมจิ|อิโมจิ|ใส่อีโมจิ|ใส่ emoji|ใช้ emoji|ใช้ emojis)/i;
@@ -109,9 +119,10 @@ const buildResolvedUrlSource = async (url, signal) => {
 // Safe markdown parser -- prevents streaming partial-chunk crashes from killing the render tree
 let _lastGoodHtml = '';
 const safeMarkdown = (text) => {
-  if (!text || typeof text !== 'string') return _lastGoodHtml;
+  const normalizedText = ensureDisplayText(text);
+  if (!normalizedText) return _lastGoodHtml;
   try {
-    const html = renderMarkdownToHtml(text);
+    const html = renderMarkdownToHtml(normalizedText);
     _lastGoodHtml = html;
     return html;
   } catch {
@@ -451,6 +462,8 @@ const CreateContent = ({
   const [resolvedInputSource, setResolvedInputSource] = useState(null);
   const abortRef = useRef(null);
   const activeSourceNode = sourceNode || resolvedInputSource;
+  const displayFactSheet = ensureDisplayText(factSheet);
+  const displayGeneratedMarkdown = ensureDisplayText(generatedMarkdown);
   const activeFormatHint = FORMAT_HINTS[format] || FORMAT_HINTS['โพสต์โซเชียล'];
   const attachedIsXVideo = isXVideoSource(activeSourceNode);
   const attachedVideoDurationLabel = formatDurationLabel(activeSourceNode?.videoDurationMs);
@@ -645,7 +658,7 @@ const CreateContent = ({
         attachedXPostTitle: sourceLabel || '',
         signal: controller.signal,
       });
-      setFactSheet(facts);
+      setFactSheet(ensureDisplayText(facts));
       setArticleSources(rawSources || []);
       setPhase('briefing');
 
@@ -665,7 +678,7 @@ const CreateContent = ({
             streamStarted = true;
             setPhase('generating');
           }
-          setGeneratedMarkdown(currentText);
+          setGeneratedMarkdown(ensureDisplayText(currentText));
         },
         { allowEmoji, customInstructions, intentProfile, rawUserInput: input, signal: controller.signal }
       );
@@ -699,8 +712,8 @@ const CreateContent = ({
   };
 
   const copyToClipboard = () => {
-    if (!generatedMarkdown) return;
-    navigator.clipboard.writeText(generatedMarkdown);
+    if (!displayGeneratedMarkdown) return;
+    navigator.clipboard.writeText(displayGeneratedMarkdown);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -752,7 +765,7 @@ const CreateContent = ({
         normalizedLength,
         tone,
         format,
-        (currentText) => setGeneratedMarkdown(currentText),
+        (currentText) => setGeneratedMarkdown(ensureDisplayText(currentText)),
         { allowEmoji, customInstructions, intentProfile, rawUserInput: input, signal: controller.signal },
       );
 
@@ -1095,10 +1108,10 @@ const CreateContent = ({
       </div>
 
       {/* Live streaming preview — shows raw text while streaming, avoids marked crash */}
-      {isGenerating && phase === 'generating' && generatedMarkdown && (
+      {isGenerating && phase === 'generating' && displayGeneratedMarkdown && (
         <div style={{ marginTop: '20px', padding: '20px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', maxHeight: '220px', overflowY: 'auto' }}>
           <div style={{ fontSize: '11px', color: 'var(--text-dim)', marginBottom: '10px', letterSpacing: '0.08em', textTransform: 'uppercase' }}>⚡ AI กำลังเขียน...</div>
-          <pre style={{ margin: 0, fontSize: '13px', color: 'rgba(255,255,255,0.65)', lineHeight: '1.7', whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>{generatedMarkdown}</pre>
+          <pre style={{ margin: 0, fontSize: '13px', color: 'rgba(255,255,255,0.65)', lineHeight: '1.7', whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>{displayGeneratedMarkdown}</pre>
         </div>
       )}
 
@@ -1113,7 +1126,7 @@ const CreateContent = ({
       )}
 
       {/* Result Display - only parse markdown AFTER generation is fully done to prevent streaming crash */}
-      {generatedMarkdown && !isGenerating && (
+      {displayGeneratedMarkdown && !isGenerating && (
         <div id="content-result" className="animate-fade-in" style={{ marginTop: '32px' }}>
           <div className="content-result-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <h2 className="content-result-title" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px', margin: 0, fontWeight: '800' }}>
@@ -1148,7 +1161,7 @@ const CreateContent = ({
                   const attachedSource = serializeAttachedSource(activeSourceNode);
                   const sources = sanitizeBookmarkSources(articleSources);
                   const referenceMarkdown = buildBookmarkReferenceMarkdown(attachedSource, sources);
-                  const contentToSave = [generatedMarkdown, referenceMarkdown].filter(Boolean).join('\n\n');
+                  const contentToSave = [displayGeneratedMarkdown, referenceMarkdown].filter(Boolean).join('\n\n');
                   const generatedTitle =
                     input.substring(0, 40).trim() ||
                     activeSourceNode?.title ||
@@ -1193,12 +1206,12 @@ const CreateContent = ({
           }} className={isEditing ? '' : "markdown-body"}>
             {isEditing ? (
                <textarea 
-                 value={generatedMarkdown}
+                 value={displayGeneratedMarkdown}
                  onChange={(e) => setGeneratedMarkdown(e.target.value)}
                  style={{ width: '100%', minHeight: '400px', background: 'transparent', border: 'none', color: '#fff', fontSize: '15px', lineHeight: '1.7', padding: '32px', outline: 'none', resize: 'vertical' }}
                />
             ) : (
-               <div dangerouslySetInnerHTML={{ __html: safeMarkdown(generatedMarkdown) }} />
+               <div dangerouslySetInnerHTML={{ __html: safeMarkdown(displayGeneratedMarkdown) }} />
             )}
           </div>
           
@@ -1225,7 +1238,7 @@ const CreateContent = ({
                      onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--card-border)'; e.currentTarget.style.background = 'var(--bg-900)'; }}
                   >
                     <div style={{ fontSize: '13px', fontWeight: '700', marginBottom: '8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.4' }}>
-                      {source.title}
+                      {ensureDisplayText(source.title, source.url)}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: 'auto', fontWeight: '600' }}>
                       <ExternalLink size={12} /> {hostname}
@@ -1237,7 +1250,7 @@ const CreateContent = ({
           )}
 
           {/* Transparency: Fact Sheet Toggle */}
-          {factSheet && (
+          {displayFactSheet && (
             <div style={{ marginTop: '16px', background: 'transparent', padding: '0', border: 'transparent' }}>
               <button 
                 onClick={() => {
@@ -1249,7 +1262,7 @@ const CreateContent = ({
                 <Info size={14} /> ดูโครงสร้าง Fact Sheet อ้างอิงเบื้องหลัง (Zero-Hallucination)
               </button>
               <div id="fact-sheet-details" style={{ display: 'none', marginTop: '12px', padding: '16px', background: 'var(--bg-900)', borderRadius: '12px', fontSize: '12px', color: '#94a3b8', whiteSpace: 'pre-wrap', maxHeight: '300px', overflowY: 'auto', border: '1px solid var(--glass-border)' }}>
-                {factSheet}
+                {displayFactSheet}
               </div>
             </div>
           )}
