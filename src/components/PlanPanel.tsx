@@ -92,6 +92,7 @@ const PlanPanel = ({
   const [isTesterOpen, setIsTesterOpen] = useState(defaultOpen);
 
   const isPlusPlan = activePlanId === 'plus';
+  const isLargePlanCard = activePlanId === 'free' || activePlanId === 'plus';
   const isPlanPanelOpen = isTesterOpen;
   const profileName = MOCK_USER_NAMES[activePlanId] ?? MOCK_USER_NAMES.free;
   const profileInitials = MOCK_USER_INITIALS[activePlanId] ?? MOCK_USER_INITIALS.free;
@@ -102,7 +103,11 @@ const PlanPanel = ({
   );
 
   const renderProfileAvatar = () => (
-    <div className={`sidebar-user-avatar ${isPlusPlan ? 'has-image is-plus' : ''}`}>
+    <div
+      className={`sidebar-user-avatar ${isLargePlanCard ? 'is-large' : ''} ${
+        isPlusPlan ? 'has-image is-plus' : ''
+      }`}
+    >
       {isPlusPlan ? (
         <img
           src={plusUserProfileSrc}
@@ -120,11 +125,15 @@ const PlanPanel = ({
   return (
     <div
       className={`sidebar-plan-panel compact ${isPlanPanelOpen ? 'open' : ''} ${
+        isLargePlanCard ? 'plan-large' : ''
+      } ${
         isPlusPlan ? 'plan-plus' : ''
       } ${className}`.trim()}
     >
       <button
-        className={`sidebar-user-summary ${isPlusPlan ? 'is-plus' : ''}`}
+        className={`sidebar-user-summary ${isLargePlanCard ? 'is-large' : ''} ${
+          isPlusPlan ? 'is-plus' : ''
+        }`}
         onClick={() => setIsTesterOpen((current) => !current)}
         aria-expanded={isPlanPanelOpen}
       >
