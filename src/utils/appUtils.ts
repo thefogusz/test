@@ -114,16 +114,16 @@ export const deriveVisibleFeed = ({
     const activeList = postLists.find((list) => list.id === activeListId);
     if (activeList) {
       result = originalFeed.filter(
-        (post) =>
-          post &&
-          (
-            // RSS posts always pass through (no watchlist filtering)
-            post.sourceType === 'rss' ||
-            (post.author &&
-              activeList.members.some(
-                (member) => (member || '').toLowerCase() === (post.author.username || '').toLowerCase(),
-              ))
-          ),
+        (post) => {
+          if (!post) return false;
+
+          const authorUsername = (post.author?.username || '').toLowerCase();
+          const activeMembers = Array.isArray(activeList.members) ? activeList.members : [];
+
+          return activeMembers.some(
+            (member) => (member || '').toLowerCase() === authorUsername,
+          );
+        },
       );
     }
   } else if (activeView === 'home') {

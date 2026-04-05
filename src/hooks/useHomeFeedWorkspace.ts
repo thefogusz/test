@@ -169,6 +169,37 @@ export const useHomeFeedWorkspace = ({
     return () => clearTimeout(timer);
   }, [originalFeed, setOriginalFeed, setReadArchive]);
 
+  const getActiveListMembers = () => {
+    if (!activeListId) {
+      return {
+        twitterHandles: watchlist
+          .map((user) => (typeof user === 'string' ? user : user?.username))
+          .filter(Boolean)
+          .map((handle) => String(handle).trim().toLowerCase()),
+        rssSourceIds: [],
+      };
+    }
+
+    const activeList = postLists.find((list) => list.id === activeListId);
+    const members = Array.isArray(activeList?.members) ? activeList.members : [];
+
+    return members.reduce(
+      (acc, member) => {
+        const normalizedMember = String(member || '').trim().toLowerCase();
+        if (!normalizedMember) return acc;
+
+        if (normalizedMember.startsWith('rss:')) {
+          acc.rssSourceIds.push(normalizedMember.slice(4));
+        } else {
+          acc.twitterHandles.push(normalizedMember);
+        }
+
+        return acc;
+      },
+      { twitterHandles: [], rssSourceIds: [] } as { twitterHandles: string[]; rssSourceIds: string[] },
+    );
+  };
+
   const processAndSummarizeFeed = async (newBatch: any[], statusPrefix = 'พบ') => {
     if (newBatch.length === 0 || isSummarizingRef.current) return;
     isSummarizingRef.current = true;
@@ -257,11 +288,8 @@ export const useHomeFeedWorkspace = ({
       const twitterPromise = (async () => {
         if (!hasWatchlist) return { data: [], meta: { next_cursor: null } };
 
-        const activeList = activeListId ? postLists.find((list) => list.id === activeListId) : null;
-        const rawAccounts = activeList ? activeList.members : watchlist;
-        const targetAccounts = Array.isArray(rawAccounts)
-          ? rawAccounts.map((user) => (typeof user === 'string' ? user : user.username)).filter(Boolean)
-          : [];
+        const { twitterHandles } = getActiveListMembers();
+        const targetAccounts = twitterHandles;
 
         if (targetAccounts.length === 0) return { data: [], meta: { next_cursor: null } };
 
@@ -271,7 +299,13 @@ export const useHomeFeedWorkspace = ({
       const rssPromise = (async () => {
         if (!hasRss) return [];
         setStatus('กำลังดึงข่าวจากแหล่งข่าว RSS...');
-        return fetchAllSubscribedFeeds(subscribedSources, 5);
+        const { rssSourceIds } = getActiveListMembers();
+        const targetSources = activeListId
+          ? subscribedSources.filter((source) =>
+              rssSourceIds.includes(String(source.id || '').trim().toLowerCase()),
+            )
+          : subscribedSources;
+        return fetchAllSubscribedFeeds(targetSources, 5);
       })();
 
       const [twitterResult, rssPosts] = await Promise.all([twitterPromise, rssPromise]);
@@ -328,8 +362,8 @@ export const useHomeFeedWorkspace = ({
         nextBatch = pendingFeed.slice(0, MAX_SYNC);
         setPendingFeed(pendingFeed.slice(MAX_SYNC));
       } else {
-        const activeList = activeListId ? postLists.find((list) => list.id === activeListId) : null;
-        const targetAccounts = activeList ? activeList.members : watchlist;
+        const { twitterHandles } = getActiveListMembers();
+        const targetAccounts = twitterHandles;
         const { data, meta } = await fetchWatchlistFeed(targetAccounts, nextCursor, 'Latest');
         setNextCursor(meta.next_cursor);
 
