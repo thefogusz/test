@@ -224,6 +224,8 @@ const FeedCard = ({
         }
       : null,
   ].filter(Boolean);
+  const showSocialStats = tweet.sourceType !== 'rss';
+  const shouldShowFooterMeta = showSocialStats || footerBadges.length > 0;
   const showRepostBanner = false;
   const showInlineReplyBanner = false;
 
@@ -726,39 +728,43 @@ const FeedCard = ({
       )}
 
       <div className="feed-card-footer" style={{ display: 'flex', alignItems: 'center', gap: '12px', paddingTop: '10px', borderTop: '1px solid rgba(255,255,255,0.04)' }}>
-        <div className="feed-card-stats" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <div className="feed-card-stats-group" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-            {stats.map((s, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-dim)', fontSize: '11px' }}>
-                <s.icon size={12} strokeWidth={2.5} opacity={0.5} />
-                <span style={{ fontWeight: '700' }}>{fmt(s.v)}</span>
+        {shouldShowFooterMeta && (
+          <div className="feed-card-stats" style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {showSocialStats && (
+              <div className="feed-card-stats-group" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                {stats.map((s, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-dim)', fontSize: '11px' }}>
+                    <s.icon size={12} strokeWidth={2.5} opacity={0.5} />
+                    <span style={{ fontWeight: '700' }}>{fmt(s.v)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {footerBadges.map((badge) => (
+              <div
+                key={badge.key}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  minHeight: '24px',
+                  padding: '0 8px',
+                  borderRadius: '999px',
+                  background: badge.background,
+                  border: badge.border,
+                  color: badge.color,
+                  fontSize: '10px',
+                  fontWeight: '600',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <badge.icon size={11} strokeWidth={2.2} />
+                <span>{badge.label}</span>
               </div>
             ))}
           </div>
-          {footerBadges.map((badge) => (
-            <div
-              key={badge.key}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                minHeight: '24px',
-                padding: '0 8px',
-                borderRadius: '999px',
-                background: badge.background,
-                border: badge.border,
-                color: badge.color,
-                fontSize: '10px',
-                fontWeight: '600',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <badge.icon size={11} strokeWidth={2.2} />
-              <span>{badge.label}</span>
-            </div>
-          ))}
-        </div>
-        <div className="feed-card-actions" style={{ display: 'flex', gap: '4px' }}>
+        )}
+        <div className="feed-card-actions" style={{ display: 'flex', gap: '4px', marginLeft: 'auto' }}>
           {onArticleGen && (
             <button
               onClick={(e) => {
