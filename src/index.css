@@ -3506,6 +3506,14 @@ h1, h2, h3, h4, h5, h6 {
   transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
 }
 
+.audience-tab-label {
+  white-space: nowrap;
+}
+
+.audience-tab-label-mobile {
+  display: none;
+}
+
 .audience-tab-btn:hover {
   color: #fff !important;
   background: rgba(255, 255, 255, 0.04) !important;
@@ -3763,10 +3771,45 @@ h1, h2, h3, h4, h5, h6 {
     width: 100%;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
   }
 
   .audience-tab-btn {
     width: 100%;
+  }
+
+  .audience-primary-tab {
+    min-height: 52px;
+    padding: 0 10px !important;
+    gap: 6px;
+    font-size: 12px !important;
+  }
+
+  .audience-primary-tab .audience-tab-label-full {
+    display: none;
+  }
+
+  .audience-primary-tab .audience-tab-label-mobile {
+    display: inline;
+  }
+
+  .news-source-filter-row {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 4px;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .news-source-filter-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .news-source-filter-btn {
+    width: auto !important;
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 
   .audience-ai-searchbar {

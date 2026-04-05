@@ -84,22 +84,25 @@ const AudienceWorkspace = ({
         </header>
 
         <div className="audience-tabs">
-          <button onClick={() => setAudienceTab('ai')} className={`audience-tab-btn ${audienceTab === 'ai' ? 'active-ai' : ''}`}>
+          <button onClick={() => setAudienceTab('ai')} className={`audience-tab-btn audience-primary-tab ${audienceTab === 'ai' ? 'active-ai' : ''}`}>
             <Users size={14} strokeWidth={2.1} />
-            {'\u0e41\u0e19\u0e30\u0e19\u0e33\u0e42\u0e14\u0e22 FORO'}
+            <span className="audience-tab-label audience-tab-label-full">{'\u0e41\u0e19\u0e30\u0e19\u0e33\u0e42\u0e14\u0e22 FORO'}</span>
+            <span className="audience-tab-label audience-tab-label-mobile">FORO</span>
           </button>
-          <button onClick={() => setAudienceTab('sources')} className={`audience-tab-btn ${audienceTab === 'sources' ? 'active-manual' : ''}`}>
+          <button onClick={() => setAudienceTab('sources')} className={`audience-tab-btn audience-primary-tab ${audienceTab === 'sources' ? 'active-manual' : ''}`}>
             <Newspaper size={14} strokeWidth={2.1} />
-            แหล่งข่าว
+            <span className="audience-tab-label audience-tab-label-full">แหล่งข่าว</span>
+            <span className="audience-tab-label audience-tab-label-mobile">ข่าว</span>
             {subscribedSources.length > 0 && (
               <span style={{ fontSize: '10px', fontWeight: '800', background: 'rgba(41, 151, 255, 0.2)', color: '#7eb8ff', padding: '1px 6px', borderRadius: '999px', marginLeft: '4px' }}>
                 {subscribedSources.length}
               </span>
             )}
           </button>
-          <button onClick={() => setAudienceTab('manual')} className={`audience-tab-btn ${audienceTab === 'manual' ? 'active-manual' : ''}`}>
+          <button onClick={() => setAudienceTab('manual')} className={`audience-tab-btn audience-primary-tab ${audienceTab === 'manual' ? 'active-manual' : ''}`}>
             <Search size={14} strokeWidth={2.1} />
-            {'\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e0a\u0e37\u0e48\u0e2d'}
+            <span className="audience-tab-label audience-tab-label-full">{'\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e0a\u0e37\u0e48\u0e2d'}</span>
+            <span className="audience-tab-label audience-tab-label-mobile">ค้นชื่อ</span>
           </button>
         </div>
 
@@ -286,7 +289,7 @@ const AudienceWorkspace = ({
                     </span>
                     <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)' }}>· {matchedSources.length} แหล่ง</span>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                  <div className="audience-matched-source-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '10px' }}>
                     {matchedSources.slice(0, 4).map((source) => (
                       <SourceCard
                         key={source.id}

@@ -63,6 +63,8 @@ const FEATURED_ALL_TH_SOURCE_IDS = [
   'beartai',
 ] as const;
 
+const THAI_FILTER_KEY = 'thai';
+
 const TOPIC_PRIORITY_INDEX = new Map(
   ALL_VIEW_TOPIC_PRIORITY.map((topic, index) => [topic, index]),
 );
@@ -452,8 +454,14 @@ const NewsSourcesTab = ({
   const filteredSources = useMemo(() => {
     const allSources = Object.values(RSS_CATALOG).flat();
     if (activeTopic === 'all') return allSources;
+    if (activeTopic === THAI_FILTER_KEY) return allSources.filter((s) => s.lang === 'th');
     return allSources.filter((s) => s.topic === activeTopic);
   }, [activeTopic]);
+
+  const thaiSourceCount = useMemo(
+    () => Object.values(RSS_CATALOG).flat().filter((source) => source.lang === 'th').length,
+    [],
+  );
 
   const enSources = useMemo(() => {
     const sources = filteredSources.filter((s) => s.lang === 'en');
@@ -462,7 +470,9 @@ const NewsSourcesTab = ({
 
   const thSources = useMemo(() => {
     const sources = filteredSources.filter((s) => s.lang === 'th');
-    return activeTopic === 'all' ? sortSourcesForAllView(sources, 'th') : sources;
+    return activeTopic === 'all' || activeTopic === THAI_FILTER_KEY
+      ? sortSourcesForAllView(sources, 'th')
+      : sources;
   }, [activeTopic, filteredSources]);
 
   return (
@@ -479,19 +489,29 @@ const NewsSourcesTab = ({
       >
         กรองตามหมวด
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '28px' }}>
+      <div className="news-source-filter-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '28px' }}>
         <button
           onClick={() => setActiveTopic('all')}
-          className={`audience-tab-btn ${activeTopic === 'all' ? 'active-manual' : ''}`}
+          className={`audience-tab-btn news-source-filter-btn ${activeTopic === 'all' ? 'active-manual' : ''}`}
           style={{ minHeight: '34px', padding: '0 14px', fontSize: '12px' }}
         >
           ทั้งหมด
+        </button>
+        <button
+          onClick={() => setActiveTopic(THAI_FILTER_KEY)}
+          className={`audience-tab-btn news-source-filter-btn ${activeTopic === THAI_FILTER_KEY ? 'active-manual' : ''}`}
+          style={{ minHeight: '34px', padding: '0 14px', fontSize: '12px' }}
+        >
+          🇹🇭 ข่าวไทย{' '}
+          <span style={{ opacity: 0.4, fontSize: '10px', marginLeft: '2px' }}>
+            ({thaiSourceCount})
+          </span>
         </button>
         {Object.entries(TOPIC_LABELS).map(([key, { label, icon, count }]) => (
           <button
             key={key}
             onClick={() => setActiveTopic(key)}
-            className={`audience-tab-btn ${activeTopic === key ? 'active-manual' : ''}`}
+            className={`audience-tab-btn news-source-filter-btn ${activeTopic === key ? 'active-manual' : ''}`}
             style={{ minHeight: '34px', padding: '0 14px', fontSize: '12px' }}
           >
             {icon} {label}{' '}
@@ -518,9 +538,10 @@ const NewsSourcesTab = ({
             </span>
           </div>
           <div
+            className="news-source-grid"
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(2, 1fr)',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
               gap: '12px',
               marginBottom: '8px',
             }}
@@ -562,7 +583,7 @@ const NewsSourcesTab = ({
               {thSources.length} แหล่ง
             </span>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+          <div className="news-source-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
             {thSources.map((source) => (
               <SourceCard
                 key={source.id}
