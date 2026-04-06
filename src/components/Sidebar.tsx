@@ -1,4 +1,5 @@
-import { Bookmark, BookOpen, CreditCard, House, Loader2, RefreshCw, SquarePen, UsersRound } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bookmark, BookOpen, CreditCard, House, Loader2, RefreshCw, SquarePen, User, UsersRound } from 'lucide-react';
 import { AI_WORKSPACES } from '../config/aiWorkspaces';
 import { type MeteredFeature, type PlanId } from '../config/pricingPlans';
 import type { ActiveView } from '../types/domain';
@@ -89,6 +90,12 @@ const NAV_ITEMS: NavItemConfig[] = [
   },
 ];
 
+const MOCK_USER_INITIALS: Record<PlanId, string> = {
+  free: 'FG',
+  plus: 'FP',
+  admin: 'FA',
+};
+
 const Sidebar = ({
   activeView,
   onNavClick,
@@ -106,6 +113,9 @@ const Sidebar = ({
   planNotice,
   onClearPlanNotice,
 }: SidebarProps) => {
+  const [isPlanOpen, setIsPlanOpen] = useState(false);
+  const profileInitials = MOCK_USER_INITIALS[activePlanId] ?? MOCK_USER_INITIALS.free;
+
   return (
     <aside className="sidebar">
       <div className="sidebar-logo" style={{ padding: '24px 16px 20px', display: 'flex', alignItems: 'center', minHeight: '80px' }}>
@@ -157,9 +167,21 @@ const Sidebar = ({
             </button>
           );
         })}
+
+        <button
+          className={`nav-item nav-item-profile mobile-only-flex ${isPlanOpen ? 'active' : ''}`}
+          onClick={() => setIsPlanOpen(!isPlanOpen)}
+        >
+          <span className="nav-icon-shell">
+            <div className={`nav-profile-avatar ${activePlanId === 'plus' ? 'is-plus' : ''}`}>
+              {profileInitials}
+            </div>
+          </span>
+          <span className="nav-text">โปรไฟล์</span>
+        </button>
       </nav>
 
-      <div className="sidebar-footer">
+      <div className={`sidebar-footer ${isPlanOpen ? 'mobile-visible' : ''}`}>
         <PlanPanel
           activePlanId={activePlanId}
           plusAccess={plusAccess}
