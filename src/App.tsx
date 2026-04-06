@@ -458,7 +458,6 @@ const App = () => {
         activeView={activeView}
         onNavClick={(view) => {
           startTransition(() => { setActiveView(view); });
-          if (view === 'home') { setActiveListId(null); }
         }}
         backgroundTasks={{
           syncing: loading,
