@@ -31,7 +31,7 @@
   --radius-lg: 12px;
   --radius-md: 8px;
   --font-ui: "Noto Sans", "Noto Sans Thai", sans-serif;
-  --font-card: "Inter", "IBM Plex Sans Thai Looped", sans-serif !important;
+  --font-card: "Inter", "Noto Sans Thai Looped", sans-serif !important;
 }
 
 * {
