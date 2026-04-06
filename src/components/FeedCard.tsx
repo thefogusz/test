@@ -334,23 +334,23 @@ const FeedCard = ({
   const footerBadges: FeedCardFooterBadge[] = [
     isRepost
       ? {
-          key: 'repost',
-          icon: Repeat,
-          label: `รีโพสต์โดย ${repostedByUsername ? `@${repostedByUsername}` : repostedByName || 'บัญชีนี้'}`,
-          color: 'rgba(142, 197, 255, 0.72)',
-          background: 'rgba(41, 151, 255, 0.035)',
-          border: '1px solid rgba(41, 151, 255, 0.08)',
-        }
+        key: 'repost',
+        icon: Repeat,
+        label: `รีโพสต์โดย ${repostedByUsername ? `@${repostedByUsername}` : repostedByName || 'บัญชีนี้'}`,
+        color: 'rgba(142, 197, 255, 0.72)',
+        background: 'rgba(41, 151, 255, 0.035)',
+        border: '1px solid rgba(41, 151, 255, 0.08)',
+      }
       : null,
     displayTweet.isReply
       ? {
-          key: 'reply',
-          icon: Reply,
-          label: `ตอบกลับ @${displayTweet.inReplyToUsername || 'บางคน'}`,
-          color: 'rgba(120, 186, 255, 0.7)',
-          background: 'rgba(41, 151, 255, 0.03)',
-          border: '1px solid rgba(41, 151, 255, 0.075)',
-        }
+        key: 'reply',
+        icon: Reply,
+        label: `ตอบกลับ @${displayTweet.inReplyToUsername || 'บางคน'}`,
+        color: 'rgba(120, 186, 255, 0.7)',
+        background: 'rgba(41, 151, 255, 0.03)',
+        border: '1px solid rgba(41, 151, 255, 0.075)',
+      }
       : null,
   ].filter(Boolean) as FeedCardFooterBadge[];
   const showSocialStats = !isRssPost;
@@ -821,6 +821,7 @@ const FeedCard = ({
                   marginBottom: shouldShowRssSummary ? '8px' : 0,
                   lineHeight: '1.55',
                   letterSpacing: '-0.01em',
+                  fontFamily: 'var(--font-card)',
                   WebkitLineClamp: rssCardPresentation?.titleLineClamp || 2,
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
@@ -840,6 +841,7 @@ const FeedCard = ({
                   fontWeight: '500',
                   margin: 0,
                   display: '-webkit-box',
+                  fontFamily: 'var(--font-card)',
                   WebkitLineClamp: isRssPost ? (rssCardPresentation?.summaryLineClamp || 2) : 5,
                   WebkitBoxOrient: 'vertical',
                   overflow: 'hidden',
@@ -863,6 +865,7 @@ const FeedCard = ({
                 color: 'rgba(255,255,255,0.92)',
                 marginBottom: shouldShowRssSummary ? '6px' : 0,
                 lineHeight: '1.55',
+                fontFamily: 'var(--font-card)',
                 WebkitLineClamp: rssCardPresentation?.titleLineClamp || 2,
                 WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
@@ -882,6 +885,7 @@ const FeedCard = ({
                 fontWeight: '500',
                 margin: 0,
                 display: '-webkit-box',
+                fontFamily: 'var(--font-card)',
                 WebkitLineClamp: isRssPost ? (rssCardPresentation?.summaryLineClamp || 2) : 5,
                 WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
