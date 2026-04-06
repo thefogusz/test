@@ -33,8 +33,17 @@ const buildStableRssId = (value: string) => {
 
 const extractImageFromContent = (content: string): string | null => {
   if (!content) return null;
-  const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["']/i);
-  return imgMatch?.[1] || null;
+  // Look for any <img> tag and grab the src. Be flexible with attributes and quotes.
+  // We prefer larger images (ignoring small icons/trackers if possible)
+  const imgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
+  let match;
+  while ((match = imgRegex.exec(content)) !== null) {
+    const url = match[1];
+    // Skip common tracking pixels or tiny icons
+    if (url.includes('pixel') || url.includes('tracker') || url.includes('feedburner')) continue;
+    return url;
+  }
+  return null;
 };
 
 const extractImageFromEnclosure = (item: Element): string | null => {
@@ -49,26 +58,23 @@ const extractImageFromEnclosure = (item: Element): string | null => {
 };
 
 const extractMediaThumbnail = (item: Element, rawXml = ''): string | null => {
-  // browser DOMParser drops namespace prefixes — getElementsByTagName('media:thumbnail') always returns []
-  // Fall back to regex on the serialized item XML or passed raw fragment
   const itemXml = rawXml || new XMLSerializer().serializeToString(item);
 
-  // media:thumbnail url="..."
-  const thumbMatch = itemXml.match(/media:thumbnail[^>]+url=["']([^"']+)["']/i);
-  if (thumbMatch?.[1]) return thumbMatch[1];
+  // 1. Try media:content (very common for TechCrunch, etc.)
+  // Look for url="..." regardless of position of other attributes
+  const mediaContentRegex = /<media:content[^>]+url=["']([^"']+)["']/i;
+  const mediaContentMatch = itemXml.match(mediaContentRegex);
+  if (mediaContentMatch?.[1]) return mediaContentMatch[1];
 
-  // media:content url="..." medium="image" or type="image/..."
-  const contentMatch = itemXml.match(/media:content[^>]+url=["']([^"']+)["'][^>]*/i);
-  if (contentMatch?.[1]) {
-    const snippet = contentMatch[0];
-    if (/medium=["']image["']/i.test(snippet) || /type=["']image\//i.test(snippet)) {
-      return contentMatch[1];
-    }
-    // Also accept if there's a url but no medium/type (YouTube, etc.)
-    if (!/medium=/i.test(snippet) && !/type=/i.test(snippet)) {
-      return contentMatch[1];
-    }
-  }
+  // 2. Try media:thumbnail
+  const mediaThumbRegex = /<media:thumbnail[^>]+url=["']([^"']+)["']/i;
+  const mediaThumbMatch = itemXml.match(mediaThumbRegex);
+  if (mediaThumbMatch?.[1]) return mediaThumbMatch[1];
+
+  // 3. Try Atom-style links (rel="enclosure" or rel="image")
+  const atomLinkRegex = /<link[^>]+rel=["'](?:enclosure|image)["'][^>]+href=["']([^"']+)["']/i;
+  const atomLinkMatch = itemXml.match(atomLinkRegex);
+  if (atomLinkMatch?.[1]) return atomLinkMatch[1];
 
   return null;
 };
