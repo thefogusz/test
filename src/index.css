@@ -4848,12 +4848,32 @@ h6 {
 }
 
 .article-reader-body img {
-  max-width: 100%;
-  height: auto;
+  max-width: 100% !important;
+  height: auto !important;
   border-radius: 16px;
   margin: 24px auto;
   display: block;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  object-fit: contain;
+}
+
+.article-reader-body figure,
+.article-reader-body div {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+.article-reader-body table {
+  display: block;
+  width: 100% !important;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+.article-reader-body iframe,
+.article-reader-body video {
+  max-width: 100% !important;
+  border-radius: 12px;
 }
 
 .article-reader-body {
