@@ -815,11 +815,11 @@ const FeedCard = ({
               <div
                 style={{
                   display: '-webkit-box',
-                  fontSize: '17px',
-                  fontWeight: '800',
-                  color: '#fff',
+                  fontSize: '15px',
+                  fontWeight: '400',
+                  color: 'rgba(255,255,255,0.92)',
                   marginBottom: shouldShowRssSummary ? '8px' : 0,
-                  lineHeight: '1.42',
+                  lineHeight: '1.55',
                   letterSpacing: '-0.01em',
                   WebkitLineClamp: rssCardPresentation?.titleLineClamp || 2,
                   WebkitBoxOrient: 'vertical',
@@ -859,10 +859,10 @@ const FeedCard = ({
               style={{
                 display: '-webkit-box',
                 fontSize: '15px',
-                fontWeight: '800',
-                color: '#fff',
+                fontWeight: '400',
+                color: 'rgba(255,255,255,0.92)',
                 marginBottom: shouldShowRssSummary ? '6px' : 0,
-                lineHeight: '1.4',
+                lineHeight: '1.55',
                 WebkitLineClamp: rssCardPresentation?.titleLineClamp || 2,
                 WebkitBoxOrient: 'vertical',
                 overflow: 'hidden',
@@ -895,9 +895,9 @@ const FeedCard = ({
         </div>
       )}
 
-      <div className={footerClassName} style={FEED_CARD_FOOTER_STYLE}>
+      <div className={footerClassName} style={{ ...FEED_CARD_FOOTER_STYLE, ...(isRssPost && !shouldShowFooterMeta ? { flexWrap: 'nowrap' } : {}) }}>
         {isReadableArticle && (
-          <div className="feed-card-priority-action-slot">
+          <div className="feed-card-priority-action-slot" style={isRssPost && !shouldShowFooterMeta ? { width: 'auto' } : undefined}>
             <FeedCardActionButton
               icon={FileText}
               label="อ่านเนื้อหา"

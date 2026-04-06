@@ -401,7 +401,7 @@ const ArticleReaderModal = ({
         <div className="article-reader-topbar">
           <div className="article-reader-kicker">
             <span className="article-reader-kicker-badge">Reader</span>
-            {displaySource ? <span>{displaySource}</span> : null}
+            {displaySource ? <span className="article-reader-kicker-source">{displaySource}</span> : null}
           </div>
 
           <h2 className="modal-title article-reader-title article-reader-hero-title">
@@ -435,7 +435,7 @@ const ArticleReaderModal = ({
               <button
                 type="button"
                 className="btn-pill primary"
-                onClick={() => onArticleGen(article)}
+                onClick={() => { onArticleGen(article); onClose(); }}
               >
                 <PenSquare size={14} />
                 Create content
@@ -502,7 +502,7 @@ const ArticleReaderModal = ({
                         </div>
                         <div className="article-insights-chip-row">
                           {effectiveInsightState.data.companies.map((item) => (
-                            <span key={item} className="article-insights-chip">{item}</span>
+                            <span key={item} className="article-insights-chip article-insights-chip--company">{item}</span>
                           ))}
                         </div>
                       </div>
@@ -516,7 +516,7 @@ const ArticleReaderModal = ({
                         </div>
                         <div className="article-insights-chip-row">
                           {effectiveInsightState.data.people.map((item) => (
-                            <span key={item} className="article-insights-chip">{item}</span>
+                            <span key={item} className="article-insights-chip article-insights-chip--person">{item}</span>
                           ))}
                         </div>
                       </div>
@@ -530,7 +530,7 @@ const ArticleReaderModal = ({
                         </div>
                         <div className="article-insights-chip-row">
                           {effectiveInsightState.data.topics.map((item) => (
-                            <span key={item} className="article-insights-chip">{item}</span>
+                            <span key={item} className="article-insights-chip article-insights-chip--topic">{item}</span>
                           ))}
                         </div>
                       </div>

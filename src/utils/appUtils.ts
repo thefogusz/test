@@ -98,8 +98,7 @@ const pickThaiHeadlineFromSummary = (summary = '') => {
     .map((part) => part.trim())
     .find(Boolean) || firstBlock;
 
-  if (firstSentence.length <= 90) return firstSentence;
-  return `${firstSentence.slice(0, 87).trimEnd()}...`;
+  return firstSentence;
 };
 
 const cleanCardCopy = (value = '') =>
@@ -130,9 +129,13 @@ const splitSummarySegments = (value = '') =>
 
 const stripLeadingHeadlineCopy = (summary = '', title = '') => {
   const cleanedSummary = cleanCardCopy(summary);
-  const cleanedTitle = cleanCardCopy(title).replace(/\.\.\.$/, '').trim();
+  const rawCleanTitle = cleanCardCopy(title);
 
-  if (!cleanedSummary || !cleanedTitle) return '';
+  if (!cleanedSummary || !rawCleanTitle) return '';
+  // If title was truncated mid-word (ends with ...), stripping would leave partial word
+  if (rawCleanTitle.endsWith('...')) return '';
+
+  const cleanedTitle = rawCleanTitle.trim();
   if (!cleanedSummary.startsWith(cleanedTitle)) return '';
 
   return cleanCardCopy(
@@ -211,33 +214,13 @@ export const getRssCardPresentation = (
   options: { hasMediaPreview?: boolean } = {},
 ) => {
   const title = cleanCardCopy(getPreferredPostTitle(post));
-  const summary = cleanCardCopy(getPreferredPostSummary(post));
-  const hasMediaPreview = Boolean(options?.hasMediaPreview);
-  const titleMax = hasMediaPreview
-    ? RSS_TITLE_ONLY_MAX_TITLE_WITH_MEDIA
-    : RSS_TITLE_ONLY_MAX_TITLE_NO_MEDIA;
-  const summaryMax = hasMediaPreview
-    ? RSS_TITLE_ONLY_MAX_SUMMARY_WITH_MEDIA
-    : RSS_TITLE_ONLY_MAX_SUMMARY_NO_MEDIA;
-  const combinedMax = hasMediaPreview
-    ? RSS_TITLE_ONLY_MAX_COMBINED_WITH_MEDIA
-    : RSS_TITLE_ONLY_MAX_COMBINED_NO_MEDIA;
-
-  const shouldPreferTitleOnly =
-    !summary ||
-    (
-      Boolean(title) &&
-      title.length <= titleMax &&
-      summary.length <= summaryMax &&
-      title.length + summary.length <= combinedMax
-    );
 
   return {
     title,
-    summary: shouldPreferTitleOnly ? '' : summary,
-    isTitleOnly: shouldPreferTitleOnly,
-    titleLineClamp: shouldPreferTitleOnly ? 3 : 2,
-    summaryLineClamp: hasMediaPreview ? 1 : 2,
+    summary: '',
+    isTitleOnly: true,
+    titleLineClamp: 3,
+    summaryLineClamp: 2,
   };
 };
 
