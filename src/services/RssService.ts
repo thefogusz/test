@@ -48,18 +48,28 @@ const extractImageFromEnclosure = (item: Element): string | null => {
   return null;
 };
 
-const extractMediaThumbnail = (item: Element): string | null => {
-  // media:thumbnail or media:content
-  const mediaThumbnail = item.getElementsByTagName('media:thumbnail')[0];
-  if (mediaThumbnail) return mediaThumbnail.getAttribute('url');
+const extractMediaThumbnail = (item: Element, rawXml = ''): string | null => {
+  // browser DOMParser drops namespace prefixes — getElementsByTagName('media:thumbnail') always returns []
+  // Fall back to regex on the serialized item XML or passed raw fragment
+  const itemXml = rawXml || new XMLSerializer().serializeToString(item);
 
-  const mediaContent = item.getElementsByTagName('media:content')[0];
-  if (mediaContent) {
-    const type = mediaContent.getAttribute('medium') || mediaContent.getAttribute('type') || '';
-    if (type === 'image' || type.startsWith('image/')) {
-      return mediaContent.getAttribute('url');
+  // media:thumbnail url="..."
+  const thumbMatch = itemXml.match(/media:thumbnail[^>]+url=["']([^"']+)["']/i);
+  if (thumbMatch?.[1]) return thumbMatch[1];
+
+  // media:content url="..." medium="image" or type="image/..."
+  const contentMatch = itemXml.match(/media:content[^>]+url=["']([^"']+)["'][^>]*/i);
+  if (contentMatch?.[1]) {
+    const snippet = contentMatch[0];
+    if (/medium=["']image["']/i.test(snippet) || /type=["']image\//i.test(snippet)) {
+      return contentMatch[1];
+    }
+    // Also accept if there's a url but no medium/type (YouTube, etc.)
+    if (!/medium=/i.test(snippet) && !/type=/i.test(snippet)) {
+      return contentMatch[1];
     }
   }
+
   return null;
 };
 
@@ -82,12 +92,18 @@ const parseRssXml = (xml: string): RssItem[] => {
       const link = item.querySelector('link')?.textContent || '';
       const description = item.querySelector('description')?.textContent || '';
       const pubDate = item.querySelector('pubDate')?.textContent || '';
-      const contentEncoded = item.getElementsByTagName('content:encoded')[0]?.textContent || '';
-      const dcCreator = item.getElementsByTagName('dc:creator')[0]?.textContent || '';
+      // namespace-prefixed tags: serialize item to string so regex can reach them
+      const itemRaw = new XMLSerializer().serializeToString(item);
+      const contentEncoded = itemRaw.match(/<content:encoded[^>]*><!\[CDATA\[([\s\S]*?)\]\]><\/content:encoded>/i)?.[1]
+        || itemRaw.match(/<content:encoded[^>]*>([\s\S]*?)<\/content:encoded>/i)?.[1]
+        || '';
+      const dcCreator = itemRaw.match(/<dc:creator[^>]*><!\[CDATA\[([\s\S]*?)\]\]><\/dc:creator>/i)?.[1]
+        || itemRaw.match(/<dc:creator[^>]*>([\s\S]*?)<\/dc:creator>/i)?.[1]
+        || '';
       const author = item.querySelector('author')?.textContent || dcCreator || '';
 
       const imageUrl =
-        extractMediaThumbnail(item) ||
+        extractMediaThumbnail(item, itemRaw) ||
         extractImageFromEnclosure(item) ||
         extractImageFromContent(contentEncoded) ||
         extractImageFromContent(description) ||
@@ -107,10 +123,10 @@ const parseRssXml = (xml: string): RssItem[] => {
       const summary = entry.querySelector('summary')?.textContent || entry.querySelector('content')?.textContent || '';
       const published = entry.querySelector('published')?.textContent || entry.querySelector('updated')?.textContent || '';
       const authorName = entry.querySelector('author name')?.textContent || '';
-
+      const entryRaw = new XMLSerializer().serializeToString(entry);
       const contentEl = entry.querySelector('content')?.textContent || '';
       const imageUrl =
-        extractMediaThumbnail(entry) ||
+        extractMediaThumbnail(entry, entryRaw) ||
         extractImageFromContent(contentEl) ||
         extractImageFromContent(summary) ||
         null;
