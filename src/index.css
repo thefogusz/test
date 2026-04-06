@@ -30,8 +30,8 @@
   --radius-xl: 16px;
   --radius-lg: 12px;
   --radius-md: 8px;
-  --font-ui: "Noto Sans", "Noto Sans Thai", sans-serif;
-  --font-card: "Inter", "Noto Sans Thai Looped", sans-serif !important;
+  --font-ui: "Inter", "Noto Sans Thai", sans-serif;
+  --font-card: "Inter", "Noto Sans Thai", sans-serif !important;
 }
 
 * {
@@ -55,9 +55,16 @@ h2,
 h3,
 h4,
 h5,
-h6 {
-  margin: 0;
-  padding: 0;
+h6,
+.section-title,
+.reader-title,
+.hero-search-title,
+.modal-title,
+.sidebar-user-name,
+.pricing-plan-name,
+.home-splash-title {
+  font-family: 'Kanit', sans-serif !important;
+  font-weight: 700;
 }
 
 /* Desktop default scale: remove zoom to ensure pixel-perfect alignment / coordinates */
@@ -675,17 +682,17 @@ h6 {
 .btn-forge {
   display: flex;
   align-items: center;
-  gap: 5px;
-  height: 30px;
-  padding: 0 10px;
-  background: rgba(255, 255, 255, 0.025);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.54);
-  font-size: 10px;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 11px;
   font-weight: 700;
   border-radius: 100px;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -693,11 +700,23 @@ h6 {
 }
 
 .btn-forge:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.82);
-  box-shadow: none;
-  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.24);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+  transform: translateY(-1.5px);
+}
+
+.feed-card-priority-action-slot .btn-forge {
+  background: rgba(41, 151, 255, 0.08);
+  border-color: rgba(41, 151, 255, 0.2);
+  color: #a5d2ff;
+}
+
+.feed-card-priority-action-slot .btn-forge:hover {
+  background: rgba(41, 151, 255, 0.14);
+  border-color: rgba(41, 151, 255, 0.4);
+  color: #fff;
 }
 
 .btn-forge svg {
@@ -899,7 +918,6 @@ h6 {
 
 .dashboard-header h1,
 .reader-title,
-.reader-subtitle,
 .reader-empty-search-title,
 .home-empty-title,
 .home-splash-title,
@@ -5664,6 +5682,7 @@ h6 {
     font-size: 14px !important;
     line-height: 1.52 !important;
     -webkit-line-clamp: 6 !important;
+    line-clamp: 6 !important;
   }
 
   .audience-category-grid {

@@ -10,14 +10,14 @@ export const safeParse = (value, fallback) => {
 export const extractFirstImageUrl = (html) => {
   if (!html || typeof html !== 'string') return '';
   
-  // Find all matches to pick the best one (avoid tracking pixels if possible)
+  // Find all matches to pick the best one
   const imgRegex = /<img[^>]+src=(?:["']?)([^"'\s>?]+)(?:["']?)[^>]*>/gi;
   const matches = Array.from(html.matchAll(imgRegex));
   
   if (matches.length === 0) return '';
   
-  // Find the first image that doesn't look like a tracking pixel or tiny icon
-  const bestMatch = matches.find((m) => {
+  // Find the first image that doesn't look like a tracking pixel
+  let bestMatch = matches.find((m) => {
     const url = m[1].toLowerCase();
     return (
       !url.includes('pixel') &&
@@ -30,7 +30,20 @@ export const extractFirstImageUrl = (html) => {
     );
   });
 
-  return bestMatch ? bestMatch[1] : matches[0][1];
+  let url = bestMatch ? bestMatch[1] : matches[0][1];
+
+  // Logic to upgrade common low-res RSS images (like BBC)
+  if (url.includes('ichef.bbci.co.uk')) {
+    // Replace news/320/... with news/800/... or similar
+    url = url.replace(/\/news\/\d+\//, '/news/1024/');
+  } else if (url.includes('bloomberg.com')) {
+    // Bloomerg often uses /40x40/ or similar for thumbnails
+    url = url.replace(/\/\d+x\d+\//, '/800x-1/');
+  } else if (url.includes('reuters.com')) {
+    url = url.replace(/w=\d+/, 'w=1200');
+  }
+
+  return url;
 };
 
 export const mergeUniquePostsById = (...collections) => {
@@ -108,30 +121,12 @@ export const hasUsefulThaiSummary = (summary, originalText = '') => {
   });
 };
 
-const pickThaiHeadlineFromSummary = (summary = '') => {
-  const trimmedSummary = String(summary || '').trim();
-  if (!trimmedSummary) return '';
-
-  const firstBlock = trimmedSummary
-    .split(/\n+/)
-    .map((part) => part.trim())
-    .find(Boolean) || '';
-
-  if (!firstBlock) return '';
-
-  const firstSentence = firstBlock
-    .split(/(?<=[.!?。！？])\s+/)
-    .map((part) => part.trim())
-    .find(Boolean) || firstBlock;
-
-  return firstSentence;
-};
-
 const cleanCardCopy = (value = '') =>
   String(value || '')
     .replace(/\s+/g, ' ')
     .trim()
     .replace(EDGE_QUOTES_REGEX, '')
+    .replace(/\.+$/, '')
     .trim();
 
 const normalizeCardCopy = (value = '') =>
@@ -195,7 +190,7 @@ export const getPreferredPostTitle = (post) => {
   const summary = String(post?.summary || '').trim();
 
   if (sourceType === 'rss' && hasUsefulThaiSummary(summary, originalText)) {
-    return pickThaiHeadlineFromSummary(summary) || originalTitle || originalText;
+    return summary;
   }
 
   return originalTitle || originalText;
@@ -239,14 +234,26 @@ export const getRssCardPresentation = (
   post,
   options: { hasMediaPreview?: boolean } = {},
 ) => {
-  const title = cleanCardCopy(getPreferredPostTitle(post));
+  const rawTitle = cleanCardCopy(getPreferredPostTitle(post));
+  const rawSummary = cleanCardCopy(getPreferredPostSummary(post));
+  
+  // If title and summary are nearly identical, keep just the title
+  if (isNearDuplicateCopy(rawTitle, rawSummary)) {
+    return {
+      title: rawTitle,
+      summary: '',
+      isTitleOnly: true,
+      titleLineClamp: 3,
+      summaryLineClamp: 0,
+    };
+  }
 
   return {
-    title,
-    summary: '',
-    isTitleOnly: true,
-    titleLineClamp: 3,
-    summaryLineClamp: 2,
+    title: rawTitle,
+    summary: rawSummary,
+    isTitleOnly: false,
+    titleLineClamp: 2,
+    summaryLineClamp: 3,
   };
 };
 

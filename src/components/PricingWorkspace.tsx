@@ -34,13 +34,13 @@ const PLAN_PILL_ICON: Record<PlanId, typeof Shield> = {
 const PLAN_FEATURES: Record<'free' | 'plus', string[]> = {
   free: [
     'เริ่มใช้ Feed, Search และ Generate ได้ทันที',
-    'เหมาะกับการลองใช้ Foro ในงานประจำวัน',
-    'ยังบันทึก bookmarks และ drafts ได้ไม่จำกัด',
+    'เหมาะกับการใช้ Foro จัดการแหล่งข้อมูลประจำวัน',
+    'บันทึก bookmarks และ drafts ได้ไม่จำกัด',
   ],
   plus: [
-    'เพิ่มโควตา Search และ Generate สำหรับงานต่อเนื่อง',
-    'เหมาะกับการใช้งานจริงตลอดทั้งวัน',
-    'ได้ Export / Share และพื้นที่จัดการงานมากขึ้น',
+    'เพิ่มโควตา Search และ Generate สำหรับงานโปร',
+    'เหมาะกับการสร้างคอนเทนต์ตลอดทั้งวัน',
+    'ขยายพื้นที่จัดการ Watchlist และ Post Lists',
   ],
 };
 
@@ -130,16 +130,7 @@ const PricingWorkspace = ({
               </p>
             </div>
 
-            {activePlanId !== 'plus' && (
-              <button
-                className="btn-pill primary pricing-minimal-cta"
-                onClick={openBuyModal}
-                disabled={isCheckoutLoading}
-              >
-                <CreditCard size={15} />
-                เลือก Plus
-              </button>
-            )}
+            {/* Redundant Plus button removed */}
           </div>
 
           <div className="pricing-usage-strip">
@@ -164,7 +155,7 @@ const PricingWorkspace = ({
                   <div className="pricing-meter-track compact">
                     <div className="pricing-meter-fill" style={{ width: `${progress}%` }} />
                   </div>
-                  <div className="pricing-usage-tile-hint">{FEATURE_HINTS[feature]}</div>
+                  {/* FEATURE_HINTS removed as per request to keep UI clean */}
                 </div>
               );
             })}

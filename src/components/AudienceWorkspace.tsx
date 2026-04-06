@@ -412,11 +412,21 @@ const AudienceWorkspace = ({
 
             <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '32px' }}>
               <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                {'\u25ae \u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e15\u0e34\u0e14\u0e15\u0e32\u0e21\u0e2d\u0e22\u0e39\u0e48'} ({watchlist.length})
+                {'\u25ae \u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e15\u0e34\u0e14\u0e15\u0e32\u0e21\u0e2d\u0e22\u0e39\u0e48'} ({watchlist.length + subscribedSources.length})
               </div>
               <div className="watchlist-grid">
                 {watchlist.map((user) => (
                   <UserCard key={user.id} user={user} postLists={postLists} onToggleList={handleToggleMemberInList} onRemove={handleRemoveAccountGlobal} />
+                ))}
+                {subscribedSources.map((source) => (
+                  <SourceCard
+                    key={source.id}
+                    source={source}
+                    isSubscribed={true}
+                    onToggle={() => onToggleSource(source)}
+                    postLists={postLists}
+                    onTogglePostList={handleToggleMemberInList}
+                  />
                 ))}
               </div>
             </div>

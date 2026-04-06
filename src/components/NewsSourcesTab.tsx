@@ -451,11 +451,11 @@ const NewsSourcesTab = ({
       <div
         style={{
           fontSize: '11px',
-          fontWeight: '800',
-          color: 'rgba(255,255,255,0.3)',
+          fontWeight: '700',
+          color: 'var(--text-muted)',
           textTransform: 'uppercase',
-          letterSpacing: '0.08em',
-          marginBottom: '14px',
+          letterSpacing: '0.05em',
+          marginBottom: '12px',
         }}
       >
         กรองตามหมวด
@@ -464,17 +464,17 @@ const NewsSourcesTab = ({
         <button
           onClick={() => setActiveTopic('all')}
           className={`audience-tab-btn news-source-filter-btn ${activeTopic === 'all' ? 'active-manual' : ''}`}
-          style={{ minHeight: '34px', padding: '0 14px', fontSize: '12px' }}
+          style={{ minHeight: '34px', padding: '0 14px', fontSize: '13px', borderRadius: '999px' }}
         >
           ทั้งหมด
         </button>
         <button
           onClick={() => setActiveTopic(THAI_FILTER_KEY)}
           className={`audience-tab-btn news-source-filter-btn ${activeTopic === THAI_FILTER_KEY ? 'active-manual' : ''}`}
-          style={{ minHeight: '34px', padding: '0 14px', fontSize: '12px' }}
+          style={{ minHeight: '34px', padding: '0 14px', fontSize: '13px', borderRadius: '999px' }}
         >
           🇹🇭 ข่าวไทย{' '}
-          <span style={{ opacity: 0.4, fontSize: '10px', marginLeft: '2px' }}>
+          <span style={{ opacity: 0.5, fontSize: '11px', marginLeft: '4px' }}>
             ({thaiSourceCount})
           </span>
         </button>
@@ -483,10 +483,10 @@ const NewsSourcesTab = ({
             key={key}
             onClick={() => setActiveTopic(key)}
             className={`audience-tab-btn news-source-filter-btn ${activeTopic === key ? 'active-manual' : ''}`}
-            style={{ minHeight: '34px', padding: '0 14px', fontSize: '12px' }}
+            style={{ minHeight: '34px', padding: '0 14px', fontSize: '13px', borderRadius: '999px' }}
           >
             {icon} {label}{' '}
-            <span style={{ opacity: 0.4, fontSize: '10px', marginLeft: '2px' }}>
+            <span style={{ opacity: 0.5, fontSize: '11px', marginLeft: '4px' }}>
               ({count})
             </span>
           </button>
@@ -512,6 +512,7 @@ const NewsSourcesTab = ({
             className="news-source-grid"
             style={{
               display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
               gap: '12px',
               marginBottom: '8px',
             }}
@@ -541,7 +542,7 @@ const NewsSourcesTab = ({
               marginBottom: '16px',
             }}
           >
-            <span style={{ fontSize: '16px' }}>🇹🇭</span>
+            <span style={{ fontSize: '16px', display: 'flex', alignItems: 'center', lineHeight: 1 }}>🇹🇭</span>
             <span style={{ fontSize: '13px', fontWeight: '800', color: 'rgba(255,255,255,0.55)' }}>
               แหล่งข่าวไทย
             </span>
@@ -553,7 +554,7 @@ const NewsSourcesTab = ({
               {thSources.length} แหล่ง
             </span>
           </div>
-          <div className="news-source-grid" style={{ display: 'grid', gap: '12px' }}>
+          <div className="news-source-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '12px' }}>
             {thSources.map((source) => (
               <SourceCard
                 key={source.id}

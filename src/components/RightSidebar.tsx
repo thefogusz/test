@@ -288,7 +288,7 @@ const RightSidebar = ({
         {/* POST LISTS (Playlists style) */}
         <div className="list-container" style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: postLists.length === 0 ? 1 : 'none' }}>
           {postLists.length > 0 && (
-            <div style={{ padding: '0 12px 10px', fontSize: '11px', fontWeight: '800', color: 'var(--text-dim)', letterSpacing: '0.12em' }}>
+            <div style={{ padding: '12px 12px 10px', marginTop: '14px', fontSize: '11px', fontWeight: '800', color: 'var(--text-dim)', letterSpacing: '0.12em' }}>
               YOUR LISTS
             </div>
           )}
@@ -810,33 +810,7 @@ const RightSidebar = ({
           )}
         </div>
 
-        {isMobileOpen && (
-          <section className="post-list-mobile-plan-section">
-            <div className="post-list-mobile-plan-label">PLAN & BILLING</div>
-            <button type="button" className="post-list-mobile-plan-entry" onClick={onOpenPricing}>
-              <div className="post-list-mobile-plan-entry-main">
-                <div className="post-list-mobile-plan-entry-icon">
-                  <CreditCard size={16} />
-                </div>
-                <div className="post-list-mobile-plan-entry-copy">
-                  <div className="post-list-mobile-plan-entry-name">{PLAN_TITLES[activePlanId] || 'Foro Plan'}</div>
-                  <div className="post-list-mobile-plan-entry-subtitle">เปิดหน้า Pricing และจัดการแพ็ก</div>
-                </div>
-              </div>
-              <div className="post-list-mobile-plan-entry-meta">
-                <span className="post-list-mobile-plan-badge">{String(activePlanId || '').toUpperCase()}</span>
-                <ChevronRight size={16} />
-              </div>
-            </button>
-            {planNotice && (
-              <button type="button" className="post-list-mobile-plan-note" onClick={onOpenPricing}>
-                <span className="post-list-mobile-plan-note-title">{planNotice.title}</span>
-                <span className="post-list-mobile-plan-note-body">{planNotice.body}</span>
-              </button>
-            )}
-          </section>
-        )}
-
+        {/* Plan & Billing section removed as per request */}
       </div>
     </aside>
   );

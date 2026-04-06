@@ -677,7 +677,11 @@ const CreateContent = ({
           researchPrompt = sourceUrl || originalText || sourceLabel;
         }
 
-        if (isRssSource(workingSourceNode) && sourceUrl) {
+        // For RSS sources, we prefer using the already attached AI insights (summary/original text)
+        // to save API calls and time, unless the user explicitly wants more research or if summary is too thin.
+        const needsMoreDepth = customInstructions && /เพิ่มเติม|เจาะลึก|research|detail|มากกว่านี้/i.test(customInstructions);
+        
+        if (isRssSource(workingSourceNode) && sourceUrl && (needsMoreDepth || !translatedSummary)) {
           try {
             const fullArticle = await fetchReadableArticle(sourceUrl, controller.signal);
             if (fullArticle?.textContent) {

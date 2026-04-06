@@ -149,7 +149,10 @@ const Sidebar = ({
             <button
               key={view}
               className={`nav-item nav-item-${view} ${hideOnMobile ? 'mobile-hidden' : ''} ${active ? 'active' : ''}`.trim()}
-              onClick={() => onNavClick(view)}
+              onClick={() => {
+                setIsPlanOpen(false);
+                onNavClick(view);
+              }}
             >
               <span className="nav-icon-shell" aria-hidden="true">
                 <Icon
@@ -189,7 +192,10 @@ const Sidebar = ({
           usageLimits={usageLimits}
           onSwitchPlan={onSwitchPlan}
           onResetUsage={onResetUsage}
-          onOpenPricing={onOpenPricing}
+          onOpenPricing={() => {
+            setIsPlanOpen(false);
+            onOpenPricing();
+          }}
           planNotice={planNotice}
           onClearPlanNotice={onClearPlanNotice}
         />

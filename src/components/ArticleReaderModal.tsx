@@ -50,9 +50,66 @@ const buildInsightCopy = (insights) =>
     .filter(Boolean)
     .join('\n');
 
+const cleanArticleHtml = (html) => {
+  if (!html) return '';
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // Remove obvious junk by selectors
+    const junkSelectors = [
+      'nav', 'footer', '.footer', '.menu', '.navigation', '.site-footer', '.global-footer',
+      '[class*="footer"]', '[class*="menu"]', '[id*="footer"]', '[id*="menu"]'
+    ];
+    
+    junkSelectors.forEach(selector => {
+      doc.querySelectorAll(selector).forEach(el => el.remove());
+    });
+
+    // Remove text nodes containing Bloomberg junk
+    const keywords = [
+      'For Customers', 'Support', 'Company', 'Communications', 'Follow',
+      'Products', 'Industry Products', 'Media', 'Media Services',
+      'Terms of Service', 'Privacy Policy', 'Cookie Policy', 'Updated on'
+    ];
+    
+    // Pattern to match "April 6, 2026 at 7:35 PM UTC"
+    const dateRegex = /^[A-Z][a-z]+\s+\d{1,2},\s+\d{4}\s+at\s+\d{1,2}:\d{2}\s+(?:AM|PM)(?:\s+[A-Z]{2,4})?$/i;
+
+    Array.from(doc.querySelectorAll('p, li, div, span, a, h1, h2, h3, h4, h5, h6, b, strong, em, i, time')).forEach(el => {
+      const text = (el.textContent || '').trim();
+      
+      if (
+        keywords.includes(text) ||
+        text.startsWith('Americas+1') ||
+        text.startsWith('EMEA+44') ||
+        text.startsWith('Asia Pacific+65') ||
+        dateRegex.test(text)
+      ) {
+        // Only remove if it's a reasonably small leaf-ish node so we don't nuke the whole article
+        if (el.innerHTML.length < 500) {
+          el.remove();
+        }
+      }
+    });
+
+    // Remove empty lists
+    doc.querySelectorAll('ul, ol').forEach(list => {
+      if (!list.textContent.trim()) {
+        list.remove();
+      }
+    });
+
+    return doc.body.innerHTML;
+  } catch (err) {
+    console.error('Error cleaning article HTML:', err);
+    return html;
+  }
+};
+
 const renderSourceBodyHtml = (item, articleData) => {
   if (articleData?.contentHtml) {
-    return DOMPurify.sanitize(articleData.contentHtml);
+    return DOMPurify.sanitize(cleanArticleHtml(articleData.contentHtml));
   }
 
   if (item?.type === 'article') {
@@ -229,7 +286,17 @@ const ArticleReaderModal = ({
     const articleData = effectiveArticleState.data;
     const insightTitle = articleData?.title || article?.title || '';
     const insightExcerpt = articleData?.excerpt || article?.summary || '';
-    const insightBody = articleData?.textContent || article?.full_text || article?.text || '';
+    let insightBody = articleData?.textContent || article?.full_text || article?.text || '';
+    if (articleData?.contentHtml) {
+      try {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = cleanArticleHtml(articleData.contentHtml);
+        insightBody = tempDiv.innerText || tempDiv.textContent || insightBody;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
     const insightSource = articleData?.siteName || article?.author?.name || '';
     if (!insightTitle && !insightBody) return;
 
@@ -287,11 +354,22 @@ const ArticleReaderModal = ({
     const articleData = effectiveArticleState.data;
     let isActive = true;
 
+    let cleanedTranslationText = articleData?.textContent || article?.full_text || article?.text || '';
+    if (articleData?.contentHtml) {
+      try {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = cleanArticleHtml(articleData.contentHtml);
+        cleanedTranslationText = tempDiv.innerText || tempDiv.textContent || cleanedTranslationText;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
     translateArticleToThai({
       title: articleData?.title || article?.title || '',
       excerpt: articleData?.excerpt || article?.summary || '',
-      contentMarkdown: articleData?.contentMarkdown || '',
-      content: articleData?.textContent || article?.full_text || article?.text || '',
+      contentMarkdown: '', // Omit to force using cleaned content
+      content: cleanedTranslationText,
       siteName: articleData?.siteName || article?.author?.name || '',
     })
       .then((payload) => {
@@ -365,10 +443,16 @@ const ArticleReaderModal = ({
     : effectiveTranslationState.status === 'loading' && shouldTranslateArticle
       ? '<p>กำลังแปลบทความเป็นภาษาไทย...</p>'
       : renderSourceBodyHtml(article, articleData);
-  const articleBodyHtml =
+  let articleBodyHtml =
     effectiveTranslationState.status === 'loading' && shouldTranslateArticle
       ? renderSourceBodyHtml(article, articleData)
       : bodyHtml;
+
+  if (displayImage && articleBodyHtml) {
+    const escapedImgUrl = displayImage.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const imgRegex = new RegExp(`(?:<figure[^>]*>[\\s\\S]*?)?<img[^>]+src=["']?${escapedImgUrl}["']?[^>]*>(?:[\\s\\S]*?</figure>)?`, 'i');
+    articleBodyHtml = articleBodyHtml.replace(imgRegex, '');
+  }
   const articleCopyValue = translatedMarkdown
     ? cleanMarkdownForClipboard(translatedMarkdown)
     : articleData?.textContent
@@ -408,39 +492,55 @@ const ArticleReaderModal = ({
             {displayTitle}
           </h2>
 
-          <div className="article-reader-meta-row">
-            {displayByline ? <span>{displayByline}</span> : null}
-            {displayPublishedAt ? <span>{displayPublishedAt}</span> : null}
-            {displayReadingTime ? (
-              <span className="article-reader-meta-chip">
-                <Clock3 size={13} />
-                {displayReadingTime} min read
-              </span>
-            ) : null}
-            {translatedMarkdown ? (
-              <span className="article-reader-meta-chip">Thai translation</span>
-            ) : null}
-          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginTop: '12px' }}>
+            <div className="article-reader-meta-row" style={{ margin: 0 }}>
+              {displayByline ? <span>{displayByline}</span> : null}
+              {displayPublishedAt ? <span>{displayPublishedAt}</span> : null}
+              {displayReadingTime ? (
+                <span className="article-reader-meta-chip">
+                  <Clock3 size={13} />
+                  {displayReadingTime} min read
+                </span>
+              ) : null}
+              {translatedMarkdown ? (
+                <span className="article-reader-meta-chip">Thai translation</span>
+              ) : null}
+            </div>
 
-          <div className="article-reader-action-row">
-            <button
-              type="button"
-              className="btn-pill"
-              onClick={() => handleCopy('article', articleCopyValue)}
-            >
-              <Copy size={14} />
-              {copyState === 'article' ? 'Copied' : 'Copy article'}
-            </button>
-            {onArticleGen ? (
+            <div className="article-reader-action-row" style={{ margin: 0 }}>
               <button
                 type="button"
-                className="btn-pill primary"
-                onClick={() => { onArticleGen(article); onClose(); }}
+                className="btn-mini-ghost"
+                style={{
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  padding: '0 12px',
+                  height: '32px',
+                  fontSize: '12px'
+                }}
+                onClick={() => handleCopy('article', articleCopyValue)}
               >
-                <PenSquare size={14} />
-                Create content
+                <Copy size={13} />
+                {copyState === 'article' ? 'Copied' : 'Copy article'}
               </button>
-            ) : null}
+              {onArticleGen ? (
+                <button
+                  type="button"
+                  className="btn-mini-ghost"
+                  style={{
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    padding: '0 12px',
+                    height: '32px',
+                    fontSize: '12px'
+                  }}
+                  onClick={() => { onArticleGen(article); onClose(); }}
+                >
+                  <PenSquare size={13} />
+                  Create content
+                </button>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -585,30 +685,15 @@ const ArticleReaderModal = ({
           </div>
         )}
 
-        {effectiveTranslationState.status === 'error' && (
-          <div className="article-reader-error-card">
-            <div className="article-reader-error-title">Thai translation is unavailable right now</div>
-            <div className="article-reader-error-copy">
-              {effectiveTranslationState.error || 'Showing the original article instead.'}
-            </div>
-          </div>
-        )}
 
-        {effectiveArticleState.status === 'error' && (
-          <div className="article-reader-error-card">
-            <div className="article-reader-error-title">Could not extract the full article</div>
-            <div className="article-reader-error-copy">{effectiveArticleState.error}</div>
-            {articleUrl ? (
-              <a href={articleUrl} target="_blank" rel="noopener noreferrer" className="btn-pill">
-                <ExternalLink size={14} />
-                Open original source
-              </a>
-            ) : null}
-          </div>
-        )}
 
         <div
-          className="markdown-body article-reader-markdown article-reader-body"
+          key={effectiveTranslationState.status}
+          className="markdown-body article-reader-markdown article-reader-body animate-fade-in"
+          style={{
+            transition: 'opacity 0.5s ease',
+            opacity: effectiveTranslationState.status === 'loading' && shouldTranslateArticle ? 0.35 : 1,
+          }}
           dangerouslySetInnerHTML={{ __html: articleBodyHtml }}
         />
 

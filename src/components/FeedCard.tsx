@@ -732,10 +732,6 @@ const FeedCard = ({
                 color: 'rgba(255, 255, 255, 0.9)',
                 fontWeight: '500',
                 margin: 0,
-                display: '-webkit-box',
-                WebkitLineClamp: 5,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
                 letterSpacing: '-0.01em',
                 wordBreak: 'break-word',
               }}
@@ -773,26 +769,7 @@ const FeedCard = ({
               padding: 0,
             }}
           >
-            <div
-              style={{
-                position: 'absolute',
-                left: '8px',
-                bottom: '8px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                borderRadius: '999px',
-                padding: '4px 7px',
-                background: 'rgba(2, 6, 23, 0.76)',
-                color: '#e5eefc',
-                fontSize: '9px',
-                fontWeight: '800',
-                letterSpacing: '0.03em',
-              }}
-            >
-              <ImageIcon size={10} />
-              ดูภาพใน FORO
-            </div>
+            {/* ดูภาพใน FORO badge removed as per request */}
             {imageUrls.length > 1 && (
               <div
                 style={{
@@ -824,9 +801,6 @@ const FeedCard = ({
                   lineHeight: '1.55',
                   letterSpacing: '-0.01em',
                   fontFamily: 'var(--font-card)',
-                  WebkitLineClamp: rssCardPresentation?.titleLineClamp || 2,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
                   wordBreak: 'break-word',
                 }}
               >
@@ -837,18 +811,18 @@ const FeedCard = ({
               <p
                 className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
                 style={{
-                  fontSize: isRssPost ? '15px' : '16px',
-                  lineHeight: isRssPost ? '1.58' : '1.62',
-                  color: isRssPost ? 'rgba(255, 255, 255, 0.78)' : 'rgba(255, 255, 255, 0.9)',
-                  fontWeight: '500',
+                  fontSize: '15px',
+                  lineHeight: isRssPost ? '1.58' : '1.45',
+                  color: isRssPost ? 'rgba(255, 255, 255, 0.78)' : 'rgba(255, 255, 255, 0.95)',
+                  fontWeight: '400',
                   margin: 0,
-                  display: '-webkit-box',
                   fontFamily: 'var(--font-card)',
-                  WebkitLineClamp: isRssPost ? (rssCardPresentation?.summaryLineClamp || 2) : 5,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
                   letterSpacing: '-0.01em',
                   wordBreak: 'break-word',
+                  display: '-webkit-box',
+                  WebkitBoxOrient: 'vertical',
+                  WebkitLineClamp: isRssPost ? (rssCardPresentation?.summaryLineClamp || 3) : 5,
+                  overflow: 'hidden'
                 }}
               >
                 {isRssPost ? (rssSummaryText || displayTitle) : displayText}
@@ -867,10 +841,8 @@ const FeedCard = ({
                 color: 'rgba(255,255,255,0.92)',
                 marginBottom: shouldShowRssSummary ? '6px' : 0,
                 lineHeight: '1.55',
+                letterSpacing: '-0.01em',
                 fontFamily: 'var(--font-card)',
-                WebkitLineClamp: rssCardPresentation?.titleLineClamp || 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
                 wordBreak: 'break-word',
               }}
             >
@@ -881,18 +853,18 @@ const FeedCard = ({
             <p
               className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
               style={{
-                fontSize: isRssPost ? '15px' : '16px',
-                lineHeight: isRssPost ? '1.58' : '1.6',
-                color: isRssPost ? 'rgba(255, 255, 255, 0.78)' : 'rgba(255, 255, 255, 0.9)',
-                fontWeight: '500',
+                fontSize: '15px',
+                lineHeight: isRssPost ? '1.58' : '1.45',
+                color: isRssPost ? 'rgba(255, 255, 255, 0.78)' : 'rgba(255, 255, 255, 0.95)',
+                fontWeight: '400',
                 margin: 0,
-                display: '-webkit-box',
                 fontFamily: 'var(--font-card)',
-                WebkitLineClamp: isRssPost ? (rssCardPresentation?.summaryLineClamp || 2) : 5,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
                 letterSpacing: '-0.01em',
                 wordBreak: 'break-word',
+                display: '-webkit-box',
+                WebkitBoxOrient: 'vertical',
+                WebkitLineClamp: isRssPost ? (rssCardPresentation?.summaryLineClamp || 3) : 5,
+                overflow: 'hidden'
               }}
             >
               {isRssPost ? (rssSummaryText || displayTitle) : displayText}
@@ -985,7 +957,7 @@ const FeedCard = ({
                     : `รูปภาพจาก @${tweet.author?.username || 'x'}`}
                 </div>
                 <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.68)' }}>
-                  {imageUrls.length > 1 ? `รูป ${activeImageIndex + 1} จาก ${imageUrls.length}` : 'ดูรูปใน FORO'}
+                  {imageUrls.length > 1 ? `รูป ${activeImageIndex + 1} จาก ${imageUrls.length}` : 'รูปภาพเต็มในโหมดอ่าน'}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1026,25 +998,27 @@ const FeedCard = ({
               }}
             >
               <div
-                onClick={(event) => event.stopPropagation()}
                 style={{
                   position: 'relative',
-                  width: 'fit-content',
-                  maxWidth: 'min(92vw, 1200px)',
-                  maxHeight: 'min(82vh, 1200px)',
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
                 <img
                   src={activeImageUrl}
+                  onClick={(event) => event.stopPropagation()}
                   alt={displayTweet.text || displayTweet.summary || 'tweet image'}
                   style={{
-                    maxWidth: 'min(92vw, 1200px)',
-                    maxHeight: 'min(82vh, 1200px)',
+                    width: '100%',
+                    height: '100%',
+                    maxWidth: 'min(100vw, 1200px)',
+                    maxHeight: 'min(86vh, 1200px)',
                     objectFit: 'contain',
                     display: 'block',
-                    borderRadius: '18px',
-                    boxShadow: '0 24px 64px rgba(0,0,0,0.45)',
-                    background: 'rgba(255,255,255,0.02)',
+                    filter: 'drop-shadow(0 24px 64px rgba(0,0,0,0.45))',
                   }}
                 />
 

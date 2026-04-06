@@ -18,13 +18,13 @@ const BookmarksWorkspace = ({
 }) => {
   return (
     <div className="animate-fade-in" style={{ display: isVisible ? 'block' : 'none' }}>
-      <header className="dashboard-header">
+      <header className="reader-header">
         <div className="reader-header-top">
           <div className="reader-header-copy">
-            <h1 style={{ margin: 0, fontSize: '32px', fontWeight: '800', lineHeight: '1.4', color: currentActiveList?.color || 'inherit' }}>
+            <h1 className="reader-title" style={{ color: currentActiveList?.color || 'inherit' }}>
               Bookmarks
             </h1>
-            <p style={{ margin: '4px 0 0', color: 'var(--text-muted)' }}>{'\u0e04\u0e25\u0e31\u0e07\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e17\u0e35\u0e48\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e44\u0e27\u0e49\u0e41\u0e22\u0e01\u0e15\u0e32\u0e21\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17'}</p>
+            <p className="reader-subtitle">{'\u0e04\u0e25\u0e31\u0e07\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e17\u0e35\u0e48\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e44\u0e27\u0e49\u0e41\u0e22\u0e01\u0e15\u0e32\u0e21\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17'}</p>
           </div>
           <button className="mobile-only-flex icon-btn-large" onClick={() => setIsMobilePostListOpen(true)}>
             <List size={20} />
@@ -75,7 +75,9 @@ const BookmarksWorkspace = ({
                     {item.title}
                   </a>
                 ) : (
-                  <h3 title={item.title}>{item.title}</h3>
+                  <h3 title={item.title || item.name} style={{ margin: 0, fontSize: '18px', fontWeight: '800' }}>
+                    {item.title && item.title !== '...' ? item.title : (item.name || item.author?.name || 'บทความที่บันทึกไว้')}
+                  </h3>
                 )}
                 <button
                   onClick={(e) => {
@@ -90,10 +92,22 @@ const BookmarksWorkspace = ({
                   <Trash2 size={12} />
                 </button>
               </div>
-              <div className="article-preview">{(item.summary || '').replace(/[#*`]/g, '').slice(0, 300)}</div>
-              <div className="article-card-footer">
-                <span>{'\u0e2d\u0e48\u0e32\u0e19\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e15\u0e34\u0e21 \u2192'}</span>
-                <span>{'\u0e2d\u0e48\u0e32\u0e19\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e15\u0e34\u0e21 \u2192'}</span>
+              <div className="article-preview" style={{
+                display: '-webkit-box',
+                WebkitLineClamp: 5,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                lineHeight: '1.6',
+                color: 'var(--text-main)',
+                fontSize: '14px',
+                opacity: 0.85
+              }}>
+                {(item.summary || item.text || '').replace(/[#*`]/g, '').trim()}
+              </div>
+              <div className="article-card-footer" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--accent-secondary)' }}>
+                  {'\u0e2d\u0e48\u0e32\u0e19\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e15\u0e34\u0e21 \u2192'}
+                </span>
               </div>
             </div>
           ),

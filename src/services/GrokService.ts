@@ -64,17 +64,18 @@ Proper-name rules:
 `.trim();
 
 const SUMMARY_RULES = `
-คุณต้องเปลี่ยนโพสต์จากโซเชียลมีเดียให้เป็นสรุปข่าวภาษาไทยแบบสั้น
+คุณคือผู้เชี่ยวชาญการวิเคราะห์และสรุปเนื้อหา (Content Curator & Analyst) ที่เปลี่ยนข้อมูลจากทั้งข่าวทางการและโพสต์โซเชียลฯ ให้เป็นภาษาไทยที่ "สั้น กระชับ คม"
 
 กฎที่ต้องปฏิบัติตาม:
-- รักษาความหมายเดิมให้ครบถ้วน
-- เขียนสรุปเป็นภาษาไทย
-- คำที่เป็นชื่อเฉพาะ, ชื่อผลิตภัณฑ์ และคำศัพท์ทางเทคนิค ให้คงไว้เป็นภาษาอังกฤษ
-- ห้ามระบุชื่อบัญชี (@username) ของบุคคลทั่วไปที่แชร์ข้อมูลโดยไม่มีผลกระทบ แต่ **ยกเว้น** บัญชีที่มีชื่อเสียง, มีผู้ติดตามจำนวนมาก, มียอดไลค์/เอนเกจเม้นท์สูงมาก หรือเป็นต้นทางข้อมูลสำคัญเท่านั้นที่สามารถระบุชื่อได้
+- รักษาความแม่นยำของข้อมูล (Fact) ห้ามบิดเบือน แต่ให้ตัดทอนเฉพาะส่วนที่ไม่สำคัญออกเพื่อความกระชับ
+- **ห้ามแปลคำต่อคำ (Literal) หรือแปลตรงตัวจนเสียความหมายภาษาไทย** (เช่น 'Patchwork' -> 'ความลักลั่น', 'Booking' -> 'ว่าจ้าง/เชิญมาแสดง')
+- ปรับสำนวนให้เหมาะสมกับบริบท (ข่าวใช้ภาษาทางการ/โซเชียลใช้ภาษาที่กระชับแต่ไม่เป็นทางการเกินไป)
+- **ห้ามใช้ตัวอักษรภาษาอื่นที่อยู่นอกเหนือจากภาษาไทยและอังกฤษ (เช่น ห้ามใช้ 読, 中 หรือตัวอักษรจีน/ญี่ปุ่น) ปนในสรุปภาษาไทยเด็ดขาด**
+- แปลศัพท์เทคนิคให้คนทั่วไปอ่านเข้าใจง่ายที่สุด (เช่น 'Underwater mortgages' -> 'ภาวะหนี้ท่วมบ้าน')
+- ห้ามระบุชื่อบัญชี (@username) ของบุคคลทั่วไป ยกเว้นบุคคลที่มีชื่อเสียง
+- ห้ามใส่จุดฟูลสต็อป (.) ปิดท้ายประโยคภาษาไทย
 - ห้ามเอ่ยชื่อ Twitter หรือ X
-- ห้ามใส่ URLs ลงในข้อความ
-- เขียนสรุป 1-2 ประโยคต่อเรื่อง
-- หลีกเลี่ยงการใช้คำอวดอ้าง, การคาดเดา หรือการเติมแต่งเกินจริง
+- เขียนสรุป 1-2 ประโยคที่ได้ใจความที่สุด
 `.trim();
 
 const cleanMarkdown = (text = '') =>
@@ -1067,30 +1068,10 @@ export const generateGrokSummary = async (fullStoryText) => {
   return results[0] || fullStoryText;
 };
 
-const shortenInsightText = (value = '', maxLength = 64) => {
+const shortenInsightText = (value = '', maxLength = 400) => {
   const cleaned = normalizeCacheText(cleanGeneratedContent(value));
   if (!cleaned) return '';
-  if (cleaned.length <= maxLength) return cleaned;
-
-  const clipped = cleaned.slice(0, maxLength);
-  const candidateBoundaries = [
-    clipped.lastIndexOf(' '),
-    clipped.lastIndexOf('.'),
-    clipped.lastIndexOf('!'),
-    clipped.lastIndexOf('?'),
-    clipped.lastIndexOf('।'),
-    clipped.lastIndexOf('。'),
-    clipped.lastIndexOf('!'),
-    clipped.lastIndexOf('?'),
-    clipped.lastIndexOf(','),
-    clipped.lastIndexOf(';'),
-    clipped.lastIndexOf(':'),
-  ];
-  const boundary = Math.max(...candidateBoundaries);
-  const shortened =
-    boundary >= Math.floor(maxLength * 0.58) ? clipped.slice(0, boundary) : clipped;
-
-  return `${shortened.replace(/[,:;\s-]+$/u, '').trim()}…`;
+  return cleaned; // Do not truncate, let the UI layout handle text length naturally to avoid lost information
 };
 
 const compactInsightEntities = (items = [], maxItems = 3, maxLength = 28) =>
@@ -1100,8 +1081,8 @@ const compactInsightEntities = (items = [], maxItems = 3, maxLength = 28) =>
     .slice(0, maxItems);
 
 const buildCompactArticleInsights = (rawInsights = {}) => {
-  const summary = shortenInsightText(rawInsights.summary, 68);
-  const whyItMattersCandidate = shortenInsightText(rawInsights.whyItMatters, 68);
+  const summary = shortenInsightText(rawInsights.summary, 120);
+  const whyItMattersCandidate = shortenInsightText(rawInsights.whyItMatters, 120);
   const whyItMatters =
     summary && textSimilarity(summary, whyItMattersCandidate) >= 0.72
       ? ''
@@ -1109,7 +1090,7 @@ const buildCompactArticleInsights = (rawInsights = {}) => {
   const dedupeAgainst = [summary, whyItMatters].filter(Boolean);
 
   const keyPoints = dedupeByNormalizedText(rawInsights.keyPoints || [])
-    .map((item) => shortenInsightText(item, 52))
+    .map((item) => shortenInsightText(item, 90))
     .filter(Boolean)
     .filter((item) =>
       dedupeAgainst.every((existing) => textSimilarity(existing, item) < 0.72),
@@ -1151,17 +1132,17 @@ export const generateArticleInsights = async ({
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
-      system: `You create ultra-compact AI insight cards for a news reader UI.
+            system: `You create ultra-compact AI insight cards for a news reader UI. You are a versatile professional analyst distilling news articles and social posts.
 
-Rules:
-- Return Thai for insight text, but preserve proper names in Latin script when they appear that way in the source.
-- Never invent facts, names, companies, or numbers.
-- This is a pre-read card, not a mini article. If it feels like the user already read the story, it is too long.
-- summary: 1 very short sentence, the single most important fact. Max ~55 Thai chars.
-- whyItMatters: 1 very short sentence explaining impact. Max ~55 Thai chars.
-- keyPoints: prefer 1 bullet, max 2 bullets only if the second fact is essential. Each bullet under 45 chars.
-- Only include entities that are truly central to the article.
-- No fluff, no filler phrases.`,
+ Rules:
+ - Return Thai for insight text. Accuracy is paramount: NEVER distort facts, but BE CONCISE.
+ - Translate idioms and jargon into natural, context-aware Thai equivalents. Avoid literal word-for-word translations.
+ - summary: 1 very short sentence, the single most important fact. Max ~100 Thai chars.
+ - whyItMatters: 1 very short sentence explaining impact. Max ~100 Thai chars.
+ - keyPoints: 1-2 punchy bullets. Each bullet under 80 chars. 
+ - DO NOT include a trailing period (.) at the end of Thai sentences.
+ - Preserve proper names in Latin script only when they are central or have no direct Thai equivalent.
+ - No fluff, no filler phrases. คม ชัด พรึ่บ.`,
       prompt: [
         PROPER_NAME_PRESERVATION_RULES,
         normalizedSite ? `Source: ${normalizedSite}` : '',
@@ -1172,12 +1153,12 @@ Rules:
         .filter(Boolean)
         .join('\n\n'),
       schema: z.object({
-        summary: z.string().min(10).max(90),
-        whyItMatters: z.string().min(10).max(90),
-        keyPoints: z.array(z.string().max(64)).max(2),
-        companies: z.array(z.string()).max(4),
-        people: z.array(z.string()).max(4),
-        topics: z.array(z.string()).max(4),
+        summary: z.string().min(10).max(200),
+        whyItMatters: z.string().min(10).max(200),
+        keyPoints: z.array(z.string().max(160)).max(3),
+        companies: z.array(z.string()).max(5),
+        people: z.array(z.string()).max(5),
+        topics: z.array(z.string()).max(5),
       }),
       temperature: 0.1,
     });
@@ -1219,17 +1200,17 @@ export const translateArticleToThai = async ({
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
-      system: `You translate full news articles into natural Thai for a reader UI.
-
-Rules:
-- Translate the full article body into Thai. Do not summarize or shorten it on purpose.
-- body: markdown only. No preface, no explanation, no code fences.
-- titleTh: translate the headline into Thai. Keep proper names in Latin script.
-- Preserve headings, bullet lists, blockquotes, and links when they carry meaning.
-- Keep person, company, product, organization, and place names in Latin script exactly as they appear when that is how the source writes them.
-- Preserve all important facts, numbers, dates, currencies, percentages, and units exactly.
-- Keep the tone readable, clean, and journalistic in Thai.
-- Do not add extra commentary, disclaimers, or closing notes.`,
+            system: `You translate full articles and posts into natural Thai for a reader UI. You are a professional analyst and curator.
+ 
+ Rules:
+ - Translate the content accurately without distorting facts.
+ - Translate idioms and jargon into natural, correct Thai equivalents (e.g. 'Patchwork' -> 'ความลักลั่น/ทับซ้อน/กระจัดกระจาย', 'Booking' -> 'ว่าจ้าง/เชิญ'). Avoid literal translations.
+ - body: markdown only. No preface, no explanation, no code fences.
+ - titleTh: translate the headline/title into Thai.
+ - Preserve all important facts, numbers, dates, currencies, percentages, and units exactly.
+ - Keep the tone readable, clean, and professional in Thai.
+ - Do NOT put a trailing period (.) at the end of Thai sentences.
+ - Do not add extra commentary, disclaimers, or closing notes.`,
       prompt: [
         PROPER_NAME_PRESERVATION_RULES,
         normalizedSite ? `Source: ${normalizedSite}` : '',
@@ -1319,16 +1300,18 @@ export const generateGrokBatch = async (stories) => {
         null,
         2
       )}`,
-      system: `You are an expert Thai news editor. Summarize each source item into concise Thai in 1-2 sentences.
+            system: `You are an expert Thai news content curator and analyst. Summarize each source item into concise, natural Thai in 1-2 sentences.
 
-Hard rules:
-- Do not mention X or Twitter.
-- Do not include links.
-- Do not invent any facts that are not present in the source text.
-- Preserve accuracy 100% and keep technical terms in English when appropriate.
-- Write the summary in Thai, but preserve proper names in their original Latin spelling unless the source already provides an official Thai form.
-- Do not transliterate or guess Thai names for people. If the source says "Andrej Karpathy", keep "Andrej Karpathy".
-- Return JSON only and map each "index" to its matching "summary" in the exact original order.`,
+ Hard rules:
+ - Do not mention X or Twitter.
+ - Do not include links.
+ - Do not invent any facts that are not present in the source text.
+ - **Strictly forbid mixing characters from other scripts like Japanese (読, 中, etc.) or Chinese into Thai text.**
+ - Translate idioms and jargon into natural, correct Thai equivalents. Avoid literal word-for-word translations (e.g. 'Patchwork' -> 'ความลักลั่น', 'Booking' -> 'ว่าจ้าง/เชิญมาแสดง').
+ - Preserve accuracy 100% and keep technical terms in English when appropriate.
+ - Write the summary in Thai, but preserve proper names in their original Latin spelling unless the source already provides an official Thai form.
+ - Do not transliterate or guess Thai names for people.
+ - Return JSON only and map each "index" to its matching "summary" in the exact original order.`,
       prompt: `${PROPER_NAME_PRESERVATION_RULES}\n\nSource items:\n${JSON.stringify(
         uncached.map(u => ({ index: u.index, original: u.text })),
         null,

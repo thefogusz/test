@@ -1,4 +1,4 @@
-import { Copy, FileText, List, RefreshCw, ShieldCheck, Trash2, Undo2 } from 'lucide-react';
+import { Copy, Eraser, FileText, List, RefreshCw, ShieldCheck, Undo2 } from 'lucide-react';
 import { cleanMarkdownForClipboard, normalizeSummaryMarkdown, renderMarkdownToHtml } from '../utils/markdown';
 import AiFilteredBadge from './AiFilteredBadge';
 import FeedCard from './FeedCard';
@@ -66,8 +66,8 @@ const HomeView = ({
         >
           <div className="dashboard-header-actions-group" style={{ display: 'flex', gap: '8px' }}>
             {originalFeedLength > 0 && (
-              <button onClick={onDeleteAll} className="icon-btn-large header-secondary-action">
-                <Trash2 size={16} />
+              <button onClick={onDeleteAll} className="icon-btn-large header-secondary-action" title="เคลียร์ฟีด">
+                <Eraser size={16} />
               </button>
             )}
             {deletedFeedLength > 0 && (
@@ -121,9 +121,9 @@ const HomeView = ({
             </button>
             <button
               onClick={onSync}
-              disabled={loading || originalFeedLength > 0}
+              disabled={loading || feed.length > 0}
               className="btn-pill primary"
-              title={originalFeedLength > 0 ? 'ล้างฟีดทั้งหมดก่อนแล้วค่อยหาฟีดใหม่' : undefined}
+              title={feed.length > 0 ? (activeListId ? 'ล้างฟีดสำหรับลิสต์นี้ก่อน' : 'ล้างฟีดทั้งหมดก่อนแล้วค่อยหาฟีดใหม่') : undefined}
             >
               {loading ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} ฟีดข้อมูล
             </button>
