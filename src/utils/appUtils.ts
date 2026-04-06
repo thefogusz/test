@@ -7,6 +7,32 @@ export const safeParse = (value, fallback) => {
   }
 };
 
+export const extractFirstImageUrl = (html) => {
+  if (!html || typeof html !== 'string') return '';
+  
+  // Find all matches to pick the best one (avoid tracking pixels if possible)
+  const imgRegex = /<img[^>]+src=(?:["']?)([^"'\s>?]+)(?:["']?)[^>]*>/gi;
+  const matches = Array.from(html.matchAll(imgRegex));
+  
+  if (matches.length === 0) return '';
+  
+  // Find the first image that doesn't look like a tracking pixel or tiny icon
+  const bestMatch = matches.find((m) => {
+    const url = m[1].toLowerCase();
+    return (
+      !url.includes('pixel') &&
+      !url.includes('tracking') &&
+      !url.includes('stats') &&
+      !url.includes('icon') &&
+      !url.includes('spacer') &&
+      !url.includes('doubleclick') &&
+      !url.includes('feedburner')
+    );
+  });
+
+  return bestMatch ? bestMatch[1] : matches[0][1];
+};
+
 export const mergeUniquePostsById = (...collections) => {
   const byId = new Map();
 

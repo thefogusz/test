@@ -25,6 +25,7 @@ import {
   getPreferredPostSummary,
   getPreferredPostTitle,
   hasUsefulThaiSummary,
+  extractFirstImageUrl,
 } from '../utils/appUtils';
 
 const getRelativeTime = (dateString) => {
@@ -205,7 +206,8 @@ const FeedCard = ({
   const repostedByName = (tweet.repostedByName || tweet.author?.name || '').trim();
   const hasThaiSummary = hasUsefulThaiSummary(displayTweet.summary, displayTweet.text);
   const displayText = hasThaiSummary ? displayTweet.summary : displayTweet.text;
-  const previewImageUrl = displayTweet.primaryImageUrl || displayTweet.imageUrls?.[0] || '';
+  const extractedImageUrl = isRssPost ? extractFirstImageUrl(displayTweet.text || displayTweet.summary || displayTweet.full_text || '') : '';
+  const previewImageUrl = displayTweet.primaryImageUrl || displayTweet.imageUrls?.[0] || extractedImageUrl || '';
   const hasMediaPreview = Boolean(displayTweet.isXVideo || previewImageUrl);
   const rssCardPresentation = isRssPost
     ? getRssCardPresentation(displayTweet, { hasMediaPreview })
