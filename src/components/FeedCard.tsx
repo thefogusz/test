@@ -906,7 +906,7 @@ const FeedCard = ({
               icon={FileText}
               label="อ่านเนื้อหา"
               title="อ่านเนื้อหาเต็ม"
-              className="feed-card-inline-action feed-card-inline-action-primary"
+              className="feed-card-inline-action"
               onClick={handleReadArticle}
             />
           </div>
