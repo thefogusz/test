@@ -602,7 +602,7 @@ h6 {
   color: var(--text-main);
   font-size: 16px;
   /* Scaled down for refined readability */
-  font-family: var(--font-card);
+  font-family: "Sarabun", var(--font-card);
   letter-spacing: -0.011em;
   word-wrap: break-word;
 }
@@ -864,6 +864,7 @@ h6 {
 
 .feed-card-body-copy {
   overflow-wrap: anywhere;
+  font-family: "Sarabun", var(--font-card);
 }
 
 /* Search View Hero */
@@ -2509,6 +2510,7 @@ h6 {
     font-size: 15px !important;
     line-height: 1.56 !important;
     -webkit-line-clamp: 6 !important;
+    line-clamp: 6 !important;
   }
 
   .dashboard-header h1 {

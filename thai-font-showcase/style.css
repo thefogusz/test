@@ -1,0 +1,182 @@
+:root {
+    --bg-color: #0f172a;
+    --card-bg: rgba(30, 41, 59, 0.7);
+    --primary-color: #38bdf8;
+    --accent-color: #818cf8;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --glass-blur: 12px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    padding: 2rem;
+    overflow-x: hidden;
+}
+
+.app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.header-content h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.badge {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.8rem;
+    background: rgba(56, 189, 248, 0.2);
+    border: 1px solid var(--primary-color);
+    border-radius: 20px;
+    vertical-align: middle;
+    margin-left: 0.5rem;
+    color: var(--primary-color);
+    -webkit-text-fill-color: var(--primary-color); /* Override gradient header fix */
+}
+
+header p {
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+}
+
+#previewText {
+    width: 100%;
+    max-width: 600px;
+    padding: 1rem 1.5rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    color: white;
+    font-size: 1.1rem;
+    outline: none;
+    transition: box-shadow 0.3s ease;
+    backdrop-filter: blur(var(--glass-blur));
+}
+
+#previewText:focus {
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+    border-color: var(--primary-color);
+}
+
+.font-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 2rem;
+}
+
+.font-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 1.5rem;
+    backdrop-filter: blur(var(--glass-blur));
+    transition: transform 0.3s ease, border-color 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.font-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary-color);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.card-header h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.tag {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    color: var(--text-secondary);
+}
+
+.preview-content {
+    flex-grow: 1;
+}
+
+.display-text {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.body-text {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+/* Font Assignments */
+.font-card[data-font="IBM Plex Sans Thai Looped"] { font-family: 'IBM Plex Sans Thai Looped', sans-serif; }
+.font-card[data-font="Noto Sans Thai Looped"] { font-family: 'Noto Sans Thai Looped', sans-serif; }
+.font-card[data-font="Sarabun"] { font-family: 'Sarabun', sans-serif; font-weight: 300; }
+.font-card[data-font="Pridi"] { font-family: 'Pridi', serif; }
+.font-card[data-font="Bai Jamjuree"] { font-family: 'Bai Jamjuree', sans-serif; }
+.font-card[data-font="Chakra Petch"] { font-family: 'Chakra Petch', sans-serif; }
+.font-card[data-font="Mitr"] { font-family: 'Mitr', sans-serif; }
+
+.card-footer {
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+code {
+    font-size: 0.75rem;
+    color: #6ee7b7;
+    background: rgba(110, 231, 183, 0.1);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    display: block;
+    word-break: break-all;
+}
+
+footer {
+    margin-top: 4rem;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+@media (max-width: 600px) {
+    .font-grid {
+        grid-template-columns: 1fr;
+    }
+}
