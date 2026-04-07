@@ -203,11 +203,11 @@ const buildStrictPrimarySourceContext = (label, response, sourceUrl, primaryLead
     `[${label} SOURCE URL]\n${sourceUrl}`,
     strictResults.length
       ? `[${label} VERIFIED SNIPPETS]\n${strictResults
-          .map((result, index) => {
-            const snippet = sanitizeForPrompt(result.raw_content || result.content || '', 500);
-            return `${index + 1}. ${result.title || result.url} - ${snippet} (${result.url})`;
-          })
-          .join('\n')}`
+        .map((result, index) => {
+          const snippet = sanitizeForPrompt(result.raw_content || result.content || '', 500);
+          return `${index + 1}. ${result.title || result.url} - ${snippet} (${result.url})`;
+        })
+        .join('\n')}`
       : '',
   ]
     .filter(Boolean)
@@ -456,7 +456,7 @@ const _extractSourcesFromTweets = (tweets, limit = 4) => {
       };
     })
     .filter(Boolean);
-    
+
   return dedupeSources(validSources);
 };
 
@@ -1017,11 +1017,11 @@ const callGrok = async ({
 const deriveResearchQuery = async (input, context = '') => {
   const baseInput = (input || '').replace(/\s+/g, ' ').trim().slice(0, 160) || 'latest news';
   const combinedInput = context ? `${context}\n\n[USER INPUT]: ${baseInput}` : baseInput;
-  
+
   // 1. Heuristic-first bypass for simple/raw queries
   const hasUrl = /https?:\/\//i.test(baseInput);
   const wordCount = baseInput.split(/\s+/).length;
-  
+
   // If it's just a URL and WE HAVE NO CONTEXT, we are forced to use the URL/fallback
   // But if we have CONTEXT, we should use the LLM to get the BEST keywords
   if (!context && (hasUrl || (wordCount < 12 && baseInput.length < 100))) {
@@ -1132,7 +1132,7 @@ export const generateArticleInsights = async ({
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
-            system: `You create ultra-compact AI insight cards for a news reader UI. You are a versatile professional analyst distilling news articles and social posts.
+      system: `You create ultra-compact AI insight cards for a news reader UI. You are a versatile professional analyst distilling news articles and social posts.
 
  Rules:
  - Return Thai for insight text. Accuracy is paramount: NEVER distort facts, but BE CONCISE.
@@ -1200,7 +1200,7 @@ export const translateArticleToThai = async ({
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
-            system: `You translate full articles and posts into natural Thai for a reader UI. You are a professional analyst and curator.
+      system: `You translate full articles and posts into natural Thai for a reader UI. You are a professional analyst and curator.
  
  Rules:
  - Translate the content accurately without distorting facts.
@@ -1256,7 +1256,7 @@ export const generateGrokBatch = async (stories) => {
   for (const story of stories) {
     const normalized = normalizeCacheText(story);
     const cacheKey = buildCacheKey('story-summary-v5', normalized);
-    
+
     if (seenStories.has(cacheKey)) {
       storyToUniqueIndex.push(seenStories.get(cacheKey));
     } else {
@@ -1300,14 +1300,15 @@ export const generateGrokBatch = async (stories) => {
         null,
         2
       )}`,
-            system: `You are an expert Thai news content curator and analyst. Summarize each source item into concise, natural Thai in 1-2 sentences.
+      system: `You are an expert Thai news content curator and analyst. Summarize each source item into concise, natural Thai in 1-2 sentences.
 
  Hard rules:
  - Do not mention X or Twitter.
  - Do not include links.
  - Do not invent any facts that are not present in the source text.
+ - Use **natural, modern Thai journalistic or conversational language**. Strictly DO NOT use archaic, overly poetic, or overly formal words (like 'แผ้วพาน', 'อุบัติขึ้น', 'ดั่งกล่าวนั้น').
+ - Translate idioms and jargon into natural, correct Thai equivalents. Avoid literal word-for-word translation. Create a smooth narrative flow rather than robotic segmented text (e.g., do NOT write "โดยมีการอัปเดตข้อมูลเมื่อ...", "รวมถึงความเป็นครั้งแรกของ...").
  - **Strictly forbid mixing characters from other scripts like Japanese (読, 中, etc.) or Chinese into Thai text.**
- - Translate idioms and jargon into natural, correct Thai equivalents. Avoid literal word-for-word translations (e.g. 'Patchwork' -> 'ความลักลั่น', 'Booking' -> 'ว่าจ้าง/เชิญมาแสดง').
  - Preserve accuracy 100% and keep technical terms in English when appropriate.
  - Write the summary in Thai, but preserve proper names in their original Latin spelling unless the source already provides an official Thai form.
  - Do not transliterate or guess Thai names for people.
@@ -1537,14 +1538,14 @@ const _buildTavilyContextBlock = (label, data) => {
     data.answer ? `[${label} ANSWER]\n${data.answer}` : '',
     results.length
       ? `[${label} SOURCES]\n${results
-          .map((result, index) => {
-            const snippet = (result.content || result.raw_content || '')
-              .replace(/\s+/g, ' ')
-              .trim()
-              .slice(0, 320);
-            return `${index + 1}. ${result.title || result.url} - ${snippet} (${result.url})`;
-          })
-          .join('\n')}`
+        .map((result, index) => {
+          const snippet = (result.content || result.raw_content || '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 320);
+          return `${index + 1}. ${result.title || result.url} - ${snippet} (${result.url})`;
+        })
+        .join('\n')}`
       : '',
   ]
     .filter(Boolean)
@@ -1770,11 +1771,10 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
       system: `เปลี่ยนหัวข้อของผู้ใช้ให้เป็นคำค้นหาขั้นสูง (Advanced Search) บน X เพื่อหาข้อมูลระดับสากล
 กฎ:
 - รักษาเจตนาเดิมของหัวข้อที่ต้องการค้นหา
-- ${
-        globalByDefault
+- ${globalByDefault
           ? 'ถ้าผู้ใช้ไม่ได้ระบุประเทศ ภาษา หรือภูมิภาคแบบ local ชัดเจน ให้ถือว่าเป็น global-first และใช้คำค้นหาอังกฤษ/สากลเป็นหลัก ห้ามเติมคีย์เวิร์ดไทยเอง'
           : 'ถ้าผู้ใช้ระบุประเทศ ภาษา หรือภูมิภาคแบบ local ชัดเจน ให้ขยายคำค้นหาโดยใช้ทั้งภาษาท้องถิ่นและภาษาอังกฤษเท่าที่จำเป็น'
-      }
+        }
 - ต้องใส่ -filter:replies เสมอ 1 ครั้ง
 - ${isLatest ? 'โหมดสายฟ้าจะถูกคัดในแอปให้เหลือเฉพาะ 24 ชั่วโมงล่าสุดอยู่แล้ว ดังนั้นห้ามบังคับ since:today หรือคำค้นที่แคบเกินไป ให้โฟกัส recent developments แบบยังได้โพสต์คุณภาพ' : 'เน้นโพสต์ที่มีสัญญาณสำคัญสูง เหมาะสำหรับผลลัพธ์แบบยอดนิยม (Top)'}
 - ส่งคืนผลลัพธ์เป็น JSON เท่านั้น`,
@@ -1875,14 +1875,14 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
       const searchData = await searchEverything(categoryQuery, '', false, 'Top', false);
       if (searchData?.data?.length > 0) {
         const seenUsernames = new Map();
-        
+
         for (const t of searchData.data) {
           if (t.author && t.author.username) {
             const uname = t.author.username.toLowerCase();
-            const engagement = (Number(t.likeCount || t.like_count || 0) * 1) + 
-                               (Number(t.retweetCount || t.retweet_count || 0) * 2) + 
-                               (Number(t.replyCount || t.reply_count || 0) * 1.5);
-                               
+            const engagement = (Number(t.likeCount || t.like_count || 0) * 1) +
+              (Number(t.retweetCount || t.retweet_count || 0) * 2) +
+              (Number(t.replyCount || t.reply_count || 0) * 1.5);
+
             if (!seenUsernames.has(uname)) {
               seenUsernames.set(uname, {
                 ...t.author,
@@ -1894,17 +1894,16 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
             }
           }
         }
-        
+
         // Filter out small accounts and prioritize by real-time engagement impact!
         const qualifiedAuthors = Array.from(seenUsernames.values())
           .filter(a => (a.followers || a.fastFollowersCount || 0) > 1000)
           .sort((a, b) => b._engagementSignal - a._engagementSignal)
           .slice(0, 15);
-          
+
         if (qualifiedAuthors.length > 0) {
-          activeContext = `\n[อัปเดตแบบ Real-time (Weighted Impact Signal)]: นี่คือรายชื่อบัญชีเทียร์สูงที่มีอิทธิพลต่อหัวข้อนี้ในช่วง 24 ชั่วโมงที่ผ่านมา จัดเรียงตาม Real-time Engagement Score:\n${
-            qualifiedAuthors.map(a => `- @${a.username} (${a.name}) | ผู้ติดตาม: ${a.followers || a.fastFollowersCount} | พลังการพูดคุยล่าสุด: สูงมาก (Score: ${a._engagementSignal})`).join('\n')
-          }\n`;
+          activeContext = `\n[อัปเดตแบบ Real-time (Weighted Impact Signal)]: นี่คือรายชื่อบัญชีเทียร์สูงที่มีอิทธิพลต่อหัวข้อนี้ในช่วง 24 ชั่วโมงที่ผ่านมา จัดเรียงตาม Real-time Engagement Score:\n${qualifiedAuthors.map(a => `- @${a.username} (${a.name}) | ผู้ติดตาม: ${a.followers || a.fastFollowersCount} | พลังการพูดคุยล่าสุด: สูงมาก (Score: ${a._engagementSignal})`).join('\n')
+            }\n`;
         }
       }
     } catch (e) {
@@ -2406,8 +2405,8 @@ export const researchAndPreventHallucination = async (input, interactionData = '
       skipWebSearch
         ? Promise.resolve({ results: [], answer: '' })
         : tavilySearch(researchQuery, false, hasPrimaryLead
-            ? { max_results: 4, include_answer: true, search_depth: 'advanced' }
-            : {}),
+          ? { max_results: 4, include_answer: true, search_depth: 'advanced' }
+          : {}),
       skipWebSearch
         ? Promise.resolve({ data: [] })
         : searchEverything(researchQuery, '', false, 'Top').catch(() => ({ data: [] })),
@@ -2416,16 +2415,16 @@ export const researchAndPreventHallucination = async (input, interactionData = '
         : searchEverything(researchQuery, '', false, 'Latest').catch(() => ({ data: [] })),
       attachedExternalUrls.length
         ? Promise.all(
-            attachedExternalUrls.map((url) =>
-              tavilySearch(url, false, {
-                max_results: 3,
-                include_answer: true,
-                include_raw_content: true,
-                search_depth: 'advanced',
-                topic: 'general',
-              }).catch(() => ({ results: [], answer: '' })),
-            ),
-          )
+          attachedExternalUrls.map((url) =>
+            tavilySearch(url, false, {
+              max_results: 3,
+              include_answer: true,
+              include_raw_content: true,
+              search_depth: 'advanced',
+              topic: 'general',
+            }).catch(() => ({ results: [], answer: '' })),
+          ),
+        )
         : Promise.resolve([]),
     ]);
 
@@ -2445,14 +2444,14 @@ export const researchAndPreventHallucination = async (input, interactionData = '
         data.answer && !hasPrimaryLead ? `[WEB ANSWER]\n${data.answer}` : '',
         webResults.length
           ? `[WEB SOURCES${hasPrimaryLead ? ' - SECONDARY CONTEXT ONLY' : ''}]\n${webResults
-              .map((result, index) => {
-                const snippet = (result.content || result.raw_content || '')
-                  .replace(/\s+/g, ' ')
-                  .trim()
-                  .slice(0, 320);
-                return `${index + 1}. ${result.title} - ${snippet} (${result.url})`;
-              })
-              .join('\n')}`
+            .map((result, index) => {
+              const snippet = (result.content || result.raw_content || '')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .slice(0, 320);
+              return `${index + 1}. ${result.title} - ${snippet} (${result.url})`;
+            })
+            .join('\n')}`
           : '',
       ]
         .filter(Boolean)
@@ -2566,10 +2565,10 @@ export const researchAndPreventHallucination = async (input, interactionData = '
     const finalSources = hasPrimaryLead
       ? getPrimaryLeadAwareSources(extractedSources, { primaryLeadUrl, primaryLeadTitle })
       : rankAndFilterSources(extractedSources, {
-          primaryLeadUrl,
-          researchQuery,
-          input: rawInput,
-        });
+        primaryLeadUrl,
+        researchQuery,
+        input: rawInput,
+      });
 
     const resultPayload = {
       factSheet: factSheetText,
@@ -2666,9 +2665,8 @@ export const generateStructuredContent = async (
         await callGrok({
           modelName: MODEL_WRITER,
           system: draftSystemPrompt,
-          prompt: `[ข้อมูลข้อเท็จจริง]\n${factSheet}\n\n[ร่างเนื้อหาปัจจุบัน]\n${contentDraft}\n\n[ข้อเสนอแนะจากบรรณาธิการ]\n${
-            evalResult.reason || 'กรุณาปรับปรุงความถูกต้องและโทนของเนื้อหา'
-          }\n\nกรุณาเขียนเนื้อหาใหม่เพื่อให้สอดคล้องกับข้อเท็จจริงทั้งหมด`,
+          prompt: `[ข้อมูลข้อเท็จจริง]\n${factSheet}\n\n[ร่างเนื้อหาปัจจุบัน]\n${contentDraft}\n\n[ข้อเสนอแนะจากบรรณาธิการ]\n${evalResult.reason || 'กรุณาปรับปรุงความถูกต้องและโทนของเนื้อหา'
+            }\n\nกรุณาเขียนเนื้อหาใหม่เพื่อให้สอดคล้องกับข้อเท็จจริงทั้งหมด`,
           temperature: 0.4,
           allowEmoji,
         }),
@@ -2771,10 +2769,10 @@ Hard rules:
 
       let fullContent = '';
       let nextPolishTime = Date.now() + 800; // Throttle heavy NLP regex down to ~1.2 FPS
-      
+
       for await (const textPart of textStream) {
         fullContent += textPart;
-        
+
         if (Date.now() >= nextPolishTime) {
           onStreamChunk(polishThaiContent(fullContent, { format, customInstructions, allowEmoji, tone }));
           nextPolishTime = Date.now() + 800;
