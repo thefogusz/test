@@ -69,7 +69,7 @@ const NAV_ITEMS: NavItemConfig[] = [
   },
   {
     view: 'audience',
-    label: 'กลุ่มเป้าหมาย',
+    label: 'การติดตาม',
     Icon: UsersRound,
     isActive: (activeView) => activeView === 'audience',
     isBusy: (backgroundTasks) => Boolean(backgroundTasks.audienceSearch),
