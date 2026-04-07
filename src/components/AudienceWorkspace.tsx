@@ -86,8 +86,9 @@ const AudienceWorkspace = ({
   return (
     <div style={{ display: isVisible ? 'block' : 'none' }}>
       <div className="animate-fade-in">
-        <header className="dashboard-header audience-hero-header" style={{ marginBottom: '28px', paddingTop: '0' }}>
+        <header className="dashboard-header audience-hero-header" style={{ marginBottom: '14px', paddingTop: '0' }}>
           <div className="audience-hero-copy">
+
             <div className="audience-hero-text">
               <h1 className="audience-hero-title">
                 <span className="audience-hero-title-mark">
@@ -125,8 +126,9 @@ const AudienceWorkspace = ({
 
         {audienceTab === 'ai' && (
           <div className="animate-fade-in">
-            <div className="audience-ai-searchbar audience-command-row" style={{ display: 'flex', gap: '12px', marginBottom: '32px', maxWidth: '680px' }}>
+            <div className="audience-ai-searchbar audience-command-row" style={{ display: 'flex', gap: '12px', marginBottom: '20px', maxWidth: '680px' }}>
               <div className="audience-ai-search-input">
+
                 <input
                   type="text"
                   placeholder={'\u0e2d\u0e22\u0e32\u0e01\u0e15\u0e34\u0e14\u0e15\u0e32\u0e21\u0e40\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e40\u0e17\u0e04\u0e42\u0e19\u0e42\u0e25\u0e22\u0e35 AI...'}
@@ -159,10 +161,38 @@ const AudienceWorkspace = ({
                       <div key={expert.username} className="expert-card animate-fade-in" style={{ animationDelay: `${i * 0.05}s` }}>
                         <div className="audience-expert-top">
                           <div className="audience-expert-meta-row">
-                            <div className="ai-pick-pill">
-                              <Users size={10} /> FORO PICK
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <div className="ai-pick-pill">
+                                <Users size={10} /> FORO PICK
+                              </div>
+                              {expert.activityLabel && (
+                                <div
+                                  style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    padding: '3px 8px',
+                                    borderRadius: '999px',
+                                    fontSize: '9px',
+                                    fontWeight: '800',
+                                    letterSpacing: '0.04em',
+                                    color: '#bfdbfe',
+                                    background: 'rgba(41, 151, 255, 0.12)',
+                                    border: '1px solid rgba(41, 151, 255, 0.24)',
+                                  }}
+                                  title={
+                                    Number.isFinite(expert.lastSeenDays)
+                                      ? `Last seen about ${Math.round(expert.lastSeenDays)} days ago`
+                                      : 'Recently verified active'
+                                  }
+                                >
+                                  <Activity size={10} />
+                                  {expert.activityLabel}
+                                </div>
+                              )}
                             </div>
                             <div className="audience-expert-menu-wrap" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+
                               <button
                                 onClick={(e) => {
                                   const btn = e.currentTarget;
@@ -218,32 +248,7 @@ const AudienceWorkspace = ({
                               <div className="expert-name" style={{ fontSize: '14px', color: '#fff', fontWeight: '800' }}>{expert.name}</div>
                               <div className="expert-username" style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>@{expert.username}</div>
                             </a>
-                            {expert.activityLabel && (
-                              <div
-                                style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '6px',
-                                  padding: '4px 8px',
-                                  borderRadius: '999px',
-                                  fontSize: '10px',
-                                  fontWeight: '800',
-                                  letterSpacing: '0.04em',
-                                  color: '#bfdbfe',
-                                  background: 'rgba(41, 151, 255, 0.12)',
-                                  border: '1px solid rgba(41, 151, 255, 0.24)',
-                                  marginBottom: '10px',
-                                }}
-                                title={
-                                  Number.isFinite(expert.lastSeenDays)
-                                    ? `Last seen about ${Math.round(expert.lastSeenDays)} days ago`
-                                    : 'Recently verified active'
-                                }
-                              >
-                                <Activity size={10} />
-                                {expert.activityLabel}
-                              </div>
-                            )}
+
                           </div>
                         </div>
                         <div className="expert-reasoning audience-expert-reasoning" style={{ fontSize: '13px', marginBottom: '16px', flex: 1, color: 'rgba(255,255,255,0.7)', lineHeight: '1.5' }}>
@@ -345,9 +350,9 @@ const AudienceWorkspace = ({
               );
             })()}
 
-            <div className="audience-category-section" style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '28px' }}>
-              <div className="audience-category-heading">Discover By Category</div>
+            <div className="audience-category-section" style={{ borderTop: 'none', paddingTop: '0' }}>
               <div className="audience-category-image-grid">
+
                 {CATEGORIES.map((cat) => (
                   <button
                     key={cat.label}
