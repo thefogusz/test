@@ -185,6 +185,16 @@ export const extractInterestTopics = (items = []) => {
 
 const BROAD_QUERY_BLUEPRINTS = [
   {
+    triggers: ['ai video', 'generative ai video', 'text to video', 'text-to-video', 'runway', 'sora', 'kling'],
+    entityQuery: '(sora OR runway OR "gen-3" OR kling OR hailuo OR luma OR "text-to-video" OR "ai video" OR "generative video") (generate OR prompt OR model OR release) lang:en',
+    viralQuery: '(sora OR runway OR kling OR luma OR "ai video") (insane OR crazy OR mindblowing OR "looks so real" OR generating) lang:en min_faves:1000',
+  },
+  {
+    triggers: TOPIC_TRIGGERS.ai,
+    entityQuery: '(openai OR anthropic OR claude OR gemini OR chatgpt OR "gpt-4" OR mistral OR "language model" OR llm OR "ai model" OR "generative ai")',
+    viralQuery: '(ai OR "artificial intelligence" OR openai OR chatgpt) (breakthrough OR update OR launch OR crazy OR future) lang:en min_faves:1000',
+  },
+  {
     triggers: ['viral', 'funny', 'meme', 'clip', 'video', 'ไวรัล', 'ฮา', 'ตลก', 'ขำ', 'คลิป', 'มีม'],
     entityQuery: '("viral video" OR "funny video" OR meme OR "internet culture" OR hilarious OR comedy OR "must watch") lang:en',
     viralQuery: '("viral video" OR "funny clip" OR meme OR hilarious OR comedy OR "internet culture") lang:en min_faves:1000',
@@ -207,6 +217,22 @@ const BROAD_QUERY_BLUEPRINTS = [
 ];
 
 const BROAD_QUERY_FALLBACKS = [
+  {
+    triggers: ['ai video', 'generative ai video', 'text to video', 'text-to-video', 'runway', 'sora', 'kling'],
+    queries: [
+      '("ai video" OR "generative video" OR "text to video" OR "ai film") lang:en',
+      '(sora OR runway OR "gen-3" OR kling OR hailuo OR luma) (video OR ai) lang:en',
+      '("ai generation" OR "generating video") (prompt OR tool OR free) lang:en min_faves:500',
+    ],
+  },
+  {
+    triggers: TOPIC_TRIGGERS.ai,
+    queries: [
+      '(ai OR "artificial intelligence" OR "generative ai" OR genai OR llm) lang:en',
+      '(openai OR anthropic OR claude OR gemini OR chatgpt OR copilot) lang:en',
+      '("prompt engineering" OR "ai tool" OR "ai tools" OR "ai model") lang:en min_faves:500',
+    ],
+  },
   {
     triggers: ['viral', 'funny', 'meme', 'clip', 'video', 'ไวรัล', 'ฮา', 'ตลก', 'ขำ', 'คลิป', 'มีม'],
     queries: [

@@ -159,6 +159,39 @@ export const buildQueryProfile = (rawQuery = '') => {
   const broadHints = getBroadTopicHints(rawQuery);
   const preferGlobal = broadIntent && !isExplicitlyLocalQuery(rawQuery);
 
+  const isAiQuery =
+    normalizedQuery === 'ai' ||
+    /\b(artificial intelligence|machine learning|llm|gpt|genai|generative ai|ai)\b/i.test(normalizedQuery);
+
+  const isGamingQuery =
+    /เกม|gaming|games|\bgame\b/i.test(normalizedQuery);
+
+  if (isAiQuery) {
+    return {
+      key: 'ai',
+      broadIntent: true,
+      preferGlobal,
+      queryTerms,
+      exactTerms: ['ai', 'artificial intelligence', 'machine learning', 'generative ai', 'genai', 'llm', 'gpt'],
+      primaryHints: ['openai', 'anthropic', 'claude', 'gemini', 'deepmind', 'mistral', 'chatgpt', 'copilot', 'ai model', 'foundation model', 'ai agent', 'prompt engineering'],
+      secondaryHints: broadHints,
+      softNegativeHints: ['giveaway', 'airdrop', 'follow', 'dm', 'telegram', 'whatsapp', 'casino', 'พนัน', 'หวย'],
+    };
+  }
+
+  if (isGamingQuery) {
+    return {
+      key: 'gaming',
+      broadIntent,
+      preferGlobal,
+      queryTerms,
+      exactTerms: ['เกม', 'วงการเกม', 'gaming', 'games', 'videogames', 'game'],
+      primaryHints: ['nintendo', 'switch', 'switch 2', 'playstation', 'ps5', 'xbox', 'steam', 'gta', 'pokemon', 'zelda', 'mario', 'monster hunter', 'game awards', 'gamedev', 'game dev', 'studio'],
+      secondaryHints: broadHints,
+      softNegativeHints: ['esports', 'valorant', 'league of legends', 'lolesports', 'faze', 'cblol', 'faker', 'counter-strike', 'tournament', 'scrim', 'coach', 'giveaway', 'gaming pc', 'rtx', 'steam deck'],
+    };
+  }
+
   if (VIRAL_GLOBAL_PATTERNS.some((pattern) => pattern.test(normalizedQuery))) {
     return {
       key: 'viral_video',
@@ -219,39 +252,6 @@ export const buildQueryProfile = (rawQuery = '') => {
         'stream now',
         'vote now',
       ],
-    };
-  }
-
-  if (
-    normalizedQuery === 'ai' ||
-    normalizedQuery.includes('artificial intelligence') ||
-    normalizedQuery.includes('machine learning') ||
-    normalizedQuery.includes('llm') ||
-    normalizedQuery.includes('gpt') ||
-    normalizedQuery.includes('genai')
-  ) {
-    return {
-      key: 'ai',
-      broadIntent: true,
-      preferGlobal,
-      queryTerms,
-      exactTerms: ['ai', 'artificial intelligence', 'machine learning', 'generative ai', 'genai', 'llm', 'gpt'],
-      primaryHints: ['openai', 'anthropic', 'claude', 'gemini', 'deepmind', 'mistral', 'chatgpt', 'copilot', 'ai model', 'foundation model', 'ai agent', 'prompt engineering'],
-      secondaryHints: broadHints,
-      softNegativeHints: ['giveaway', 'airdrop', 'follow', 'dm', 'telegram', 'whatsapp', 'casino', 'พนัน', 'หวย'],
-    };
-  }
-
-  if (normalizedQuery.includes('เกม') || normalizedQuery.includes('gaming') || normalizedQuery.includes('games')) {
-    return {
-      key: 'gaming',
-      broadIntent,
-      preferGlobal,
-      queryTerms,
-      exactTerms: ['เกม', 'วงการเกม', 'gaming', 'games', 'videogames', 'game'],
-      primaryHints: ['nintendo', 'switch', 'switch 2', 'playstation', 'ps5', 'xbox', 'steam', 'gta', 'pokemon', 'zelda', 'mario', 'monster hunter', 'game awards', 'gamedev', 'game dev', 'studio'],
-      secondaryHints: broadHints,
-      softNegativeHints: ['esports', 'valorant', 'league of legends', 'lolesports', 'faze', 'cblol', 'faker', 'counter-strike', 'tournament', 'scrim', 'coach', 'giveaway', 'gaming pc', 'rtx', 'steam deck'],
     };
   }
 
@@ -738,9 +738,9 @@ export const diversifyBroadResults = (tweets, queryProfile, limit = 30) => {
     ? ['gaming-main', 'gaming-general', 'general', 'esports', 'promo']
     : queryProfile.key === 'ai'
       ? ['ai-main', 'ai-infra', 'ai-research', 'ai-general', 'general']
-    : queryProfile.key === 'viral_video'
-      ? ['viral-main', 'meme', 'general', 'fan-share']
-      : ['general'];
+      : queryProfile.key === 'viral_video'
+        ? ['viral-main', 'meme', 'general', 'fan-share']
+        : ['general'];
 
   const result = [];
   const seenIds = new Set();

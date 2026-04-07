@@ -62,7 +62,6 @@ type SearchCacheSnapshot = {
 type SearchMediaType = 'all' | 'videos';
 type SearchSummaryMode = 'balanced' | 'rss_first';
 
-const onlyNews = true;
 const SEARCH_CACHE_VERSION = 'v2';
 
 const getSearchCacheKey = (query: string, mode: string) => [
@@ -190,8 +189,23 @@ const buildRssSearchResults = async (
         `${title} ${post?.text || ''} ${post?.author?.name || ''} ${post?.url || ''}`,
       );
       const fullMatch = haystack.includes(normalizedQuery);
-      const matchedTerms = queryTerms.filter((term) => haystack.includes(term));
-      const titleMatches = queryTerms.filter((term) => titleText.includes(term)).length;
+      const matchedTerms = queryTerms.filter((term) => {
+        try {
+          const regex = new RegExp(`(^|\\W)${term}(\\W|$)`, 'i');
+          return regex.test(haystack) || (term.length > 3 && haystack.includes(term));
+        } catch {
+          return haystack.includes(term);
+        }
+      });
+      const titleMatches = queryTerms.filter((term) => {
+        try {
+          const regex = new RegExp(`(^|\\W)${term}(\\W|$)`, 'i');
+          return regex.test(titleText) || (term.length > 3 && titleText.includes(term));
+        } catch {
+          return titleText.includes(term);
+        }
+      }).length;
+
       const recencyHours = Math.max(
         0,
         (Date.now() - new Date(post?.created_at || 0).getTime()) / (1000 * 60 * 60),
@@ -200,14 +214,21 @@ const buildRssSearchResults = async (
       return {
         post,
         score:
-          (fullMatch ? 6 : 0) +
-          matchedTerms.length * 2 +
-          titleMatches * 1.5 +
-          Math.max(0, 72 - recencyHours) * 0.04,
+          (fullMatch ? 12 : 0) +
+          matchedTerms.length * 4 +
+          titleMatches * 3 +
+          (matchedTerms.length > 0 ? Math.max(0, 72 - recencyHours) * 0.05 : 0),
         matchedTerms,
+        titleMatches,
+        fullMatch,
       };
     })
-    .filter(({ score, matchedTerms }) => score >= 4 || matchedTerms.length >= Math.min(2, queryTerms.length || 1))
+    .filter(({ score, matchedTerms, titleMatches, fullMatch }) => {
+      if (matchedTerms.length === 0) return false;
+      if (fullMatch) return true;
+      if (titleMatches === 0 && matchedTerms.length < queryTerms.length) return false;
+      return score >= 7;
+    })
     .sort((left, right) => right.score - left.score)
     .slice(0, 8)
     .map(({ post }) => sanitizeStoredPost(post));
@@ -231,10 +252,15 @@ const mergeSearchCards = (xResults: any[], rssResults: any[], latestMode: boolea
   const xQueue = [...xResults];
   const rssQueue = [...rssResults];
 
+  for (let i = 0; i < 4; i++) {
+    if (xQueue.length) merged.push(xQueue.shift());
+  }
+
   while (xQueue.length || rssQueue.length) {
-    if (xQueue.length) merged.push(xQueue.shift());
-    if (xQueue.length) merged.push(xQueue.shift());
     if (rssQueue.length) merged.push(rssQueue.shift());
+    if (xQueue.length) merged.push(xQueue.shift());
+    if (xQueue.length) merged.push(xQueue.shift());
+    if (xQueue.length) merged.push(xQueue.shift());
   }
 
   return mergeUniquePostsById(merged).map(sanitizeStoredPost);
@@ -251,10 +277,10 @@ const buildSummaryCandidates = (
   const sortForSummary = (items: any[]) =>
     latestMode
       ? [...items].sort(
-          (left, right) =>
-            new Date(right?.created_at || right?.createdAt || 0).getTime() -
-            new Date(left?.created_at || left?.createdAt || 0).getTime(),
-        )
+        (left, right) =>
+          new Date(right?.created_at || right?.createdAt || 0).getTime() -
+          new Date(left?.created_at || left?.createdAt || 0).getTime(),
+      )
       : [...items];
 
   const rssPosts = sortForSummary(normalizedPosts.filter((post) => post?.sourceType === 'rss'));
@@ -562,6 +588,7 @@ export const useSearchWorkspace = ({
         isBroadDiscoveryQuery: effectiveBroadDiscoveryQuery,
         mediaType: searchMediaType,
       });
+      const onlyNews = searchMediaType !== 'videos' && queryIntent.queryKey !== 'viral_video' && !/video|คลิป/i.test(requestedQuery);
       const searchQueryType = effectiveLatestMode ? 'Latest' : 'Top';
       const cacheKey = getSearchCacheKey(`${requestedQuery}::${searchMediaType}`, searchQueryType);
 
@@ -657,24 +684,24 @@ export const useSearchWorkspace = ({
           });
           const expandedBroadQueryPromise = shouldExpandQuery
             ? expandSearchQuery(
-                effectiveRequestedQuery,
-                effectiveLatestMode,
-              ).catch((error) => {
-                console.warn(`[Search] Failed to expand query: ${requestedQuery}`, error);
-                return effectiveRequestedQuery;
-              })
+              effectiveRequestedQuery,
+              effectiveLatestMode,
+            ).catch((error) => {
+              console.warn(`[Search] Failed to expand query: ${requestedQuery}`, error);
+              return effectiveRequestedQuery;
+            })
             : Promise.resolve(effectiveRequestedQuery);
           const exactSearchPromise = effectiveBroadDiscoveryQuery
             ? searchEverythingDeep(
-                getScopedQuery(effectiveRequestedQuery, 'exact'),
-                null,
-                onlyNews,
-                searchQueryType,
-                2,
-              ).catch((error) => {
-                console.warn(`[Search] Failed exact query: ${requestedQuery}`, error);
-                return { data: [], meta: {} };
-              })
+              getScopedQuery(effectiveRequestedQuery, 'exact'),
+              null,
+              onlyNews,
+              searchQueryType,
+              2,
+            ).catch((error) => {
+              console.warn(`[Search] Failed exact query: ${requestedQuery}`, error);
+              return { data: [], meta: {} };
+            })
             : Promise.resolve({ data: [], meta: {} });
           const broadSearchPromise = expandedBroadQueryPromise.then((expandedBroadQuery) => {
             const broadQuery = getScopedQuery(
@@ -695,34 +722,34 @@ export const useSearchWorkspace = ({
           const entitySearchPromise =
             effectiveBroadDiscoveryQuery && broadBlueprint?.entityQuery
               ? searchEverythingDeep(
-                  getScopedQuery(
-                    buildSearchRequestQuery(broadBlueprint.entityQuery, searchMediaType),
-                    'entity',
-                  ),
-                  null,
-                  onlyNews,
-                  searchQueryType,
-                  3,
-                ).catch((error) => {
-                  console.warn(`[Search] Failed entity query: ${broadBlueprint.entityQuery}`, error);
-                  return { data: [], meta: {} };
-                })
+                getScopedQuery(
+                  buildSearchRequestQuery(broadBlueprint.entityQuery, searchMediaType),
+                  'entity',
+                ),
+                null,
+                onlyNews,
+                searchQueryType,
+                3,
+              ).catch((error) => {
+                console.warn(`[Search] Failed entity query: ${broadBlueprint.entityQuery}`, error);
+                return { data: [], meta: {} };
+              })
               : Promise.resolve({ data: [], meta: {} });
           const viralSearchPromise =
             effectiveBroadDiscoveryQuery && broadBlueprint?.viralQuery
               ? searchEverythingDeep(
-                  getScopedQuery(
-                    buildSearchRequestQuery(broadBlueprint.viralQuery, searchMediaType),
-                    'viral',
-                  ),
-                  null,
-                  onlyNews,
-                  searchQueryType,
-                  3,
-                ).catch((error) => {
-                  console.warn(`[Search] Failed viral query: ${broadBlueprint.viralQuery}`, error);
-                  return { data: [], meta: {} };
-                })
+                getScopedQuery(
+                  buildSearchRequestQuery(broadBlueprint.viralQuery, searchMediaType),
+                  'viral',
+                ),
+                null,
+                onlyNews,
+                searchQueryType,
+                3,
+              ).catch((error) => {
+                console.warn(`[Search] Failed viral query: ${broadBlueprint.viralQuery}`, error);
+                return { data: [], meta: {} };
+              })
               : Promise.resolve({ data: [], meta: {} });
 
           const [webData, exactResult, broadResult, entityResult, viralResult, resolvedRssSearchResults] = await Promise.all([
@@ -918,13 +945,13 @@ export const useSearchWorkspace = ({
               !shouldFallbackToCurated && pickedData.length > 0
                 ? pickedData
                 : dedupedCurated.slice(0, Math.min(dedupedCurated.length, 12)).map((tweet, index) => ({
-                    ...tweet,
-                    ai_reasoning:
-                      tweet.ai_reasoning ||
-                      'Kept as a fallback result after passing the local quality checks.',
-                    temporalTag: tweet.temporalTag || (effectiveLatestMode ? 'Breaking' : 'Related'),
-                    citation_id: tweet.citation_id || `[F${index + 1}]`,
-                  }));
+                  ...tweet,
+                  ai_reasoning:
+                    tweet.ai_reasoning ||
+                    'Kept as a fallback result after passing the local quality checks.',
+                  temporalTag: tweet.temporalTag || (effectiveLatestMode ? 'Breaking' : 'Related'),
+                  citation_id: tweet.citation_id || `[F${index + 1}]`,
+                }));
           }
 
           const prioritizedCleanData = rerankPostsByFocus(cleanData, effectiveFocus);
@@ -932,11 +959,11 @@ export const useSearchWorkspace = ({
             sanitizeStoredPost(
               searchMediaType === 'videos'
                 ? {
-                    ...post,
-                    sourceType: post.sourceType || 'x_video',
-                    isXVideo: true,
-                    supportsVideoAnalysis: true,
-                  }
+                  ...post,
+                  sourceType: post.sourceType || 'x_video',
+                  isXVideo: true,
+                  supportsVideoAnalysis: true,
+                }
                 : post,
             ),
           );
@@ -1005,10 +1032,10 @@ export const useSearchWorkspace = ({
                   queryClient.setQueryData<SearchCacheSnapshot>(cacheKey, (prev) =>
                     prev
                       ? {
-                          ...prev,
-                          searchSummary: summaryText,
-                          searchWebSources: resolvedSearchWebSources,
-                        }
+                        ...prev,
+                        searchSummary: summaryText,
+                        searchWebSources: resolvedSearchWebSources,
+                      }
                       : prev,
                   );
                 }
