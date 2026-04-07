@@ -32,8 +32,9 @@ export const renderMarkdownToHtml = (markdown = '') => {
   const rawHtml = marked.parse(source) as string;
 
   // Replace AI bracket references like [F1] or [1] with stylized badges
+  // Pattern matches [ followed by (F or W or none) then 1-2 digits, followed by ]
   const withBadge = rawHtml.replace(
-    /\[([A-Za-z0-9]{1,3})\]/g,
+    /\[((?:F|W)?\d{1,2})\]/g,
     '<span class="reference-badge">$1</span>'
   );
 

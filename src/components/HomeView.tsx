@@ -198,10 +198,11 @@ const HomeView = ({
                 navigator.clipboard.writeText(cleanMarkdownForClipboard(normalizedAiFilterSummary));
                 onSummaryCopied();
               }}
-              className="btn-mini-ghost"
-              style={{ padding: '6px 12px', fontSize: '12px' }}
+              className="icon-btn-large"
+              style={{ width: '32px', height: '32px' }}
+              title="ก๊อปปี้สรุป"
             >
-              <Copy size={14} /> ก๊อปปี้สรุป
+              <Copy size={14} />
             </button>
           </div>
 
