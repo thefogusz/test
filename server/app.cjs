@@ -191,7 +191,8 @@ const createServerApp = ({
       try {
         const upstreamResponse = await fetcher(feedUrl, {
           headers: {
-            'User-Agent': 'FORO-NewsReader/1.0',
+            'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 FORO/1.0',
             Accept:
               'application/rss+xml, application/xml, text/xml, application/atom+xml, */*',
           },
@@ -496,8 +497,7 @@ const logServerStartup = (config) => {
   console.log('Proxying /api/twitter to https://api.twitterapi.io');
   console.log('Proxying /api/xai to https://api.x.ai');
   console.log(
-    `App state storage: ${config.stateStorageMode}${
-      config.stateStorageMode === 'file' ? ` (${config.stateStorageFile})` : ''
+    `App state storage: ${config.stateStorageMode}${config.stateStorageMode === 'file' ? ` (${config.stateStorageFile})` : ''
     }`,
   );
 };

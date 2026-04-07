@@ -60,7 +60,8 @@ export default defineConfig(({ mode }) => {
 
               const upstreamResponse = await fetch(feedUrl, {
                 headers: {
-                  'User-Agent': 'FORO-NewsReader/1.0',
+                  'User-Agent':
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 FORO/1.0',
                   'Accept': 'application/rss+xml, application/xml, text/xml, application/atom+xml, */*',
                 },
                 signal: AbortSignal.timeout(15000),
