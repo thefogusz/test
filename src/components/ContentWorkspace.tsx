@@ -101,12 +101,13 @@ const ContentWorkspace = ({
     normalizedCurrentSearchQuery.toLowerCase() === (lastSubmittedSearchQuery || '').toLowerCase() &&
     searchResults.length === 0 &&
     !isSearching;
-  const webSourcesWithCitationIds = searchWebSources.map((src, index) => ({
+  const summarySafe = searchSummary || '';
+  const webSourcesWithCitationIds = (searchWebSources || []).map((src, index) => ({
     ...src,
     citation_id: src.citation_id || `[W${index + 1}]`,
   }));
   const summaryWebCitationIds = Array.from(
-    new Set((searchSummary.match(/\[W\d{1,2}\]/g) || []).map((token) => token.replaceAll('[', '').replaceAll(']', ''))),
+    new Set((summarySafe.match(/\[W\d{1,2}\]/g) || []).map((token) => token.replaceAll('[', '').replaceAll(']', ''))),
   );
   const referencedWebSources = webSourcesWithCitationIds.filter((src) =>
     summaryWebCitationIds.includes(String(src.citation_id || '').replaceAll('[', '').replaceAll(']', '')),

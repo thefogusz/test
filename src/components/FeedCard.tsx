@@ -889,8 +889,8 @@ const FeedCard = ({
           <div className="feed-card-stats" style={FEED_CARD_STATS_STYLE}>
             {showSocialStats && (
               <div className="feed-card-stats-group" style={FEED_CARD_STATS_GROUP_STYLE}>
-                {stats.map((stat) => (
-                  <FeedCardStatItem key={stat.key} {...stat} />
+                {stats.map(({ key, ...stat }) => (
+                  <FeedCardStatItem key={key} {...stat} />
                 ))}
               </div>
             )}

@@ -1,6 +1,17 @@
 // @ts-nocheck
-import React, { useMemo, useState } from 'react';
-import { Check, Globe2, Plus, X } from 'lucide-react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
+import {
+  Check, Globe2, Plus, X, ChevronLeft, ChevronRight,
+  Bot, Laptop, Code2, ShieldCheck, Gamepad2, Coins, Briefcase, TrendingUp,
+  Microscope, Newspaper, Building2, Stethoscope, Trophy, Tv, Shirt, Plane,
+  Utensils, Leaf, GraduationCap, MessageSquareText, Hotel, CarFront
+} from 'lucide-react';
+
+const ICON_MAP = {
+  Bot, Laptop, Code2, ShieldCheck, Gamepad2, Coins, Briefcase, TrendingUp,
+  Microscope, Newspaper, Building2, Stethoscope, Trophy, Tv, Shirt, Plane,
+  Utensils, Leaf, GraduationCap, MessageSquareText, Hotel, CarFront
+};
 import { RSS_CATALOG, TOPIC_LABELS, type RssSource } from '../config/rssCatalog';
 import type { PostList } from '../types/domain';
 
@@ -458,52 +469,129 @@ const NewsSourcesTab = ({
       : sources;
   }, [activeTopic, filteredSources]);
 
+  const getTopicButtonStyle = (isActive: boolean) => ({
+    height: '28px',
+    padding: '0 8px',
+    fontSize: '12px',
+    fontWeight: '500',
+    borderRadius: '6px',
+    background: isActive ? '#fff' : 'transparent',
+    border: isActive ? '1px solid #fff' : '1px solid rgba(255,255,255,0.08)',
+    color: isActive ? '#000' : 'rgba(255,255,255,0.6)',
+    transition: 'all 0.1s ease',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '5px',
+    userSelect: 'none',
+    boxShadow: isActive ? '0 4px 12px rgba(0,0,0,0.4)' : 'none',
+    whiteSpace: 'nowrap',
+    fontFamily: '"Inter", sans-serif',
+    letterSpacing: '-0.01em',
+    outline: 'none',
+    flexShrink: 0,
+  });
+
+  const iconContainerStyle = (isActive: boolean) => ({
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '14px',
+    height: '14px',
+    opacity: isActive ? 1 : 0.8,
+    pointerEvents: 'none' as const,
+  });
+
+  const labelStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    height: '14px',
+    lineHeight: '14px',
+    paddingTop: '0.5px',
+    pointerEvents: 'none' as const,
+  };
+
+  const getCountStyle = (isActive: boolean) => ({
+    fontSize: '10.5px',
+    fontWeight: '700',
+    marginLeft: '3.5px',
+    color: isActive ? '#000' : 'rgba(255,255,255,0.8)',
+    pointerEvents: 'none' as const,
+  });
+
+  const renderTopicButton = (key: string, label: string, Icon: React.ElementType, count: number) => (
+    <button
+      key={key}
+      onClick={() => setActiveTopic(key)}
+      style={getTopicButtonStyle(activeTopic === key)}
+      className="topic-btn-hover"
+    >
+      <span style={iconContainerStyle(activeTopic === key)}>
+        <Icon size={12} strokeWidth={2.5} />
+      </span>
+      <span style={labelStyle}>{label}</span>
+      <span style={getCountStyle(activeTopic === key)}>{count}</span>
+    </button>
+  );
+
   return (
     <div className="animate-fade-in">
       <div
         style={{
           fontSize: '11px',
-          fontWeight: '700',
-          color: 'var(--text-muted)',
+          fontWeight: '600',
+          color: 'rgba(255,255,255,0.4)',
           textTransform: 'uppercase',
           letterSpacing: '0.05em',
           marginBottom: '12px',
+          fontFamily: '"Inter", sans-serif',
         }}
       >
         กรองตามหมวด
       </div>
-      <div className="news-source-filter-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '28px' }}>
+
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '5px',
+          marginBottom: '24px',
+        }}
+      >
         <button
           onClick={() => setActiveTopic('all')}
-          className={`audience-tab-btn news-source-filter-btn ${activeTopic === 'all' ? 'active-manual' : ''}`}
-          style={{ minHeight: '34px', padding: '0 14px', fontSize: '13px', borderRadius: '999px' }}
+          style={getTopicButtonStyle(activeTopic === 'all')}
+          className="topic-btn-hover"
         >
-          ทั้งหมด
+          <span style={labelStyle}>ทั้งหมด</span>
         </button>
-        <button
-          onClick={() => setActiveTopic(THAI_FILTER_KEY)}
-          className={`audience-tab-btn news-source-filter-btn ${activeTopic === THAI_FILTER_KEY ? 'active-manual' : ''}`}
-          style={{ minHeight: '34px', padding: '0 14px', fontSize: '13px', borderRadius: '999px' }}
-        >
-          🇹🇭 ข่าวไทย{' '}
-          <span style={{ opacity: 0.5, fontSize: '11px', marginLeft: '4px' }}>
-            ({thaiSourceCount})
-          </span>
-        </button>
-        {Object.entries(TOPIC_LABELS).map(([key, { label, icon, count }]) => (
-          <button
-            key={key}
-            onClick={() => setActiveTopic(key)}
-            className={`audience-tab-btn news-source-filter-btn ${activeTopic === key ? 'active-manual' : ''}`}
-            style={{ minHeight: '34px', padding: '0 14px', fontSize: '13px', borderRadius: '999px' }}
-          >
-            {icon} {label}{' '}
-            <span style={{ opacity: 0.5, fontSize: '11px', marginLeft: '4px' }}>
-              ({count})
-            </span>
-          </button>
-        ))}
+
+        {renderTopicButton(THAI_FILTER_KEY, 'ข่าวไทย', Globe2, thaiSourceCount)}
+
+        {renderTopicButton('news', TOPIC_LABELS.news.label, ICON_MAP[TOPIC_LABELS.news.icon], TOPIC_LABELS.news.count)}
+
+        {Object.entries(TOPIC_LABELS)
+          .filter(([key]) => key !== 'news')
+          .map(([key, { label, icon, count }]) => {
+            const IconComponent = ICON_MAP[icon];
+            if (!IconComponent) return null;
+            return renderTopicButton(key, label, IconComponent, count);
+          })}
       </div>
+
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .topic-btn-hover:not(:active):hover {
+          background: rgba(255,255,255,0.12) !important;
+          border-color: rgba(255,255,255,0.2) !important;
+          color: #fff !important;
+        }
+        .topic-btn-hover:not(:active):hover span {
+          color: #fff !important;
+          opacity: 1 !important;
+        }
+      `}} />
 
       {enSources.length > 0 && (
         <>
