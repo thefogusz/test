@@ -35,12 +35,14 @@ const extractImageFromContent = (content: string): string | null => {
   if (!content) return null;
   // Look for any <img> tag and grab the src. Be flexible with attributes and quotes.
   // We prefer larger images (ignoring small icons/trackers if possible)
-  const imgRegex = /<img[^>]+src=["']([^"']+)["']/gi;
+  // Check for src first, then data-src as a backup
+  const imgRegex = /<img[^>]+(?:src|data-src|srcset)=["']([^"'\s]+)["']/gi;
   let match;
   while ((match = imgRegex.exec(content)) !== null) {
-    const url = match[1];
+    let url = match[1];
+    if (url.includes(',')) url = url.split(',')[0].split(' ')[0]; // Handle srcset
     // Skip common tracking pixels or tiny icons
-    if (url.includes('pixel') || url.includes('tracker') || url.includes('feedburner')) continue;
+    if (url.includes('pixel') || url.includes('tracker') || url.includes('feedburner') || url.includes('doubleclick')) continue;
     return url;
   }
   return null;
@@ -50,8 +52,9 @@ const extractImageFromEnclosure = (item: Element): string | null => {
   const enclosure = item.querySelector('enclosure');
   if (enclosure) {
     const type = enclosure.getAttribute('type') || '';
-    if (type.startsWith('image/')) {
-      return enclosure.getAttribute('url');
+    const url = enclosure.getAttribute('url');
+    if (url && (type.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif)(?:\?.*)?$/i.test(url))) {
+      return url;
     }
   }
   return null;
@@ -61,18 +64,22 @@ const extractMediaThumbnail = (item: Element, rawXml = ''): string | null => {
   const itemXml = rawXml || new XMLSerializer().serializeToString(item);
 
   // 1. Try media:content (very common for TechCrunch, etc.)
-  // Look for url="..." regardless of position of other attributes
-  const mediaContentRegex = /<media:content[^>]+url=["']([^"']+)["']/i;
+  const mediaContentRegex = /<(?:media:content|content)[^>]+url=["']([^"']+)["']/i;
   const mediaContentMatch = itemXml.match(mediaContentRegex);
   if (mediaContentMatch?.[1]) return mediaContentMatch[1];
 
   // 2. Try media:thumbnail
-  const mediaThumbRegex = /<media:thumbnail[^>]+url=["']([^"']+)["']/i;
+  const mediaThumbRegex = /<(?:media:thumbnail|thumbnail)[^>]+url=["']([^"']+)["']/i;
   const mediaThumbMatch = itemXml.match(mediaThumbRegex);
   if (mediaThumbMatch?.[1]) return mediaThumbMatch[1];
 
-  // 3. Try Atom-style links (rel="enclosure" or rel="image")
-  const atomLinkRegex = /<link[^>]+rel=["'](?:enclosure|image)["'][^>]+href=["']([^"']+)["']/i;
+  // 3. Try featured image tags
+  const featuredRegex = /<(?:featured_image|image|img)[^>]*>([\s\S]*?)<\/(?:featured_image|image|img)>/i;
+  const featuredMatch = itemXml.match(featuredRegex);
+  if (featuredMatch?.[1]?.startsWith('http')) return featuredMatch[1];
+
+  // 4. Try Atom-style links (rel="enclosure" or rel="image" or rel="prefetch")
+  const atomLinkRegex = /<link[^>]+rel=["'](?:enclosure|image|prefetch|alternate)["'][^>]+href=["']([^"']+)["'][^>]*type=["']image\//i;
   const atomLinkMatch = itemXml.match(atomLinkRegex);
   if (atomLinkMatch?.[1]) return atomLinkMatch[1];
 
@@ -83,7 +90,33 @@ const stripHtml = (html: string): string => {
   if (!html) return '';
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
-  return (tmp.textContent || tmp.innerText || '').trim();
+  const rawText = (tmp.textContent || tmp.innerText || '').trim();
+
+  // Handle common RSS boilerplates and junk (newsletter CTAs, shopping labels, etc.)
+  return rawText
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => {
+      if (!line) return false;
+      const normalized = line.toLowerCase();
+
+      return !(
+        normalized.includes('verge shopping') ||
+        normalized.includes('email (required)') ||
+        normalized.includes('สมัครรับดีลสินค้า') ||
+        normalized.includes('ติดตามหัวข้อและผู้เขียน') ||
+        normalized.includes('sign up for the newsletter') ||
+        normalized.includes('subscribe to our newsletter') ||
+        normalized.includes('all rights reserved') ||
+        /^the post .* appeared first on /i.test(line) ||
+        /^read more\b/i.test(line) ||
+        /^continue reading\b/i.test(line) ||
+        /^view original\b/i.test(line) ||
+        /^open original\b/i.test(line)
+      );
+    })
+    .join('\n\n')
+    .trim();
 };
 
 const parseRssXml = (xml: string): RssItem[] => {
@@ -94,6 +127,7 @@ const parseRssXml = (xml: string): RssItem[] => {
   const rssItems = doc.querySelectorAll('item');
   if (rssItems.length > 0) {
     return Array.from(rssItems).map((item) => {
+      const itemRaw = new XMLSerializer().serializeToString(item);
       const title = item.querySelector('title')?.textContent || '';
       const link = item.querySelector('link')?.textContent || '';
       const description = item.querySelector('description')?.textContent || '';

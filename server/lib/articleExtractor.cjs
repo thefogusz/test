@@ -7,6 +7,8 @@ const TRAILING_BOILERPLATE_PATTERNS = [
   /^this (story|article|report) was originally (featured|published|posted) on\b/i,
   /^read the original (story|article|report) on\b/i,
   /^originally published on\b/i,
+  /สมัครรับดีลสินค้า/i,
+  /ติดตามหัวข้อและผู้เขียน/i,
 ];
 const TRAILING_CTA_PATTERNS = [
   /^visit website\b/i,
@@ -16,6 +18,8 @@ const TRAILING_CTA_PATTERNS = [
   /^open original\b/i,
   /^view original\b/i,
   /^visit (the )?(source|site)\b/i,
+  /^email \(required\)/i,
+  /verge shopping/i,
 ];
 
 const turndown = new TurndownService({

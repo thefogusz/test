@@ -121,13 +121,37 @@ export const hasUsefulThaiSummary = (summary, originalText = '') => {
   });
 };
 
-const cleanCardCopy = (value = '') =>
-  String(value || '')
+const JUNK_PHRASES = [
+  'Verge Shopping',
+  'Email (required)',
+  'สมัครรับดีลสินค้าที่ดีที่สุดที่เราเลือกและทดสอบ ส่งตรงถึงอินบ็อกซ์',
+  'ติดตามหัวข้อและผู้เขียนจากเรื่องนี้ เพื่อดูเนื้อหาคล้ายกันในฟีดโฮมเพจส่วนตัว และรับอัปเดตทางอีเมล',
+  'Sign up for the newsletter',
+  'Subscribe to our newsletter',
+];
+
+const cleanCardCopy = (value = '') => {
+  const raw = String(value || '');
+  if (!raw) return '';
+
+  return raw
+    .split(/\n+/)
+    .map(line => line.trim())
+    .filter(line => {
+      if (!line) return false;
+      const normalized = line.toLowerCase();
+      // Check if this line is a junk phrase (exact or near-exact match)
+      return !JUNK_PHRASES.some(phrase => {
+        const p = phrase.toLowerCase();
+        return normalized === p || (normalized.includes(p) && normalized.length < p.length + 10);
+      });
+    })
+    .join('\n\n')
     .replace(/\s+/g, ' ')
-    .trim()
     .replace(EDGE_QUOTES_REGEX, '')
     .replace(/\.+$/, '')
     .trim();
+};
 
 const normalizeCardCopy = (value = '') =>
   cleanCardCopy(value)

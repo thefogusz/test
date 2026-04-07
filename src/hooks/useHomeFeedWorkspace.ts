@@ -16,6 +16,7 @@ import {
 import { RSS_CATALOG } from '../config/rssCatalog';
 import { fetchWatchlistFeed } from '../services/TwitterService';
 import { fetchAllSubscribedFeeds, type RssSourceInfo } from '../services/RssService';
+import { fetchReadableArticle } from '../services/ArticleService';
 import {
   deriveVisibleFeed,
   getPostSummarySourceText,
@@ -62,7 +63,9 @@ export const useHomeFeedWorkspace = ({
 
   const isSummarizingRef = useRef(false);
   const isBackfillingThaiRef = useRef(false);
+  const isEnrichingImagesRef = useRef(false);
   const failedThaiSummaryIdsRef = useRef(new Set<string>());
+  const enrichedImageIdsRef = useRef(new Set<string>());
 
   const activeListMembers = useMemo(() => {
     if (!activeListId) {
@@ -246,6 +249,66 @@ export const useHomeFeedWorkspace = ({
 
     return () => clearTimeout(timer);
   }, [originalFeed, setOriginalFeed, setReadArchive]);
+
+  // Background Image Enrichment for RSS (especially Product Hunt)
+  useEffect(() => {
+    const candidates = originalFeed
+      .filter(
+        (post) =>
+          post?.sourceType === 'rss' &&
+          !post.primaryImageUrl &&
+          post.url &&
+          !enrichedImageIdsRef.current.has(post.id),
+      )
+      .slice(0, 8);
+
+    if (!candidates.length || isEnrichingImagesRef.current) {
+      return undefined;
+    }
+
+    const timer = setTimeout(async () => {
+      isEnrichingImagesRef.current = true;
+      const idsToUpdate = new Set(candidates.map((c) => c.id));
+      idsToUpdate.forEach((id) => enrichedImageIdsRef.current.add(id));
+
+      try {
+        const enrichedBatch = await Promise.allSettled(
+          candidates.map(async (post) => {
+            try {
+              const article = await fetchReadableArticle(post.url);
+              if (article.ok && article.leadImageUrl) {
+                return { id: post.id, imageUrl: article.leadImageUrl };
+              }
+            } catch (e) {
+              // Ignore individual failures
+            }
+            return null;
+          }),
+        );
+
+        const imageUpdates = new Map<string, string>();
+        enrichedBatch.forEach((result) => {
+          if (result.status === 'fulfilled' && result.value) {
+            imageUpdates.set(result.value.id, result.value.imageUrl);
+          }
+        });
+
+        if (imageUpdates.size > 0) {
+          setOriginalFeed((prev) =>
+            prev.map((post) =>
+              imageUpdates.has(post.id)
+                ? { ...post, primaryImageUrl: imageUpdates.get(post.id) }
+                : post,
+            ),
+          );
+        }
+      } finally {
+        isEnrichingImagesRef.current = false;
+      }
+    }, 1200);
+
+    return () => clearTimeout(timer);
+  }, [originalFeed, setOriginalFeed]);
 
 
   const processAndSummarizeFeed = async (newBatch: any[], statusPrefix = 'พบ') => {
