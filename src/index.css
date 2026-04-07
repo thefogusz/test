@@ -8325,3 +8325,104 @@ h6,
   transform: scale(1.1);
   box-shadow: 0 0 8px rgba(41, 151, 255, 0.3);
 }
+
+/* Audience Category Images Grid Layout */
+.audience-category-image-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 16px 12px;
+  width: 100%;
+  padding-bottom: 24px;
+  padding-top: 8px;
+}
+
+@media (max-width: 1100px) {
+  .audience-category-image-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .audience-category-image-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .audience-category-image-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.category-image-card {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: 12px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  scroll-snap-align: start;
+  transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s ease;
+  border: none;
+  padding: 0;
+  background: #111;
+}
+
+.category-image-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.8);
+  z-index: 2;
+}
+
+.category-image-card img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 1;
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+}
+
+.category-image-card:hover img {
+  transform: scale(1.12);
+}
+
+.category-image-gradient {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 80%;
+  background: linear-gradient(to bottom, rgba(5, 12, 35, 0.95) 0%, rgba(5, 12, 35, 0.6) 45%, transparent 100%);
+  z-index: 2;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.category-image-card:hover .category-image-gradient {
+  opacity: 0.85; /* slight fade on hover to make it feel dynamic */
+}
+
+.category-image-label {
+  position: absolute;
+  top: 16px;
+  left: 10px;
+  right: 10px;
+  color: #ffffff;
+  font-family: 'Noto Sans Thai', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  text-align: center;
+  z-index: 3;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.8), 0 1px 3px rgba(0,0,0,0.6);
+  line-height: 1.25;
+  letter-spacing: 0.02em;
+}
+
+/* Ensure original button overrides are clean */
+.category-image-card:focus {
+  outline: none;
+}

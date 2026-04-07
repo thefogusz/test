@@ -60,26 +60,27 @@ const AudienceWorkspace = ({
   onToggleSource = () => { },
 }) => {
   const CATEGORIES = [
-    { icon: Cpu, label: 'เทคโนโลยี', tone: 'blue' },
-    { icon: Bot, label: 'AI', tone: 'violet' },
-    { icon: BriefcaseBusiness, label: 'ธุรกิจ', tone: 'amber' },
-    { icon: TrendingUp, label: 'การตลาด', tone: 'rose' },
-    { icon: BadgeDollarSign, label: 'การเงิน', tone: 'emerald' },
-    { icon: ChartColumn, label: 'การลงทุน', tone: 'cyan' },
-    { icon: Bitcoin, label: 'คริปโต', tone: 'orange' },
-    { icon: HeartPulse, label: 'สุขภาพ', tone: 'red' },
-    { icon: Leaf, label: 'ไลฟ์สไตล์', tone: 'green' },
-    { icon: Globe2, label: 'เศรษฐกิจ', tone: 'sky' },
-    { icon: Landmark, label: 'การเมือง', tone: 'slate' },
-    { icon: Trophy, label: 'กีฬา', tone: 'orange' },
-    { icon: Star, label: 'บันเทิง', tone: 'pink' },
-    { icon: Plane, label: 'ท่องเที่ยว', tone: 'sky' },
-    { icon: Utensils, label: 'อาหาร', tone: 'amber' },
-    { icon: Leaf, label: 'สิ่งแวดล้อม', tone: 'emerald' },
-    { icon: Book, label: 'การศึกษา', tone: 'blue' },
-    { icon: MessageCircle, label: 'บทวิเคราะห์', tone: 'slate' },
-    { icon: Building, label: 'อสังหาฯ', tone: 'violet' },
-    { icon: Car, label: 'ยานยนต์', tone: 'rose' },
+    { label: 'เทคโนโลยี', image: 'Tech.jpg_202604080519.jpeg' },
+    { label: 'AI', image: 'AI.jpg_202604080519.jpeg' },
+    { label: 'ธุรกิจ', image: 'Business.png_202604080519.jpeg' },
+    { label: 'การตลาด', image: 'Marketing.jpg_202604080519.jpeg' },
+    { label: 'การเงิน', image: 'Finance.png_202604080519.jpeg' },
+    { label: 'การลงทุน', image: 'Investment.png_202604080519.jpeg' },
+    { label: 'คริปโต', image: 'Crypto.png_202604080519.jpeg' },
+    { label: 'ความปลอดภัยไซเบอร์', image: 'Cyber_Security.jpg_202604080519.jpeg' },
+    { label: 'สุขภาพ', image: 'Health.jpeg_202604080519.jpeg' },
+    { label: 'ไลฟ์สไตล์', image: 'Lifestyle.jpg_202604080519.jpeg' },
+    { label: 'เศรษฐกิจ', image: 'Economy.jpg_202604080519.jpeg' },
+    { label: 'การเมือง', image: 'Politics.jpeg_202604080519.jpeg' },
+    { label: 'กีฬา', image: 'Sports.jpeg_202604080519.jpeg' },
+    { label: 'บันเทิง', image: 'Entertainment.jpeg_202604080519.jpeg' },
+    { label: 'ท่องเที่ยว', image: 'Travel.jpg_202604080519.jpeg' },
+    { label: 'อาหาร', image: 'Food.jpg_202604080519.jpeg' },
+    { label: 'สิ่งแวดล้อม', image: 'Environment.jpg_202604080525.jpeg' },
+    { label: 'การศึกษา', image: 'Education.jpeg_202604080519.jpeg' },
+    { label: 'บทวิเคราะห์', image: 'Analysis.jpg_202604080519.jpeg' },
+    { label: 'อสังหาฯ', image: 'Realestate.jpg_202604080519.jpeg' },
+    { label: 'ยานยนต์', image: 'Automotive.jpg_202604080519.jpeg' },
   ];
 
   return (
@@ -346,18 +347,18 @@ const AudienceWorkspace = ({
 
             <div className="audience-category-section" style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '28px' }}>
               <div className="audience-category-heading">Discover By Category</div>
-              <div className="audience-category-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
-                {CATEGORIES.map((cat) => {
-                  const Icon = cat.icon;
-                  return (
-                    <button key={cat.label} onClick={() => { setAiQuery(cat.label); handleAiSearchAudience(cat.label); }} className={`category-btn category-btn-${cat.tone}`}>
-                      <span className="category-btn-icon-wrap">
-                        <Icon size={18} strokeWidth={2.1} />
-                      </span>
-                      <span className="category-btn-label">{cat.label}</span>
-                    </button>
-                  );
-                })}
+              <div className="audience-category-image-grid">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.label}
+                    onClick={() => { setAiQuery(cat.label); handleAiSearchAudience(cat.label); }}
+                    className="category-image-card"
+                  >
+                    <img src={`${import.meta.env.BASE_URL}categories/${cat.image}`} alt={cat.label} loading="lazy" />
+                    <div className="category-image-gradient"></div>
+                    <span className="category-image-label">{cat.label}</span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
