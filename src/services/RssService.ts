@@ -3,7 +3,7 @@ import type { Post } from '../types/domain';
 import { apiFetch } from '../utils/apiFetch';
 
 const RSS_PROXY_URL = '/api/rss';
-const RSS_LATEST_LOOKBACK_HOURS = 24;
+const RSS_LATEST_LOOKBACK_HOURS = 48;
 const RSS_LATEST_LOOKBACK_MS = RSS_LATEST_LOOKBACK_HOURS * 60 * 60 * 1000;
 
 interface RssItem {
@@ -213,8 +213,9 @@ export const fetchRssFeed = async (source: RssSourceInfo, maxItems = 999): Promi
         timestamp: parseItemTimestamp(item.pubDate),
       }))
       .filter(({ timestamp }) => {
-        // Only keep items from the last 24 hours relative to NOW
-        return Number.isFinite(timestamp) && timestamp >= cutoffTimestamp && timestamp <= now;
+        // Only keep items from the last 48 hours.
+        // Also allow future timestamps (up to 12h) to handle timezone drifts.
+        return Number.isFinite(timestamp) && timestamp >= cutoffTimestamp && timestamp <= (now + 12 * 60 * 60 * 1000);
       })
       .sort((left, right) => (right.timestamp || 0) - (left.timestamp || 0));
 

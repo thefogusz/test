@@ -44,7 +44,7 @@ export const RSS_CATALOG: Record<string, RssSource[]> = {
     { id: 'hn-frontpage', name: 'Hacker News', url: 'https://hnrss.org/frontpage?points=100', siteUrl: 'https://news.ycombinator.com', description: 'ลิงก์ยอดนิยมจาก developer community', frequency: '~15 ลิงก์/วัน', lang: 'en', type: 'community', topic: 'tech' },
     { id: 'producthunt', name: 'Product Hunt', url: 'https://www.producthunt.com/feed', siteUrl: 'https://producthunt.com', description: 'ผลิตภัณฑ์ใหม่และ startup launches', frequency: '~10 โพสต์/วัน', lang: 'en', type: 'community', topic: 'tech' },
     { id: 'techsauce', name: 'Techsauce', url: 'https://techsauce.co/feed', siteUrl: 'https://techsauce.co', description: 'Startup และระบบนิเวศน์ทางไอทีในไทย', frequency: '~5 บทความ/วัน', lang: 'th', type: 'news', topic: 'tech' },
-    { id: 'beartai', name: 'Beartai', url: 'https://www.beartai.com/feed', siteUrl: 'https://beartai.com', description: 'Tech, gadget, รีวิวภาษาไทย', frequency: '~8 บทความ/วัน', lang: 'th', type: 'news', topic: 'tech' },
+    { id: 'beartai', name: 'Beartai', url: 'https://www.beartai.com/feed', siteUrl: 'https://www.beartai.com', description: 'Tech, gadget, รีวิวภาษาไทย', frequency: '~8 บทความ/วัน', lang: 'th', type: 'news', topic: 'tech' },
     { id: 'bbc-tech', name: 'BBC Tech', url: 'http://feeds.bbci.co.uk/news/technology/rss.xml', siteUrl: 'https://bbc.com/news/technology', description: 'ข่าวสารและนวัตกรรมเทคโนโลยีจากมุมมองยุโรป (BBC)', frequency: '~10 บทความ/วัน', lang: 'en', type: 'news', topic: 'tech' },
     { id: 'the-register', name: 'The Register', url: 'https://www.theregister.com/headlines.rss', siteUrl: 'https://www.theregister.com', description: 'ข่าวสารวงการ Enterprise Tech, IT และวิทยาศาสตร์แนวแสบๆ คันๆ (UK)', frequency: '~20 บทความ/วัน', lang: 'en', type: 'news', topic: 'tech' },
     { id: 'cnn-tech', name: 'CNN Tech', url: 'http://rss.cnn.com/rss/cnn_tech.rss', siteUrl: 'https://edition.cnn.com/business/tech', description: 'ข่าวเทคโนโลยีและผลกระทบต่อสังคมดิจิทัล (CNN)', frequency: '~10 บทความ/วัน', lang: 'en', type: 'news', topic: 'tech' },
@@ -165,13 +165,11 @@ export const RSS_CATALOG: Record<string, RssSource[]> = {
   ],
   entertainment: [
     { id: 'bbc-entertainment', name: 'BBC Entertainment', url: 'http://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml', siteUrl: 'https://bbc.co.uk/news/entertainment_and_arts', description: 'ศิลปะและวัฒนธรรมบันเทิงระดับโลก', frequency: '~15 บทความ/วัน', lang: 'en', type: 'news', topic: 'entertainment' },
-    { id: 'reuters-entertainment', name: 'Reuters Entertainment', url: 'https://feeds.reuters.com/reuters/entertainment', siteUrl: 'https://reuters.com/lifestyle', description: 'เกาะติดวงการดาราฮอลลีวูดและธุรกิจภาพยนตร์', frequency: '~10 บทความ/วัน', lang: 'en', type: 'news', topic: 'entertainment' },
     { id: 'nyt-arts', name: 'NYT Arts', url: 'https://rss.nytimes.com/services/xml/rss/nyt/Arts.xml', siteUrl: 'https://nytimes.com/section/arts', description: 'วิจารณ์ภาพยนตร์ ละครเวที และวงการอุตสาหกรรมศิลปะ', frequency: '~10 บทความ/วัน', lang: 'en', type: 'news', topic: 'entertainment' },
     { id: 'cnn-entertainment', name: 'CNN Entertainment', url: 'http://rss.cnn.com/rss/edition_entertainment.rss', siteUrl: 'https://edition.cnn.com/entertainment', description: 'ไลฟ์สไตล์ เทรนด์วัฒนธรรมป๊อปจาก CNN', frequency: '~15 บทความ/วัน', lang: 'en', type: 'news', topic: 'entertainment' },
   ],
   sports: [
     { id: 'bbc-sports', name: 'BBC Sport', url: 'http://feeds.bbci.co.uk/sport/rss.xml', siteUrl: 'https://bbc.co.uk/sport', description: 'รายงานผลการแข่งขันทุกลีกใหญ่ บทวิเคราะห์และข่าวกีฬาเจาะลึก', frequency: '~30 บทความ/วัน', lang: 'en', type: 'news', topic: 'sports' },
-    { id: 'reuters-sports', name: 'Reuters Sports', url: 'https://feeds.reuters.com/reuters/sportsNews', siteUrl: 'https://reuters.com/sports', description: 'วงการกีฬาระดับโลก ความเคลื่อนไหวธุรกิจกีฬา', frequency: '~20 บทความ/วัน', lang: 'en', type: 'news', topic: 'sports' },
     { id: 'nyt-sports', name: 'NYT Sports', url: 'https://rss.nytimes.com/services/xml/rss/nyt/Sports.xml', siteUrl: 'https://nytimes.com/section/sports', description: 'กีฬา โอลิมปิก และบทสืบสวนทุจริตวงการกีฬา', frequency: '~15 บทความ/วัน', lang: 'en', type: 'news', topic: 'sports' },
   ],
   travel: [
@@ -182,7 +180,6 @@ export const RSS_CATALOG: Record<string, RssSource[]> = {
   lifestyle: [
     { id: 'nyt-fashion', name: 'NYT Fashion & Style', url: 'https://rss.nytimes.com/services/xml/rss/nyt/FashionandStyle.xml', siteUrl: 'https://nytimes.com/section/fashion', description: 'แฟชั่น เทรนด์สไตล์ และความเคลื่อนไหวสังคม', frequency: '~10 บทความ/วัน', lang: 'en', type: 'news', topic: 'lifestyle' },
     { id: 'guardian-lifestyle', name: 'Guardian Lifestyle', url: 'https://www.theguardian.com/lifeandstyle/rss', siteUrl: 'https://theguardian.com/lifeandstyle', description: 'วิถีชีวิต ครอบครัว และวัฒนธรรมร่วมสมัย', frequency: '~10 บทความ/วัน', lang: 'en', type: 'news', topic: 'lifestyle' },
-    { id: 'reuters-lifestyle', name: 'Reuters Lifestyle', url: 'https://feeds.reuters.com/reuters/lifestyle', siteUrl: 'https://reuters.com/lifestyle', description: 'พาดหัวข่าวไลฟ์สไตล์ เทรนด์และผู้คนรอบสัปดาห์', frequency: '~5 บทความ/วัน', lang: 'en', type: 'news', topic: 'lifestyle' },
   ],
   food: [
     { id: 'nyt-dining', name: 'NYT Dining', url: 'https://rss.nytimes.com/services/xml/rss/nyt/DiningandWine.xml', siteUrl: 'https://nytimes.com/section/food', description: 'รีวิวร้านอาหาร ไวน์ และแวดวงบรรณาการ', frequency: '~5 บทความ/วัน', lang: 'en', type: 'news', topic: 'food' },
@@ -191,7 +188,6 @@ export const RSS_CATALOG: Record<string, RssSource[]> = {
   environment: [
     { id: 'nyt-climate', name: 'NYT Climate', url: 'https://rss.nytimes.com/services/xml/rss/nyt/Climate.xml', siteUrl: 'https://nytimes.com/section/climate', description: 'ภาวะโลกรวน ธรรมชาติ และความยั่งยืน', frequency: '~5 บทความ/วัน', lang: 'en', type: 'news', topic: 'environment' },
     { id: 'guardian-environment', name: 'Guardian Environment', url: 'https://www.theguardian.com/environment/rss', siteUrl: 'https://theguardian.com/environment', description: 'นโยบายปกป้องธรรมชาติ สัตว์ป่าและการอนุรักษ์', frequency: '~8 บทความ/วัน', lang: 'en', type: 'news', topic: 'environment' },
-    { id: 'reuters-environment', name: 'Reuters Environment', url: 'https://feeds.reuters.com/reuters/environment', siteUrl: 'https://reuters.com/sustainability', description: 'สถานการณ์ภูมิอากาศ นโยบายพลังงานระดับชาติ', frequency: '~5 บทความ/วัน', lang: 'en', type: 'news', topic: 'environment' },
   ],
   education: [
     { id: 'nyt-education', name: 'NYT Education', url: 'https://rss.nytimes.com/services/xml/rss/nyt/Education.xml', siteUrl: 'https://nytimes.com/section/education', description: 'สังคม การศึกษา นโยบายมหาวิทยาลัยในสหรัฐฯ', frequency: '~2 บทความ/วัน', lang: 'en', type: 'news', topic: 'education' },

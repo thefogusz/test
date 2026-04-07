@@ -92,17 +92,22 @@ const App = () => {
     });
   };
 
+  // Safer normalization: only update if found in catalog, don't delete if NOT found
   useEffect(() => {
     setSubscribedSources((prev) => {
-      const normalized = (Array.isArray(prev) ? prev : [])
-        .map((source) => supportedRssSourcesById.get(String(source?.id || '')))
-        .filter(Boolean);
+      if (!Array.isArray(prev) || prev.length === 0) return prev;
+      
+      let changed = false;
+      const next = prev.map(source => {
+        const catalogMatch = supportedRssSourcesById.get(String(source?.id || ''));
+        if (catalogMatch && catalogMatch.url !== source.url) {
+          changed = true;
+          return { ...source, ...catalogMatch };
+        }
+        return source;
+      });
 
-      if (normalized.length === prev.length && normalized.every((source, index) => source.id === prev[index]?.id)) {
-        return prev;
-      }
-
-      return normalized;
+      return changed ? next : prev;
     });
   }, [setSubscribedSources, supportedRssSourcesById]);
 

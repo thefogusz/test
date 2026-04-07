@@ -454,6 +454,7 @@ const AudienceWorkspace = ({
                     onToggle={() => onToggleSource(source)}
                     postLists={postLists}
                     onTogglePostList={handleToggleMemberInList}
+                    compact={true}
                   />
                 ))}
               </div>
