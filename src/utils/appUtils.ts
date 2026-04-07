@@ -383,9 +383,16 @@ export const deriveVisibleFeed = ({
     }
   } else if (activeView === 'home') {
     result = originalFeed.filter(
-      (post) =>
-        post &&
-        isSupportedFreshRssPost(post, subscribedSources),
+      (post) => {
+        if (!post) return false;
+        const username = (post.author?.username || '').toLowerCase();
+        // If it's an RSS post, apply the fresh/supported check.
+        // If it's not RSS (likely X/Twitter), allow it in the Home view.
+        if (username.startsWith('rss:')) {
+          return isSupportedFreshRssPost(post, subscribedSources);
+        }
+        return true;
+      },
     );
   }
 

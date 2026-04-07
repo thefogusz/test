@@ -353,6 +353,7 @@ export const useHomeFeedWorkspace = ({
       })();
 
       const [twitterResult, rssPosts] = await Promise.all([twitterPromise, rssPromise]);
+      console.log(`[Sync] Twitter: ${twitterResult?.data?.length || 0}, RSS: ${rssPosts?.length || 0}`);
 
       const { data: twitterData, meta } = twitterResult;
       setNextCursor(meta.next_cursor);

@@ -97,9 +97,13 @@ const parseRssXml = (xml: string): RssItem[] => {
       const title = item.querySelector('title')?.textContent || '';
       const link = item.querySelector('link')?.textContent || '';
       const description = item.querySelector('description')?.textContent || '';
-      const pubDate = item.querySelector('pubDate')?.textContent || '';
+      const pubDate =
+        item.querySelector('pubDate')?.textContent ||
+        item.querySelector('date')?.textContent ||
+        itemRaw.match(/<dc:date[^>]*>([\s\S]*?)<\/dc:date>/i)?.[1] ||
+        '';
+
       // namespace-prefixed tags: serialize item to string so regex can reach them
-      const itemRaw = new XMLSerializer().serializeToString(item);
       const contentEncoded = itemRaw.match(/<content:encoded[^>]*><!\[CDATA\[([\s\S]*?)\]\]><\/content:encoded>/i)?.[1]
         || itemRaw.match(/<content:encoded[^>]*>([\s\S]*?)<\/content:encoded>/i)?.[1]
         || '';
@@ -193,17 +197,26 @@ const rssItemToPost = (item: RssItem, source: RssSourceInfo): Post => {
 
 export const fetchRssFeed = async (source: RssSourceInfo, maxItems = 999): Promise<Post[]> => {
   try {
-    const response = await apiFetch(`${RSS_PROXY_URL}?url=${encodeURIComponent(source.url)}`, {
+    const proxyUrl = `${RSS_PROXY_URL}?url=${encodeURIComponent(source.url)}`;
+    console.log(`[RSS] Syncing ${source.name} from: ${source.url}`);
+
+    const response = await apiFetch(proxyUrl, {
       timeout: 15000,
     });
 
     if (!response.ok) {
-      console.warn(`[RSS] Failed to fetch ${source.name}: ${response.status}`);
+      console.warn(`[RSS] [${source.name}] Proxy request failed with status: ${response.status}`);
       return [];
     }
 
     const xml = await response.text();
     const items = parseRssXml(xml);
+    console.log(`[RSS] [${source.name}] Parsed ${items.length} raw items`);
+
+    if (items.length === 0) {
+      console.warn(`[RSS] [${source.name}] No items found in XML response. Root tag check: ${xml.slice(0, 100)}...`);
+    }
+
     const now = Date.now();
     const cutoffTimestamp = now - RSS_LATEST_LOOKBACK_MS;
 
@@ -212,18 +225,22 @@ export const fetchRssFeed = async (source: RssSourceInfo, maxItems = 999): Promi
         item,
         timestamp: parseItemTimestamp(item.pubDate),
       }))
-      .filter(({ timestamp }) => {
-        // Only keep items from the last 48 hours.
-        // Also allow future timestamps (up to 12h) to handle timezone drifts.
-        return Number.isFinite(timestamp) && timestamp >= cutoffTimestamp && timestamp <= (now + 12 * 60 * 60 * 1000);
+      .filter(({ item, timestamp }) => {
+        const isFresh = Number.isFinite(timestamp) && timestamp >= cutoffTimestamp && timestamp <= (now + 12 * 60 * 60 * 1000);
+        if (!isFresh && items.length > 0) {
+           // Silently filter out old ones but we log the survivors
+        }
+        return isFresh;
       })
       .sort((left, right) => (right.timestamp || 0) - (left.timestamp || 0));
+
+    console.log(`[RSS] [${source.name}] Kept ${filteredItems.length} fresh items (within 48h limit)`);
 
     return filteredItems
       .slice(0, maxItems)
       .map(({ item }) => rssItemToPost(item, source));
   } catch (error) {
-    console.warn(`[RSS] Error fetching ${source.name}:`, error);
+    console.warn(`[RSS] [${source.name}] Unexpected error during fetch:`, error);
     return [];
   }
 };
