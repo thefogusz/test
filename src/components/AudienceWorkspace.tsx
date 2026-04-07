@@ -27,7 +27,9 @@ import {
   Building,
   Car,
   MessageCircle,
+  X,
 } from 'lucide-react';
+
 import UserCard from './UserCard';
 import NewsSourcesTab, { SourceCard } from './NewsSourcesTab';
 import { RSS_CATALOG, TOPIC_LABELS, type RssSource } from '../config/rssCatalog';
@@ -41,6 +43,8 @@ const AudienceWorkspace = ({
   handleAiSearchAudience,
   aiSearchLoading,
   aiSearchResults,
+  setAiSearchResults,
+
   watchlist,
   postLists,
   handleToggleMemberInList,
@@ -82,6 +86,12 @@ const AudienceWorkspace = ({
     { label: 'อสังหาฯ', image: 'Realestate.jpg_202604080519.jpeg' },
     { label: 'ยานยนต์', image: 'Automotive.jpg_202604080519.jpeg' },
   ];
+  
+  const handleClearAiSearch = () => {
+    setAiQuery('');
+    setAiSearchResults([]);
+  };
+
 
   return (
     <div style={{ display: isVisible ? 'block' : 'none' }}>
@@ -107,7 +117,7 @@ const AudienceWorkspace = ({
             <span className="audience-tab-label audience-tab-label-full">{'\u0e41\u0e19\u0e30\u0e19\u0e33\u0e42\u0e14\u0e22 FORO'}</span>
             <span className="audience-tab-label audience-tab-label-mobile">FORO</span>
           </button>
-          <button onClick={() => setAudienceTab('sources')} className={`audience-tab-btn audience-primary-tab ${audienceTab === 'sources' ? 'active-manual' : ''}`}>
+          <button onClick={() => { setAudienceTab('sources'); handleClearAiSearch(); }} className={`audience-tab-btn audience-primary-tab ${audienceTab === 'sources' ? 'active-manual' : ''}`}>
             <Newspaper size={14} strokeWidth={2.1} />
             <span className="audience-tab-label audience-tab-label-full">แหล่งข่าว</span>
             <span className="audience-tab-label audience-tab-label-mobile">ข่าว</span>
@@ -117,11 +127,12 @@ const AudienceWorkspace = ({
               </span>
             )}
           </button>
-          <button onClick={() => setAudienceTab('manual')} className={`audience-tab-btn audience-primary-tab ${audienceTab === 'manual' ? 'active-manual' : ''}`}>
+          <button onClick={() => { setAudienceTab('manual'); handleClearAiSearch(); }} className={`audience-tab-btn audience-primary-tab ${audienceTab === 'manual' ? 'active-manual' : ''}`}>
             <Search size={14} strokeWidth={2.1} />
             <span className="audience-tab-label audience-tab-label-full">{'\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e0a\u0e37\u0e48\u0e2d'}</span>
             <span className="audience-tab-label audience-tab-label-mobile">ค้นชื่อ</span>
           </button>
+
         </div>
 
         {audienceTab === 'ai' && (
@@ -137,7 +148,17 @@ const AudienceWorkspace = ({
                   onKeyDown={(e) => e.key === 'Enter' && handleAiSearchAudience()}
                   style={{ background: 'transparent', border: 'none', color: '#fff', flex: 1, fontSize: '14px', outline: 'none' }}
                 />
+                {aiQuery && (
+                  <button 
+                    onClick={handleClearAiSearch}
+                    style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', padding: '4px' }}
+                    className="icon-hover"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
               </div>
+
               <button onClick={() => handleAiSearchAudience()} disabled={aiSearchLoading} className="btn-sync-premium" style={{ height: '48px', padding: '0 24px' }}>
                 {aiSearchLoading ? <RefreshCw size={15} className="animate-spin" /> : '\u0e04\u0e49\u0e19\u0e2b\u0e32'}
               </button>

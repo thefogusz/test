@@ -161,7 +161,9 @@ const App = () => {
     setAiQuery,
     aiSearchLoading,
     aiSearchResults,
+    setAiSearchResults,
     manualQuery,
+
     setManualQuery,
     manualPreview,
     handleAiSearchAudience,
@@ -636,7 +638,9 @@ const App = () => {
               handleAiSearchAudience={handleAiSearchAudience}
               aiSearchLoading={aiSearchLoading}
               aiSearchResults={aiSearchResults}
+              setAiSearchResults={setAiSearchResults}
               watchlist={watchlist}
+
               postLists={postLists}
               handleToggleMemberInList={handleToggleMemberInList}
               handleAddExpert={handleAddExpert}

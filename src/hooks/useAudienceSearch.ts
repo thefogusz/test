@@ -60,6 +60,7 @@ export const useAudienceSearch = ({
     setAiQuery,
     aiSearchLoading,
     aiSearchResults,
+    setAiSearchResults,
     manualQuery,
     setManualQuery,
     manualPreview,
