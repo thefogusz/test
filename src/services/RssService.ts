@@ -3,7 +3,7 @@ import type { Post } from '../types/domain';
 import { apiFetch } from '../utils/apiFetch';
 
 const RSS_PROXY_URL = '/api/rss';
-const RSS_LATEST_LOOKBACK_HOURS = 48;
+const RSS_LATEST_LOOKBACK_HOURS = 24;
 const RSS_LATEST_LOOKBACK_MS = RSS_LATEST_LOOKBACK_HOURS * 60 * 60 * 1000;
 
 interface RssItem {
@@ -191,7 +191,7 @@ const rssItemToPost = (item: RssItem, source: RssSourceInfo): Post => {
   };
 };
 
-export const fetchRssFeed = async (source: RssSourceInfo, maxItems = 10): Promise<Post[]> => {
+export const fetchRssFeed = async (source: RssSourceInfo, maxItems = 999): Promise<Post[]> => {
   try {
     const response = await apiFetch(`${RSS_PROXY_URL}?url=${encodeURIComponent(source.url)}`, {
       timeout: 15000,
@@ -204,36 +204,23 @@ export const fetchRssFeed = async (source: RssSourceInfo, maxItems = 10): Promis
 
     const xml = await response.text();
     const items = parseRssXml(xml);
-    const itemsWithTimestamps = items
+    const now = Date.now();
+    const cutoffTimestamp = now - RSS_LATEST_LOOKBACK_MS;
+
+    const filteredItems = items
       .map((item) => ({
         item,
         timestamp: parseItemTimestamp(item.pubDate),
       }))
-      .sort((left, right) => {
-        const leftTimestamp = Number.isFinite(left.timestamp) ? left.timestamp : -Infinity;
-        const rightTimestamp = Number.isFinite(right.timestamp) ? right.timestamp : -Infinity;
-        return rightTimestamp - leftTimestamp;
-      });
-
-    const validTimestamps = itemsWithTimestamps
-      .map((entry) => entry.timestamp)
-      .filter((timestamp) => Number.isFinite(timestamp));
-
-    if (validTimestamps.length === 0) {
-      return itemsWithTimestamps
-        .slice(0, maxItems)
-        .map(({ item }) => rssItemToPost(item, source));
-    }
-
-    const latestTimestamp = Math.max(...validTimestamps);
-    const cutoffTimestamp = latestTimestamp - RSS_LATEST_LOOKBACK_MS;
-
-    return itemsWithTimestamps
       .filter(({ timestamp }) => {
-        return Number.isFinite(timestamp) && timestamp >= cutoffTimestamp && timestamp <= latestTimestamp;
+        // Only keep items from the last 24 hours relative to NOW
+        return Number.isFinite(timestamp) && timestamp >= cutoffTimestamp && timestamp <= now;
       })
-      .map(({ item }) => rssItemToPost(item, source))
-      .slice(0, maxItems);
+      .sort((left, right) => (right.timestamp || 0) - (left.timestamp || 0));
+
+    return filteredItems
+      .slice(0, maxItems)
+      .map(({ item }) => rssItemToPost(item, source));
   } catch (error) {
     console.warn(`[RSS] Error fetching ${source.name}:`, error);
     return [];
@@ -242,7 +229,7 @@ export const fetchRssFeed = async (source: RssSourceInfo, maxItems = 10): Promis
 
 export const fetchAllSubscribedFeeds = async (
   sources: RssSourceInfo[],
-  maxPerSource = 5,
+  maxPerSource = 999,
 ): Promise<Post[]> => {
   if (!sources.length) return [];
 

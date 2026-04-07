@@ -348,9 +348,8 @@ export const useHomeFeedWorkspace = ({
       })();
 
       const rssPromise = (async () => {
-        if (!hasRss) return [];
         setStatus('กำลังดึงข่าวจากแหล่งข่าว RSS...');
-        return fetchAllSubscribedFeeds(effectiveRssSources, 5);
+        return fetchAllSubscribedFeeds(effectiveRssSources);
       })();
 
       const [twitterResult, rssPosts] = await Promise.all([twitterPromise, rssPromise]);
@@ -359,15 +358,16 @@ export const useHomeFeedWorkspace = ({
       setNextCursor(meta.next_cursor);
 
       // Combine Twitter + RSS, sort by date
-      const combinedData = [...twitterData, ...rssPosts].sort(
+      const MAX_TWITTER_SYNC = 20;
+      const twitterDisplay = twitterData.slice(0, MAX_TWITTER_SYNC);
+      const twitterRemaining = twitterData.slice(MAX_TWITTER_SYNC);
+
+      // RSS is unlimited, Twitter is capped at 20 per sync
+      const displayData = [...twitterDisplay, ...rssPosts].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
 
-      const MAX_SYNC = 20;
-      const displayData = combinedData.slice(0, MAX_SYNC);
-      const remainingData = combinedData.slice(MAX_SYNC);
-
-      setPendingFeed(remainingData);
+      setPendingFeed(twitterRemaining);
 
       const rssCount = rssPosts.length;
       const twitterCount = twitterData.length;
