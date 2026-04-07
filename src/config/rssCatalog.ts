@@ -173,6 +173,40 @@ export const RSS_CATALOG: Record<string, RssSource[]> = {
     { id: 'reuters-sports', name: 'Reuters Sports', url: 'https://feeds.reuters.com/reuters/sportsNews', siteUrl: 'https://reuters.com/sports', description: 'วงการกีฬาระดับโลก ความเคลื่อนไหวธุรกิจกีฬา', frequency: '~20 บทความ/วัน', lang: 'en', type: 'news', topic: 'sports' },
     { id: 'nyt-sports', name: 'NYT Sports', url: 'https://rss.nytimes.com/services/xml/rss/nyt/Sports.xml', siteUrl: 'https://nytimes.com/section/sports', description: 'กีฬา โอลิมปิก และบทสืบสวนทุจริตวงการกีฬา', frequency: '~15 บทความ/วัน', lang: 'en', type: 'news', topic: 'sports' },
   ],
+  travel: [
+    { id: 'nyt-travel', name: 'NYT Travel', url: 'https://rss.nytimes.com/services/xml/rss/nyt/Travel.xml', siteUrl: 'https://nytimes.com/section/travel', description: 'บทความท่องเที่ยวและสถานที่น่าสนใจทั่วโลก', frequency: '~5 บทความ/วัน', lang: 'en', type: 'news', topic: 'travel' },
+    { id: 'cnn-travel', name: 'CNN Travel', url: 'http://rss.cnn.com/rss/edition_travel.rss', siteUrl: 'https://edition.cnn.com/travel', description: 'ข่าวสารการเดินทาง รีสอร์ต และเคล็ดลับการท่องเที่ยว', frequency: '~5 บทความ/วัน', lang: 'en', type: 'news', topic: 'travel' },
+    { id: 'guardian-travel', name: 'Guardian Travel', url: 'https://www.theguardian.com/travel/rss', siteUrl: 'https://theguardian.com/travel', description: 'แรงบันดาลใจในการท่องเที่ยวและรีวิวสถานที่', frequency: '~5 บทความ/วัน', lang: 'en', type: 'news', topic: 'travel' },
+  ],
+  lifestyle: [
+    { id: 'nyt-fashion', name: 'NYT Fashion & Style', url: 'https://rss.nytimes.com/services/xml/rss/nyt/FashionandStyle.xml', siteUrl: 'https://nytimes.com/section/fashion', description: 'แฟชั่น เทรนด์สไตล์ และความเคลื่อนไหวสังคม', frequency: '~10 บทความ/วัน', lang: 'en', type: 'news', topic: 'lifestyle' },
+    { id: 'guardian-lifestyle', name: 'Guardian Lifestyle', url: 'https://www.theguardian.com/lifeandstyle/rss', siteUrl: 'https://theguardian.com/lifeandstyle', description: 'วิถีชีวิต ครอบครัว และวัฒนธรรมร่วมสมัย', frequency: '~10 บทความ/วัน', lang: 'en', type: 'news', topic: 'lifestyle' },
+    { id: 'reuters-lifestyle', name: 'Reuters Lifestyle', url: 'https://feeds.reuters.com/reuters/lifestyle', siteUrl: 'https://reuters.com/lifestyle', description: 'พาดหัวข่าวไลฟ์สไตล์ เทรนด์และผู้คนรอบสัปดาห์', frequency: '~5 บทความ/วัน', lang: 'en', type: 'news', topic: 'lifestyle' },
+  ],
+  food: [
+    { id: 'nyt-dining', name: 'NYT Dining', url: 'https://rss.nytimes.com/services/xml/rss/nyt/DiningandWine.xml', siteUrl: 'https://nytimes.com/section/food', description: 'รีวิวร้านอาหาร ไวน์ และแวดวงบรรณาการ', frequency: '~5 บทความ/วัน', lang: 'en', type: 'news', topic: 'food' },
+    { id: 'guardian-food', name: 'Guardian Food', url: 'https://www.theguardian.com/food/rss', siteUrl: 'https://theguardian.com/food', description: 'เส้นทางอาหาร สูตรลดน้ำหนัก และวัฒนธรรมการกิน', frequency: '~5 บทความ/วัน', lang: 'en', type: 'news', topic: 'food' },
+  ],
+  environment: [
+    { id: 'nyt-climate', name: 'NYT Climate', url: 'https://rss.nytimes.com/services/xml/rss/nyt/Climate.xml', siteUrl: 'https://nytimes.com/section/climate', description: 'ภาวะโลกรวน ธรรมชาติ และความยั่งยืน', frequency: '~5 บทความ/วัน', lang: 'en', type: 'news', topic: 'environment' },
+    { id: 'guardian-environment', name: 'Guardian Environment', url: 'https://www.theguardian.com/environment/rss', siteUrl: 'https://theguardian.com/environment', description: 'นโยบายปกป้องธรรมชาติ สัตว์ป่าและการอนุรักษ์', frequency: '~8 บทความ/วัน', lang: 'en', type: 'news', topic: 'environment' },
+    { id: 'reuters-environment', name: 'Reuters Environment', url: 'https://feeds.reuters.com/reuters/environment', siteUrl: 'https://reuters.com/sustainability', description: 'สถานการณ์ภูมิอากาศ นโยบายพลังงานระดับชาติ', frequency: '~5 บทความ/วัน', lang: 'en', type: 'news', topic: 'environment' },
+  ],
+  education: [
+    { id: 'nyt-education', name: 'NYT Education', url: 'https://rss.nytimes.com/services/xml/rss/nyt/Education.xml', siteUrl: 'https://nytimes.com/section/education', description: 'สังคม การศึกษา นโยบายมหาวิทยาลัยในสหรัฐฯ', frequency: '~2 บทความ/วัน', lang: 'en', type: 'news', topic: 'education' },
+    { id: 'bbc-education', name: 'BBC Family & Education', url: 'http://feeds.bbci.co.uk/news/family_and_education/rss.xml', siteUrl: 'https://bbc.com/news/family_and_education', description: 'ประเด็นการเรียนรู้และอนาคตทางการศึกษา', frequency: '~5 บทความ/วัน', lang: 'en', type: 'news', topic: 'education' },
+  ],
+  opinion: [
+    { id: 'nyt-opinion', name: 'NYT Opinion', url: 'https://rss.nytimes.com/services/xml/rss/nyt/Opinion.xml', siteUrl: 'https://nytimes.com/section/opinion', description: 'บทบรรณาธิการ มุมมองจากผู้เชี่ยวชาญ คอลัมนิสต์', frequency: '~15 บทความ/วัน', lang: 'en', type: 'news', topic: 'opinion' },
+    { id: 'guardian-opinion', name: 'Guardian Opinion', url: 'https://www.theguardian.com/commentisfree/rss', siteUrl: 'https://theguardian.com/commentisfree', description: 'ความคิดเห็นและข้อวิจารณ์ต่อสถานการณ์ทั่วโลก', frequency: '~15 บทความ/วัน', lang: 'en', type: 'news', topic: 'opinion' },
+  ],
+  realestate: [
+    { id: 'nyt-realestate', name: 'NYT Real Estate', url: 'https://rss.nytimes.com/services/xml/rss/nyt/RealEstate.xml', siteUrl: 'https://nytimes.com/section/realestate', description: 'ตลาดอสังหาริมทรัพย์และเทรนด์กระแสเงิน', frequency: '~3 บทความ/วัน', lang: 'en', type: 'news', topic: 'realestate' },
+  ],
+  auto: [
+    { id: 'nyt-automobiles', name: 'NYT Automobiles', url: 'https://rss.nytimes.com/services/xml/rss/nyt/Automobiles.xml', siteUrl: 'https://nytimes.com/section/automobiles', description: 'ข่าวสารอุตสาหกรรมยานยนต์ การขับขี่ และรถยนต์ไฟฟ้า', frequency: '~2 บทความ/สัปดาห์', lang: 'en', type: 'news', topic: 'auto' },
+    { id: 'autoblog', name: 'Autoblog', url: 'https://www.autoblog.com/rss.xml', siteUrl: 'https://autoblog.com', description: 'อัปเดตเครื่องยนต์ โมเดลรถ และข่าวค่ายยานยนต์', frequency: '~10 บทความ/วัน', lang: 'en', type: 'news', topic: 'auto' },
+  ],
 };
 
 export const TOPIC_LABELS: Record<string, { label: string; icon: string; count: number }> = {
@@ -190,4 +224,12 @@ export const TOPIC_LABELS: Record<string, { label: string; icon: string; count: 
   health: { label: 'สุขภาพ', icon: '🩺', count: RSS_CATALOG.health?.length || 0 },
   sports: { label: 'กีฬา', icon: '⚽', count: RSS_CATALOG.sports?.length || 0 },
   entertainment: { label: 'บันเทิง', icon: '🎈', count: RSS_CATALOG.entertainment?.length || 0 },
+  lifestyle: { label: 'ไลฟ์สไตล์', icon: '👗', count: RSS_CATALOG.lifestyle?.length || 0 },
+  travel: { label: 'ท่องเที่ยว', icon: '✈️', count: RSS_CATALOG.travel?.length || 0 },
+  food: { label: 'อาหาร', icon: '🍔', count: RSS_CATALOG.food?.length || 0 },
+  environment: { label: 'สิ่งแวดล้อม', icon: '🌱', count: RSS_CATALOG.environment?.length || 0 },
+  education: { label: 'การศึกษา', icon: '📘', count: RSS_CATALOG.education?.length || 0 },
+  opinion: { label: 'บทวิเคราะห์', icon: '🖋️', count: RSS_CATALOG.opinion?.length || 0 },
+  realestate: { label: 'อสังหาฯ', icon: '🏢', count: RSS_CATALOG.realestate?.length || 0 },
+  auto: { label: 'ยานยนต์', icon: '🚗', count: RSS_CATALOG.auto?.length || 0 },
 };

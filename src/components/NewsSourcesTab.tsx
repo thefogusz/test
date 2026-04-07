@@ -28,12 +28,20 @@ const ALL_VIEW_TOPIC_PRIORITY = [
   'ai',
   'science',
   'health',
+  'environment',
   'security',
   'developer',
   'crypto',
   'gaming',
   'entertainment',
   'sports',
+  'lifestyle',
+  'travel',
+  'food',
+  'education',
+  'opinion',
+  'realestate',
+  'auto',
 ] as const;
 
 const FEATURED_ALL_EN_SOURCE_IDS = [
