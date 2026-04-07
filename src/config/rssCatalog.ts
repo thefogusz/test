@@ -150,6 +150,29 @@ export const RSS_CATALOG: Record<string, RssSource[]> = {
     { id: 'thematter', name: 'The Matter', url: 'https://thematter.co/feed', siteUrl: 'https://thematter.co', description: 'สังคม, การเมือง, วัฒนธรรม เจาะประเด็นแรงที่สังคมกำลังให้ความสนใจ', frequency: '~5 บทความ/วัน', lang: 'th', type: 'news', topic: 'news' },
     { id: 'matichon', name: 'มติชน', url: 'https://www.matichon.co.th/feed', siteUrl: 'https://matichon.co.th', description: 'ข่าวทั่วไป, การเมือง, สังคม, อาชญากรรมครอบคลุมทั่วประเทศ', frequency: '~30 บทความ/วัน', lang: 'th', type: 'news', topic: 'news' },
   ],
+  politics: [
+    { id: 'bbc-politics', name: 'BBC Politics', url: 'http://feeds.bbci.co.uk/news/politics/rss.xml', siteUrl: 'https://bbc.co.uk/news/politics', description: 'การเมืองสหราชอาณาจักรและผลกระทบระดับภูมิภาค (BBC)', frequency: '~20 บทความ/วัน', lang: 'en', type: 'news', topic: 'politics' },
+    { id: 'reuters-politics', name: 'Reuters Politics', url: 'https://feeds.reuters.com/Reuters/PoliticsNews', siteUrl: 'https://reuters.com/politics', description: 'นโยบายรัฐบาลและความเคลื่อนไหวทางการเมืองโลก', frequency: '~20 บทความ/วัน', lang: 'en', type: 'news', topic: 'politics' },
+    { id: 'nyt-politics', name: 'NYT Politics', url: 'https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml', siteUrl: 'https://nytimes.com/section/politics', description: 'การเมืองสหรัฐฯ นโยบายรัฐบาล และข่าวสืบสวนเชิงลึก', frequency: '~15 บทความ/วัน', lang: 'en', type: 'news', topic: 'politics' },
+    { id: 'cnn-politics', name: 'CNN Politics', url: 'http://rss.cnn.com/rss/cnn_allpolitics.rss', siteUrl: 'https://edition.cnn.com/politics', description: 'การเลือกตั้งและสรุปประเด็นรัฐบาลจากวอชิงตัน D.C.', frequency: '~25 บทความ/วัน', lang: 'en', type: 'news', topic: 'politics' },
+  ],
+  health: [
+    { id: 'bbc-health', name: 'BBC Health', url: 'http://feeds.bbci.co.uk/news/health/rss.xml', siteUrl: 'https://bbc.co.uk/news/health', description: 'ข่าวด้านสุขภาพ การแพทย์ และสาธารณสุข (BBC)', frequency: '~10 บทความ/วัน', lang: 'en', type: 'news', topic: 'health' },
+    { id: 'reuters-health', name: 'Reuters Health', url: 'https://feeds.reuters.com/reuters/healthNews', siteUrl: 'https://reuters.com/health', description: 'อุตสาหกรรมการแพทย์ สาธารณสุขระดับโลกและงานวิจัย', frequency: '~10 บทความ/วัน', lang: 'en', type: 'news', topic: 'health' },
+    { id: 'nyt-health', name: 'NYT Health', url: 'https://rss.nytimes.com/services/xml/rss/nyt/Health.xml', siteUrl: 'https://nytimes.com/section/health', description: 'ข่าวลึกวงการแพทย์และสุขภาพจิตเชิงจิตวิทยา', frequency: '~8 บทความ/วัน', lang: 'en', type: 'news', topic: 'health' },
+    { id: 'cnn-health', name: 'CNN Health', url: 'http://rss.cnn.com/rss/cnn_health.rss', siteUrl: 'https://edition.cnn.com/health', description: 'เคล็ดลับสุขภาพ งานวิจัยโรคภัย และเหตุการณ์ทางสาธารณสุข', frequency: '~10 บทความ/วัน', lang: 'en', type: 'news', topic: 'health' },
+  ],
+  entertainment: [
+    { id: 'bbc-entertainment', name: 'BBC Entertainment', url: 'http://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml', siteUrl: 'https://bbc.co.uk/news/entertainment_and_arts', description: 'ศิลปะและวัฒนธรรมบันเทิงระดับโลก', frequency: '~15 บทความ/วัน', lang: 'en', type: 'news', topic: 'entertainment' },
+    { id: 'reuters-entertainment', name: 'Reuters Entertainment', url: 'https://feeds.reuters.com/reuters/entertainment', siteUrl: 'https://reuters.com/lifestyle', description: 'เกาะติดวงการดาราฮอลลีวูดและธุรกิจภาพยนตร์', frequency: '~10 บทความ/วัน', lang: 'en', type: 'news', topic: 'entertainment' },
+    { id: 'nyt-arts', name: 'NYT Arts', url: 'https://rss.nytimes.com/services/xml/rss/nyt/Arts.xml', siteUrl: 'https://nytimes.com/section/arts', description: 'วิจารณ์ภาพยนตร์ ละครเวที และวงการอุตสาหกรรมศิลปะ', frequency: '~10 บทความ/วัน', lang: 'en', type: 'news', topic: 'entertainment' },
+    { id: 'cnn-entertainment', name: 'CNN Entertainment', url: 'http://rss.cnn.com/rss/edition_entertainment.rss', siteUrl: 'https://edition.cnn.com/entertainment', description: 'ไลฟ์สไตล์ เทรนด์วัฒนธรรมป๊อปจาก CNN', frequency: '~15 บทความ/วัน', lang: 'en', type: 'news', topic: 'entertainment' },
+  ],
+  sports: [
+    { id: 'bbc-sports', name: 'BBC Sport', url: 'http://feeds.bbci.co.uk/sport/rss.xml', siteUrl: 'https://bbc.co.uk/sport', description: 'รายงานผลการแข่งขันทุกลีกใหญ่ บทวิเคราะห์และข่าวกีฬาเจาะลึก', frequency: '~30 บทความ/วัน', lang: 'en', type: 'news', topic: 'sports' },
+    { id: 'reuters-sports', name: 'Reuters Sports', url: 'https://feeds.reuters.com/reuters/sportsNews', siteUrl: 'https://reuters.com/sports', description: 'วงการกีฬาระดับโลก ความเคลื่อนไหวธุรกิจกีฬา', frequency: '~20 บทความ/วัน', lang: 'en', type: 'news', topic: 'sports' },
+    { id: 'nyt-sports', name: 'NYT Sports', url: 'https://rss.nytimes.com/services/xml/rss/nyt/Sports.xml', siteUrl: 'https://nytimes.com/section/sports', description: 'กีฬา โอลิมปิก และบทสืบสวนทุจริตวงการกีฬา', frequency: '~15 บทความ/วัน', lang: 'en', type: 'news', topic: 'sports' },
+  ],
 };
 
 export const TOPIC_LABELS: Record<string, { label: string; icon: string; count: number }> = {
@@ -162,5 +185,9 @@ export const TOPIC_LABELS: Record<string, { label: string; icon: string; count: 
   business: { label: 'ธุรกิจ', icon: '💼', count: RSS_CATALOG.business?.length || 0 },
   finance: { label: 'การเงิน', icon: '💰', count: RSS_CATALOG.finance?.length || 0 },
   science: { label: 'วิทยาศาสตร์', icon: '🔬', count: RSS_CATALOG.science?.length || 0 },
-  news: { label: 'ข่าวทั่วไป', icon: '📰', count: RSS_CATALOG.news?.length || 0 },
+  news: { label: 'ข่าว', icon: '📰', count: RSS_CATALOG.news?.length || 0 },
+  politics: { label: 'การเมือง', icon: '🏛️', count: RSS_CATALOG.politics?.length || 0 },
+  health: { label: 'สุขภาพ', icon: '🩺', count: RSS_CATALOG.health?.length || 0 },
+  sports: { label: 'กีฬา', icon: '⚽', count: RSS_CATALOG.sports?.length || 0 },
+  entertainment: { label: 'บันเทิง', icon: '🎈', count: RSS_CATALOG.entertainment?.length || 0 },
 };

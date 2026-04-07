@@ -21,15 +21,19 @@ interface NewsSourcesTabProps {
 
 const ALL_VIEW_TOPIC_PRIORITY = [
   'news',
+  'politics',
   'finance',
   'business',
   'tech',
   'ai',
   'science',
+  'health',
   'security',
   'developer',
   'crypto',
   'gaming',
+  'entertainment',
+  'sports',
 ] as const;
 
 const FEATURED_ALL_EN_SOURCE_IDS = [
@@ -253,140 +257,140 @@ const SourceCard = ({
 
         <div className="user-card-actions news-source-card-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
           <div className="news-source-card-menu-wrap" style={{ position: 'relative' }}>
-              <button
-                type="button"
-                onClick={() => setShowMenu((prev) => !prev)}
-                className="user-card-icon-btn news-source-card-icon-btn"
+            <button
+              type="button"
+              onClick={() => setShowMenu((prev) => !prev)}
+              className="user-card-icon-btn news-source-card-icon-btn"
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '10px',
+                background: isInAnyPostList ? 'rgba(41, 151, 255, 0.12)' : 'var(--bg-700)',
+                border: `1px solid ${isInAnyPostList ? 'rgba(41, 151, 255, 0.32)' : 'var(--glass-border)'}`,
+                color: isInAnyPostList ? '#8ec5ff' : '#fff',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              title="เพิ่มเข้า Post List"
+            >
+              <Plus
+                size={16}
                 style={{
-                  width: '34px',
-                  height: '34px',
-                  borderRadius: '10px',
-                  background: isInAnyPostList ? 'rgba(41, 151, 255, 0.12)' : 'var(--bg-700)',
-                  border: `1px solid ${isInAnyPostList ? 'rgba(41, 151, 255, 0.32)' : 'var(--glass-border)'}`,
-                  color: isInAnyPostList ? '#8ec5ff' : '#fff',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  transform: showMenu ? 'rotate(45deg)' : 'none',
+                  transition: 'transform 0.2s',
                 }}
-                title="เพิ่มเข้า Post List"
-              >
-                <Plus
-                  size={16}
+              />
+              {isInAnyPostList && (
+                <span
                   style={{
-                    transform: showMenu ? 'rotate(45deg)' : 'none',
-                    transition: 'transform 0.2s',
+                    position: 'absolute',
+                    top: '-6px',
+                    right: '-6px',
+                    minWidth: '18px',
+                    height: '18px',
+                    padding: '0 5px',
+                    borderRadius: '999px',
+                    background: '#2997ff',
+                    color: '#fff',
+                    border: '2px solid rgba(17, 24, 39, 0.95)',
+                    fontSize: '10px',
+                    fontWeight: '800',
+                    lineHeight: '14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxSizing: 'border-box',
                   }}
+                >
+                  {postListCount}
+                </span>
+              )}
+            </button>
+
+            {showMenu && (
+              <>
+                <div
+                  style={{ position: 'fixed', inset: 0, zIndex: 90 }}
+                  onClick={() => setShowMenu(false)}
                 />
-                {isInAnyPostList && (
-                  <span
+                <div
+                  className="discovery-menu"
+                  style={{
+                    display: 'block',
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    zIndex: 100,
+                    minWidth: '220px',
+                  }}
+                >
+                  <div
                     style={{
-                      position: 'absolute',
-                      top: '-6px',
-                      right: '-6px',
-                      minWidth: '18px',
-                      height: '18px',
-                      padding: '0 5px',
-                      borderRadius: '999px',
-                      background: '#2997ff',
-                      color: '#fff',
-                      border: '2px solid rgba(17, 24, 39, 0.95)',
                       fontSize: '10px',
                       fontWeight: '800',
-                      lineHeight: '14px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      boxSizing: 'border-box',
+                      color: 'var(--text-muted)',
+                      padding: '8px 12px',
+                      borderBottom: '1px solid var(--glass-border)',
                     }}
                   >
-                    {postListCount}
-                  </span>
-                )}
-              </button>
-
-              {showMenu && (
-                <>
-                  <div
-                    style={{ position: 'fixed', inset: 0, zIndex: 90 }}
-                    onClick={() => setShowMenu(false)}
-                  />
-                  <div
-                    className="discovery-menu"
-                    style={{
-                      display: 'block',
-                      position: 'absolute',
-                      top: 'calc(100% + 8px)',
-                      right: 0,
-                      zIndex: 100,
-                      minWidth: '220px',
-                    }}
-                  >
-                    <div
-                      style={{
-                        fontSize: '10px',
-                        fontWeight: '800',
-                        color: 'var(--text-muted)',
-                        padding: '8px 12px',
-                        borderBottom: '1px solid var(--glass-border)',
-                      }}
-                    >
-                      ADD TO POST LIST
-                    </div>
-                    <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
-                      {postLists.map((list) => {
-                        const isMember =
-                          Array.isArray(list.members) &&
-                          list.members.some(
-                            (member) =>
-                              String(member || '').toLowerCase() === rssUsername.toLowerCase(),
-                          );
-
-                        return (
-                          <button
-                            key={list.id}
-                            type="button"
-                            className={`discovery-menu-item ${isMember ? 'active' : ''}`}
-                            onClick={() => {
-                              onTogglePostList?.(list.id, {
-                                id: `rss-${source.id}`,
-                                username: rssUsername,
-                                name: source.name,
-                                profile_image_url: faviconUrl,
-                              });
-                              setShowMenu(false);
-                            }}
-                          >
-                            <span
-                              style={{
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                marginRight: '8px',
-                              }}
-                            >
-                              {list.name}
-                            </span>
-                            {isMember && <Check size={12} />}
-                          </button>
+                    ADD TO POST LIST
+                  </div>
+                  <div style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                    {postLists.map((list) => {
+                      const isMember =
+                        Array.isArray(list.members) &&
+                        list.members.some(
+                          (member) =>
+                            String(member || '').toLowerCase() === rssUsername.toLowerCase(),
                         );
-                      })}
-                      {postLists.length === 0 && (
-                        <div
-                          style={{
-                            padding: '12px',
-                            fontSize: '12px',
-                            color: 'var(--text-dim)',
-                            textAlign: 'center',
+
+                      return (
+                        <button
+                          key={list.id}
+                          type="button"
+                          className={`discovery-menu-item ${isMember ? 'active' : ''}`}
+                          onClick={() => {
+                            onTogglePostList?.(list.id, {
+                              id: `rss-${source.id}`,
+                              username: rssUsername,
+                              name: source.name,
+                              profile_image_url: faviconUrl,
+                            });
+                            setShowMenu(false);
                           }}
                         >
-                          ยังไม่มี Post List
-                        </div>
-                      )}
-                    </div>
+                          <span
+                            style={{
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              marginRight: '8px',
+                            }}
+                          >
+                            {list.name}
+                          </span>
+                          {isMember && <Check size={12} />}
+                        </button>
+                      );
+                    })}
+                    {postLists.length === 0 && (
+                      <div
+                        style={{
+                          padding: '12px',
+                          fontSize: '12px',
+                          color: 'var(--text-dim)',
+                          textAlign: 'center',
+                        }}
+                      >
+                        ยังไม่มี Post List
+                      </div>
+                    )}
                   </div>
-                </>
-              )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
