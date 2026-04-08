@@ -517,7 +517,7 @@ const FeedCard = ({
           )}
         </div>
 
-        <div className="feed-card-meta" style={{ display: 'flex', alignItems: 'flex-start', gap: '5px', paddingTop: '1px' }}>
+        <div className="feed-card-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           {showInlineReplyBanner && displayTweet.isReply && (
             <div
               className="feed-card-reply-badge feed-card-reply-badge-inline"
@@ -552,17 +552,19 @@ const FeedCard = ({
             <div
               style={{
                 background: 'rgba(251, 146, 60, 0.14)',
-                padding: '0 10px',
+                padding: '0 9px',
                 borderRadius: '100px',
-                fontSize: '10px',
-                fontWeight: '900',
+                fontSize: '9px',
+                fontWeight: '800',
                 color: '#fdba74',
                 border: '1px solid rgba(251, 146, 60, 0.28)',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '5px',
-                height: '26px',
+                height: '24px',
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
               }}
               title="RSS news source"
             >
@@ -574,21 +576,23 @@ const FeedCard = ({
             <div
               style={{
                 background: 'rgba(96, 165, 250, 0.14)',
-                padding: '0 10px',
+                padding: '0 9px',
                 borderRadius: '100px',
-                fontSize: '10px',
-                fontWeight: '900',
+                fontSize: '9px',
+                fontWeight: '800',
                 color: '#bfdbfe',
                 border: '1px solid rgba(96, 165, 250, 0.28)',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '5px',
-                height: '26px',
+                height: '24px',
+                lineHeight: 1,
+                whiteSpace: 'nowrap',
               }}
               title="X video source"
             >
-              <ListVideo size={12} />
+              <ListVideo size={11} />
               VIDEO
             </div>
           )}
@@ -605,7 +609,9 @@ const FeedCard = ({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              height: '22px',
+              height: '24px',
+              lineHeight: 1,
+              whiteSpace: 'nowrap',
             }}
           >
             {getRelativeTime(displayTweet.created_at)}
@@ -622,7 +628,7 @@ const FeedCard = ({
               height: '24px',
               borderRadius: '6px',
               color: bookmarked ? '#facc15' : 'rgba(255,255,255,0.25)',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               padding: 0,
@@ -640,7 +646,7 @@ const FeedCard = ({
               height: '24px',
               borderRadius: '6px',
               color: 'rgba(255,255,255,0.25)',
-              display: 'flex',
+              display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
               padding: 0,
