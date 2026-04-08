@@ -488,8 +488,8 @@ const App = () => {
 
   const openContentComposerFromPost = (item) => {
     setCreateContentSource(item);
+    setContentTab('create');
     setActiveView('content');
-    setTimeout(() => setContentTab('create'), 0);
   };
 
   const openArticleReader = (item) => {
