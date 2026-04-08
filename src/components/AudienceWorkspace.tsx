@@ -34,6 +34,8 @@ import UserCard from './UserCard';
 import NewsSourcesTab, { SourceCard } from './NewsSourcesTab';
 import { RSS_CATALOG, TOPIC_LABELS, type RssSource } from '../config/rssCatalog';
 
+const LOADED_CATEGORY_IMAGE_URLS = new Set();
+
 const AudienceWorkspace = ({
   isVisible,
   audienceTab,
@@ -87,7 +89,45 @@ const AudienceWorkspace = ({
     { label: 'อสังหาฯ', image: 'Realestate.jpg_202604080519.jpeg' },
     { label: 'ยานยนต์', image: 'Automotive.jpg_202604080519.jpeg' },
   ];
-  
+  const categoryImageUrls = React.useMemo(
+    () => CATEGORIES.map((cat) => `${import.meta.env.BASE_URL}categories/${cat.image}`),
+    [],
+  );
+  const [loadedCategoryImages, setLoadedCategoryImages] = React.useState(() => new Set(LOADED_CATEGORY_IMAGE_URLS));
+
+  React.useEffect(() => {
+    const pendingImages = categoryImageUrls.filter((imageUrl) => !LOADED_CATEGORY_IMAGE_URLS.has(imageUrl));
+    if (pendingImages.length === 0) return undefined;
+
+    let isCancelled = false;
+    const preloaders = pendingImages.map((imageUrl) => {
+      const image = new Image();
+
+      image.onload = () => {
+        if (isCancelled) return;
+        LOADED_CATEGORY_IMAGE_URLS.add(imageUrl);
+        setLoadedCategoryImages((prev) => new Set([...prev, imageUrl]));
+      };
+      image.onerror = () => {
+        if (isCancelled) return;
+        LOADED_CATEGORY_IMAGE_URLS.add(imageUrl);
+        setLoadedCategoryImages((prev) => new Set([...prev, imageUrl]));
+      };
+
+      image.decoding = 'async';
+      image.src = imageUrl;
+      return image;
+    });
+
+    return () => {
+      isCancelled = true;
+      preloaders.forEach((image) => {
+        image.onload = null;
+        image.onerror = null;
+      });
+    };
+  }, [categoryImageUrls]);
+
   const handleClearAiSearch = () => {
     setAiQuery('');
     setAiSearchResults([]);
@@ -401,17 +441,33 @@ const AudienceWorkspace = ({
             <div className="audience-category-section" style={{ borderTop: 'none', paddingTop: '0' }}>
               <div className="audience-category-image-grid">
 
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat.label}
-                    onClick={() => { setAiQuery(cat.label); handleAiSearchAudience(cat.label); }}
-                    className="category-image-card"
-                  >
-                    <img src={`${import.meta.env.BASE_URL}categories/${cat.image}`} alt={cat.label} loading="lazy" />
-                    <div className="category-image-gradient"></div>
-                    <span className="category-image-label">{cat.label}</span>
-                  </button>
-                ))}
+                {CATEGORIES.map((cat) => {
+                  const imageUrl = `${import.meta.env.BASE_URL}categories/${cat.image}`;
+                  const isImageLoaded = loadedCategoryImages.has(imageUrl);
+
+                  return (
+                    <button
+                      key={cat.label}
+                      onClick={() => { setAiQuery(cat.label); handleAiSearchAudience(cat.label); }}
+                      className="category-image-card"
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={cat.label}
+                        loading="eager"
+                        decoding="async"
+                        className={isImageLoaded ? 'is-loaded' : ''}
+                        onLoad={() => {
+                          if (LOADED_CATEGORY_IMAGE_URLS.has(imageUrl)) return;
+                          LOADED_CATEGORY_IMAGE_URLS.add(imageUrl);
+                          setLoadedCategoryImages((prev) => new Set([...prev, imageUrl]));
+                        }}
+                      />
+                      <div className="category-image-gradient"></div>
+                      <span className="category-image-label">{cat.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
