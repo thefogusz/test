@@ -13,6 +13,7 @@ import {
   analyzeSearchQueryIntent,
   clusterBySimilarity,
   curateSearchResults,
+  isExplicitlyLocalQuery,
   searchEverything,
   searchEverythingDeep,
 } from '../services/TwitterService';
@@ -83,8 +84,7 @@ const buildSearchRequestQuery = (query: string, mediaType: SearchMediaType) => {
   }
 
   if (
-    queryIntent.preferGlobal &&
-    queryIntent.queryKey === 'viral_video' &&
+    !isExplicitlyLocalQuery(nextQuery) &&
     !/\blang:[a-z]{2,3}\b/i.test(nextQuery)
   ) {
     nextQuery = `${nextQuery} lang:en`;

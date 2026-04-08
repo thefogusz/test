@@ -20,10 +20,13 @@ import {
   getRelevanceScore,
   getSignalScore,
   getVelocityTag,
+  isExplicitlyLocalQuery,
+  isThaiDominantPost,
   isNewsIntent,
 } from './scoring';
 
 export { RECENT_WINDOW_HOURS } from './scoring';
+export { isExplicitlyLocalQuery } from './scoring';
 
 const BASE_URL = '/api/twitter';
 
@@ -337,9 +340,12 @@ export const curateSearchResults = (tweets, rawQuery, options = {}) => {
   const preferCredibleSources = options.preferCredibleSources !== false;
   const newsIntent = isNewsIntent(rawQuery);
   const queryProfile = buildQueryProfile(rawQuery);
+  const explicitLocalQuery = isExplicitlyLocalQuery(rawQuery);
   const broadDiscoveryIntent = queryProfile.broadIntent;
   const queryTerms = queryProfile.queryTerms;
-  const uniqueTweets = dedupeTweetsById(normalizeTweets(tweets));
+  const uniqueTweets = dedupeTweetsById(normalizeTweets(tweets)).filter((tweet) =>
+    explicitLocalQuery ? true : !isThaiDominantPost(tweet),
+  );
   const hasFunIntent = /ฮา|ตลก|ขำ|funny|meme|lol|haha/i.test(rawQuery);
 
   const scored = uniqueTweets

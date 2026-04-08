@@ -142,6 +142,25 @@ const getTweetTextOnly = (tweet) => String(tweet?.text || '').toLowerCase();
 export const isExplicitlyLocalQuery = (query = '') =>
   /\u0E44\u0E17\u0E22|thai|\u0E1B\u0E23\u0E30\u0E40\u0E17\u0E28\u0E44\u0E17\u0E22|bangkok|thailand/i.test(String(query || ''));
 
+export const isThaiDominantPost = (tweet) => {
+  const text = [
+    tweet?.text,
+    tweet?.author?.name,
+    tweet?.author?.username,
+    getAuthorBio(tweet?.author),
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (!text) return false;
+
+  const thaiChars = text.match(/[\u0E00-\u0E7F]/g) || [];
+  const latinChars = text.match(/[a-z]/gi) || [];
+
+  return thaiChars.length >= 12 && thaiChars.length > latinChars.length * 2;
+};
+
 export const normalizeSearchTerms = (query = '') => {
   const normalized = String(query || '').toLowerCase().trim();
   const latinTerms = normalized.match(/[a-z0-9$%+.-]{2,}/g) || [];
@@ -161,7 +180,8 @@ export const buildQueryProfile = (rawQuery = '') => {
 
   const isAiQuery =
     normalizedQuery === 'ai' ||
-    /\b(artificial intelligence|machine learning|llm|gpt|genai|generative ai|ai)\b/i.test(normalizedQuery);
+    /\b(artificial intelligence|machine learning|llm|gpt|genai|generative ai|ai)\b/i.test(normalizedQuery) ||
+    /(?:\u0e40\u0e2d\u0e44\u0e2d|\u0e1b\u0e31\u0e0d\u0e0d\u0e32\u0e1b\u0e23\u0e30\u0e14\u0e34\u0e29\u0e10\u0e4c)/i.test(normalizedQuery);
 
   const isGamingQuery =
     /เกม|gaming|games|\bgame\b/i.test(normalizedQuery);
@@ -172,8 +192,33 @@ export const buildQueryProfile = (rawQuery = '') => {
       broadIntent: true,
       preferGlobal,
       queryTerms,
-      exactTerms: ['ai', 'artificial intelligence', 'machine learning', 'generative ai', 'genai', 'llm', 'gpt'],
-      primaryHints: ['openai', 'anthropic', 'claude', 'gemini', 'deepmind', 'mistral', 'chatgpt', 'copilot', 'ai model', 'foundation model', 'ai agent', 'prompt engineering'],
+      exactTerms: [
+        'ai',
+        'artificial intelligence',
+        'machine learning',
+        'generative ai',
+        'genai',
+        'llm',
+        'gpt',
+        '\u0e40\u0e2d\u0e44\u0e2d',
+        '\u0e1b\u0e31\u0e0d\u0e0d\u0e32\u0e1b\u0e23\u0e30\u0e14\u0e34\u0e29\u0e10\u0e4c',
+      ],
+      primaryHints: [
+        'openai',
+        'anthropic',
+        'claude',
+        'gemini',
+        'deepmind',
+        'mistral',
+        'chatgpt',
+        'copilot',
+        'ai model',
+        'foundation model',
+        'ai agent',
+        'prompt engineering',
+        '\u0e1b\u0e31\u0e0d\u0e0d\u0e32\u0e1b\u0e23\u0e30\u0e14\u0e34\u0e29\u0e10\u0e4c',
+        '\u0e42\u0e21\u0e40\u0e14\u0e25\u0e40\u0e2d\u0e44\u0e2d',
+      ],
       secondaryHints: broadHints,
       softNegativeHints: ['giveaway', 'airdrop', 'follow', 'dm', 'telegram', 'whatsapp', 'casino', 'พนัน', 'หวย'],
     };
@@ -380,7 +425,7 @@ export const getBroadTopicFocusPenalty = (tweet, queryProfile) => {
 
   if (queryProfile.key === 'ai') {
     const hasExplicitAiPhrase =
-      /artificial intelligence|machine learning|generative ai|genai|large language model|language model|foundation model|ai model|ai agent|chatgpt|copilot|claude|gemini|deepmind|mistral|openai|anthropic|llm|gpt/i.test(text);
+      /artificial intelligence|machine learning|generative ai|genai|large language model|language model|foundation model|ai model|ai agent|chatgpt|copilot|claude|gemini|deepmind|mistral|openai|anthropic|llm|gpt|\u0e40\u0e2d\u0e44\u0e2d|\u0e1b\u0e31\u0e0d\u0e0d\u0e32\u0e1b\u0e23\u0e30\u0e14\u0e34\u0e29\u0e10\u0e4c/i.test(text);
     const listLikeText = (text.match(/[,:|/]/g) || []).length >= 4 || text.split(/\s+/).length > 45;
 
     if (hasExplicitAiPhrase || primaryTextMatches >= 1) {
