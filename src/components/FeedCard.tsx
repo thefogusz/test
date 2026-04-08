@@ -63,7 +63,7 @@ const FEED_CARD_FOOTER_STYLE: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: '12px',
-  paddingTop: '8px',
+  paddingTop: '10px',
   borderTop: '1px solid rgba(255,255,255,0.04)',
 };
 
@@ -383,7 +383,7 @@ const FeedCard = ({
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
-            marginBottom: '12px',
+            marginBottom: '14px',
             padding: '6px 10px',
             borderRadius: '999px',
             background: 'rgba(41, 151, 255, 0.08)',
@@ -401,7 +401,7 @@ const FeedCard = ({
           </span>
         </div>
       )}
-      <div className="feed-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+      <div className="feed-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <button
             type="button"
@@ -410,7 +410,7 @@ const FeedCard = ({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '7px',
+              gap: '10px',
               minWidth: 0,
               background: 'transparent',
               border: 'none',
@@ -422,11 +422,11 @@ const FeedCard = ({
             <div
               className="feed-card-author-avatar"
               style={{
-                width: '40px',
-                height: '40px',
+                width: '42px',
+                height: '42px',
                 borderRadius: '50%',
                 overflow: 'hidden',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '2px solid rgba(255,255,255,0.08)',
                 flexShrink: 0,
               }}
             >
@@ -440,15 +440,15 @@ const FeedCard = ({
               />
             </div>
             <div className="feed-card-author-copy" style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', lineHeight: 1.1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {tweet.citation_id && (
                   <span
                     style={{
                       background: 'rgba(255,255,255,0.9)',
                       color: '#000',
-                      padding: '1px 5px',
+                      padding: '1px 6px',
                       borderRadius: '4px',
-                      fontSize: '9px',
+                      fontSize: '10px',
                       fontWeight: '900',
                       letterSpacing: '0.05em',
                     }}
@@ -456,11 +456,11 @@ const FeedCard = ({
                     {tweet.citation_id.replace(/[[\]]/g, '')}
                   </span>
                 )}
-                <div style={{ fontWeight: '800', fontSize: '12.5px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontWeight: '800', fontSize: '13px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {displayTweet.author?.name}
                 </div>
               </div>
-              <div style={{ color: 'var(--text-dim)', fontSize: '10.5px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '1px', lineHeight: 1.05 }}>
+              <div style={{ color: 'var(--text-dim)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 <span>{isRssPost && tweet.url ? new URL(tweet.url).hostname.replace('www.', '') : `@${displayTweet.author?.username}`}</span>
               </div>
             </div>
@@ -552,19 +552,17 @@ const FeedCard = ({
             <div
               style={{
                 background: 'rgba(251, 146, 60, 0.14)',
-                padding: '0 9px',
+                padding: '0 10px',
                 borderRadius: '100px',
-                fontSize: '9px',
-                fontWeight: '800',
+                fontSize: '10px',
+                fontWeight: '900',
                 color: '#fdba74',
                 border: '1px solid rgba(251, 146, 60, 0.28)',
-                display: 'inline-flex',
+                display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '5px',
-                height: '24px',
-                lineHeight: 1,
-                whiteSpace: 'nowrap',
+                height: '26px',
               }}
               title="RSS news source"
             >
@@ -576,23 +574,21 @@ const FeedCard = ({
             <div
               style={{
                 background: 'rgba(96, 165, 250, 0.14)',
-                padding: '0 9px',
+                padding: '0 10px',
                 borderRadius: '100px',
-                fontSize: '9px',
-                fontWeight: '800',
+                fontSize: '10px',
+                fontWeight: '900',
                 color: '#bfdbfe',
                 border: '1px solid rgba(96, 165, 250, 0.28)',
-                display: 'inline-flex',
+                display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '5px',
-                height: '24px',
-                lineHeight: 1,
-                whiteSpace: 'nowrap',
+                height: '26px',
               }}
               title="X video source"
             >
-              <ListVideo size={11} />
+              <ListVideo size={12} />
               VIDEO
             </div>
           )}
@@ -600,18 +596,16 @@ const FeedCard = ({
           <div
             style={{
               background: isFresh ? 'rgba(41, 151, 255, 0.14)' : 'rgba(255,255,255,0.06)',
-              padding: '0 8px',
+              padding: '0 10px',
               borderRadius: '100px',
-              fontSize: '9px',
+              fontSize: '10px',
               fontWeight: '900',
               color: isFresh ? 'var(--accent-secondary)' : 'rgba(255,255,255,0.9)',
               border: isFresh ? '1px solid rgba(41, 151, 255, 0.22)' : '1px solid rgba(255,255,255,0.08)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              height: '24px',
-              lineHeight: 1,
-              whiteSpace: 'nowrap',
+              height: '26px',
             }}
           >
             {getRelativeTime(displayTweet.created_at)}
@@ -624,8 +618,8 @@ const FeedCard = ({
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
-              width: '24px',
-              height: '24px',
+              width: '26px',
+              height: '26px',
               borderRadius: '6px',
               color: bookmarked ? '#facc15' : 'rgba(255,255,255,0.25)',
               display: 'inline-flex',
@@ -634,7 +628,7 @@ const FeedCard = ({
               padding: 0,
             }}
           >
-            <Bookmark size={14} fill={bookmarked ? 'currentColor' : 'none'} strokeWidth={2.5} />
+            <Bookmark size={15} fill={bookmarked ? 'currentColor' : 'none'} strokeWidth={2.5} />
           </button>
 
           <a
@@ -642,18 +636,18 @@ const FeedCard = ({
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              width: '24px',
-              height: '24px',
+              width: '26px',
+              height: '26px',
               borderRadius: '6px',
               color: 'rgba(255,255,255,0.25)',
-              display: 'inline-flex',
+              display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               padding: 0,
             }}
             className="icon-hover"
           >
-            <ExternalLink size={14} strokeWidth={2.5} />
+            <ExternalLink size={15} strokeWidth={2.5} />
           </a>
         </div>
       </div>
@@ -666,7 +660,7 @@ const FeedCard = ({
             gridTemplateColumns: '112px minmax(0, 1fr)',
             gap: '12px',
             alignItems: 'start',
-            marginBottom: '12px',
+            marginBottom: '14px',
           }}
         >
           <a
