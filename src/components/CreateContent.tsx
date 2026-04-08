@@ -58,6 +58,7 @@ const ensureDisplayText = (value, fallback = '') => {
 };
 
 const shouldRemoveWhenFalsy = (value) => !value;
+const deserializeGenerateSources = (storedValue, fallbackValue) => safeParse(storedValue, fallbackValue);
 
 const EMOJI_REQUEST_PATTERN = /(emoji|emojis|อีโมจิ|อิโมจิ|ใส่อีโมจิ|ใส่ emoji|ใช้ emoji|ใช้ emojis)/i;
 
@@ -472,7 +473,7 @@ const CreateContent = ({
     shouldRemove: shouldRemoveWhenFalsy,
   });
   const [articleSources, setArticleSources] = usePersistentState(STORAGE_KEYS.generateSources, [], {
-    deserialize: (storedValue, fallbackValue) => safeParse(storedValue, fallbackValue),
+    deserialize: deserializeGenerateSources,
   });
   const [generatedMarkdown, setGeneratedMarkdown] = usePersistentState(STORAGE_KEYS.generateMarkdown, '');
   const [error, setError] = useState(null);
