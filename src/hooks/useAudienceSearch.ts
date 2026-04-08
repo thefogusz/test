@@ -11,7 +11,7 @@ const normalizeHandle = (value = '') => String(value || '').replace(/^@/, '').tr
 
 const buildAudienceExpertsQueryKey = (query, excludes = []) => [
   'audience-experts',
-  'v6',
+  'v9',
   normalizeAudienceQuery(query),
   Array.from(new Set((excludes || []).map(normalizeHandle).filter(Boolean))).sort(),
 ];
