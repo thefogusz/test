@@ -337,6 +337,9 @@ const RECENT_EXPERT_ACTIVITY_DAYS = 7;
 const EXPERT_CONTEXT_FETCH_TIMEOUT_MS = 7000;
 const EXPERT_ACTIVITY_VERIFY_TIMEOUT_MS = 5500;
 const EXPERT_ACTIVE_MAX_DAYS = 7;
+const EXPERT_ACTIVITY_VERIFY_BATCH_SIZE = 10;
+const EXPERT_ACTIVITY_VERIFY_LIMIT = 10;
+const EXPERT_ACTIVITY_VERIFY_FALLBACK_BATCH_SIZE = 8;
 const EXPERT_MIN_FOLLOWERS = 10000;
 const EXPERT_MIN_TOPIC_SIGNAL = 4;
 const EXPERT_MIN_ENGAGEMENT_SIGNAL = 10;
@@ -373,21 +376,29 @@ const buildRecentExpertActivityMap = async (usernames = []) => {
 
   try {
     const activityMap = new Map();
-    const batches = [];
-    for (let index = 0; index < normalizedUsernames.length; index += 10) {
-      batches.push(normalizedUsernames.slice(index, index + 10));
-    }
+    const fetchActivityTweets = async (batchSize) => {
+      const batches = [];
+      for (let index = 0; index < normalizedUsernames.length; index += batchSize) {
+        batches.push(normalizedUsernames.slice(index, index + batchSize));
+      }
+      const batchResponses = await Promise.all(
+        batches.map((batch) => {
+          const query = `(${batch.map((username) => `from:${username}`).join(' OR ')}) since:${sinceDate}`;
+          return searchEverything(query, '', false, 'Latest', false).catch((error) => {
+            console.warn('[GrokService] Could not verify expert recency batch:', error);
+            return { data: [] };
+          });
+        }),
+      );
+      return batchResponses.flatMap((response) => (Array.isArray(response?.data) ? response.data : []));
+    };
 
-    const batchResponses = await Promise.all(
-      batches.map((batch) => {
-        const query = `(${batch.map((username) => `from:${username}`).join(' OR ')}) since:${sinceDate}`;
-        return searchEverything(query, '', false, 'Latest', false).catch((error) => {
-          console.warn('[GrokService] Could not verify expert recency batch:', error);
-          return { data: [] };
-        });
-      }),
-    );
-    const tweets = batchResponses.flatMap((response) => (Array.isArray(response?.data) ? response.data : []));
+    let tweets = await fetchActivityTweets(EXPERT_ACTIVITY_VERIFY_BATCH_SIZE);
+    const activeUsernames = new Set(tweets.map((tweet) => String(tweet?.author?.username || '').replace(/^@/, '').trim().toLowerCase()).filter(Boolean));
+
+    if (activeUsernames.size < 6 && normalizedUsernames.length > EXPERT_ACTIVITY_VERIFY_FALLBACK_BATCH_SIZE) {
+      tweets = await fetchActivityTweets(EXPERT_ACTIVITY_VERIFY_FALLBACK_BATCH_SIZE);
+    }
 
     for (const tweet of tweets) {
       const username = String(tweet?.author?.username || '').replace(/^@/, '').trim().toLowerCase();
@@ -406,6 +417,7 @@ const buildRecentExpertActivityMap = async (usernames = []) => {
 
       if (!existing) {
         activityMap.set(username, {
+          name: tweet?.author?.name || tweet?.author?.username || username,
           lastSeenDays: ageDays,
           tweetCount: 1,
           engagementSignal: rawEngagement,
@@ -417,6 +429,7 @@ const buildRecentExpertActivityMap = async (usernames = []) => {
       }
 
       existing.tweetCount += 1;
+      existing.name = existing.name || tweet?.author?.name || tweet?.author?.username || username;
       existing.engagementSignal += rawEngagement;
       existing.followers = Math.max(existing.followers || 0, followers);
       existing.isVerified = existing.isVerified || Boolean(tweet?.author?.isVerified || tweet?.author?.isBlueVerified);
@@ -2123,6 +2136,72 @@ const buildExpertDiscoveryQuery = (categoryQuery = '') => {
   return mappedQuery || CATEGORY_QUERY_EXPANSION[rawQuery] || rawQuery;
 };
 
+const interpretExpertDiscoveryIntent = async (rawQuery = '') => {
+  const userQuery = String(rawQuery || '').trim();
+  const ruleQuery = buildExpertDiscoveryQuery(userQuery);
+  const localHints = [];
+
+  if (/ฮอลลีวูด|hollywood|ดารา|นักแสดง/i.test(userQuery)) {
+    localHints.push('Hollywood actors, comedians, entertainment personalities');
+  }
+  if (/ตลก|คอมเมดี้|comedy|comedian/i.test(userQuery)) {
+    localHints.push('comedy, comedians, funny entertainers');
+  }
+  if (/นักบอล|footballer|soccer|บอล/i.test(userQuery)) {
+    localHints.push('footballers, soccer players, football analysts');
+  }
+  if (/กำลังดัง|ตอนนี้|ล่าสุด|มาแรง|trending|viral|now/i.test(userQuery)) {
+    localHints.push('currently trending, rising, active now');
+  }
+  if (/เดินป่า|hiking|trekking|outdoor|backpacking|camping/i.test(userQuery)) {
+    localHints.push('hiking influencer OR backpacking creator OR thru-hiking YouTuber OR outdoor adventure creator OR camping influencer OR trail running creator');
+  }
+
+  const heuristicQuery = localHints.length > 0 ? localHints.join(' OR ') : ruleQuery;
+
+  try {
+    const { object } = await generateObject({
+      model: grok(MODEL_NEWS_FAST),
+      system: `You translate messy Thai/English user requests into an expert-discovery plan for finding Twitter/X accounts.
+
+Rules:
+- Preserve the user's intent even if phrased casually.
+- Convert Thai concepts into strong English search terms because global X/web discovery works better in English.
+- Do not assume Thailand/Thai accounts just because the user typed Thai. Default to global/English results unless the user explicitly says ไทย, ในไทย, คนไทย, Thailand, or Thai.
+- Detect niche, role, geography, and freshness needs.
+- Do not recommend accounts here. Return only the search plan.`,
+      prompt: `User wants to follow experts/accounts for: "${userQuery}"`,
+      schema: z.object({
+        interpretedLabel: z.string().describe('Short human-readable topic label'),
+        discoveryQuery: z.string().describe('English-heavy boolean-ish query for web/X discovery'),
+        freshnessMode: z.enum(['weekly', 'latest', 'evergreen']).describe('How fresh the accounts should be'),
+        includeTerms: z.array(z.string()).max(10).describe('Terms that indicate good topic fit'),
+        excludeTerms: z.array(z.string()).max(10).describe('Terms that indicate off-topic results'),
+        scopeNote: z.string().optional().describe('Any location, role, or niche scope'),
+      }),
+    });
+
+    return {
+      interpretedLabel: object.interpretedLabel || userQuery,
+      discoveryQuery: object.discoveryQuery || heuristicQuery,
+      freshnessMode: object.freshnessMode || (/(กำลังดัง|ตอนนี้|ล่าสุด|มาแรง|trending|viral|now)/i.test(userQuery) ? 'latest' : 'weekly'),
+      includeTerms: object.includeTerms || [],
+      excludeTerms: object.excludeTerms || [],
+      scopeNote: object.scopeNote || '',
+    };
+  } catch (error) {
+    console.warn('[GrokService] Expert intent interpretation failed:', error);
+    return {
+      interpretedLabel: userQuery,
+      discoveryQuery: heuristicQuery,
+      freshnessMode: /(กำลังดัง|ตอนนี้|ล่าสุด|มาแรง|trending|viral|now)/i.test(userQuery) ? 'latest' : 'weekly',
+      includeTerms: localHints.flatMap((hint) => hint.split(/,\s*|\s+OR\s+/i)).filter(Boolean).slice(0, 10),
+      excludeTerms: [],
+      scopeNote: '',
+    };
+  }
+};
+
 const shouldUseThailandScope = (categoryQuery = '') =>
   /การเมืองไทย|ไทย.*การเมือง|การเมือง.*ไทย|thai politics|thailand politics/i.test(String(categoryQuery || ''));
 
@@ -2136,6 +2215,12 @@ const CANONICAL_EXPERT_FALLBACKS = [
       { username: 'MebFaber', name: 'Meb Faber' },
       { username: 'charliebilello', name: 'Charlie Bilello' },
       { username: 'jposhaughnessy', name: "Jim O'Shaughnessy" },
+      { username: 'LizAnnSonders', name: 'Liz Ann Sonders' },
+      { username: 'BrianFeroldi', name: 'Brian Feroldi' },
+      { username: 'KobeissiLetter', name: 'The Kobeissi Letter' },
+      { username: 'DividendGrowth', name: 'Dividend Growth Investor' },
+      { username: 'zerohedge', name: 'Zero Hedge' },
+      { username: 'WSJMarkets', name: 'WSJ Markets' },
     ],
   },
   {
@@ -2169,6 +2254,9 @@ const CANONICAL_EXPERT_FALLBACKS = [
       { username: 'huggingface', name: 'Hugging Face' },
       { username: 'rowancheung', name: 'Rowan Cheung' },
       { username: 'hardmaru', name: 'David Ha' },
+      { username: 'ylecun', name: 'Yann LeCun' },
+      { username: 'demishassabis', name: 'Demis Hassabis' },
+      { username: 'JeffDean', name: 'Jeff Dean' },
     ],
   },
   {
@@ -2180,6 +2268,9 @@ const CANONICAL_EXPERT_FALLBACKS = [
       { username: 'benedictevans', name: 'Benedict Evans' },
       { username: 'JoannaStern', name: 'Joanna Stern' },
       { username: 'stratechery', name: 'Stratechery' },
+      { username: 'mkbhd', name: 'Marques Brownlee' },
+      { username: 'paulg', name: 'Paul Graham' },
+      { username: 'amasad', name: 'Amjad Masad' },
     ],
   },
   {
@@ -2282,6 +2373,17 @@ const CANONICAL_EXPERT_FALLBACKS = [
     ],
   },
   {
+    pattern: /เดินป่า|hiking|trekking|outdoor|backpacking|camping|trail/i,
+    experts: [
+      { username: 'outsidemagazine', name: 'Outside Magazine' },
+      { username: 'natgeotravel', name: 'National Geographic Travel' },
+      { username: 'theblondeabroad', name: 'The Blonde Abroad' },
+      { username: 'alltrails', name: 'AllTrails' },
+      { username: 'MatadorNetwork', name: 'Matador Network' },
+      { username: 'HikingProject', name: 'Hiking Project' },
+    ],
+  },
+  {
     pattern: /ท่องเที่ยว|travel|tourism/i,
     experts: [
       { username: 'lonelyplanet', name: 'Lonely Planet' },
@@ -2364,6 +2466,9 @@ const getCanonicalExpertFallbacks = (categoryQuery = '') => {
   const rawQuery = String(categoryQuery || '').trim();
   return CANONICAL_EXPERT_FALLBACKS.find(({ pattern }) => pattern.test(rawQuery))?.experts || [];
 };
+
+const isFastSeedableExpertQuery = (categoryQuery = '') =>
+  CANONICAL_EXPERT_FALLBACKS.some(({ pattern }) => pattern.test(String(categoryQuery || '').trim()));
 
 const normalizeExpertUsername = (username = '') =>
   String(username || '').replace(/^@/, '').replace(/[^\w]/g, '').trim();
@@ -2472,6 +2577,12 @@ const getExpertTopicPenalty = (expert = {}, categoryQuery = '') => {
   if (!/กีฬา|sports|football|soccer|basketball|tennis/i.test(query) && /sports|football|soccer|basketball|nba|premierleague/i.test(text)) {
     penalty += 30;
   }
+  if (/นักบอล|football|soccer/i.test(query) && /vaccine|health|alliance|gavi\.org|immuni/i.test(text)) {
+    penalty += 90;
+  }
+  if (/เดินป่า|hiking|trekking|outdoor|backpacking|camping|trail/i.test(query) && /tourism authority|amazingthailand|government|japan|jp|lawyer|hashtag/i.test(text)) {
+    penalty += 70;
+  }
 
   if (!/บันเทิง|entertainment|film|movie|music|celebrity/i.test(query) && /movie|film|music|celebrity|netflix/i.test(text)) {
     penalty += 26;
@@ -2480,28 +2591,66 @@ const getExpertTopicPenalty = (expert = {}, categoryQuery = '') => {
   return penalty;
 };
 
+const getExpertScopePenalty = (expert = {}, { thailandScope = false } = {}) => {
+  const text = [expert.username, expert.name, expert.reasoning].map((value) => String(value || '')).join(' ');
+  if (thailandScope) {
+    return /[\u0E00-\u0E7F]|thailand|thai|bangkok|เชียงใหม่|ภูเก็ต|ไทย/i.test(text) ? 0 : 70;
+  }
+  return /[\u0E00-\u0E7F\u3040-\u30FF]/.test(text) ? 55 : 0;
+};
+
 export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames = []) => {
   try {
     let activeContext = '';
     let canonicalContext = '';
     let qualifiedAuthors = [];
+    let realtimeCandidateAuthors = [];
 
-    const expandedQuery = buildExpertDiscoveryQuery(categoryQuery);
+    const useFastSeedPath = isFastSeedableExpertQuery(categoryQuery) && !/กำลังดัง|ตอนนี้|ล่าสุด|มาแรง|อินฟลู|influencer|creator|trending|viral|now|ในไทย|คนไทย|ประเทศไทย|Thailand|Thai/i.test(categoryQuery);
+    const intentPlan = useFastSeedPath
+      ? {
+        interpretedLabel: categoryQuery,
+        discoveryQuery: buildExpertDiscoveryQuery(categoryQuery),
+        freshnessMode: 'weekly',
+        includeTerms: [],
+        excludeTerms: [],
+        scopeNote: '',
+      }
+      : await interpretExpertDiscoveryIntent(categoryQuery);
+    const expandedQuery = intentPlan.discoveryQuery || buildExpertDiscoveryQuery(categoryQuery);
+    const topicLabel = intentPlan.interpretedLabel || categoryQuery;
+    const effectiveFreshnessMode = /กำลังดัง|ตอนนี้|ล่าสุด|มาแรง|อินฟลู|influencer|creator|trending|viral|now/i.test(
+      `${categoryQuery} ${topicLabel} ${expandedQuery}`,
+    )
+      ? 'latest'
+      : intentPlan.freshnessMode;
     const thailandScope = shouldUseThailandScope(categoryQuery);
+    const scopedDiscoveryQuery = thailandScope && !/thailand|thai|ไทย|lang:th/i.test(expandedQuery)
+      ? `${expandedQuery} Thailand Thai lang:th`
+      : expandedQuery;
+    const xDiscoveryQuery = thailandScope || /\blang:/i.test(scopedDiscoveryQuery)
+      ? scopedDiscoveryQuery
+      : `${scopedDiscoveryQuery} lang:en`;
     const nowMs = Date.now();
 
-    // Run X search + Tavily in parallel — no extra latency vs sequential
+    const shouldUseWebEvidence = /วิจัย|research|เว็บ|web|sources?|อ้างอิง|ไม่มั่นใจ|verify/i.test(categoryQuery);
+
+    // Run only the fast candidate search by default; Tavily is reserved for explicit deeper verification.
     const [searchData, tavilyData] = await Promise.all([
-      withTimeoutFallback(
-        searchEverything(expandedQuery, '', false, 'Top', false),
-        { data: [] },
-        EXPERT_CONTEXT_FETCH_TIMEOUT_MS,
-      ).catch(() => ({ data: [] })),
-      tavilySearch(
-        `best ${expandedQuery} twitter accounts experts to follow`,
-        false,
-        { max_results: 5, include_answer: true, search_depth: 'basic' },
-      ).catch(() => ({ results: [], answer: '' })),
+      useFastSeedPath
+        ? Promise.resolve({ data: [] })
+        : withTimeoutFallback(
+          searchEverything(xDiscoveryQuery, '', false, effectiveFreshnessMode === 'latest' ? 'Latest' : 'Top', false),
+          { data: [] },
+          EXPERT_CONTEXT_FETCH_TIMEOUT_MS,
+        ).catch(() => ({ data: [] })),
+      shouldUseWebEvidence
+        ? tavilySearch(
+          `best ${scopedDiscoveryQuery} twitter accounts experts to follow`,
+          effectiveFreshnessMode === 'latest',
+          { max_results: 5, include_answer: true, search_depth: 'basic' },
+        ).catch(() => ({ results: [], answer: '' }))
+        : Promise.resolve({ results: [], answer: '' }),
     ]);
 
     // ── Signal A: Tavily canonical context ──────────────────────────────────
@@ -2517,7 +2666,7 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
       if (rawCanonical) {
         canonicalContext = [
           '[WEB-CURATED CANONICAL LIST]',
-          `From web articles, journalism, and expert lists about "${categoryQuery}":`,
+          `From web articles, journalism, and expert lists about "${topicLabel}":`,
           rawCanonical,
           'Extract any Twitter/X usernames or names mentioned. These are accounts the broader internet considers canonical authorities.',
           '',
@@ -2530,14 +2679,19 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
     // ── Signal B: X real-time shortlist ────────────────────────────────────
     // Twitter search = who is actively posting about the topic right now
     try {
-      const curatedTweets = curateSearchResults(searchData?.data || [], categoryQuery, {
-        latestMode: false,
+      const curatedTweets = curateSearchResults(searchData?.data || [], expandedQuery, {
+        latestMode: effectiveFreshnessMode === 'latest',
         preferCredibleSources: true,
       });
 
       if (curatedTweets.length > 0) {
         const authorsByUsername = new Map();
-        const queryLower = String(categoryQuery || '').toLowerCase();
+        const topicTerms = [
+          topicLabel,
+          categoryQuery,
+          expandedQuery,
+          ...(intentPlan.includeTerms || []),
+        ].map((term) => String(term || '').toLowerCase()).filter(Boolean);
 
         for (const tweet of curatedTweets) {
           const username = (tweet?.author?.username || '').toLowerCase();
@@ -2555,7 +2709,7 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
           const topicSignal =
             (Number(tweet.broad_semantic_score || 0) +
               Number(tweet.search_score || 0) +
-              (String(tweet.text || '').toLowerCase().includes(queryLower) ? 1.25 : 0)) * recencyMult;
+              (topicTerms.some((term) => String(tweet.text || '').toLowerCase().includes(term)) ? 1.25 : 0)) * recencyMult;
 
           if (!authorsByUsername.has(username)) {
             authorsByUsername.set(username, {
@@ -2606,6 +2760,19 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
           };
         });
 
+        realtimeCandidateAuthors = scoredAuthors
+          .filter((a) => (a.followers || a.fastFollowersCount || 0) >= 5000 || a.isVerified || a.isBlueVerified)
+          .filter((a) => !isLowQualityExpertAuthor(a))
+          .filter((a) => a._latestTweetAgeDays <= EXPERT_ACTIVE_MAX_DAYS)
+          .filter((a) =>
+            a._engagementSignal >= 2 ||
+            (a.followers || a.fastFollowersCount || 0) >= 20000 ||
+            a.isVerified ||
+            a.isBlueVerified
+          )
+          .sort((a, b) => b._expertQualityScore - a._expertQualityScore)
+          .slice(0, 24);
+
         qualifiedAuthors = scoredAuthors
           .filter((a) => (a.followers || a.fastFollowersCount || 0) >= EXPERT_MIN_FOLLOWERS || a.isVerified || a.isBlueVerified)
           .filter((a) => !isLowQualityExpertAuthor(a))
@@ -2623,7 +2790,7 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
         if (qualifiedAuthors.length > 0) {
           activeContext = [
             '[X REAL-TIME ACTIVITY SHORTLIST]',
-            `Accounts currently active on "${categoryQuery}" — scored by recency, engagement rate, and topic focus.`,
+            `Accounts currently active on "${topicLabel}" — scored by recency, engagement rate, and topic focus.`,
             'Use this to validate that a recommended account is still posting. High composite + active this week = strong signal.',
             ...qualifiedAuthors.map((a) => {
               const followers = a.followers || a.fastFollowersCount || 0;
@@ -2639,11 +2806,13 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
       console.warn('Could not build real-time context:', e);
     }
 
-    const { object } = await generateObject({
+    const object = useFastSeedPath
+      ? { experts: [] }
+      : (await generateObject({
       model: grok(MODEL_NEWS_FAST),
-      system: `You are the world's best Twitter/X account recommender for the topic "${categoryQuery}".
+      system: `You are the world's best Twitter/X account recommender for the topic "${topicLabel}".
 
-Your goal: build a broad candidate pool of real Twitter/X accounts that a serious follower of "${categoryQuery}" should consider.
+Your goal: build a broad candidate pool of real Twitter/X accounts that a serious follower of "${topicLabel}" should consider.
 
 You have THREE signals. Use them together:
 
@@ -2651,12 +2820,24 @@ ${canonicalContext || '[No web canonical list available — rely on your trainin
 
 ${activeContext || '[No real-time data available — rely on your training knowledge and canonical list.]'}
 
+[USER INTENT PLAN]
+- Original user query: ${categoryQuery}
+- Interpreted topic: ${topicLabel}
+- Discovery query: ${expandedQuery}
+- X discovery query: ${xDiscoveryQuery}
+- Freshness mode: ${effectiveFreshnessMode}
+- Scope note: ${intentPlan.scopeNote || (thailandScope ? 'Thailand/Thai-specific' : 'global English-first, not Thailand-specific')}
+- Include terms: ${(intentPlan.includeTerms || []).join(', ') || 'none'}
+- Exclude terms: ${(intentPlan.excludeTerms || []).join(', ') || 'none'}
+
 [YOUR TRAINING KNOWLEDGE]
-You were trained on the web. You know who the canonical authorities, researchers, journalists, investors, and practitioners are for "${categoryQuery}". This is your most reliable signal for well-known topics.
+You were trained on the web. You know who the canonical authorities, creators, researchers, journalists, influencers, athletes, entertainers, and practitioners are for "${topicLabel}". This is your most reliable signal for well-known topics.
 
 Scope rule:
 - The user may type broad Thai labels such as "การเมือง" or "ธุรกิจ"; treat those as global topic labels, not Thailand-specific requests.
+- Thai input language does not imply Thai accounts. Default to global English-speaking accounts unless Thailand-specific scope is explicit.
 - Only recommend Thailand-specific accounts when the user explicitly asks for Thai/Thailand scope. Thailand-specific scope for this query: ${thailandScope ? 'YES' : 'NO'}.
+- If Thailand-specific scope is YES, every candidate must be Thai, Thailand-based, or clearly about Thailand. Do not include global accounts just because they match the general topic.
 
 Priority logic:
 1. HIGHEST CONFIDENCE: account appears in BOTH canonical list AND real-time shortlist
@@ -2667,13 +2848,13 @@ Priority logic:
 Hard rules:
 - Return 18-30 candidates when the topic is broad. Do not stop at 6.
 - Topic fit is non-negotiable. Never recommend based on follower count alone.
-- Quality is non-negotiable. Prefer accounts with strong follower signal, real engagement, recent posts, and domain expertise for "${categoryQuery}".
+- Quality is non-negotiable. Prefer accounts with strong follower signal, real engagement, recent posts, and domain expertise for "${topicLabel}".
 - Reject accounts that are merely active but low authority, random, anonymous, spammy, fan accounts, engagement bait, or only loosely related.
 - Do not hallucinate usernames. If you are not confident a username is real and active, skip it.
 - Prefer diversity: mix practitioners, analysts, journalists, researchers — not 6 accounts of the same type.
 - Exclude list — never recommend these: [${excludeUsernames.join(', ')}]
 - Write "reasoning" in natural Thai, 1 sentence, about why this account is useful to follow for "${categoryQuery}". Do not describe activity, engagement, scoring, or internal verification.`,
-      prompt: `Recall 18-30 real Twitter/X accounts for "${categoryQuery}". Username must not start with @. Include canonical experts, researchers, analysts, journalists, operators, and high-quality publications where relevant. Write reasoning in natural Thai, 1 sentence, as a human recommendation about domain expertise or useful perspective. Never mention backend scoring, activity checks, engagement, signals, recency, "แอคทีฟ", or "โพสต์สม่ำเสมอ" in reasoning.`,
+      prompt: `Recall 18-30 real Twitter/X accounts for "${topicLabel}" from the user's request "${categoryQuery}". Username must not start with @. Include the right account types for this niche: experts, creators, analysts, journalists, operators, athletes, entertainers, or high-quality publications where relevant. Write reasoning in natural Thai, 1 sentence, as a human recommendation about domain expertise or useful perspective. Never mention backend scoring, activity checks, engagement, signals, recency, "แอคทีฟ", or "โพสต์สม่ำเสมอ" in reasoning.`,
       schema: z.object({
         experts: z.array(
           z.object({
@@ -2684,12 +2865,12 @@ Hard rules:
           }),
         ).max(30),
       }),
-    });
+    })).object;
 
     const normalizedExcludedUsernames = new Set(
       (excludeUsernames || []).map((item) => String(item || '').replace(/^@/, '').trim().toLowerCase()).filter(Boolean),
     );
-    const canonicalFallbackExperts = getCanonicalExpertFallbacks(categoryQuery)
+    const canonicalFallbackExperts = (thailandScope ? [] : getCanonicalExpertFallbacks(categoryQuery))
       .filter((expert) => {
         const username = String(expert?.username || '').replace(/^@/, '').trim().toLowerCase();
         return username && !normalizedExcludedUsernames.has(username);
@@ -2705,11 +2886,32 @@ Hard rules:
     const candidateMap = new Map();
     canonicalFallbackExperts.forEach((expert) => mergeExpertCandidate(candidateMap, expert, 'seed'));
     modelExperts.forEach((expert) => mergeExpertCandidate(candidateMap, expert, 'grok'));
+    const allowRealtimeCandidates =
+      effectiveFreshnessMode === 'latest' ||
+      /influencer|creator|athlete|football|soccer|hiking|trekking|outdoor|comedian|actor|celebrity|viral|trending|กำลังดัง|อินฟลู|นักบอล|เดินป่า|ดารา|ตลก/i.test(
+        `${categoryQuery} ${topicLabel} ${expandedQuery}`,
+      );
+    if (allowRealtimeCandidates) {
+      const realtimePool = realtimeCandidateAuthors.length > 0 ? realtimeCandidateAuthors : qualifiedAuthors;
+      realtimePool.forEach((author) => {
+        mergeExpertCandidate(
+          candidateMap,
+          {
+            username: author?.username,
+            name: author?.name,
+            reasoning: buildNaturalExpertReasoning(topicLabel),
+            confidence: 0.62,
+          },
+          'x-realtime',
+        );
+      });
+    }
     const activeActivityMap = new Map(
       qualifiedAuthors.map((author) => [
         String(author?.username || '').toLowerCase(),
         {
           lastSeenDays: author?._latestTweetAgeDays,
+          name: author?.name || author?.username,
           tweetCount: author?._topicTweetCount || 0,
           engagementSignal: author?._engagementSignal || 0,
           followers: author?.followers || author?.fastFollowersCount || 0,
@@ -2722,7 +2924,7 @@ Hard rules:
       new Set([
         ...Array.from(candidateMap.values()).map((expert) => expert.username),
       ]),
-    ).slice(0, 40);
+    ).slice(0, EXPERT_ACTIVITY_VERIFY_LIMIT);
     const verifiedActivityMap = await withTimeoutFallback(
       buildRecentExpertActivityMap(usernamesToVerify),
       new Map(),
@@ -2742,6 +2944,7 @@ Hard rules:
         engagementSignal: Math.max(existing.engagementSignal || 0, activity.engagementSignal || 0),
         followers: Math.max(existing.followers || 0, activity.followers || 0),
         isVerified: Boolean(existing.isVerified || activity.isVerified),
+        name: existing.name || activity.name || '',
         profile_image_url: existing.profile_image_url || activity.profile_image_url || '',
       });
     });
@@ -2752,12 +2955,19 @@ Hard rules:
         const activity = activityMap.get(username);
         const webEvidence = webEvidenceMap.get(username);
         const activityLabel = formatExpertActivityLabel(activity?.lastSeenDays);
-        const score = scoreExpertCandidate({ candidate, activity, webEvidence }) - getExpertTopicPenalty(candidate, categoryQuery);
+        const candidateForScoring = {
+          ...candidate,
+          name: activity?.name || candidate.name || candidate.username,
+        };
+        const score =
+          scoreExpertCandidate({ candidate, activity, webEvidence }) -
+          getExpertTopicPenalty(candidateForScoring, topicLabel) -
+          getExpertScopePenalty(candidateForScoring, { thailandScope });
         return {
           ...candidate,
           username: normalizeExpertUsername(candidate.username),
-          name: candidate.name || candidate.username,
-          reasoning: sanitizeExpertReasoning(candidate.reasoning, categoryQuery),
+          name: candidateForScoring.name,
+          reasoning: sanitizeExpertReasoning(candidate.reasoning, topicLabel),
           lastSeenDays: activity?.lastSeenDays,
           activityLabel,
           recentTweetCount: activity?.tweetCount || 0,
@@ -2781,7 +2991,7 @@ Hard rules:
       .map((expert) => ({
         username: expert.username,
         name: expert.name,
-        reasoning: sanitizeExpertReasoning(expert.reasoning, categoryQuery),
+        reasoning: sanitizeExpertReasoning(expert.reasoning, topicLabel),
         lastSeenDays: expert.lastSeenDays,
         activityLabel: expert.activityLabel,
         recentTweetCount: expert.recentTweetCount,
@@ -2794,21 +3004,27 @@ Hard rules:
     const rerankCandidates = scoredExperts.slice(0, 18);
     let selectedUsernames = [];
 
-    if (rerankCandidates.length > 6) {
+    if (shouldUseWebEvidence && rerankCandidates.length > 6) {
       try {
         const { object: rerankObject } = await generateObject({
           model: grok(MODEL_NEWS_FAST),
-          system: `You are selecting the final 6 Twitter/X experts for "${categoryQuery}" from a pre-verified candidate list.
+          system: `You are selecting the final 6 Twitter/X experts for "${topicLabel}" from a pre-verified candidate list.
 
 Rules:
 - Select ONLY usernames from the provided candidates. Never invent a new username.
-- Topic fit is more important than raw activity. Reject accounts that are merely active or famous but not true experts for "${categoryQuery}".
+- Topic fit is more important than raw activity. Reject accounts that are merely active or famous but not true experts for "${topicLabel}".
 - If at least 6 candidates have "Active this week", select only those weekly-active candidates. Do not choose inactive or merely recently active canonical names in that case.
 - Prefer candidates with activityLabel, webMentionCount, or high score, but do not choose off-topic accounts just because they are active.
 - Keep a useful mix of individuals and high-quality publications when the topic benefits from both.
+- The query is ${thailandScope ? 'Thailand/Thai-specific' : 'global English-first'}; do not choose Thai/Japanese/local-tourism accounts unless that scope is explicit or the account is truly global for the topic.
+- If the query is Thailand/Thai-specific, choose only candidates that are Thai, Thailand-based, or clearly about Thailand.
 - Return exactly 6 usernames when at least 6 candidates are usable.`,
           prompt: JSON.stringify({
             topic: categoryQuery,
+            interpretedTopic: topicLabel,
+            discoveryQuery: xDiscoveryQuery,
+            includeTerms: intentPlan.includeTerms || [],
+            excludeTerms: intentPlan.excludeTerms || [],
             candidates: rerankCandidates.map((candidate) => ({
               username: candidate.username,
               name: candidate.name,
