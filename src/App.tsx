@@ -227,6 +227,7 @@ const App = () => {
     clearAiFilter,
     deletedFeedCount,
     feed,
+    freshFeedIds,
     handleDeleteAll,
     handleLoadMore,
     handleSort,
@@ -551,6 +552,7 @@ const App = () => {
             originalFeedLength={originalFeed.length}
             deletedFeedLength={deletedFeedCount}
             feed={feed}
+            freshFeedIds={freshFeedIds}
             isFiltered={isFiltered}
             activeFilters={activeFilters}
             visibleQuickPresets={visibleQuickPresets}

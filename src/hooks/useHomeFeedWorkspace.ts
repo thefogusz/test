@@ -78,6 +78,7 @@ export const useHomeFeedWorkspace = ({
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isFiltered, setIsFiltered] = useState(false);
   const [aiFilterSummary, setAiFilterSummary] = useState('');
+  const [freshFeedIds, setFreshFeedIds] = useState<string[]>([]);
 
   const isSummarizingRef = useRef(false);
   const isBackfillingThaiRef = useRef(false);
@@ -407,6 +408,11 @@ export const useHomeFeedWorkspace = ({
 
   const syncMutation = useMutation({
     mutationFn: async () => {
+      const existingIds = new Set(
+        originalFeed
+          .map((post) => String(post?.id || '').trim())
+          .filter(Boolean),
+      );
       const hasWatchlist = activeListMembers.twitterHandles.length > 0;
       const hasRss = effectiveRssSources.length > 0;
 
@@ -461,6 +467,9 @@ export const useHomeFeedWorkspace = ({
       const displayData = [...twitterDisplay, ...rssPosts].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
+      const nextFreshFeedIds = displayData
+        .map((post) => String(post?.id || '').trim())
+        .filter((id) => id && !existingIds.has(id));
 
       setPendingFeed(twitterRemaining);
 
@@ -478,6 +487,7 @@ export const useHomeFeedWorkspace = ({
       }
 
       setStatus('อัปเดตข้อมูลเรียบร้อย');
+      setFreshFeedIds(nextFreshFeedIds);
     },
     onError: (error: any) => {
       console.error(error);
@@ -495,6 +505,11 @@ export const useHomeFeedWorkspace = ({
         return;
       }
 
+      const existingIds = new Set(
+        originalFeed
+          .map((post) => String(post?.id || '').trim())
+          .filter(Boolean),
+      );
       let nextBatch: any[] = [];
       const MAX_SYNC = 20;
 
@@ -502,6 +517,7 @@ export const useHomeFeedWorkspace = ({
         nextBatch = pendingFeed.slice(0, MAX_SYNC);
         setPendingFeed(pendingFeed.slice(MAX_SYNC));
       } else {
+        setFreshFeedIds([]);
         const targetAccounts = activeListMembers.twitterHandles;
         const { data, meta } = await fetchWatchlistFeed(targetAccounts, nextCursor, 'Latest');
         setNextCursor(meta.next_cursor);
@@ -511,9 +527,14 @@ export const useHomeFeedWorkspace = ({
       }
 
       if (nextBatch.length > 0) {
+        const nextFreshFeedIds = nextBatch
+          .map((post) => String(post?.id || '').trim())
+          .filter((id) => id && !existingIds.has(id));
         await processAndSummarizeFeed(nextBatch, 'กำลังดึงข้อมูลเพิ่มอีก');
         setStatus('อัปเดตข้อมูลเพิ่มเติมเรียบร้อย');
+        setFreshFeedIds(nextFreshFeedIds);
       } else {
+        setFreshFeedIds([]);
         setStatus('ไม่มีข้อมูลเพิ่มเติม');
       }
     },
@@ -587,6 +608,7 @@ export const useHomeFeedWorkspace = ({
     setNextCursor(null);
     setIsFiltered(false);
     setAiFilterSummary('');
+    setFreshFeedIds([]);
     setOriginalFeed([]);
     setFeed([]);
     void queryClient.removeQueries({ queryKey: ['home-feed-sync'] });
@@ -597,6 +619,7 @@ export const useHomeFeedWorkspace = ({
       setOriginalFeed(deletedFeedRef.current);
       deletedFeedRef.current = [];
       setDeletedFeedCount(0);
+      setFreshFeedIds([]);
     }
   };
 
@@ -618,6 +641,7 @@ export const useHomeFeedWorkspace = ({
     clearAiFilter,
     deletedFeedCount,
     feed,
+    freshFeedIds,
     handleDeleteAll,
     handleLoadMore: loadMoreMutation.mutateAsync,
     handleSort,

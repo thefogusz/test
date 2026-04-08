@@ -12,6 +12,7 @@ const HomeView = ({
   originalFeedLength,
   deletedFeedLength,
   feed,
+  freshFeedIds,
   isFiltered,
   activeFilters,
   visibleQuickPresets,
@@ -46,6 +47,11 @@ const HomeView = ({
   const effectiveWatchlistHandleSet = useMemo(
     () => watchlistHandleSet ?? new Set(),
     [watchlistHandleSet],
+  );
+  const freshFeedIdSet = useMemo(() => new Set((freshFeedIds ?? []).map((id) => String(id))), [freshFeedIds]);
+  const freshVisibleCount = useMemo(
+    () => feed.reduce((count, item) => count + (freshFeedIdSet.has(String(item?.id || '')) ? 1 : 0), 0),
+    [feed, freshFeedIdSet],
   );
 
   if (!isVisible) return null;
@@ -129,9 +135,8 @@ const HomeView = ({
             </button>
             <button
               onClick={onSync}
-              disabled={loading || feed.length > 0}
+              disabled={loading}
               className="btn-pill primary"
-              title={feed.length > 0 ? (activeListId ? 'ล้างฟีดสำหรับลิสต์นี้ก่อน' : 'ล้างฟีดทั้งหมดก่อนแล้วค่อยหาฟีดใหม่') : undefined}
             >
               {loading ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} ฟีดข้อมูล
             </button>
@@ -239,6 +244,20 @@ const HomeView = ({
         </div>
       )}
 
+      {freshVisibleCount > 0 && (
+        <div className="feed-fresh-banner animate-fade-in">
+          <div className="feed-fresh-banner-badge">NEW</div>
+          <div className="feed-fresh-banner-copy">
+            <div className="feed-fresh-banner-title">
+              {freshVisibleCount} new card{freshVisibleCount > 1 ? 's' : ''} from the latest feed
+            </div>
+            <div className="feed-fresh-banner-caption">
+              Cards tagged `NEW` are the ones that just came in.
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="feed-grid">
         {feed.length === 0 && (
           <div
@@ -262,6 +281,7 @@ const HomeView = ({
               key={item.id || index}
               tweet={item}
               isBookmarked={effectiveBookmarkIdSet.has(item.id)}
+              isFresh={freshFeedIdSet.has(String(item?.id || ''))}
               isInWatchlist={effectiveWatchlistHandleSet.has(
                 String(item?.author?.username || '').trim().replace(/^@/, '').toLowerCase(),
               )}

@@ -4,6 +4,12 @@ import { Plus, Trash2, X, FileCode, List, Library, Share2, Users, CreditCard, Ch
 
 const normalizeHandle = (value) => (value || '').trim().replace(/^@/, '').toLowerCase();
 
+const getTwitterAvatarFallback = (handle) =>
+  handle ? `https://unavatar.io/twitter/${encodeURIComponent(handle)}` : '';
+
+const getDisplayAvatarSrc = (profileImageUrl, handle) =>
+  profileImageUrl || getTwitterAvatarFallback(normalizeHandle(handle)) || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png';
+
 const getMatchPriority = (user, query) => {
   const normalizedQuery = normalizeHandle(query);
   const username = normalizeHandle(user?.username);
@@ -602,7 +608,7 @@ const RightSidebar = ({
                               style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 12px', border: 'none', borderBottom: index === typeaheadAccounts.length - 1 && !canAddManually ? 'none' : '1px solid rgba(255,255,255,0.05)', background: isHighlighted ? 'rgba(255,255,255,0.08)' : 'transparent', color: '#fff', cursor: 'pointer', textAlign: 'left' }}
                             >
                               <img
-                                src={u.profile_image_url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png'}
+                                src={getDisplayAvatarSrc(u.profile_image_url, u.username)}
                                 alt={u.username}
                                 style={{ width: '34px', height: '34px', borderRadius: '50%', objectFit: 'cover', opacity: 0.9, flexShrink: 0 }}
                                 onError={e => {
@@ -652,7 +658,7 @@ const RightSidebar = ({
                        return (
                          <div key={handle} className="member-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', borderRadius: '8px', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                            <img 
-                             src={sourceMeta?.profile_image_url || userAcc?.profile_image_url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png'} 
+                             src={isRssMember ? (sourceMeta?.profile_image_url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png') : getDisplayAvatarSrc(userAcc?.profile_image_url, handle)} 
                              alt={handle}
                              style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }}
                              onError={e => { 
@@ -688,7 +694,7 @@ const RightSidebar = ({
                           {availableAccountsPreview.map(u => (
                             <div key={u.id} className="suggestion-item" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 12px', borderRadius: '8px', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                              <img 
-                               src={u.profile_image_url || 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png'} 
+                               src={getDisplayAvatarSrc(u.profile_image_url, u.username)} 
                               alt={u.username}
                               style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', opacity: 0.8 }}
                               onError={e => { 

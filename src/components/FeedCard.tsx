@@ -15,6 +15,7 @@ import {
   PenSquare,
   Repeat,
   Reply,
+  Sparkles,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -174,6 +175,7 @@ type FeedCardProps = {
   onReadArticle?: (tweet: Post) => void;
   onBookmark?: (tweet: Post, bookmarked: boolean) => void;
   isBookmarked?: boolean;
+  isFresh?: boolean;
   isInWatchlist?: boolean;
   postLists?: PostList[];
   onAddToWatchlist?: (tweet: Post) => void | Promise<void>;
@@ -189,6 +191,7 @@ const FeedCard = ({
   onReadArticle,
   onBookmark,
   isBookmarked: initialBookmarked = false,
+  isFresh = false,
   isInWatchlist,
   postLists,
   onAddToWatchlist,
@@ -360,7 +363,7 @@ const FeedCard = ({
   const shouldShowFooterMeta = showSocialStats || footerBadges.length > 0;
   const showRepostBanner = false;
   const showInlineReplyBanner = false;
-  const feedCardClassName = 'feed-card animate-fade-in';
+  const feedCardClassName = `feed-card animate-fade-in${isFresh ? ' feed-card-fresh' : ''}`;
   const footerClassName = `feed-card-footer${isReadableArticle ? ' feed-card-footer-priority' : ''}`;
 
   const handleReadArticle = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -516,6 +519,12 @@ const FeedCard = ({
         </div>
 
         <div className="feed-card-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {isFresh && (
+            <div className="feed-card-fresh-badge" title="New from the latest feed">
+              <Sparkles size={11} strokeWidth={2.3} />
+              <span>NEW</span>
+            </div>
+          )}
           {showInlineReplyBanner && displayTweet.isReply && (
             <div
               className="feed-card-reply-badge feed-card-reply-badge-inline"
@@ -1092,6 +1101,7 @@ const FeedCard = ({
 export default memo(FeedCard, (prevProps, nextProps) => (
   prevProps.tweet === nextProps.tweet &&
   prevProps.isBookmarked === nextProps.isBookmarked &&
+  prevProps.isFresh === nextProps.isFresh &&
   prevProps.isInWatchlist === nextProps.isInWatchlist &&
   prevProps.postLists === nextProps.postLists
 ));

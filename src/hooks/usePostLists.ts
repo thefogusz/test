@@ -57,7 +57,13 @@ export const usePostLists = ({
   );
 
   const buildPlaceholderWatchlistUser = useCallback(
-    (handle) => ({ id: handle, username: handle, name: handle, profile_image_url: '', isPlaceholder: true }),
+    (handle) => ({
+      id: handle,
+      username: handle,
+      name: handle,
+      profile_image_url: `https://unavatar.io/twitter/${encodeURIComponent(handle)}`,
+      isPlaceholder: true,
+    }),
     [],
   );
 
