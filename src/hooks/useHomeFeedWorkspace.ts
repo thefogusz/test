@@ -6,7 +6,7 @@ import {
   type Dispatch,
   type SetStateAction,
 } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   agentFilterFeed,
   generateExecutiveSummary,
@@ -26,6 +26,22 @@ import {
 } from '../utils/appUtils';
 
 type SetState<T> = Dispatch<SetStateAction<T>>;
+
+const buildFeedSyncQueryKey = ({
+  activeListId,
+  twitterHandles,
+  rssSourceIds,
+}: {
+  activeListId: string | null;
+  twitterHandles: string[];
+  rssSourceIds: string[];
+}) => [
+  'home-feed-sync',
+  'v1',
+  activeListId || 'all',
+  [...twitterHandles].map((handle) => String(handle || '').trim().toLowerCase()).filter(Boolean).sort(),
+  [...rssSourceIds].map((id) => String(id || '').trim().toLowerCase()).filter(Boolean).sort(),
+];
 
 type UseHomeFeedWorkspaceParams = {
   activeListId: string | null;
@@ -54,6 +70,7 @@ export const useHomeFeedWorkspace = ({
   setStatus,
   subscribedSources = [],
 }: UseHomeFeedWorkspaceParams) => {
+  const queryClient = useQueryClient();
   const [feed, setFeed] = useState<any[]>([]);
   const [deletedFeed, setDeletedFeed] = useState<any[]>([]);
   const [activeFilters, setActiveFilters] = useState({ view: false, engagement: false });
@@ -399,8 +416,15 @@ export const useHomeFeedWorkspace = ({
 
       setStatus('กำลังเชื่อมต่อฐานข้อมูล... ดึงฟีดข่าวล่าสุด');
 
+      const feedSyncCacheKey = buildFeedSyncQueryKey({
+        activeListId,
+        twitterHandles: activeListMembers.twitterHandles,
+        rssSourceIds: effectiveRssSources.map((source) => source.id),
+      });
+      const cachedFeedSync = queryClient.getQueryData<[any, any[]]>(feedSyncCacheKey);
+
       // Fetch Twitter + RSS in parallel
-      const twitterPromise = (async () => {
+      const twitterPromise = cachedFeedSync ? Promise.resolve(cachedFeedSync[0]) : (async () => {
         if (!hasWatchlist) return { data: [], meta: { next_cursor: null } };
 
         const targetAccounts = activeListMembers.twitterHandles;
@@ -410,12 +434,18 @@ export const useHomeFeedWorkspace = ({
         return fetchWatchlistFeed(targetAccounts, '', 'Latest');
       })();
 
-      const rssPromise = (async () => {
+      const rssPromise = cachedFeedSync ? Promise.resolve(cachedFeedSync[1]) : (async () => {
         setStatus('กำลังดึงข่าวจากแหล่งข่าว RSS...');
         return fetchAllSubscribedFeeds(effectiveRssSources);
       })();
 
-      const [twitterResult, rssPosts] = await Promise.all([twitterPromise, rssPromise]);
+      const [twitterResult, rssPosts] = cachedFeedSync || await queryClient.fetchQuery({
+        queryKey: feedSyncCacheKey,
+        queryFn: () => Promise.all([twitterPromise, rssPromise]),
+        staleTime: 2 * 60 * 1000,
+        gcTime: 15 * 60 * 1000,
+        retry: 1,
+      });
       console.log(`[Sync] Twitter: ${twitterResult?.data?.length || 0}, RSS: ${rssPosts?.length || 0}`);
 
       const { data: twitterData, meta } = twitterResult;

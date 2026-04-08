@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React, { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import {
   Building2,
@@ -22,6 +23,8 @@ import { cleanMarkdownForClipboard, normalizeSummaryMarkdown, renderMarkdownToHt
 const ARTICLE_CACHE = new Map();
 const ARTICLE_INSIGHT_CACHE = new Map();
 const ARTICLE_TRANSLATION_CACHE = new Map();
+
+const buildArticleReaderQueryKey = (url) => ['article-reader', 'article', String(url || '').trim()];
 
 const formatArticleDate = (value) => {
   if (!value) return '';
@@ -127,12 +130,6 @@ const ArticleReaderModal = ({
   onClose,
   onArticleGen,
 }) => {
-  const [articleState, setArticleState] = useState({
-    key: '',
-    status: 'idle',
-    data: null,
-    error: '',
-  });
   const [insightState, setInsightState] = useState({
     key: '',
     status: 'idle',
@@ -162,45 +159,32 @@ const ArticleReaderModal = ({
     Boolean(articleUrl) && ['rss', 'web_article'].includes(sourceType);
   const articleKey = articleUrl || String(article?.id || article?.title || '');
   const insightsOpen = openInsightArticleKey === articleKey;
-  const cachedArticle = articleUrl ? ARTICLE_CACHE.get(articleUrl) : null;
+  const articleQuery = useQuery({
+    queryKey: buildArticleReaderQueryKey(articleUrl),
+    queryFn: ({ signal }) => fetchReadableArticle(articleUrl, signal),
+    enabled: Boolean(article && isRemoteArticle && articleUrl),
+    staleTime: 24 * 60 * 60 * 1000,
+    gcTime: 3 * 24 * 60 * 60 * 1000,
+    retry: 1,
+  });
+  const cachedArticle = articleQuery.data || (articleUrl ? ARTICLE_CACHE.get(articleUrl) : null);
 
   const effectiveArticleState = !article || !isRemoteArticle || !articleUrl
     ? { key: '', status: 'idle', data: null, error: '' }
     : cachedArticle
       ? { key: articleKey, status: 'ready', data: cachedArticle, error: '' }
-      : articleState.key === articleKey
-        ? articleState
-        : { key: articleKey, status: 'loading', data: null, error: '' };
-
-  useEffect(() => {
-    if (!article || !isRemoteArticle || !articleUrl || cachedArticle) {
-      return undefined;
-    }
-
-    const controller = new AbortController();
-    let isActive = true;
-
-    fetchReadableArticle(articleUrl, controller.signal)
-      .then((payload) => {
-        if (!isActive) return;
-        ARTICLE_CACHE.set(articleUrl, payload);
-        setArticleState({ key: articleKey, status: 'ready', data: payload, error: '' });
-      })
-      .catch((error) => {
-        if (!isActive || error?.name === 'AbortError') return;
-        setArticleState({
+      : articleQuery.isError
+        ? {
           key: articleKey,
           status: 'error',
           data: null,
-          error: error instanceof Error ? error.message : 'Unable to load the article body',
-        });
-      });
+          error: articleQuery.error instanceof Error ? articleQuery.error.message : 'Unable to load the article body',
+        }
+        : { key: articleKey, status: 'loading', data: null, error: '' };
 
-    return () => {
-      isActive = false;
-      controller.abort();
-    };
-  }, [article, articleKey, articleUrl, cachedArticle, isRemoteArticle]);
+  useEffect(() => {
+    if (articleUrl && articleQuery.data) ARTICLE_CACHE.set(articleUrl, articleQuery.data);
+  }, [articleQuery.data, articleUrl]);
 
   const insightKey = useMemo(() => {
     const articleData = effectiveArticleState.data;
