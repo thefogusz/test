@@ -39,6 +39,7 @@ import {
 } from '../utils/appUtils';
 import { deserializeStoredCollection } from '../utils/appPersistence';
 import { fetchAllSubscribedFeeds, type RssSourceInfo } from '../services/RssService';
+import { RSS_CATALOG } from '../config/rssCatalog';
 
 type UseSearchWorkspaceParams = {
   activeView: string;
@@ -164,22 +165,111 @@ const RSS_SEARCH_STOP_TERMS = new Set([
   'with',
 ]);
 
+const RSS_SEARCH_FALLBACK_SOURCE_LIMIT = 14;
+
+const RSS_TOPIC_HINTS = [
+  {
+    pattern: /(ทอง|ทองคำ|ตลาด|ราคา|หุ้น|การเงิน|ลงทุน|เงินบาท|ดอลลาร์|เศรษฐกิจ|gold|bullion|market|price|finance|stock|invest|dollar|fed|commodity)/i,
+    topics: ['finance', 'business', 'news'],
+  },
+  {
+    pattern: /(คริปโต|บิตคอยน์|bitcoin|crypto|ethereum|web3)/i,
+    topics: ['crypto', 'finance'],
+  },
+  {
+    pattern: /(เกม|gaming|game|playstation|xbox|nintendo|steam)/i,
+    topics: ['gaming', 'tech'],
+  },
+  {
+    pattern: /(ai|openai|chatgpt|claude|gemini|ปัญญาประดิษฐ์|เอไอ)/i,
+    topics: ['ai', 'tech'],
+  },
+];
+
+const RSS_SEARCH_SYNONYM_GROUPS = [
+  {
+    pattern: /(ทอง|ทองคำ|gold|bullion)/i,
+    terms: ['ทองคำ', 'ทอง', 'gold', 'bullion', 'gold price', 'gold market'],
+  },
+  {
+    pattern: /(ตลาด|market|ราคา|price)/i,
+    terms: ['ตลาด', 'ราคา', 'market', 'price'],
+  },
+  {
+    pattern: /(หุ้น|stock|equity)/i,
+    terms: ['หุ้น', 'stock', 'stocks', 'equity'],
+  },
+  {
+    pattern: /(เงินบาท|ดอลลาร์|dollar|fed|เงินเฟ้อ|inflation)/i,
+    terms: ['เงินบาท', 'ดอลลาร์', 'dollar', 'fed', 'inflation'],
+  },
+];
+
+const uniqueBySourceId = (sources: RssSourceInfo[] = []) => {
+  const seen = new Set<string>();
+  return sources.filter((source) => {
+    const id = String(source?.id || '').trim().toLowerCase();
+    if (!id || seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+};
+
+const getInferredRssSources = (query: string) => {
+  const matchedTopics = new Set<string>();
+
+  RSS_TOPIC_HINTS.forEach(({ pattern, topics }) => {
+    if (pattern.test(query)) {
+      topics.forEach((topic) => matchedTopics.add(topic));
+    }
+  });
+
+  return Array.from(matchedTopics)
+    .flatMap((topic) => RSS_CATALOG[topic] || [])
+    .filter((source) => source.type !== 'community');
+};
+
+const getRssSearchSources = (query: string, subscribedSources: RssSourceInfo[] = []) =>
+  uniqueBySourceId([
+    ...subscribedSources,
+    ...getInferredRssSources(query),
+  ]).slice(0, RSS_SEARCH_FALLBACK_SOURCE_LIMIT);
+
+const buildRssQueryTerms = (query: string) => {
+  const normalizedQuery = normalizeSearchText(query);
+  const terms = new Set(
+    normalizedQuery
+      .split(' ')
+      .map((term) => term.trim())
+      .filter((term) => term.length > 1 && !RSS_SEARCH_STOP_TERMS.has(term)),
+  );
+
+  RSS_SEARCH_SYNONYM_GROUPS.forEach(({ pattern, terms: synonyms }) => {
+    if (pattern.test(query) || pattern.test(normalizedQuery)) {
+      synonyms.forEach((term) => terms.add(normalizeSearchText(term)));
+    }
+  });
+
+  return Array.from(terms).filter(Boolean);
+};
+
 const buildRssSearchResults = async (
   query: string,
   sources: RssSourceInfo[],
   mediaType: SearchMediaType,
 ) => {
-  if (mediaType === 'videos' || !Array.isArray(sources) || sources.length === 0) return [];
+  if (mediaType === 'videos') return [];
 
   const normalizedQuery = normalizeSearchText(query);
   if (!normalizedQuery) return [];
 
-  const queryTerms = normalizedQuery
-    .split(' ')
-    .map((term) => term.trim())
-    .filter((term) => term.length > 1 && !RSS_SEARCH_STOP_TERMS.has(term));
+  const queryTerms = buildRssQueryTerms(query);
+  if (!queryTerms.length) return [];
 
-  const rssPosts = await fetchAllSubscribedFeeds(sources, 6);
+  const rssSources = getRssSearchSources(query, sources);
+  if (!rssSources.length) return [];
+
+  const rssPosts = await fetchAllSubscribedFeeds(rssSources, 6);
 
   return rssPosts
     .map((post) => {
@@ -878,6 +968,67 @@ export const useSearchWorkspace = ({
           ? mergePlanLabelsIntoQuery(requestedQuery, searchPlan?.topicLabels || [])
           : requestedQuery;
         const data = mergeUniquePostsById(...rawDataChunks);
+
+        if (!isMore && data.length === 0 && rssSearchResults.length > 0) {
+          const mergedResults = mergeSearchCards([], rssSearchResults, effectiveLatestMode);
+          const effectiveSummaryMode = resolveAutomaticSummaryMode(mergedResults, searchMediaType);
+
+          setSearchResults(mergedResults);
+          setSearchOverflowResults([]);
+          setSearchCursor(finalCursor);
+          setActiveSearchFocus(effectiveFocus);
+          setStatus(`ค้นพบ ${mergedResults.length} ข่าวจาก RSS`);
+
+          const snapshot: SearchCacheSnapshot = {
+            lastSubmittedSearchQuery: normalizedRequestedQueryLabel,
+            searchCursor: finalCursor,
+            searchOverflowResults: [],
+            searchResults: mergedResults,
+            searchSummary: '',
+            searchWebSources: resolvedSearchWebSources,
+          };
+          queryClient.setQueryData(cacheKey, snapshot);
+
+          setStatus('[Agent 3/3] กำลังสังเคราะห์ข้อมูลและเขียน Executive Summary...');
+          setSearchSummary('');
+          generateExecutiveSummary(
+            buildSummaryCandidates(
+              mergedResults,
+              effectiveSummaryMode,
+              effectiveLatestMode,
+            ),
+            requestedQuery,
+            (_, fullText) => {
+              setSearchSummary(fullText);
+            },
+            webContext,
+            {
+              preferXSummary: false,
+              allowWebLead: true,
+              focusMode: effectiveFocus,
+              summaryMode: effectiveSummaryMode,
+            },
+          )
+            .then((summaryText) => {
+              if (summaryText) {
+                setSearchSummary(summaryText);
+                queryClient.setQueryData<SearchCacheSnapshot>(cacheKey, (prev) =>
+                  prev
+                    ? {
+                      ...prev,
+                      searchSummary: summaryText,
+                      searchWebSources: resolvedSearchWebSources,
+                    }
+                    : prev,
+                );
+              }
+            })
+            .catch((summaryError) => {
+              console.warn('[Search] Executive summary failed:', summaryError);
+            });
+
+          return;
+        }
 
         if (data.length > 0) {
           setStatus('[Quality Gate] คัดกรองและประเมิน Engagement...');

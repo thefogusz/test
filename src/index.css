@@ -6030,6 +6030,12 @@ h6,
   flex-shrink: 0;
 }
 
+.reference-badge.feed-card-citation-badge {
+  display: inline-flex;
+  margin: 0;
+  vertical-align: baseline;
+}
+
 .create-content-shell-modern {
   max-width: 980px;
   font-family: "Noto Sans Thai", "Inter", sans-serif;

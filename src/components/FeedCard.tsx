@@ -443,14 +443,10 @@ const FeedCard = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {tweet.citation_id && (
                   <span
+                    className="reference-badge feed-card-citation-badge"
                     style={{
-                      background: 'rgba(255,255,255,0.9)',
-                      color: '#000',
-                      padding: '1px 6px',
-                      borderRadius: '4px',
-                      fontSize: '10px',
-                      fontWeight: '900',
-                      letterSpacing: '0.05em',
+                      margin: 0,
+                      verticalAlign: 'baseline',
                     }}
                   >
                     {tweet.citation_id.replace(/[[\]]/g, '')}
