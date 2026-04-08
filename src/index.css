@@ -5172,74 +5172,165 @@ h6,
 
 /* AI Filter Modal specific */
 .ai-filter-modal {
-  max-width: 460px;
-  padding: 28px;
+  max-width: 500px;
+  padding: 26px;
+  background:
+    linear-gradient(180deg, rgba(17, 20, 27, 0.98) 0%, rgba(13, 15, 20, 0.98) 100%),
+    var(--bg-900);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.72),
+    0 0 0 1px rgba(255, 255, 255, 0.02) inset;
 }
 
 .ai-filter-modal-header {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 18px;
 }
 
 .ai-filter-modal-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: rgba(41, 151, 255, 0.1);
-  border: 1px solid rgba(41, 151, 255, 0.2);
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(18, 47, 88, 0.74), rgba(12, 32, 61, 0.74));
+  border: 1px solid rgba(74, 125, 190, 0.28);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(41, 151, 255, 0.9);
+  color: rgba(111, 185, 255, 0.94);
   flex-shrink: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.ai-filter-modal-heading {
+  min-width: 0;
+}
+
+.ai-filter-modal-eyebrow {
+  margin-bottom: 5px;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(121, 174, 255, 0.78);
 }
 
 .ai-filter-modal-hint {
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(184, 191, 203, 0.86);
+  margin-top: 4px;
+}
+
+.ai-filter-section {
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.026), rgba(255, 255, 255, 0.012)),
+    rgba(10, 12, 18, 0.7);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.ai-filter-section + .ai-filter-section {
+  margin-top: 12px;
+}
+
+.ai-filter-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.ai-filter-section-header-tight {
+  margin-bottom: 10px;
+}
+
+.ai-filter-section-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.ai-filter-section-copy {
+  margin-top: 4px;
   font-size: 12px;
-  color: var(--text-dim);
-  margin-top: 2px;
+  line-height: 1.55;
+  color: rgba(160, 167, 180, 0.82);
+}
+
+.ai-filter-visibility-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(28, 36, 52, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  color: rgba(223, 229, 240, 0.82);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .ai-filter-presets {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 16px;
+  gap: 8px;
 }
 
 .ai-filter-modal-preset-chip {
   display: inline-flex;
-  align-items: center;
+  align-items: stretch;
   max-width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 10px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.03);
+  min-height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.028);
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.ai-filter-modal-preset-chip:hover {
+  transform: translateY(-1px);
+  border-color: rgba(84, 140, 214, 0.24);
+  background: rgba(21, 28, 39, 0.94);
+}
+
+.ai-filter-modal-preset-chip.is-selected {
+  border-color: rgba(84, 140, 214, 0.28);
+  background: linear-gradient(180deg, rgba(25, 52, 88, 0.24), rgba(16, 24, 37, 0.88));
+  box-shadow: 0 10px 24px rgba(8, 15, 28, 0.28);
 }
 
 .ai-filter-preset-btn {
   background: transparent;
   border: none;
-  border-radius: 0;
-  color: var(--text-dim);
-  padding: 7px 13px;
+  color: rgba(227, 231, 239, 0.88);
+  padding: 0 14px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
   font-family: inherit;
   text-align: left;
+  min-height: 38px;
 }
 
 .ai-filter-preset-btn:hover:not(:disabled) {
-  background: rgba(41, 151, 255, 0.07);
   color: #fff;
 }
 
 .ai-filter-preset-btn.active {
-  background: rgba(41, 151, 255, 0.1);
   color: #fff;
 }
 
@@ -5248,24 +5339,33 @@ h6,
   cursor: not-allowed;
 }
 
+.ai-filter-preset-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 4px;
+}
+
 .ai-filter-preset-remove-btn {
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border: none;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
   background: transparent;
-  color: var(--text-dim);
+  color: rgba(161, 168, 181, 0.84);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
   flex-shrink: 0;
+  border-radius: 8px;
+  margin: auto 0;
 }
 
 .ai-filter-preset-remove-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
+  transform: translateY(-1px);
 }
 
 .ai-filter-preset-remove-btn:disabled {
@@ -5274,29 +5374,30 @@ h6,
 }
 
 .ai-filter-preset-visibility-btn {
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border: none;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
   background: transparent;
-  color: var(--text-dim);
-  padding: 0 10px;
+  color: rgba(161, 168, 181, 0.84);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 11px;
-  font-weight: 700;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
   flex-shrink: 0;
+  border-radius: 8px;
+  margin: auto 0;
 }
 
 .ai-filter-preset-visibility-btn:hover:not(:disabled) {
-  background: rgba(41, 151, 255, 0.08);
+  background: rgba(41, 151, 255, 0.12);
   color: #fff;
+  transform: translateY(-1px);
 }
 
 .ai-filter-preset-visibility-btn.active {
-  color: var(--accent-secondary);
+  color: rgba(111, 185, 255, 0.96);
+  background: rgba(31, 95, 167, 0.18);
 }
 
 .ai-filter-preset-visibility-btn:disabled {
@@ -5305,42 +5406,58 @@ h6,
 }
 
 .ai-filter-visible-hint {
-  margin: -4px 0 14px;
   font-size: 11px;
-  color: var(--text-dim);
+  line-height: 1.5;
+  color: rgba(160, 167, 180, 0.78);
 }
 
 .ai-filter-input {
-  min-height: 90px !important;
+  min-height: 110px !important;
   resize: none !important;
-  padding: 14px 16px !important;
-  font-size: 13px !important;
-  margin-bottom: 8px !important;
+  padding: 16px 18px !important;
+  font-size: 14px !important;
+  line-height: 1.65 !important;
+  margin-bottom: 0 !important;
+  background: rgba(6, 9, 14, 0.72) !important;
+  border-color: rgba(76, 88, 110, 0.42) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.ai-filter-compose-section {
+  padding-bottom: 12px;
+}
+
+.ai-filter-compose-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
 }
 
 .ai-filter-save-preset-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background: transparent;
-  border: 1px dashed rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  color: var(--text-dim);
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  color: rgba(221, 227, 238, 0.88);
   font-size: 11px;
-  font-weight: 500;
-  padding: 6px 12px;
+  font-weight: 700;
+  padding: 0 12px;
+  height: 32px;
   cursor: pointer;
   font-family: inherit;
-  margin-bottom: 20px;
   transition: all 0.15s ease;
-  width: 100%;
-  justify-content: center;
+  white-space: nowrap;
 }
 
 .ai-filter-save-preset-btn:hover {
-  border-color: rgba(41, 151, 255, 0.3);
-  color: rgba(41, 151, 255, 0.8);
-  background: rgba(41, 151, 255, 0.04);
+  border-color: rgba(84, 140, 214, 0.3);
+  color: #fff;
+  background: rgba(41, 151, 255, 0.08);
 }
 
 .modal-input {
