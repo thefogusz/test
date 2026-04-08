@@ -62,21 +62,21 @@ const safeReadStoredValue = (key, fallbackValue) => {
 const FEED_CARD_FOOTER_STYLE: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: '12px',
-  paddingTop: '10px',
+  gap: '10px',
+  paddingTop: '8px',
   borderTop: '1px solid rgba(255,255,255,0.04)',
 };
 
 const FEED_CARD_STATS_STYLE: React.CSSProperties = {
   display: 'flex',
-  gap: '12px',
+  gap: '10px',
   alignItems: 'center',
   flexWrap: 'wrap',
 };
 
 const FEED_CARD_STATS_GROUP_STYLE: React.CSSProperties = {
   display: 'flex',
-  gap: '12px',
+  gap: '10px',
   alignItems: 'center',
 };
 
@@ -401,7 +401,7 @@ const FeedCard = ({
           </span>
         </div>
       )}
-      <div className="feed-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+      <div className="feed-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <button
             type="button"
@@ -660,7 +660,7 @@ const FeedCard = ({
             gridTemplateColumns: '112px minmax(0, 1fr)',
             gap: '12px',
             alignItems: 'start',
-            marginBottom: '14px',
+            marginBottom: '16px',
           }}
         >
           <a
@@ -753,7 +753,7 @@ const FeedCard = ({
             gridTemplateColumns: '112px minmax(0, 1fr)',
             gap: '12px',
             alignItems: 'start',
-            marginBottom: '12px',
+            marginBottom: '16px',
           }}
         >
           <button
@@ -836,7 +836,7 @@ const FeedCard = ({
           </div>
         </div>
       ) : (
-        <div style={{ marginBottom: '12px' }}>
+        <div style={{ marginBottom: '16px' }}>
           {shouldShowRssTitle && (
             <div
               style={{
