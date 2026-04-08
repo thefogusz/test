@@ -63,7 +63,7 @@ const FEED_CARD_FOOTER_STYLE: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: '12px',
-  paddingTop: '10px',
+  paddingTop: '8px',
   borderTop: '1px solid rgba(255,255,255,0.04)',
 };
 
