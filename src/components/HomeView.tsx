@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Copy, Eraser, FileText, List, RefreshCw, ShieldCheck, Undo2 } from 'lucide-react';
 import { cleanMarkdownForClipboard, normalizeSummaryMarkdown, renderMarkdownToHtml } from '../utils/markdown';
 import AiFilteredBadge from './AiFilteredBadge';
@@ -21,7 +22,9 @@ const HomeView = ({
   nextCursor,
   aiFilterSummary,
   aiFilterSummaryDateLabel,
-  bookmarks,
+  bookmarkIdSet,
+  watchlistHandleSet,
+  postLists,
   onOpenMobileList,
   onDeleteAll,
   onUndo,
@@ -41,6 +44,11 @@ const HomeView = ({
   const hasHomeSecondaryActions = originalFeedLength > 0 || deletedFeedLength > 0;
   const showHomeFeedToolbar = feed.length > 0 || isFiltered;
   const normalizedAiFilterSummary = normalizeSummaryMarkdown(aiFilterSummary);
+  const effectiveBookmarkIdSet = useMemo(() => bookmarkIdSet ?? new Set(), [bookmarkIdSet]);
+  const effectiveWatchlistHandleSet = useMemo(
+    () => watchlistHandleSet ?? new Set(),
+    [watchlistHandleSet],
+  );
 
   return (
     <div className="animate-fade-in">
@@ -253,7 +261,11 @@ const HomeView = ({
             <FeedCard
               key={item.id || index}
               tweet={item}
-              isBookmarked={bookmarks.some((bookmark) => bookmark.id === item.id)}
+              isBookmarked={effectiveBookmarkIdSet.has(item.id)}
+              isInWatchlist={effectiveWatchlistHandleSet.has(
+                String(item?.author?.username || '').trim().replace(/^@/, '').toLowerCase(),
+              )}
+              postLists={postLists}
               onBookmark={onBookmark}
               onArticleGen={onArticleGen}
               onReadArticle={onReadArticle}

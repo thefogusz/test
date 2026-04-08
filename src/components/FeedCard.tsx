@@ -189,8 +189,8 @@ const FeedCard = ({
   onReadArticle,
   onBookmark,
   isBookmarked: initialBookmarked = false,
-  isInWatchlist = false,
-  postLists = [],
+  isInWatchlist,
+  postLists,
   onAddToWatchlist,
   onTogglePostList,
 }: FeedCardProps) => {
@@ -242,13 +242,14 @@ const FeedCard = ({
     [displayTweet.author?.username, displayTweet.id, displayTweet.url],
   );
   const fallbackPostLists = useMemo(() => {
-    if (Array.isArray(postLists) && postLists.length > 0) return postLists;
+    if (Array.isArray(postLists)) return postLists;
     const storedPostLists = safeReadStoredValue(STORAGE_KEYS.postLists, []);
     return Array.isArray(storedPostLists) ? storedPostLists : [];
   }, [postLists]);
   const effectiveIsInWatchlist = useMemo(() => {
     if (!authorUsername) return false;
-    if (optimisticInWatchlist || isInWatchlist) return true;
+    if (optimisticInWatchlist) return true;
+    if (typeof isInWatchlist === 'boolean') return isInWatchlist;
     const storedWatchlist = safeReadStoredValue(STORAGE_KEYS.watchlist, []);
     return (storedWatchlist || []).some(
       (user) => (user?.username || '').trim().replace(/^@/, '').toLowerCase() === authorUsername,

@@ -187,6 +187,10 @@ const App = () => {
   });
   const [bookmarkTab, setBookmarkTab] = useState('news');
   const [selectedArticle, setSelectedArticle] = useState(null);
+  const bookmarkIdSet = useMemo(
+    () => new Set(bookmarks.map((item) => item?.id).filter(Boolean)),
+    [bookmarks],
+  );
 
   const [readArchive, setReadArchive] = useIndexedDbState(STORAGE_KEYS.readArchive, [], {
     deserialize: deserializeStoredCollection,
@@ -511,7 +515,9 @@ const App = () => {
             nextCursor={nextCursor}
             aiFilterSummary={aiFilterSummary}
             aiFilterSummaryDateLabel={aiFilterSummaryDateLabel}
-            bookmarks={bookmarks}
+            bookmarkIdSet={bookmarkIdSet}
+            watchlistHandleSet={watchlistHandleSet}
+            postLists={postLists}
             onOpenMobileList={() => setIsMobilePostListOpen(true)}
             onDeleteAll={handleDeleteAll}
             onUndo={handleUndo}
