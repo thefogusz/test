@@ -662,6 +662,7 @@ const NewsSourcesTab = ({
   onTogglePostList,
 }: NewsSourcesTabProps) => {
   const [activeTopic, setActiveTopic] = useState<string>('all');
+  const [showAllMobileTopics, setShowAllMobileTopics] = useState(false);
   const subscribedIds = useMemo(
     () => new Set(subscribedSources.map((s) => s.id)),
     [subscribedSources],
@@ -678,6 +679,18 @@ const NewsSourcesTab = ({
     () => Object.values(RSS_CATALOG).flat().filter((source) => source.lang === 'th').length,
     [],
   );
+  const mobilePrimaryTopicKeys = useMemo(
+    () => ['all', THAI_FILTER_KEY, 'news', 'ai', 'tech', 'business', 'finance', 'crypto'],
+    [],
+  );
+  const mobileTopicKeys = useMemo(() => {
+    if (showAllMobileTopics) return null;
+    const keys = [...mobilePrimaryTopicKeys];
+    if (activeTopic !== 'all' && !keys.includes(activeTopic)) {
+      keys.push(activeTopic);
+    }
+    return new Set(keys);
+  }, [activeTopic, mobilePrimaryTopicKeys, showAllMobileTopics]);
 
   const enSources = useMemo(() => {
     const sources = filteredSources.filter((s) => s.lang === 'en');
@@ -798,10 +811,31 @@ const NewsSourcesTab = ({
         {Object.entries(TOPIC_LABELS)
           .filter(([key]) => key !== 'news')
           .map(([key, { label, icon, count }]) => {
+            if (mobileTopicKeys && !mobileTopicKeys.has(key)) return null;
             const IconComponent = ICON_MAP[icon];
             if (!IconComponent) return null;
             return renderTopicButton(key, label, IconComponent, count);
           })}
+
+        {!showAllMobileTopics && (
+          <button
+            type="button"
+            onClick={() => setShowAllMobileTopics(true)}
+            className="news-source-filter-more-btn"
+          >
+            ดูหมวดเพิ่ม
+          </button>
+        )}
+
+        {showAllMobileTopics && (
+          <button
+            type="button"
+            onClick={() => setShowAllMobileTopics(false)}
+            className="news-source-filter-more-btn is-open"
+          >
+            ย่อหมวด
+          </button>
+        )}
       </div>
 
       <style dangerouslySetInnerHTML={{
