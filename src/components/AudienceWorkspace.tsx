@@ -92,6 +92,11 @@ const AudienceWorkspace = ({
     setAiQuery('');
     setAiSearchResults([]);
   };
+  const hasAiResults = aiSearchResults.length > 0;
+  const isRefreshingAiResults = aiSearchLoading && hasAiResults;
+  const getExpertAvatarFallback = (expert) =>
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(expert.name || expert.username || 'FORO')}&background=101826&color=bfdbfe&bold=true`;
+  const getExpertInitial = (expert) => String(expert.name || expert.username || 'F').trim().charAt(0).toUpperCase();
 
 
   return (
@@ -179,11 +184,16 @@ const AudienceWorkspace = ({
               </div>
             )}
 
-            {!aiSearchLoading && aiSearchResults.length > 0 && (
-              <div className="audience-results-shell" style={{ marginBottom: '32px' }}>
-                <div className="expert-grid" style={{ marginBottom: '24px' }}>
+            {hasAiResults && (
+              <div
+                className={`audience-results-shell ${isRefreshingAiResults ? 'is-refreshing' : ''}`}
+                style={{ marginBottom: '32px' }}
+                aria-busy={isRefreshingAiResults}
+              >
+                <div className="expert-grid audience-results-grid" style={{ marginBottom: '24px' }}>
                   {aiSearchResults.map((expert, i) => {
                     const isAdded = watchlist.find((w) => w.username.toLowerCase() === expert.username.toLowerCase());
+                    const avatarFallback = getExpertAvatarFallback(expert);
                     return (
                       <div key={expert.username} className="expert-card animate-fade-in" style={{ animationDelay: `${i * 0.05}s` }}>
                         <div className="audience-expert-top">
@@ -256,21 +266,25 @@ const AudienceWorkspace = ({
                           </div>
 
                           <div className="audience-expert-profile">
-                            <img
-                              src={`https://unavatar.io/twitter/${expert.username}`}
+                            <div
                               className="audience-expert-avatar"
-                              style={{ width: '42px', height: '42px', borderRadius: '50%', marginBottom: '10px', border: '2px solid var(--bg-700)', objectFit: 'cover' }}
-                              onError={(e) => {
-                                if (e.target.src.includes('unavatar.io')) {
-                                  e.target.src = `https://unavatar.io/github/${expert.username}`;
-                                } else if (e.target.src.includes('github')) {
-                                  e.target.src = 'https://www.google.com/s2/favicons?domain=x.com&sz=128';
-                                } else {
-                                  e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(expert.name)}&background=random&color=fff&bold=true`;
-                                  e.target.onerror = null;
-                                }
-                              }}
-                            />
+                              style={{ width: '42px', height: '42px', borderRadius: '50%', marginBottom: '10px', border: '2px solid var(--bg-700)', overflow: 'hidden', position: 'relative', display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg, rgba(41,151,255,0.18), rgba(157,117,255,0.16))', color: '#bfdbfe', fontSize: '13px', fontWeight: 900 }}
+                            >
+                              <span>{getExpertInitial(expert)}</span>
+                              <img
+                                src={expert.profile_image_url || `https://unavatar.io/twitter/${expert.username}?fallback=${encodeURIComponent(avatarFallback)}`}
+                                alt=""
+                                aria-hidden="true"
+                                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                                onError={(e) => {
+                                  if (e.currentTarget.src !== avatarFallback) {
+                                    e.currentTarget.src = avatarFallback;
+                                  } else {
+                                    e.currentTarget.style.display = 'none';
+                                  }
+                                }}
+                              />
+                            </div>
                             <a href={`https://x.com/${expert.username}`} target="_blank" rel="noopener noreferrer" className="audience-expert-link" style={{ textDecoration: 'none', display: 'inline-block', marginBottom: '8px', width: 'fit-content' }}>
                               <div className="expert-name" style={{ fontSize: '14px', color: '#fff', fontWeight: '800' }}>{expert.name}</div>
                               <div className="expert-username" style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>@{expert.username}</div>
