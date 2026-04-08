@@ -377,11 +377,6 @@ const FeedCard = ({
 
   return (
     <div className={feedCardClassName}>
-      {isFresh && (
-        <div className="feed-card-fresh-corner" title="New from the latest feed">
-          <span>NEW</span>
-        </div>
-      )}
       {showRepostBanner && isRepost && (
         <div
           style={{
@@ -406,7 +401,7 @@ const FeedCard = ({
           </span>
         </div>
       )}
-      <div className="feed-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+      <div className="feed-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
         <div style={{ position: 'relative', minWidth: 0 }}>
           <button
             type="button"
@@ -415,7 +410,7 @@ const FeedCard = ({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
+              gap: '7px',
               minWidth: 0,
               background: 'transparent',
               border: 'none',
@@ -427,11 +422,11 @@ const FeedCard = ({
             <div
               className="feed-card-author-avatar"
               style={{
-                width: '42px',
-                height: '42px',
+                width: '40px',
+                height: '40px',
                 borderRadius: '50%',
                 overflow: 'hidden',
-                border: '2px solid rgba(255,255,255,0.08)',
+                border: '1px solid rgba(255,255,255,0.08)',
                 flexShrink: 0,
               }}
             >
@@ -445,15 +440,15 @@ const FeedCard = ({
               />
             </div>
             <div className="feed-card-author-copy" style={{ minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', lineHeight: 1.1 }}>
                 {tweet.citation_id && (
                   <span
                     style={{
                       background: 'rgba(255,255,255,0.9)',
                       color: '#000',
-                      padding: '1px 6px',
+                      padding: '1px 5px',
                       borderRadius: '4px',
-                      fontSize: '10px',
+                      fontSize: '9px',
                       fontWeight: '900',
                       letterSpacing: '0.05em',
                     }}
@@ -461,11 +456,11 @@ const FeedCard = ({
                     {tweet.citation_id.replace(/[[\]]/g, '')}
                   </span>
                 )}
-                <div style={{ fontWeight: '800', fontSize: '13px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontWeight: '800', fontSize: '12.5px', color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {displayTweet.author?.name}
                 </div>
               </div>
-              <div style={{ color: 'var(--text-dim)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ color: 'var(--text-dim)', fontSize: '10.5px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '1px', lineHeight: 1.05 }}>
                 <span>{isRssPost && tweet.url ? new URL(tweet.url).hostname.replace('www.', '') : `@${displayTweet.author?.username}`}</span>
               </div>
             </div>
@@ -522,7 +517,7 @@ const FeedCard = ({
           )}
         </div>
 
-        <div className="feed-card-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div className="feed-card-meta" style={{ display: 'flex', alignItems: 'flex-start', gap: '5px', paddingTop: '1px' }}>
           {showInlineReplyBanner && displayTweet.isReply && (
             <div
               className="feed-card-reply-badge feed-card-reply-badge-inline"
@@ -600,17 +595,17 @@ const FeedCard = ({
 
           <div
             style={{
-              background: 'rgba(255,255,255,0.06)',
-              padding: '0 10px',
+              background: isFresh ? 'rgba(41, 151, 255, 0.14)' : 'rgba(255,255,255,0.06)',
+              padding: '0 8px',
               borderRadius: '100px',
-              fontSize: '10px',
+              fontSize: '9px',
               fontWeight: '900',
-              color: 'rgba(255,255,255,0.9)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              color: isFresh ? 'var(--accent-secondary)' : 'rgba(255,255,255,0.9)',
+              border: isFresh ? '1px solid rgba(41, 151, 255, 0.22)' : '1px solid rgba(255,255,255,0.08)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              height: '26px',
+              height: '22px',
             }}
           >
             {getRelativeTime(displayTweet.created_at)}
@@ -623,8 +618,8 @@ const FeedCard = ({
               background: 'transparent',
               border: 'none',
               cursor: 'pointer',
-              width: '26px',
-              height: '26px',
+              width: '24px',
+              height: '24px',
               borderRadius: '6px',
               color: bookmarked ? '#facc15' : 'rgba(255,255,255,0.25)',
               display: 'flex',
@@ -633,7 +628,7 @@ const FeedCard = ({
               padding: 0,
             }}
           >
-            <Bookmark size={15} fill={bookmarked ? 'currentColor' : 'none'} strokeWidth={2.5} />
+            <Bookmark size={14} fill={bookmarked ? 'currentColor' : 'none'} strokeWidth={2.5} />
           </button>
 
           <a
@@ -641,8 +636,8 @@ const FeedCard = ({
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              width: '26px',
-              height: '26px',
+              width: '24px',
+              height: '24px',
               borderRadius: '6px',
               color: 'rgba(255,255,255,0.25)',
               display: 'flex',
@@ -652,7 +647,7 @@ const FeedCard = ({
             }}
             className="icon-hover"
           >
-            <ExternalLink size={15} strokeWidth={2.5} />
+            <ExternalLink size={14} strokeWidth={2.5} />
           </a>
         </div>
       </div>
@@ -665,7 +660,7 @@ const FeedCard = ({
             gridTemplateColumns: '112px minmax(0, 1fr)',
             gap: '12px',
             alignItems: 'start',
-            marginBottom: '14px',
+            marginBottom: '12px',
           }}
         >
           <a
@@ -758,7 +753,7 @@ const FeedCard = ({
             gridTemplateColumns: '112px minmax(0, 1fr)',
             gap: '12px',
             alignItems: 'start',
-            marginBottom: '14px',
+            marginBottom: '12px',
           }}
         >
           <button
