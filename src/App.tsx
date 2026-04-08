@@ -162,6 +162,7 @@ const App = () => {
     aiSearchLoading,
     aiSearchResults,
     setAiSearchResults,
+    hasSearchedAudience,
     manualQuery,
 
     setManualQuery,
@@ -645,6 +646,7 @@ const App = () => {
               aiSearchLoading={aiSearchLoading}
               aiSearchResults={aiSearchResults}
               setAiSearchResults={setAiSearchResults}
+              hasSearchedAudience={hasSearchedAudience}
               watchlist={watchlist}
 
               postLists={postLists}

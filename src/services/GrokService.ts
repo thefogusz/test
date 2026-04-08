@@ -333,7 +333,13 @@ const buildTweetUrl = (tweet) => {
   return `https://x.com/${username}/status/${tweet.id}`;
 };
 
-const EXPERT_CONTEXT_FETCH_TIMEOUT_MS = 3000;
+const RECENT_EXPERT_ACTIVITY_DAYS = 7;
+const EXPERT_CONTEXT_FETCH_TIMEOUT_MS = 5000;
+const EXPERT_ACTIVITY_VERIFY_TIMEOUT_MS = 2500;
+const EXPERT_ACTIVE_MAX_DAYS = 7;
+const EXPERT_MIN_FOLLOWERS = 10000;
+const EXPERT_MIN_TOPIC_SIGNAL = 4;
+const EXPERT_MIN_ENGAGEMENT_SIGNAL = 10;
 
 const withTimeoutFallback = async (promise, fallbackValue, timeoutMs) => {
   let timeoutId;
@@ -350,12 +356,87 @@ const withTimeoutFallback = async (promise, fallbackValue, timeoutMs) => {
   }
 };
 
+const buildRecentExpertActivityMap = async (usernames = []) => {
+  const normalizedUsernames = Array.from(
+    new Set(
+      (usernames || [])
+        .map((username) => String(username || '').replace(/^@/, '').trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  );
+
+  if (normalizedUsernames.length === 0) return new Map();
+
+  const sinceDate = new Date(Date.now() - RECENT_EXPERT_ACTIVITY_DAYS * 86_400_000)
+    .toISOString()
+    .split('T')[0];
+  const query = `(${normalizedUsernames.map((username) => `from:${username}`).join(' OR ')}) since:${sinceDate}`;
+
+  try {
+    const searchResponse = await searchEverything(query, '', false, 'Latest', false);
+    const tweets = Array.isArray(searchResponse?.data) ? searchResponse.data : [];
+    const activityMap = new Map();
+
+    for (const tweet of tweets) {
+      const username = String(tweet?.author?.username || '').replace(/^@/, '').trim().toLowerCase();
+      if (!username) continue;
+
+      const createdAtMs = tweet?.created_at ? new Date(tweet.created_at).getTime() : NaN;
+      const ageDays = Number.isFinite(createdAtMs)
+        ? Math.max(0, (Date.now() - createdAtMs) / 86_400_000)
+        : RECENT_EXPERT_ACTIVITY_DAYS + 999;
+      const rawEngagement =
+        Number(tweet.likeCount || tweet.like_count || 0) +
+        Number(tweet.retweetCount || tweet.retweet_count || 0) * 2 +
+        Number(tweet.replyCount || tweet.reply_count || 0) * 1.5;
+      const followers = Number(tweet?.author?.followers || tweet?.author?.fastFollowersCount || 0);
+      const existing = activityMap.get(username);
+
+      if (!existing) {
+        activityMap.set(username, {
+          lastSeenDays: ageDays,
+          tweetCount: 1,
+          engagementSignal: rawEngagement,
+          followers,
+          isVerified: Boolean(tweet?.author?.isVerified || tweet?.author?.isBlueVerified),
+        });
+        continue;
+      }
+
+      existing.tweetCount += 1;
+      existing.engagementSignal += rawEngagement;
+      existing.followers = Math.max(existing.followers || 0, followers);
+      existing.isVerified = existing.isVerified || Boolean(tweet?.author?.isVerified || tweet?.author?.isBlueVerified);
+      existing.lastSeenDays = Math.min(existing.lastSeenDays, ageDays);
+    }
+
+    return activityMap;
+  } catch (error) {
+    console.warn('[GrokService] Could not verify expert recency:', error);
+    return new Map();
+  }
+};
+
 const formatExpertActivityLabel = (lastSeenDays) => {
-  if (!Number.isFinite(lastSeenDays)) return 'Active recently';
+  if (!Number.isFinite(lastSeenDays)) return '';
   if (lastSeenDays <= 7) return 'Active this week';
-  if (lastSeenDays <= 30) return 'Active this month';
-  if (lastSeenDays <= 90) return 'Active this quarter';
-  return 'Active recently';
+  return '';
+};
+
+const hasExpertQualitySignal = (activity = {}) => {
+  const followers = Number(activity.followers || 0);
+  const engagementSignal = Number(activity.engagementSignal || 0);
+  const lastSeenDays = Number(activity.lastSeenDays);
+  const isVerified = Boolean(activity.isVerified);
+
+  if (!Number.isFinite(lastSeenDays) || lastSeenDays > EXPERT_ACTIVE_MAX_DAYS) return false;
+  if (followers < EXPERT_MIN_FOLLOWERS && !isVerified) return false;
+
+  return (
+    engagementSignal >= EXPERT_MIN_ENGAGEMENT_SIGNAL ||
+    followers >= 50000 ||
+    isVerified
+  );
 };
 
 export const tavilySearch = async (query, isLatest = false, options = {}) => {
@@ -2033,7 +2114,14 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
           const hasBio = (author.description || '').length > 20;
           const accountAgeDays = author.createdAt ? (nowMs - new Date(author.createdAt).getTime()) / 86_400_000 : 365;
           const verifiedBonus = author.isVerified ? 15 : author.isBlueVerified ? 6 : 0;
-          const activityScore = author._latestTweetAgeDays <= 7 ? 20 : author._latestTweetAgeDays <= 30 ? 12 : author._latestTweetAgeDays <= 90 ? 4 : 0;
+          const activityScore = author._latestTweetAgeDays <= 7 ? 20 : 0;
+          const expertQualityScore =
+            author._topicSignal * 3 +
+            Math.min(35, Math.log10(followers + 1) * 7) +
+            Math.min(35, engRate * 12) +
+            verifiedBonus +
+            activityScore +
+            Math.min(15, author._topicTweetCount * 3);
 
           return {
             ...author,
@@ -2046,14 +2134,21 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
               Math.min(15, author._topicTweetCount * 3),
             _engRate: engRate,
             _activityDays: author._latestTweetAgeDays,
+            _expertQualityScore: expertQualityScore,
           };
         });
 
         qualifiedAuthors = scoredAuthors
-          .filter((a) => (a.followers || a.fastFollowersCount || 0) >= 500)
-          .filter((a) => a._topicSignal >= 2)
-          .filter((a) => a._latestTweetAgeDays <= 90)
-          .sort((a, b) => b._compositeScore - a._compositeScore)
+          .filter((a) => (a.followers || a.fastFollowersCount || 0) >= EXPERT_MIN_FOLLOWERS || a.isVerified || a.isBlueVerified)
+          .filter((a) => a._topicSignal >= EXPERT_MIN_TOPIC_SIGNAL)
+          .filter((a) => a._latestTweetAgeDays <= EXPERT_ACTIVE_MAX_DAYS)
+          .filter((a) =>
+            a._engagementSignal >= EXPERT_MIN_ENGAGEMENT_SIGNAL ||
+            (a.followers || a.fastFollowersCount || 0) >= 50000 ||
+            a.isVerified ||
+            a.isBlueVerified
+          )
+          .sort((a, b) => b._expertQualityScore - a._expertQualityScore)
           .slice(0, 18);
 
         if (qualifiedAuthors.length > 0) {
@@ -2064,8 +2159,8 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
             ...qualifiedAuthors.map((a) => {
               const followers = a.followers || a.fastFollowersCount || 0;
               const engLabel = a._engRate >= 3 ? 'high' : a._engRate >= 1 ? 'mid' : 'low';
-              const actLabel = a._activityDays <= 7 ? 'active this week' : a._activityDays <= 30 ? 'active this month' : `${Math.round(a._activityDays)}d ago`;
-              return `- @${a.username} (${a.name}) | followers: ${Number(followers).toLocaleString()} | engRate: ${a._engRate.toFixed(2)}% (${engLabel}) | lastSeen: ${actLabel} | topicTweets: ${a._topicTweetCount}`;
+              const actLabel = a._activityDays <= 7 ? 'active this week' : `${Math.round(a._activityDays)}d ago`;
+              return `- @${a.username} (${a.name}) | followers: ${Number(followers).toLocaleString()} | engRate: ${a._engRate.toFixed(2)}% (${engLabel}) | lastSeen: ${actLabel} | topicTweets: ${a._topicTweetCount} | qualityScore: ${Math.round(a._expertQualityScore)}`;
             }),
             '',
           ].join('\n');
@@ -2098,6 +2193,8 @@ Priority logic:
 
 Hard rules:
 - Topic fit is non-negotiable. Never recommend based on follower count alone.
+- Quality is non-negotiable. Prefer accounts with strong follower signal, real engagement, recent posts, and domain expertise for "${categoryQuery}".
+- Reject accounts that are merely active but low authority, random, anonymous, spammy, fan accounts, engagement bait, or only loosely related.
 - Do not hallucinate usernames. If you are not confident a username is real and active, skip it.
 - Prefer diversity: mix practitioners, analysts, journalists, researchers — not 6 accounts of the same type.
 - Exclude list — never recommend these: [${excludeUsernames.join(', ')}]
@@ -2128,24 +2225,36 @@ Hard rules:
         return activeCandidateUsernames.size === 0 || activeCandidateUsernames.has(username);
       });
 
-    const activityMap = new Map(
-      qualifiedAuthors.map((author) => [
-        String(author?.username || '').toLowerCase(),
-        {
-          lastSeenDays: author?._latestTweetAgeDays,
-          tweetCount: author?._topicTweetCount || 0,
-        },
-      ]),
-    );
-    const verifiedExperts = modelExperts.map((expert) => {
-      const activity = activityMap.get(String(expert.username || '').toLowerCase());
-      return {
-        ...expert,
-        lastSeenDays: activity?.lastSeenDays,
-        activityLabel: formatExpertActivityLabel(activity?.lastSeenDays),
-        recentTweetCount: activity?.tweetCount || 0,
-      };
-    });
+    const activityMap = activeCandidateUsernames.size > 0
+      ? new Map(
+        qualifiedAuthors.map((author) => [
+          String(author?.username || '').toLowerCase(),
+          {
+            lastSeenDays: author?._latestTweetAgeDays,
+            tweetCount: author?._topicTweetCount || 0,
+            engagementSignal: author?._engagementSignal || 0,
+            followers: author?.followers || author?.fastFollowersCount || 0,
+            isVerified: Boolean(author?.isVerified || author?.isBlueVerified),
+          },
+        ]),
+      )
+      : await withTimeoutFallback(
+        buildRecentExpertActivityMap(modelExperts.map((expert) => expert.username)),
+        new Map(),
+        EXPERT_ACTIVITY_VERIFY_TIMEOUT_MS,
+      );
+    const verifiedExperts = modelExperts
+      .map((expert) => {
+        const activity = activityMap.get(String(expert.username || '').toLowerCase());
+        const activityLabel = formatExpertActivityLabel(activity?.lastSeenDays);
+        return {
+          ...expert,
+          lastSeenDays: activity?.lastSeenDays,
+          activityLabel,
+          recentTweetCount: activity?.tweetCount || 0,
+        };
+      })
+      .filter((expert) => Boolean(expert.activityLabel) && hasExpertQualitySignal(activityMap.get(String(expert.username || '').toLowerCase())));
     const selectedUsernames = new Set(verifiedExperts.map((expert) => String(expert.username || '').toLowerCase()));
 
     const fallbackExperts = qualifiedAuthors

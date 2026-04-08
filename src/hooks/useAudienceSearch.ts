@@ -11,7 +11,7 @@ const normalizeHandle = (value = '') => String(value || '').replace(/^@/, '').tr
 
 const buildAudienceExpertsQueryKey = (query, excludes = []) => [
   'audience-experts',
-  'v2',
+  'v5',
   normalizeAudienceQuery(query),
   Array.from(new Set((excludes || []).map(normalizeHandle).filter(Boolean))).sort(),
 ];
@@ -36,6 +36,7 @@ export const useAudienceSearch = ({
   const [audienceTab, setAudienceTab] = usePersistentState(STORAGE_KEYS.audienceTab, 'ai');
   const [aiQuery, setAiQuery] = useState('');
   const [aiSearchResults, setAiSearchResults] = useState([]);
+  const [hasSearchedAudience, setHasSearchedAudience] = useState(false);
   const [manualQuery, setManualQuery] = useState('');
   const [manualPreview, setManualPreview] = useState(null);
 
@@ -83,6 +84,7 @@ export const useAudienceSearch = ({
       ];
       const experts = await aiSearchMutation.mutateAsync({ query, excludes });
       setAiSearchResults(prev => isMore ? [...prev, ...experts] : experts);
+      if (!isMore) setHasSearchedAudience(true);
     } catch (err) {
       console.error(err);
     }
@@ -112,6 +114,7 @@ export const useAudienceSearch = ({
     aiSearchLoading: aiSearchMutation.isPending,
     aiSearchResults,
     setAiSearchResults,
+    hasSearchedAudience,
     manualQuery,
     setManualQuery,
     manualPreview,

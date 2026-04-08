@@ -44,6 +44,7 @@ const AudienceWorkspace = ({
   aiSearchLoading,
   aiSearchResults,
   setAiSearchResults,
+  hasSearchedAudience,
 
   watchlist,
   postLists,
@@ -287,6 +288,13 @@ const AudienceWorkspace = ({
                     {aiSearchLoading ? <RefreshCw size={14} className="animate-spin" /> : '\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e15\u0e34\u0e21'}
                   </button>
                 </div>
+              </div>
+            )}
+
+            {!aiSearchLoading && hasSearchedAudience && aiSearchResults.length === 0 && (
+              <div style={{ padding: '44px 0', textAlign: 'center', color: 'rgba(255,255,255,0.62)', fontSize: '13px', lineHeight: 1.6 }}>
+                <div style={{ color: '#fff', fontWeight: 800, marginBottom: '6px' }}>No verified high-quality matches yet</div>
+                <div>FORO only shows accounts with recent activity, strong topic fit, and quality signals.</div>
               </div>
             )}
 
