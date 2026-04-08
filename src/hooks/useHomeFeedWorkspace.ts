@@ -492,7 +492,6 @@ export const useHomeFeedWorkspace = ({
       })();
 
       const rssPromise = cachedFeedSync ? Promise.resolve(cachedFeedSync[1]) : (async () => {
-        setStatus('กำลังดึงข่าวจากแหล่งข่าว RSS...');
         return fetchAllSubscribedFeeds(effectiveRssSources);
       })();
 
