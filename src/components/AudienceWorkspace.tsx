@@ -144,6 +144,72 @@ const AudienceWorkspace = ({
     if (followers >= 1000) return `${(followers / 1000).toFixed(followers >= 100000 ? 0 : 1).replace(/\.0$/, '')}K`;
     return followers.toLocaleString();
   };
+  const buildExpertIdentityReasoning = (expert) => {
+    const topic = String(aiQuery || '').trim();
+    const bio = String(expert?.description || '').replace(/\s+/g, ' ').trim();
+    if (!bio) return '';
+
+    const shortBio = bio.split(/(?<=[.!?])\s+/)[0]?.trim() || bio;
+    const companyMatch = shortBio.match(/\b(OpenAI|Anthropic|Google DeepMind|DeepMind|Meta|NVIDIA|Microsoft|Amazon|Tesla|xAI|Perplexity|Hugging Face)\b/i);
+    const roleMatch = shortBio.match(/\b(founder|co-founder|ceo|cto|engineer|researcher|scientist|author|investor|journalist|editor|creator|educator|professor|writer|operator|developer)\b/i);
+
+    const thaiTopic =
+      topic && /ai/i.test(topic)
+        ? 'AI'
+        : topic || '';
+
+    if (companyMatch && roleMatch) {
+      return `${shortBio} เลยเหมาะกับคนที่อยากตาม${thaiTopic || 'เรื่องนี้'}จากประสบการณ์ตรง`;
+    }
+    if (companyMatch) {
+      return `${shortBio} เหมาะถ้าอยากตาม${thaiTopic || 'ประเด็นนี้'}จากคนในวงการโดยตรง`;
+    }
+    if (roleMatch) {
+      return `${shortBio} และมักแชร์มุมจากประสบการณ์ทำงานจริง`;
+    }
+    if (shortBio.length <= 110) {
+      return shortBio;
+    }
+
+    return '';
+  };
+  const formatExpertReasoning = (expert) => {
+    const topic = String(aiQuery || '').trim();
+    const identityReason = buildExpertIdentityReasoning(expert);
+    const raw = String(expert?.reasoning || '')
+      .trim()
+      .replace(/^["'“”]+|["'“”]+$/g, '')
+      .replace(/\s+/g, ' ');
+
+    if (identityReason) {
+      if (
+        !raw ||
+        /(ช่วยให้เห็นภาพรวม|บัญชีนี้ช่วยได้ดี|ถ้าคุณอยากตาม|คุณอยาก|เห็นภาพรวมชัดขึ้น)/i.test(raw) ||
+        raw.length > 90
+      ) {
+        return identityReason;
+      }
+    }
+
+    if (!raw) {
+      return topic ? `เหมาะไว้ตามประเด็น${topic}แบบต่อเนื่อง` : 'เหมาะไว้เก็บในลิสต์สำหรับตามต่อ';
+    }
+
+    if (
+      /(ช่วยให้เห็นภาพรวม|บัญชีนี้ช่วยได้ดี|ถ้าคุณอยากตาม|คุณอยาก|เห็นภาพรวมชัดขึ้น)/i.test(raw) ||
+      raw.length > 90
+    ) {
+      if (/followers|creator|writer|author|book|habit|mindset|lifestyle|self-improvement/i.test(`${expert?.name || ''} ${expert?.username || ''}`)) {
+        return 'เด่นเรื่องมุมคิดและการนำไปใช้จริง เหมาะไว้ตามต่อเนื่อง';
+      }
+      if (topic) {
+        return `ใช้เป็นบัญชีหลักไว้เช็กความเคลื่อนไหวของ${topic}ได้`;
+      }
+      return 'ช่วยให้ตามประเด็นนี้ได้ทันโดยไม่ต้องไล่หลายแหล่ง';
+    }
+
+    return raw;
+  };
 
 
   return (
@@ -350,7 +416,7 @@ const AudienceWorkspace = ({
                           </div>
                         </div>
                         <div className="expert-reasoning audience-expert-reasoning" style={{ fontSize: '13px', marginBottom: '16px', flex: 1, color: 'rgba(255,255,255,0.7)', lineHeight: '1.5' }}>
-                          "{expert.reasoning}"
+                          {formatExpertReasoning(expert)}
                         </div>
                         <button onClick={() => handleAddExpert(expert)} disabled={isAdded} className={`expert-follow-btn ${isAdded ? 'added' : ''}`} style={{ padding: '6px', fontSize: '11px' }}>
                           {isAdded ? '\u2713 \u0e40\u0e1e\u0e34\u0e48\u0e21\u0e41\u0e25\u0e49\u0e27' : '+ \u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e02\u0e49\u0e32 Watchlist'}

@@ -543,17 +543,17 @@ const buildNaturalExpertReasoning = (categoryQuery, expert = {}) => {
   const strength = inferExpertStrength(expert);
   const genericTemplates = [
     strength
-      ? `น่าติดตามถ้าคุณอยากได้${strength}`
-      : `น่าติดตามถ้าคุณอยากได้มุมมองในสาย ${topic} ที่ช่วยกรองประเด็นสำคัญให้เร็วขึ้น`,
+      ? `เด่นเรื่อง${strength} เลยเหมาะกับการตามต่อ`
+      : `ใช้เป็นบัญชีหลักไว้ตาม${topic}ได้`,
     strength
-      ? `เหมาะกับใช้เป็นบัญชีประจำเวลาอยากอัปเดต${strength}`
-      : `เหมาะกับใช้ตาม${topic} แบบไม่ต้องไล่เก็บทุกข่าวเอง`,
+      ? `ถ้าอยากอัปเดต${strength} บัญชีนี้ตามง่าย`
+      : `ช่วยให้ตาม${topic}ได้ทันโดยไม่ต้องไล่หลายแหล่ง`,
     strength
-      ? `ถ้าจะเลือกไว้สักบัญชีเพื่อเกาะเรื่องนี้ต่อเนื่อง บัญชีนี้เด่นด้าน${strength}`
-      : `ถ้าคุณอยากตาม${topic}ให้เห็นภาพรวมชัดขึ้น บัญชีนี้ช่วยได้ดี`,
+      ? `มุมของเขามีน้ำหนักในเรื่อง${strength} มากกว่าบัญชีทั่วไป`
+      : `เหมาะไว้เก็บในลิสต์สำหรับตาม${topic}แบบต่อเนื่อง`,
     strength
-      ? `บัญชีนี้น่าเก็บไว้ เพราะช่วยเติม${strength}ให้ไทม์ไลน์`
-      : `ควรมีไว้ในลิสต์ถ้าคุณอยากได้มุมที่ลึกขึ้นกว่าข่าวสั้นในสาย ${topic}`,
+      ? `จุดเด่นคือ${strength} อ่านแล้วได้อะไรกลับไปชัด`
+      : `ถ้าอยากได้มุมที่ใช้งานได้จริงในสาย${topic} บัญชีนี้โอเค`,
   ];
 
   const templateIndex = hashExpertIdentity(`${topic}:${identity}`) % genericTemplates.length;
@@ -561,7 +561,7 @@ const buildNaturalExpertReasoning = (categoryQuery, expert = {}) => {
 };
 
 const sanitizeExpertReasoning = (reasoning = '', categoryQuery = '', expert = {}) => {
-  const text = String(reasoning || '').trim();
+  const text = String(reasoning || '').trim().replace(/^["'“”]+|["'“”]+$/g, '').replace(/\s+/g, ' ');
   if (!text) return buildNaturalExpertReasoning(categoryQuery, expert);
   if (/แอคทีฟ|engagement|สัญญาณ|โพสต์สม่ำเสมอ|\bactive\b|\bsignal\b|\brecency\b/i.test(text)) {
     return buildNaturalExpertReasoning(categoryQuery, expert);
@@ -570,6 +570,9 @@ const sanitizeExpertReasoning = (reasoning = '', categoryQuery = '', expert = {}
     return buildNaturalExpertReasoning(categoryQuery, expert);
   }
   if (/[\u0400-\u04ff\u3040-\u30ff]/.test(text)) {
+    return buildNaturalExpertReasoning(categoryQuery, expert);
+  }
+  if (text.length > 90 || /(ช่วยให้เห็นภาพรวม|บัญชีนี้ช่วยได้ดี|ถ้าคุณอยากตาม|คุณอยาก|เห็นภาพรวมชัดขึ้น)/i.test(text)) {
     return buildNaturalExpertReasoning(categoryQuery, expert);
   }
   return text;
@@ -3064,7 +3067,7 @@ Hard rules:
       });
     });
 
-    const scoredExperts = Array.from(candidateMap.values())
+    const rankedExperts = Array.from(candidateMap.values())
       .map((candidate) => {
         const username = String(candidate.username || '').toLowerCase();
         const activity = activityMap.get(username);
@@ -3083,6 +3086,7 @@ Hard rules:
           ...candidate,
           username: normalizeExpertUsername(candidate.username),
           name: candidateForScoring.name,
+          description: candidateForScoring.description || candidate.description || '',
           reasoning: sanitizeExpertReasoning(candidate.reasoning, topicLabel, candidateForScoring),
           lastSeenDays: activity?.lastSeenDays,
           activityLabel,
@@ -3108,6 +3112,7 @@ Hard rules:
       .map((expert) => ({
         username: expert.username,
         name: expert.name,
+        description: expert.description || '',
         reasoning: sanitizeExpertReasoning(expert.reasoning, topicLabel, expert),
         lastSeenDays: expert.lastSeenDays,
         activityLabel: expert.activityLabel,
@@ -3118,6 +3123,33 @@ Hard rules:
         webSources: expert.webSources,
         _score: expert._score,
       }));
+
+    const strictExperts = rankedExperts.filter((expert) => {
+      const username = String(expert.username || '').toLowerCase();
+      if (!isValidExpertUsername(username) || normalizedExcludedUsernames.has(username)) return false;
+      if (isLowQualityExpertAuthor(expert)) return false;
+      const activity = activityMap.get(username);
+      return Boolean(expert.activityLabel) && hasExpertQualitySignal(activity);
+    });
+
+    const strictUsernames = new Set(strictExperts.map((expert) => String(expert.username || '').toLowerCase()));
+    const relaxedBackfillExperts = rankedExperts.filter((expert) => {
+      const username = String(expert.username || '').toLowerCase();
+      if (!isValidExpertUsername(username) || normalizedExcludedUsernames.has(username)) return false;
+      if (strictUsernames.has(username) || isLowQualityExpertAuthor(expert)) return false;
+      if (!Boolean(expert.activityLabel)) return false;
+
+      const hasUsefulEvidence =
+        Number(expert.followers || 0) >= 5000 ||
+        Number(expert.recentTweetCount || 0) >= 1 ||
+        Number(expert.webMentionCount || 0) >= 1;
+
+      return hasUsefulEvidence;
+    });
+
+    const scoredExperts = strictExperts.length >= 6
+      ? [...strictExperts, ...rankedExperts.filter((expert) => !strictUsernames.has(String(expert.username || '').toLowerCase()))]
+      : [...strictExperts, ...relaxedBackfillExperts];
 
     const rerankCandidates = scoredExperts.slice(0, 18);
     let selectedUsernames = [];

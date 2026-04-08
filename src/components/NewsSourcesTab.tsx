@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Check, Globe2, Plus, X, ChevronLeft, ChevronRight,
   Bot, Laptop, Code2, ShieldCheck, Gamepad2, Coins, Briefcase, TrendingUp,
@@ -663,10 +663,32 @@ const NewsSourcesTab = ({
 }: NewsSourcesTabProps) => {
   const [activeTopic, setActiveTopic] = useState<string>('all');
   const [showAllMobileTopics, setShowAllMobileTopics] = useState(false);
+  const [isCompactTopicLayout, setIsCompactTopicLayout] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth <= 768 : false,
+  );
   const subscribedIds = useMemo(
     () => new Set(subscribedSources.map((s) => s.id)),
     [subscribedSources],
   );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const updateCompactTopicLayout = () => {
+      setIsCompactTopicLayout(window.innerWidth <= 768);
+    };
+
+    updateCompactTopicLayout();
+    window.addEventListener('resize', updateCompactTopicLayout);
+
+    return () => window.removeEventListener('resize', updateCompactTopicLayout);
+  }, []);
+
+  useEffect(() => {
+    if (!isCompactTopicLayout && showAllMobileTopics) {
+      setShowAllMobileTopics(false);
+    }
+  }, [isCompactTopicLayout, showAllMobileTopics]);
 
   const filteredSources = useMemo(() => {
     const allSources = Object.values(RSS_CATALOG).flat();
@@ -684,13 +706,13 @@ const NewsSourcesTab = ({
     [],
   );
   const mobileTopicKeys = useMemo(() => {
-    if (showAllMobileTopics) return null;
+    if (!isCompactTopicLayout || showAllMobileTopics) return null;
     const keys = [...mobilePrimaryTopicKeys];
     if (activeTopic !== 'all' && !keys.includes(activeTopic)) {
       keys.push(activeTopic);
     }
     return new Set(keys);
-  }, [activeTopic, mobilePrimaryTopicKeys, showAllMobileTopics]);
+  }, [activeTopic, isCompactTopicLayout, mobilePrimaryTopicKeys, showAllMobileTopics]);
 
   const enSources = useMemo(() => {
     const sources = filteredSources.filter((s) => s.lang === 'en');
@@ -817,7 +839,7 @@ const NewsSourcesTab = ({
             return renderTopicButton(key, label, IconComponent, count);
           })}
 
-        {!showAllMobileTopics && (
+        {isCompactTopicLayout && !showAllMobileTopics && (
           <button
             type="button"
             onClick={() => setShowAllMobileTopics(true)}
@@ -827,7 +849,7 @@ const NewsSourcesTab = ({
           </button>
         )}
 
-        {showAllMobileTopics && (
+        {isCompactTopicLayout && showAllMobileTopics && (
           <button
             type="button"
             onClick={() => setShowAllMobileTopics(false)}
