@@ -137,6 +137,13 @@ const AudienceWorkspace = ({
   const getExpertAvatarFallback = (expert) =>
     `https://ui-avatars.com/api/?name=${encodeURIComponent(expert.name || expert.username || 'FORO')}&background=101826&color=bfdbfe&bold=true`;
   const getExpertInitial = (expert) => String(expert.name || expert.username || 'F').trim().charAt(0).toUpperCase();
+  const formatFollowerCount = (value) => {
+    const followers = Number(value || 0);
+    if (!Number.isFinite(followers) || followers <= 0) return '';
+    if (followers >= 1000000) return `${(followers / 1000000).toFixed(followers >= 10000000 ? 0 : 1).replace(/\.0$/, '')}M`;
+    if (followers >= 1000) return `${(followers / 1000).toFixed(followers >= 100000 ? 0 : 1).replace(/\.0$/, '')}K`;
+    return followers.toLocaleString();
+  };
 
 
   return (
@@ -333,6 +340,11 @@ const AudienceWorkspace = ({
                             <a href={`https://x.com/${expert.username}`} target="_blank" rel="noopener noreferrer" className="audience-expert-link" style={{ textDecoration: 'none', display: 'inline-block', marginBottom: '8px', width: 'fit-content' }}>
                               <div className="expert-name" style={{ fontSize: '14px', color: '#fff', fontWeight: '800' }}>{expert.name}</div>
                               <div className="expert-username" style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>@{expert.username}</div>
+                              {formatFollowerCount(expert.followers) && (
+                                <div className="audience-expert-followers">
+                                  {formatFollowerCount(expert.followers)} followers
+                                </div>
+                              )}
                             </a>
 
                           </div>

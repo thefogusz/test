@@ -463,6 +463,9 @@ const inferExpertStrength = (expert = {}) => {
     .map((value) => String(value || '').toLowerCase())
     .join(' ');
 
+  if (/openai|anthropic|deepmind|google ai|google deepmind|llm|gpt|language model|multimodal|prompt|machine learning|artificial intelligence/.test(text)) {
+    return 'ความเคลื่อนไหวของ AI จากคนหรือองค์กรที่อยู่ใกล้ตัวเทคโนโลยีจริง';
+  }
   if (/economist|economics|macro|macroeconom|policy|fed|central bank|inflation|labor|employment|recession/.test(text)) {
     return 'ภาพใหญ่เศรษฐกิจ นโยบายการเงิน และสัญญาณมหภาค';
   }
@@ -522,11 +525,35 @@ const buildNaturalExpertReasoning = (categoryQuery, expert = {}) => {
     }
   }
 
+  if (/AI|artificial intelligence|machine learning|llm|gpt/i.test(topic)) {
+    if (/openai/.test(identity)) {
+      return 'เหมาะไว้ตามทิศทาง AI จากทีมที่ปล่อยงานจริงและขยับผลิตภัณฑ์ของวงการอยู่ตลอด';
+    }
+    if (/demishassabis|demis hassabis/.test(identity)) {
+      return 'น่าติดตามถ้าคุณอยากเห็นมุมของคนสร้าง AI ระดับแนวหน้า ทั้งฝั่งวิจัยและการพาเทคโนโลยีไปใช้จริง';
+    }
+    if (/karpathy|andrej karpathy/.test(identity)) {
+      return 'อธิบายเรื่องโมเดลและการใช้งาน AI ได้เห็นภาพ เหมาะกับคนที่อยากตามให้ทันแบบเข้าใจจริง';
+    }
+    if (/andrewyng|andrew ng/.test(identity)) {
+      return 'ช่วยเชื่อมเรื่อง AI จากมุมเทคนิคไปสู่การใช้งานจริงได้ดี อ่านแล้วเห็นภาพว่าจะเอาไปต่อยอดยังไง';
+    }
+  }
+
+  const strength = inferExpertStrength(expert);
   const genericTemplates = [
-    `น่าติดตามถ้าคุณอยากได้${inferExpertStrength(expert) || `มุมมองในสาย ${topic} ที่จับประเด็นได้คมกว่าเสพกระแสอย่างเดียว`}`,
-    `เหมาะสำหรับใช้ตาม${inferExpertStrength(expert) || `ความเคลื่อนไหวในสาย ${topic} แบบที่มีกรอบคิดชัดและเอาไปต่อยอดได้`}`,
-    `จุดเด่นคือ${inferExpertStrength(expert) || `การพูดเรื่อง ${topic} แบบมีสาระและไม่ไหลไปตามหัวข้อที่กำลังดังอย่างเดียว`}`,
-    `ถ้าจะเลือกบัญชีไว้ตามต่อเนื่อง บัญชีนี้ช่วยเรื่อง${inferExpertStrength(expert) || `การมอง ${topic} ให้เห็นแก่นมากกว่าพาดหัวข่าว`}`,
+    strength
+      ? `น่าติดตามถ้าคุณอยากได้${strength}`
+      : `น่าติดตามถ้าคุณอยากได้มุมมองในสาย ${topic} ที่ช่วยกรองประเด็นสำคัญให้เร็วขึ้น`,
+    strength
+      ? `เหมาะกับใช้เป็นบัญชีประจำเวลาอยากอัปเดต${strength}`
+      : `เหมาะกับใช้ตาม${topic} แบบไม่ต้องไล่เก็บทุกข่าวเอง`,
+    strength
+      ? `ถ้าจะเลือกไว้สักบัญชีเพื่อเกาะเรื่องนี้ต่อเนื่อง บัญชีนี้เด่นด้าน${strength}`
+      : `ถ้าคุณอยากตาม${topic}ให้เห็นภาพรวมชัดขึ้น บัญชีนี้ช่วยได้ดี`,
+    strength
+      ? `บัญชีนี้น่าเก็บไว้ เพราะช่วยเติม${strength}ให้ไทม์ไลน์`
+      : `ควรมีไว้ในลิสต์ถ้าคุณอยากได้มุมที่ลึกขึ้นกว่าข่าวสั้นในสาย ${topic}`,
   ];
 
   const templateIndex = hashExpertIdentity(`${topic}:${identity}`) % genericTemplates.length;
@@ -537,6 +564,9 @@ const sanitizeExpertReasoning = (reasoning = '', categoryQuery = '', expert = {}
   const text = String(reasoning || '').trim();
   if (!text) return buildNaturalExpertReasoning(categoryQuery, expert);
   if (/แอคทีฟ|engagement|สัญญาณ|โพสต์สม่ำเสมอ|\bactive\b|\bsignal\b|\brecency\b/i.test(text)) {
+    return buildNaturalExpertReasoning(categoryQuery, expert);
+  }
+  if (/จุดเด่นคือการพูดเรื่อง|แบบมีสาระ|ไม่ไหลไปตามหัวข้อที่กำลังดัง|พูดเรื่อง .* อย่างเดียว/i.test(text)) {
     return buildNaturalExpertReasoning(categoryQuery, expert);
   }
   if (/[\u0400-\u04ff\u3040-\u30ff]/.test(text)) {
@@ -3057,6 +3087,7 @@ Hard rules:
           lastSeenDays: activity?.lastSeenDays,
           activityLabel,
           recentTweetCount: activity?.tweetCount || 0,
+          followers: activity?.followers || 0,
           profile_image_url: activity?.profile_image_url || candidate.profile_image_url || '',
           webMentionCount: webEvidence?.mentions || 0,
           webSources: webEvidence?.sources || [],
@@ -3081,6 +3112,7 @@ Hard rules:
         lastSeenDays: expert.lastSeenDays,
         activityLabel: expert.activityLabel,
         recentTweetCount: expert.recentTweetCount,
+        followers: expert.followers || 0,
         profile_image_url: expert.profile_image_url,
         webMentionCount: expert.webMentionCount,
         webSources: expert.webSources,

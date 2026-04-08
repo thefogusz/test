@@ -2011,6 +2011,13 @@ h6,
   opacity: 0.9;
 }
 
+.audience-expert-followers {
+  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.42);
+  font-weight: 600;
+}
+
 .expert-reasoning {
   font-size: 12px;
   color: var(--text-muted);
@@ -2781,7 +2788,7 @@ h6,
   .home-control-panel {
     padding: 8px 10px !important;
     border-radius: 18px;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .mobile-only-flex.home-mobile-feed-inline {
@@ -2795,7 +2802,7 @@ h6,
   }
 
   .home-ai-filter-cluster {
-    overflow: hidden;
+    overflow: visible;
   }
 
   .home-ai-connector,
@@ -4415,6 +4422,11 @@ h6,
   .expert-username {
     font-size: 12px;
     margin-bottom: 0;
+  }
+
+  .audience-expert-followers {
+    font-size: 10px;
+    margin-top: 3px;
   }
 
   .expert-reasoning {
