@@ -445,25 +445,27 @@ h6,
 .feed-card-fresh-corner {
   position: absolute;
   top: -1px;
-  right: 18px;
+  right: 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 18px;
-  padding: 0 7px;
-  border-radius: 0 0 7px 7px;
-  background: linear-gradient(180deg, rgba(37, 99, 175, 0.92), rgba(28, 78, 140, 0.88));
-  border: 1px solid rgba(90, 162, 255, 0.16);
+  min-width: 32px;
+  height: 14px;
+  padding: 0 6px;
+  border-radius: 0 0 6px 6px;
+  background: linear-gradient(180deg, rgba(22, 47, 88, 0.94), rgba(16, 35, 68, 0.92));
+  border: 1px solid rgba(78, 122, 184, 0.16);
   border-top: none;
-  color: rgba(238, 246, 255, 0.92);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
+  color: rgba(230, 180, 96, 0.94);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   flex: 0 0 auto;
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   z-index: 2;
   pointer-events: none;
   line-height: 1;
+  text-transform: uppercase;
 }
 
 /* Minimalist Mini-Ghost Buttons */
