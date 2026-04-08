@@ -15,7 +15,6 @@ import {
   PenSquare,
   Repeat,
   Reply,
-  Sparkles,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -363,7 +362,7 @@ const FeedCard = ({
   const shouldShowFooterMeta = showSocialStats || footerBadges.length > 0;
   const showRepostBanner = false;
   const showInlineReplyBanner = false;
-  const feedCardClassName = `feed-card animate-fade-in${isFresh ? ' feed-card-fresh' : ''}`;
+  const feedCardClassName = 'feed-card animate-fade-in';
   const footerClassName = `feed-card-footer${isReadableArticle ? ' feed-card-footer-priority' : ''}`;
 
   const handleReadArticle = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -378,6 +377,11 @@ const FeedCard = ({
 
   return (
     <div className={feedCardClassName}>
+      {isFresh && (
+        <div className="feed-card-fresh-corner" title="New from the latest feed">
+          <span>NEW</span>
+        </div>
+      )}
       {showRepostBanner && isRepost && (
         <div
           style={{
@@ -519,12 +523,6 @@ const FeedCard = ({
         </div>
 
         <div className="feed-card-meta" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          {isFresh && (
-            <div className="feed-card-fresh-badge" title="New from the latest feed">
-              <Sparkles size={11} strokeWidth={2.3} />
-              <span>NEW</span>
-            </div>
-          )}
           {showInlineReplyBanner && displayTweet.isReply && (
             <div
               className="feed-card-reply-badge feed-card-reply-badge-inline"

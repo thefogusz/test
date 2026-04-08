@@ -49,10 +49,6 @@ const HomeView = ({
     [watchlistHandleSet],
   );
   const freshFeedIdSet = useMemo(() => new Set((freshFeedIds ?? []).map((id) => String(id))), [freshFeedIds]);
-  const freshVisibleCount = useMemo(
-    () => feed.reduce((count, item) => count + (freshFeedIdSet.has(String(item?.id || '')) ? 1 : 0), 0),
-    [feed, freshFeedIdSet],
-  );
 
   if (!isVisible) return null;
 
@@ -240,20 +236,6 @@ const HomeView = ({
           >
             <ShieldCheck size={12} className="text-accent" />
             สรุปโดย FORO อ้างอิงจากบทสนทนาและเงื่อนไขการกรองของคุณ
-          </div>
-        </div>
-      )}
-
-      {freshVisibleCount > 0 && (
-        <div className="feed-fresh-banner animate-fade-in">
-          <div className="feed-fresh-banner-badge">NEW</div>
-          <div className="feed-fresh-banner-copy">
-            <div className="feed-fresh-banner-title">
-              {freshVisibleCount} new card{freshVisibleCount > 1 ? 's' : ''} from the latest feed
-            </div>
-            <div className="feed-fresh-banner-caption">
-              Cards tagged `NEW` are the ones that just came in.
-            </div>
           </div>
         </div>
       )}
