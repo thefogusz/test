@@ -333,55 +333,20 @@ const buildTweetUrl = (tweet) => {
   return `https://x.com/${username}/status/${tweet.id}`;
 };
 
-const RECENT_EXPERT_ACTIVITY_DAYS = 120;
+const EXPERT_CONTEXT_FETCH_TIMEOUT_MS = 3000;
 
-const buildRecentExpertActivityMap = async (usernames = []) => {
-  const normalizedUsernames = Array.from(
-    new Set(
-      (usernames || [])
-        .map((username) => String(username || '').replace(/^@/, '').trim().toLowerCase())
-        .filter(Boolean),
-    ),
-  );
-
-  if (normalizedUsernames.length === 0) return new Map();
-
-  const sinceDate = new Date(Date.now() - RECENT_EXPERT_ACTIVITY_DAYS * 86_400_000)
-    .toISOString()
-    .split('T')[0];
-  const query = `(${normalizedUsernames.map((username) => `from:${username}`).join(' OR ')}) since:${sinceDate}`;
+const withTimeoutFallback = async (promise, fallbackValue, timeoutMs) => {
+  let timeoutId;
 
   try {
-    const searchResponse = await searchEverything(query, '', false, 'Latest', false);
-    const tweets = Array.isArray(searchResponse?.data) ? searchResponse.data : [];
-    const activityMap = new Map();
-
-    for (const tweet of tweets) {
-      const username = String(tweet?.author?.username || '').replace(/^@/, '').trim().toLowerCase();
-      if (!username) continue;
-
-      const createdAtMs = tweet?.created_at ? new Date(tweet.created_at).getTime() : NaN;
-      const ageDays = Number.isFinite(createdAtMs)
-        ? Math.max(0, (Date.now() - createdAtMs) / 86_400_000)
-        : RECENT_EXPERT_ACTIVITY_DAYS + 999;
-      const existing = activityMap.get(username);
-
-      if (!existing) {
-        activityMap.set(username, {
-          lastSeenDays: ageDays,
-          tweetCount: 1,
-        });
-        continue;
-      }
-
-      existing.tweetCount += 1;
-      existing.lastSeenDays = Math.min(existing.lastSeenDays, ageDays);
-    }
-
-    return activityMap;
-  } catch (error) {
-    console.warn('[GrokService] Could not verify expert recency:', error);
-    return new Map();
+    return await Promise.race([
+      promise,
+      new Promise((resolve) => {
+        timeoutId = setTimeout(() => resolve(fallbackValue), timeoutMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timeoutId);
   }
 };
 
@@ -1979,7 +1944,11 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
 
     // Run X search + Tavily in parallel — no extra latency vs sequential
     const [searchData, tavilyData] = await Promise.all([
-      searchEverything(expandedQuery, '', false, 'Top', false).catch(() => ({ data: [] })),
+      withTimeoutFallback(
+        searchEverything(expandedQuery, '', false, 'Top', false),
+        { data: [] },
+        EXPERT_CONTEXT_FETCH_TIMEOUT_MS,
+      ).catch(() => ({ data: [] })),
       tavilySearch(
         `best ${categoryQuery} twitter accounts experts to follow`,
         false,
@@ -2107,7 +2076,7 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
     }
 
     const { object } = await generateObject({
-      model: grok(MODEL_REASONING_FAST),
+      model: grok(MODEL_NEWS_FAST),
       system: `You are the world's best Twitter/X account recommender for the topic "${categoryQuery}".
 
 Your goal: recommend the 6 accounts that ANY serious follower of "${categoryQuery}" would regret not following.
@@ -2148,25 +2117,35 @@ Hard rules:
     const normalizedExcludedUsernames = new Set(
       (excludeUsernames || []).map((item) => String(item || '').replace(/^@/, '').trim().toLowerCase()).filter(Boolean),
     );
+    const activeCandidateUsernames = new Set(
+      qualifiedAuthors.map((author) => String(author?.username || '').replace(/^@/, '').trim().toLowerCase()).filter(Boolean),
+    );
     const modelExperts = (object.experts || [])
-      .map((expert) => ({ ...expert, username: (expert.username || '').replace(/^@/, '').trim() }))
+      .map((expert) => ({ ...expert, username: (expert.username || '').replace(/^@/, '').replace(/\s+/g, '').trim() }))
       .filter((expert) => {
         const username = (expert.username || '').toLowerCase();
-        return username && !normalizedExcludedUsernames.has(username);
+        if (!/^[a-z0-9_]{1,15}$/i.test(username) || normalizedExcludedUsernames.has(username)) return false;
+        return activeCandidateUsernames.size === 0 || activeCandidateUsernames.has(username);
       });
 
-    const activityMap = await buildRecentExpertActivityMap(modelExperts.map((expert) => expert.username));
-    const verifiedExperts = modelExperts
-      .filter((expert) => activityMap.has(String(expert.username || '').toLowerCase()))
-      .map((expert) => {
-        const activity = activityMap.get(String(expert.username || '').toLowerCase());
-        return {
-          ...expert,
-          lastSeenDays: activity?.lastSeenDays,
-          activityLabel: formatExpertActivityLabel(activity?.lastSeenDays),
-          recentTweetCount: activity?.tweetCount || 0,
-        };
-      });
+    const activityMap = new Map(
+      qualifiedAuthors.map((author) => [
+        String(author?.username || '').toLowerCase(),
+        {
+          lastSeenDays: author?._latestTweetAgeDays,
+          tweetCount: author?._topicTweetCount || 0,
+        },
+      ]),
+    );
+    const verifiedExperts = modelExperts.map((expert) => {
+      const activity = activityMap.get(String(expert.username || '').toLowerCase());
+      return {
+        ...expert,
+        lastSeenDays: activity?.lastSeenDays,
+        activityLabel: formatExpertActivityLabel(activity?.lastSeenDays),
+        recentTweetCount: activity?.tweetCount || 0,
+      };
+    });
     const selectedUsernames = new Set(verifiedExperts.map((expert) => String(expert.username || '').toLowerCase()));
 
     const fallbackExperts = qualifiedAuthors
@@ -2735,8 +2714,8 @@ Hard rules:
 - Mention people and accounts only when they materially matter to the story.
 - Follow the requested format and tone faithfully; do not substitute a "safer" house style.
 - Write natural Thai. Never literal translation. Never corporate jargon.
-- Never use the em dash character (â€” or —) anywhere in the final output.
-- Forbidden phrases: "นั่นหมายความว่า...", "จะเห็นได้ว่า...", "ที่สำคัญกว่านั้น...", "ซึ่งทำให้เราเห็นว่า...", "นับว่าเป็น...", "เรียกได้ว่า...", "สิ่งที่น่าสนใจคือ..." — these are filler that adds no information.
+- Never use the em dash character (Unicode U+2014) anywhere in the final output.
+- Forbidden phrases: "นั่นหมายความว่า...", "จะเห็นได้ว่า...", "ที่สำคัญกว่านั้น...", "ซึ่งทำให้เราเห็นว่า...", "นับว่าเป็น...", "เรียกได้ว่า...", "สิ่งที่น่าสนใจคือ..." - these are filler that adds no information.
 - No forced bold headline, hook line, or paragraph splits unless the content genuinely needs them.
 - No CTA or audience interaction unless the user explicitly asked for it.
 - For formats that do not use headings: never invent markdown headings as scaffolding.`;

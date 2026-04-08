@@ -168,7 +168,7 @@ const AudienceWorkspace = ({
               <div style={{ padding: '60px 0', textAlign: 'center' }}>
                 <div className="ai-loader-ring" style={{ margin: '0 auto 20px' }}></div>
                 <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--accent-secondary)' }} className="animate-pulse">
-                  FORO IS CURATING SOURCES...
+                  FORO IS FINDING PEOPLE...
                 </div>
               </div>
             )}

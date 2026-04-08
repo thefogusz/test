@@ -540,7 +540,9 @@ const FeedCard = ({
               <span className="feed-card-reply-badge-text-clean">
                 {'\u0E15\u0E2D\u0E1A\u0E01\u0E25\u0E31\u0E1A'} <b>@{displayTweet.inReplyToUsername || '\u0E1A\u0E32\u0E07\u0E04\u0E19'}</b>
               </span>
-              <span className="feed-card-reply-badge-text">à¸•à¸­à¸šà¸à¸¥à¸±à¸š <b>@{tweet.inReplyToUsername || 'à¸šà¸²à¸‡à¸„à¸™'}</b></span>
+              <span className="feed-card-reply-badge-text">
+                {'\u0E15\u0E2D\u0E1A\u0E01\u0E25\u0E31\u0E1A'} <b>@{tweet.inReplyToUsername || '\u0E1A\u0E32\u0E07\u0E04\u0E19'}</b>
+              </span>
             </div>
           )}
 
