@@ -463,7 +463,6 @@ const App = () => {
   };
 
   const handlePlanLoadMore = async () => {
-    if (!tryConsumeFeature('feed')) return;
     await handleLoadMore();
   };
 
