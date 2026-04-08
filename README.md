@@ -2,6 +2,10 @@
 
 React + Vite application with an Express edge server for API proxying, AI integration, and state persistence.
 
+## UI Design Guide
+
+Use `DESIGN.md` as the UI source of truth before changing FORO screens, components, or styling. It captures the current dark command-center direction, color tokens, typography, component rules, responsive behavior, and agent prompts for keeping future UI work on-brand.
+
 ## What Changed
 
 This codebase now supports two persistence modes:
