@@ -543,8 +543,9 @@ const App = () => {
       <main className="foro-main">
         <div className="foro-main-scroll">
 
+          {activeView === 'home' && (
           <HomeView
-            isVisible={activeView === 'home'}
+            isVisible
             currentActiveList={currentActiveList}
             activeListId={activeListId}
             originalFeedLength={originalFeed.length}
@@ -576,11 +577,12 @@ const App = () => {
             onArticleGen={openContentComposerFromPost}
             onReadArticle={openArticleReader}
             onSummaryCopied={() => setStatus('คัดลอกบทสรุปแล้ว')}
-          />
+          />)}
 
+          {activeView === 'content' && (
           <Suspense fallback={workspaceLoadingFallback}>
             <ContentWorkspace
-              isVisible={activeView === 'content'}
+              isVisible
               contentTab={contentTab}
               setContentTab={setContentTab}
               createContentSource={createContentSource}
@@ -642,11 +644,12 @@ const App = () => {
               onArticleGen={openContentComposerFromPost}
               onReadArticle={openArticleReader}
             />
-          </Suspense>
+          </Suspense>)}
 
+          {activeView === 'pricing' && (
           <Suspense fallback={workspaceLoadingFallback}>
             <PricingView
-              isVisible={activeView === 'pricing'}
+              isVisible
               activePlanId={activePlanId}
               dailyUsage={dailyUsage}
               remainingUsage={remainingUsage}
@@ -654,11 +657,12 @@ const App = () => {
               isCheckoutLoading={isStartingCheckout}
               onOpenContent={() => setActiveView('content')}
             />
-          </Suspense>
+          </Suspense>)}
 
+          {activeView === 'read' && (
           <Suspense fallback={workspaceLoadingFallback}>
             <ReadWorkspace
-              isVisible={activeView === 'read'}
+              isVisible
               activeListId={activeListId}
               currentActiveList={currentActiveList}
               setIsMobilePostListOpen={setIsMobilePostListOpen}
@@ -677,11 +681,12 @@ const App = () => {
               onArticleGen={openContentComposerFromPost}
               onReadArticle={openArticleReader}
             />
-          </Suspense>
+          </Suspense>)}
 
+          {activeView === 'audience' && (
           <Suspense fallback={workspaceLoadingFallback}>
             <AudienceWorkspace
-              isVisible={activeView === 'audience'}
+              isVisible
               audienceTab={audienceTab}
               setAudienceTab={setAudienceTab}
               aiQuery={aiQuery}
@@ -710,11 +715,12 @@ const App = () => {
               subscribedSources={subscribedSources}
               onToggleSource={handleToggleSource}
             />
-          </Suspense>
+          </Suspense>)}
 
+          {activeView === 'bookmarks' && (
           <Suspense fallback={workspaceLoadingFallback}>
             <BookmarksWorkspace
-              isVisible={activeView === 'bookmarks'}
+              isVisible
               currentActiveList={currentActiveList}
               activeListId={activeListId}
               setIsMobilePostListOpen={setIsMobilePostListOpen}
@@ -726,7 +732,7 @@ const App = () => {
               onReadArticle={openArticleReader}
               setBookmarks={setBookmarks}
             />
-          </Suspense>
+          </Suspense>)}
         </div>
       </main>
 
