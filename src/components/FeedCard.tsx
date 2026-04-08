@@ -379,7 +379,6 @@ const FeedCard = ({
     <div className={feedCardClassName}>
       {isFresh && (
         <div className="feed-card-fresh-corner" title="New from the latest feed">
-          <span className="feed-card-fresh-dot" aria-hidden="true" />
           <span>NEW</span>
         </div>
       )}
