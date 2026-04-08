@@ -72,7 +72,8 @@ export const useHomeFeedWorkspace = ({
 }: UseHomeFeedWorkspaceParams) => {
   const queryClient = useQueryClient();
   const [feed, setFeed] = useState<any[]>([]);
-  const [deletedFeed, setDeletedFeed] = useState<any[]>([]);
+  const deletedFeedRef = useRef<any[]>([]);
+  const [deletedFeedCount, setDeletedFeedCount] = useState(0);
   const [activeFilters, setActiveFilters] = useState({ view: false, engagement: false });
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isFiltered, setIsFiltered] = useState(false);
@@ -578,15 +579,24 @@ export const useHomeFeedWorkspace = ({
   });
 
   const handleDeleteAll = () => {
-    setDeletedFeed([...originalFeed]);
+    if (originalFeed.length === 0) return;
+
+    deletedFeedRef.current = originalFeed;
+    setDeletedFeedCount(originalFeed.length);
+    setPendingFeed([]);
+    setNextCursor(null);
+    setIsFiltered(false);
+    setAiFilterSummary('');
     setOriginalFeed([]);
     setFeed([]);
+    void queryClient.removeQueries({ queryKey: ['home-feed-sync'] });
   };
 
   const handleUndo = () => {
-    if (deletedFeed.length > 0) {
-      setOriginalFeed([...deletedFeed]);
-      setDeletedFeed([]);
+    if (deletedFeedRef.current.length > 0) {
+      setOriginalFeed(deletedFeedRef.current);
+      deletedFeedRef.current = [];
+      setDeletedFeedCount(0);
     }
   };
 
@@ -606,7 +616,7 @@ export const useHomeFeedWorkspace = ({
     aiFilterSummary,
     applyAiFilter: aiFilterMutation.mutateAsync,
     clearAiFilter,
-    deletedFeed,
+    deletedFeedCount,
     feed,
     handleDeleteAll,
     handleLoadMore: loadMoreMutation.mutateAsync,

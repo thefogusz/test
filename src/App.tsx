@@ -222,7 +222,7 @@ const App = () => {
     aiFilterSummary,
     applyAiFilter,
     clearAiFilter,
-    deletedFeed,
+    deletedFeedCount,
     feed,
     handleDeleteAll,
     handleLoadMore,
@@ -504,7 +504,7 @@ const App = () => {
             currentActiveList={currentActiveList}
             activeListId={activeListId}
             originalFeedLength={originalFeed.length}
-            deletedFeedLength={deletedFeed.length}
+            deletedFeedLength={deletedFeedCount}
             feed={feed}
             isFiltered={isFiltered}
             activeFilters={activeFilters}
