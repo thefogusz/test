@@ -125,7 +125,7 @@ const ContentWorkspace = ({
         onLockedCreateClick={handleLockedCreateClick}
       />
 
-      <div style={{ display: contentTab === 'create' ? 'block' : 'none' }}>
+      {contentTab === 'create' && (
         <div className="animate-fade-in">
           {createLocked ? (
             <section className="create-content-premium-gate">
@@ -187,9 +187,9 @@ const ContentWorkspace = ({
             </ContentErrorBoundary>
           )}
         </div>
-      </div>
+      )}
 
-      <div style={{ display: contentTab === 'search' ? 'block' : 'none' }}>
+      {contentTab === 'search' && (
         <div className="search-discovery-view animate-fade-in">
           <div className="hero-search-container">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -206,9 +206,7 @@ const ContentWorkspace = ({
               onLockedCreateClick={handleLockedCreateClick}
             />
             <ContentErrorBoundary key="search-form-boundary">
-              <div style={{ display: contentTab === 'search' ? 'block' : 'none' }} className="hero-search-wrapper">
-
-                <ContentTabSwitcher contentTab={contentTab} setContentTab={setContentTab} hidden />
+              <div className="hero-search-wrapper">
                 <div className="hero-search-form" style={{ width: '100%' }}>
                   <Search size={20} className="hero-search-icon" />
                   <input
@@ -750,7 +748,7 @@ const ContentWorkspace = ({
             </div>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 };
