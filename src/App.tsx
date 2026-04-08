@@ -22,6 +22,7 @@ import { useBilling } from './hooks/useBilling';
 import { useWatchlist } from './hooks/useWatchlist';
 import { usePostLists } from './hooks/usePostLists';
 import { useAudienceSearch } from './hooks/useAudienceSearch';
+import { clearForoIndexedDbStorage } from './utils/indexedDb';
 import {
   sanitizeCollectionState,
   sanitizeStoredSingle,
@@ -41,6 +42,8 @@ const READ_ARCHIVE_INITIAL_RENDER = 24;
 const READ_ARCHIVE_RENDER_BATCH = 24;
 
 const shouldRemoveWhenFalsy = (value) => !value;
+const STORAGE_RESET_QUERY_PARAM = 'reset';
+const FORO_STORAGE_KEY_PREFIX = 'foro_';
 
 const App = () => {
   const [status, setStatus] = useState('');
@@ -301,6 +304,47 @@ const App = () => {
   });
 
   const aiFilterSummaryDateLabel = getSummaryDateLabel(feed, 8);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const currentUrl = new URL(window.location.href);
+    if (currentUrl.searchParams.get(STORAGE_RESET_QUERY_PARAM) !== '1') return;
+
+    let cancelled = false;
+
+    const resetBrowserState = async () => {
+      setStatus('กำลังล้างข้อมูลแอปในเบราว์เซอร์...');
+
+      try {
+        Object.keys(localStorage).forEach((key) => {
+          if (key.startsWith(FORO_STORAGE_KEY_PREFIX)) {
+            localStorage.removeItem(key);
+          }
+        });
+      } catch (error) {
+        console.warn('[App] Failed to clear localStorage during reset', error);
+      }
+
+      try {
+        await clearForoIndexedDbStorage();
+      } catch (error) {
+        console.warn('[App] Failed to clear IndexedDB during reset', error);
+      }
+
+      if (cancelled) return;
+
+      currentUrl.searchParams.delete(STORAGE_RESET_QUERY_PARAM);
+      window.history.replaceState({}, '', currentUrl.toString());
+      window.location.reload();
+    };
+
+    void resetBrowserState();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const {
     filteredBookmarks,
