@@ -183,7 +183,7 @@ const AudienceWorkspace = ({
 
         {audienceTab === 'ai' && (
           <div className="animate-fade-in">
-            <div className="audience-ai-searchbar audience-command-row" style={{ display: 'flex', gap: '12px', marginBottom: '20px', maxWidth: '680px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div className="audience-ai-searchbar audience-command-row" style={{ display: 'flex', gap: '12px', marginBottom: '20px', maxWidth: '680px', flexWrap: 'wrap' }}>
               <div className="audience-ai-search-input">
 
                 <input
@@ -509,6 +509,19 @@ const AudienceWorkspace = ({
                       }
                     }}
                   />
+                  {manualQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setManualQuery('');
+                        setShowSuggestions(false);
+                      }}
+                      className="audience-manual-clear-btn"
+                      aria-label="ล้างคำค้นหา"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
                 </div>
                 <button type="submit" className="btn-sync-premium" style={{ height: '44px', padding: '0 28px' }}>
                   {'\u0e04\u0e49\u0e19\u0e2b\u0e32'}

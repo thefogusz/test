@@ -747,7 +747,7 @@ const NewsSourcesTab = ({
       key={key}
       onClick={() => setActiveTopic(key)}
       style={getTopicButtonStyle(activeTopic === key)}
-      className="topic-btn-hover"
+      className="topic-btn-hover news-source-filter-btn"
     >
       <span style={iconContainerStyle(activeTopic === key)}>
         <Icon size={12} strokeWidth={2.5} />
@@ -760,6 +760,7 @@ const NewsSourcesTab = ({
   return (
     <div className="animate-fade-in">
       <div
+        className="news-source-filter-label"
         style={{
           fontSize: '11px',
           fontWeight: '600',
@@ -774,6 +775,7 @@ const NewsSourcesTab = ({
       </div>
 
       <div
+        className="news-source-filter-row"
         style={{
           display: 'flex',
           flexWrap: 'wrap',
@@ -784,7 +786,7 @@ const NewsSourcesTab = ({
         <button
           onClick={() => setActiveTopic('all')}
           style={getTopicButtonStyle(activeTopic === 'all')}
-          className="topic-btn-hover"
+          className="topic-btn-hover news-source-filter-btn"
         >
           <span style={labelStyle}>ทั้งหมด</span>
         </button>
@@ -817,16 +819,16 @@ const NewsSourcesTab = ({
 
       {enSources.length > 0 && (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-            <Globe2 size={16} style={{ color: 'rgba(255,255,255,0.4)' }} />
-            <span style={{ fontSize: '13px', fontWeight: '800', color: 'rgba(255,255,255,0.55)' }}>
+          <div className="news-source-section-header" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+            <Globe2 size={16} className="news-source-section-icon" style={{ color: 'rgba(255,255,255,0.4)' }} />
+            <span className="news-source-section-title" style={{ fontSize: '13px', fontWeight: '800', color: 'rgba(255,255,255,0.55)' }}>
               แหล่งข่าวต่างประเทศ
             </span>
-            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)' }}>
+            <span className="news-source-section-note" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)' }}>
               · FORO แปลและสรุปเป็นไทยให้
             </span>
-            <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }} />
-            <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', fontWeight: '700' }}>
+            <div className="news-source-section-divider" style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }} />
+            <span className="news-source-section-count" style={{ fontSize: '11px', color: 'rgba(255,255,255,0.2)', fontWeight: '700' }}>
               {enSources.length} แหล่ง
             </span>
           </div>
@@ -856,6 +858,7 @@ const NewsSourcesTab = ({
       {thSources.length > 0 && (
         <>
           <div
+            className="news-source-section-header"
             style={{
               display: 'flex',
               alignItems: 'center',

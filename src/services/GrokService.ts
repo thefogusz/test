@@ -450,6 +450,41 @@ const formatExpertActivityLabel = (lastSeenDays) => {
   return '';
 };
 
+const hashExpertIdentity = (value = '') =>
+  Array.from(String(value || '')).reduce((acc, char) => ((acc * 31) + char.charCodeAt(0)) >>> 0, 0);
+
+const inferExpertStrength = (expert = {}) => {
+  const text = [
+    expert.name,
+    expert.username,
+    expert.description,
+    ...(Array.isArray(expert.sourceTitles) ? expert.sourceTitles : []),
+  ]
+    .map((value) => String(value || '').toLowerCase())
+    .join(' ');
+
+  if (/economist|economics|macro|macroeconom|policy|fed|central bank|inflation|labor|employment|recession/.test(text)) {
+    return 'ภาพใหญ่เศรษฐกิจ นโยบายการเงิน และสัญญาณมหภาค';
+  }
+  if (/chart|data|daily shot|soberlook|research|survey|indicator|dashboard|stat/.test(text)) {
+    return 'การสรุปข้อมูลและกราฟที่ช่วยเห็นภาพรวมเร็ว';
+  }
+  if (/journalist|editor|reporter|news|times|post|wire|herald|journal|variety|deadline|reporter/.test(text)) {
+    return 'การคัดประเด็นสำคัญและความเคลื่อนไหวของข่าวสายนี้';
+  }
+  if (/invest|fund|portfolio|market|asset|equity|stocks|bond|trading/.test(text)) {
+    return 'มุมมองตลาด การลงทุน และการตีความสัญญาณที่กระทบสินทรัพย์';
+  }
+  if (/founder|ceo|operator|builder|startup|product|company|business/.test(text)) {
+    return 'มุมมองจากคนทำงานในสนามจริงและการตัดสินใจระดับธุรกิจ';
+  }
+  if (/professor|author|academic|researcher|think tank/.test(text)) {
+    return 'กรอบคิดเชิงวิเคราะห์ที่ช่วยมองประเด็นลึกกว่าข่าวรายวัน';
+  }
+
+  return '';
+};
+
 const buildNaturalExpertReasoning = (categoryQuery, expert = {}) => {
   const topic = String(categoryQuery || '').trim() || 'หัวข้อนี้';
   const identity = `${expert.name || ''} ${expert.username || ''}`.toLowerCase();
@@ -466,7 +501,36 @@ const buildNaturalExpertReasoning = (categoryQuery, expert = {}) => {
     }
   }
 
-  return `ช่วยคัดมุมมองที่มีน้ำหนักในสาย ${topic} ได้ดีกว่าการไล่ตามกระแสอย่างเดียว`;
+  if (/เศรษฐกิจ|economy|economics|macro/i.test(topic)) {
+    if (/elerianm|mohamed a\\. el-erian/.test(identity)) {
+      return 'เหมาะไว้ตามภาพใหญ่ของเศรษฐกิจโลก ดอกเบี้ย และแรงกดดันจากฝั่งนโยบายการเงิน';
+    }
+    if (/claudia_sahm|claudia sahm/.test(identity)) {
+      return 'ช่วยมองข้อมูลแรงงานและสัญญาณเศรษฐกิจถดถอยแบบเข้าใจง่ายและเอาไปใช้ต่อได้';
+    }
+    if (/noahpinion|noah smith/.test(identity)) {
+      return 'เด่นเรื่องอธิบายเศรษฐกิจและนโยบายให้เห็นเหตุผลเบื้องหลังมากกว่าพาดหัวข่าว';
+    }
+    if (/lhsummers|lawrence h\\. summers/.test(identity)) {
+      return 'มีมุมมองจากระดับนโยบายและมหภาค เหมาะเวลาต้องตามประเด็นเงินเฟ้อและทิศทางเศรษฐกิจ';
+    }
+    if (/paulkrugman|paul krugman/.test(identity)) {
+      return 'เหมาะสำหรับตามบทวิเคราะห์เศรษฐกิจมหภาคที่มีจุดยืนชัดและโยงกับนโยบายสาธารณะ';
+    }
+    if (/soberlook|the daily shot/.test(identity)) {
+      return 'เด่นเรื่องสรุปตลาดและเศรษฐกิจด้วยกราฟ ทำให้เห็นภาพรวมเร็วโดยไม่ต้องไล่อ่านยาว';
+    }
+  }
+
+  const genericTemplates = [
+    `น่าติดตามถ้าคุณอยากได้${inferExpertStrength(expert) || `มุมมองในสาย ${topic} ที่จับประเด็นได้คมกว่าเสพกระแสอย่างเดียว`}`,
+    `เหมาะสำหรับใช้ตาม${inferExpertStrength(expert) || `ความเคลื่อนไหวในสาย ${topic} แบบที่มีกรอบคิดชัดและเอาไปต่อยอดได้`}`,
+    `จุดเด่นคือ${inferExpertStrength(expert) || `การพูดเรื่อง ${topic} แบบมีสาระและไม่ไหลไปตามหัวข้อที่กำลังดังอย่างเดียว`}`,
+    `ถ้าจะเลือกบัญชีไว้ตามต่อเนื่อง บัญชีนี้ช่วยเรื่อง${inferExpertStrength(expert) || `การมอง ${topic} ให้เห็นแก่นมากกว่าพาดหัวข่าว`}`,
+  ];
+
+  const templateIndex = hashExpertIdentity(`${topic}:${identity}`) % genericTemplates.length;
+  return genericTemplates[templateIndex];
 };
 
 const sanitizeExpertReasoning = (reasoning = '', categoryQuery = '', expert = {}) => {
@@ -2547,6 +2611,8 @@ const mergeExpertCandidate = (candidateMap, expert = {}, source = 'unknown') => 
     username,
     name: expert.name || username,
     reasoning: '',
+    description: '',
+    sourceTitles: [],
     sources: new Set(),
     grokConfidence: 0,
   };
@@ -2554,6 +2620,8 @@ const mergeExpertCandidate = (candidateMap, expert = {}, source = 'unknown') => 
   current.username = current.username || username;
   current.name = expert.name || current.name || username;
   current.reasoning = expert.reasoning || current.reasoning || '';
+  current.description = expert.description || current.description || '';
+  current.sourceTitles = Array.from(new Set([...(current.sourceTitles || []), ...(expert.sourceTitles || [])])).filter(Boolean);
   current.grokConfidence = Math.max(current.grokConfidence || 0, Number(expert.confidence || 0));
   current.sources.add(source);
   candidateMap.set(key, current);
@@ -2915,6 +2983,7 @@ Hard rules:
           {
             username: author?.username,
             name: author?.name,
+            description: author?.description || '',
             reasoning: buildNaturalExpertReasoning(topicLabel, author),
             confidence: 0.62,
           },
@@ -2974,6 +3043,7 @@ Hard rules:
         const candidateForScoring = {
           ...candidate,
           name: activity?.name || candidate.name || candidate.username,
+          sourceTitles: webEvidence?.sourceTitles || candidate.sourceTitles || [],
         };
         const score =
           scoreExpertCandidate({ candidate, activity, webEvidence }) -
@@ -3001,9 +3071,7 @@ Hard rules:
         if (isLowQualityExpertAuthor(expert)) return false;
         const activity = activityMap.get(username);
         const hasActivity = Boolean(expert.activityLabel) && hasExpertQualitySignal(activity);
-        const hasStrongEvidence = expert.webMentionCount > 0 || expert._sourceCount >= 2;
-        const hasTrustedSeed = expert._isSeed && expert._score >= -20;
-        return hasActivity || hasStrongEvidence || hasTrustedSeed;
+        return hasActivity;
       })
       .sort((a, b) => b._score - a._score || b._sourceCount - a._sourceCount || String(a.username).localeCompare(String(b.username)))
       .map((expert) => ({
