@@ -600,7 +600,7 @@ const FeedCard = ({
               borderRadius: '100px',
               fontSize: '10px',
               fontWeight: '900',
-              color: isFresh ? 'var(--accent-secondary)' : 'rgba(255,255,255,0.9)',
+              color: 'rgba(255,255,255,0.96)',
               border: isFresh ? '1px solid rgba(41, 151, 255, 0.22)' : '1px solid rgba(255,255,255,0.08)',
               display: 'flex',
               alignItems: 'center',
