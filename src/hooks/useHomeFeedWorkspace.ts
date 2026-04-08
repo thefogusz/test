@@ -578,30 +578,38 @@ export const useHomeFeedWorkspace = ({
           .filter(Boolean),
       );
       let nextBatch: any[] = [];
+      let newNextBatch: any[] = [];
+      let existingNextBatch: any[] = [];
       const MAX_SYNC = 20;
+      const MAX_DUPLICATE_PASSES = 3;
+      let workingPendingFeed = pendingFeed;
+      let workingCursor = nextCursor;
+      let attempts = 0;
 
-      if (pendingFeed.length > 0) {
-        nextBatch = pendingFeed.slice(0, MAX_SYNC);
-        setPendingFeed(pendingFeed.slice(MAX_SYNC));
-      } else {
-        setFreshFeedIds([]);
-        const targetAccounts = activeListMembers.twitterHandles;
-        const { data, meta } = await fetchWatchlistFeed(targetAccounts, nextCursor, 'Latest');
-        setNextCursor(meta.next_cursor);
+      setFreshFeedIds([]);
 
-        nextBatch = data.slice(0, MAX_SYNC);
-        setPendingFeed(data.slice(MAX_SYNC));
-      }
+      while (attempts < MAX_DUPLICATE_PASSES) {
+        attempts += 1;
 
-      if (nextBatch.length > 0) {
-        const nextFreshFeedIds = nextBatch
-          .map((post) => getNormalizedPostId(post))
-          .filter((id) => id && !existingIds.has(id));
-        const newNextBatch = nextBatch.filter((post) => {
+        if (workingPendingFeed.length > 0) {
+          nextBatch = workingPendingFeed.slice(0, MAX_SYNC);
+          workingPendingFeed = workingPendingFeed.slice(MAX_SYNC);
+        } else if (workingCursor) {
+          const targetAccounts = activeListMembers.twitterHandles;
+          const { data, meta } = await fetchWatchlistFeed(targetAccounts, workingCursor, 'Latest');
+          workingCursor = meta?.next_cursor || null;
+          nextBatch = data.slice(0, MAX_SYNC);
+          workingPendingFeed = data.slice(MAX_SYNC);
+        } else {
+          nextBatch = [];
+          break;
+        }
+
+        newNextBatch = nextBatch.filter((post) => {
           const postId = getNormalizedPostId(post);
           return postId && !existingIds.has(postId);
         });
-        const existingNextBatch = nextBatch.filter((post) => {
+        existingNextBatch = nextBatch.filter((post) => {
           const postId = getNormalizedPostId(post);
           return postId && existingIds.has(postId);
         });
@@ -610,9 +618,22 @@ export const useHomeFeedWorkspace = ({
           mergeIncomingPosts(existingNextBatch);
         }
 
+        if (newNextBatch.length > 0) break;
+      }
+
+      setPendingFeed(workingPendingFeed);
+      setNextCursor(workingCursor);
+
+      if (nextBatch.length > 0) {
+        const nextFreshFeedIds = nextBatch
+          .map((post) => getNormalizedPostId(post))
+          .filter((id) => id && !existingIds.has(id));
+
         if (newNextBatch.length > 0) {
           await processAndSummarizeFeed(newNextBatch, 'กำลังดึงข้อมูลเพิ่มอีก');
           setStatus('อัปเดตข้อมูลเพิ่มเติมเรียบร้อย');
+        } else if (workingPendingFeed.length > 0 || workingCursor) {
+          setStatus('ยังไม่พบโพสต์ใหม่ในชุดนี้ ลองโหลดเพิ่มเติมอีกครั้ง');
         } else {
           setStatus('อัปเดตข้อมูลเพิ่มเติมเรียบร้อย - ไม่มีโพสต์ใหม่ให้ประมวลผล');
         }
