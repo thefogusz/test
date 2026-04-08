@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useMemo, useState } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   BarChart2,
@@ -201,6 +201,7 @@ const FeedCard = ({
   const [optimisticInWatchlist, setOptimisticInWatchlist] = useState(false);
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const displayTweet = tweet.repostedPost || tweet;
   const isRepost = Boolean(tweet.isRepost || tweet.repostedPost);
   const isRssPost = String(displayTweet.sourceType || tweet.sourceType || '').trim().toLowerCase() === 'rss';
@@ -267,6 +268,28 @@ const FeedCard = ({
   }, [authorUsername, isInWatchlist]);
 
   useEffect(() => {
+    if (!showProfileMenu) return undefined;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (target && profileMenuRef.current?.contains(target)) return;
+      setShowProfileMenu(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setShowProfileMenu(false);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showProfileMenu]);
+
+  useEffect(() => {
     if (!isImageViewerOpen) return undefined;
 
     const previousOverflow = document.body.style.overflow;
@@ -325,7 +348,7 @@ const FeedCard = ({
     const isMember = Array.isArray(list.members) && list.members.some((member) => member?.toLowerCase() === authorUsername);
     return {
       id: list.id,
-      label: isMember ? `เอาออกจาก ${list.name}` : `เพิ่มเข้า ${list.name}`,
+      label: `เพิ่มเข้า ${list.name}`,
       active: isMember,
     };
   });
@@ -362,7 +385,7 @@ const FeedCard = ({
   const shouldShowFooterMeta = showSocialStats || footerBadges.length > 0;
   const showRepostBanner = false;
   const showInlineReplyBanner = false;
-  const feedCardClassName = 'feed-card animate-fade-in';
+  const feedCardClassName = `feed-card animate-fade-in${showProfileMenu ? ' feed-card-menu-open' : ''}`;
   const footerClassName = `feed-card-footer${isReadableArticle ? ' feed-card-footer-priority' : ''}`;
 
   const handleReadArticle = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -402,7 +425,7 @@ const FeedCard = ({
         </div>
       )}
       <div className="feed-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-        <div style={{ position: 'relative', minWidth: 0 }}>
+        <div ref={profileMenuRef} style={{ position: 'relative', minWidth: 0 }}>
           <button
             type="button"
             className="feed-card-author feed-card-author-trigger"
@@ -464,7 +487,6 @@ const FeedCard = ({
 
           {showProfileMenu && authorUsername && (
             <>
-              <div style={{ position: 'fixed', inset: 0, zIndex: 90 }} onClick={() => setShowProfileMenu(false)} />
               <div
                 className="discovery-menu feed-card-profile-menu"
                 style={{ display: 'block', position: 'absolute', left: 0, top: 'calc(100% + 8px)', zIndex: 100, minWidth: '220px' }}
@@ -488,6 +510,7 @@ const FeedCard = ({
                     type="button"
                     className={`discovery-menu-item ${item.active ? 'active' : ''}`}
                     onClick={() => {
+                      if (item.active) return;
                       onTogglePostList?.(item.id, {
                         id: displayTweet.author?.id || authorUsername,
                         username: authorUsername,

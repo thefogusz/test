@@ -1355,6 +1355,14 @@ h6,
 .reader-subtitle {
   font-size: 16px;
   color: var(--text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.reader-header .active-list-pills {
+  margin-top: 12px;
+  padding: 5px 14px;
+  line-height: 1.35;
 }
 
 .reader-toolbar {
@@ -5539,6 +5547,31 @@ h6,
 .feed-card-profile-menu {
   transform-origin: top left;
   animation: feedCardMenuIn 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.feed-card-menu-open {
+  z-index: 40;
+}
+
+.feed-card-menu-open .feed-card-profile-menu {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  z-index: 100;
+  width: min(260px, calc(100vw - 56px));
+  max-height: 240px;
+  margin-top: 10px;
+  overflow-y: auto;
+}
+
+.feed-card-profile-menu .discovery-menu-item:hover {
+  background: rgba(255, 255, 255, 0.045) !important;
+  color: rgba(255, 255, 255, 0.96);
+  transform: none;
+}
+
+.feed-card-profile-menu .discovery-menu-item.active:hover {
+  background: rgba(41, 151, 255, 0.14) !important;
 }
 
 .discovery-menu-item {

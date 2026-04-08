@@ -235,9 +235,9 @@ const getRssSearchSources = (query: string, subscribedSources: RssSourceInfo[] =
     ...getInferredRssSources(query),
   ]).slice(0, RSS_SEARCH_FALLBACK_SOURCE_LIMIT);
 
-const buildRssQueryTerms = (query: string) => {
+const buildRssQueryTerms = (query: string): string[] => {
   const normalizedQuery = normalizeSearchText(query);
-  const terms = new Set(
+  const terms = new Set<string>(
     normalizedQuery
       .split(' ')
       .map((term) => term.trim())

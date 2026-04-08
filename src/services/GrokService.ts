@@ -450,17 +450,33 @@ const formatExpertActivityLabel = (lastSeenDays) => {
   return '';
 };
 
-const buildNaturalExpertReasoning = (categoryQuery) =>
-  `น่าติดตามในหัวข้อ ${categoryQuery} เพราะช่วยให้เห็นมุมมองเฉพาะทางและประเด็นสำคัญที่คนทั่วไปอาจมองข้าม`;
+const buildNaturalExpertReasoning = (categoryQuery, expert = {}) => {
+  const topic = String(categoryQuery || '').trim() || 'หัวข้อนี้';
+  const identity = `${expert.name || ''} ${expert.username || ''}`.toLowerCase();
 
-const sanitizeExpertReasoning = (reasoning = '', categoryQuery = '') => {
+  if (/บันเทิง|entertainment|film|movie|music|celebrity/i.test(topic)) {
+    if (/variety|deadline|hollywood reporter|thr|discussingfilm/.test(identity)) {
+      return 'เหมาะไว้ตามข่าวหนัง ซีรีส์ และดีลในวงการบันเทิงที่ขยับเร็ว';
+    }
+    if (/rottentomatoes/.test(identity)) {
+      return 'ช่วยจับกระแสรีวิวและเสียงตอบรับของหนังกับซีรีส์ได้เร็ว';
+    }
+    if (/netflix/.test(identity)) {
+      return 'ใช้ตามความเคลื่อนไหวของคอนเทนต์ใหม่และแคมเปญจากแพลตฟอร์มใหญ่';
+    }
+  }
+
+  return `ช่วยคัดมุมมองที่มีน้ำหนักในสาย ${topic} ได้ดีกว่าการไล่ตามกระแสอย่างเดียว`;
+};
+
+const sanitizeExpertReasoning = (reasoning = '', categoryQuery = '', expert = {}) => {
   const text = String(reasoning || '').trim();
-  if (!text) return buildNaturalExpertReasoning(categoryQuery);
+  if (!text) return buildNaturalExpertReasoning(categoryQuery, expert);
   if (/แอคทีฟ|engagement|สัญญาณ|โพสต์สม่ำเสมอ|\bactive\b|\bsignal\b|\brecency\b/i.test(text)) {
-    return buildNaturalExpertReasoning(categoryQuery);
+    return buildNaturalExpertReasoning(categoryQuery, expert);
   }
   if (/[\u0400-\u04ff\u3040-\u30ff]/.test(text)) {
-    return buildNaturalExpertReasoning(categoryQuery);
+    return buildNaturalExpertReasoning(categoryQuery, expert);
   }
   return text;
 };
@@ -2592,7 +2608,7 @@ const getExpertTopicPenalty = (expert = {}, categoryQuery = '') => {
 };
 
 const getExpertScopePenalty = (expert = {}, { thailandScope = false } = {}) => {
-  const text = [expert.username, expert.name, expert.reasoning].map((value) => String(value || '')).join(' ');
+  const text = [expert.username, expert.name].map((value) => String(value || '')).join(' ');
   if (thailandScope) {
     return /[\u0E00-\u0E7F]|thailand|thai|bangkok|เชียงใหม่|ภูเก็ต|ไทย/i.test(text) ? 0 : 70;
   }
@@ -2899,7 +2915,7 @@ Hard rules:
           {
             username: author?.username,
             name: author?.name,
-            reasoning: buildNaturalExpertReasoning(topicLabel),
+            reasoning: buildNaturalExpertReasoning(topicLabel, author),
             confidence: 0.62,
           },
           'x-realtime',
@@ -2967,7 +2983,7 @@ Hard rules:
           ...candidate,
           username: normalizeExpertUsername(candidate.username),
           name: candidateForScoring.name,
-          reasoning: sanitizeExpertReasoning(candidate.reasoning, topicLabel),
+          reasoning: sanitizeExpertReasoning(candidate.reasoning, topicLabel, candidateForScoring),
           lastSeenDays: activity?.lastSeenDays,
           activityLabel,
           recentTweetCount: activity?.tweetCount || 0,
@@ -2976,6 +2992,7 @@ Hard rules:
           webSources: webEvidence?.sources || [],
           _score: score,
           _sourceCount: candidate.sources?.size || 0,
+          _isSeed: Boolean(candidate.sources?.has('seed')),
         };
       })
       .filter((expert) => {
@@ -2985,13 +3002,14 @@ Hard rules:
         const activity = activityMap.get(username);
         const hasActivity = Boolean(expert.activityLabel) && hasExpertQualitySignal(activity);
         const hasStrongEvidence = expert.webMentionCount > 0 || expert._sourceCount >= 2;
-        return hasActivity || hasStrongEvidence;
+        const hasTrustedSeed = expert._isSeed && expert._score >= -20;
+        return hasActivity || hasStrongEvidence || hasTrustedSeed;
       })
       .sort((a, b) => b._score - a._score || b._sourceCount - a._sourceCount || String(a.username).localeCompare(String(b.username)))
       .map((expert) => ({
         username: expert.username,
         name: expert.name,
-        reasoning: sanitizeExpertReasoning(expert.reasoning, topicLabel),
+        reasoning: sanitizeExpertReasoning(expert.reasoning, topicLabel, expert),
         lastSeenDays: expert.lastSeenDays,
         activityLabel: expert.activityLabel,
         recentTweetCount: expert.recentTweetCount,
@@ -3059,6 +3077,7 @@ Rules:
     const cleanedExperts = rerankedExperts.map((expert) => {
       const output = { ...expert };
       delete output._score;
+      delete output._isSeed;
       return output;
     });
     const visibleExperts = cleanedExperts.slice(0, 6);

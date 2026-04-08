@@ -183,12 +183,12 @@ const AudienceWorkspace = ({
 
         {audienceTab === 'ai' && (
           <div className="animate-fade-in">
-            <div className="audience-ai-searchbar audience-command-row" style={{ display: 'flex', gap: '12px', marginBottom: '20px', maxWidth: '680px' }}>
+            <div className="audience-ai-searchbar audience-command-row" style={{ display: 'flex', gap: '12px', marginBottom: '20px', maxWidth: '680px', alignItems: 'center', flexWrap: 'wrap' }}>
               <div className="audience-ai-search-input">
 
                 <input
                   type="text"
-                  placeholder="เช่น ดาราฮอลลีวูดสายตลก, นักบอลที่กำลังดังตอนนี้, อินฟลูสายเดินป่า"
+                  placeholder="เช่น นักวิเคราะห์ตลาดเกม, ครีเอเตอร์สาย AI, ผู้ก่อตั้งสตาร์ทอัพสุขภาพ"
                   value={aiQuery}
                   onChange={(e) => setAiQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAiSearchAudience()}
@@ -208,6 +208,11 @@ const AudienceWorkspace = ({
               <button onClick={() => handleAiSearchAudience()} disabled={aiSearchLoading} className="btn-sync-premium" style={{ height: '48px', padding: '0 24px' }}>
                 {aiSearchLoading ? <RefreshCw size={15} className="animate-spin" /> : '\u0e04\u0e49\u0e19\u0e2b\u0e32'}
               </button>
+              {!aiSearchLoading && hasSearchedAudience && aiSearchResults.length === 0 && (
+                <div style={{ flexBasis: '100%', fontSize: '12px', color: 'rgba(255,255,255,0.52)', lineHeight: 1.45 }}>
+                  ยังไม่เจอบัญชีที่เข้าเกณฑ์ ลองเพิ่มคำเฉพาะหรือเปลี่ยนมุมค้นหา
+                </div>
+              )}
             </div>
 
             {aiSearchLoading && aiSearchResults.length === 0 && (
@@ -347,13 +352,6 @@ const AudienceWorkspace = ({
                     {aiSearchLoading ? <RefreshCw size={14} className="animate-spin" /> : '\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e15\u0e34\u0e21'}
                   </button>
                 </div>
-              </div>
-            )}
-
-            {!aiSearchLoading && hasSearchedAudience && aiSearchResults.length === 0 && (
-              <div style={{ padding: '44px 0', textAlign: 'center', color: 'rgba(255,255,255,0.62)', fontSize: '13px', lineHeight: 1.6 }}>
-                <div style={{ color: '#fff', fontWeight: 800, marginBottom: '6px' }}>No verified high-quality matches yet</div>
-                <div>FORO only shows accounts with recent activity, strong topic fit, and quality signals.</div>
               </div>
             )}
 
