@@ -259,7 +259,7 @@ export const fetchRssFeed = async (source: RssSourceInfo, maxItems = 999): Promi
         item,
         timestamp: parseItemTimestamp(item.pubDate),
       }))
-      .filter(({ item, timestamp }) => {
+      .filter(({ timestamp }) => {
         const isFresh = Number.isFinite(timestamp) && timestamp >= cutoffTimestamp && timestamp <= (now + 12 * 60 * 60 * 1000);
         if (!isFresh && items.length > 0) {
            // Silently filter out old ones but we log the survivors

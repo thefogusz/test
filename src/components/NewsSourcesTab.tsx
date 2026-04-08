@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Check, Globe2, Plus, X, ChevronLeft, ChevronRight,
   Bot, Laptop, Code2, ShieldCheck, Gamepad2, Coins, Briefcase, TrendingUp,

@@ -4,12 +4,6 @@ import { Plus, Trash2, X, FileCode, List, Library, Share2, Users, CreditCard, Ch
 
 const normalizeHandle = (value) => (value || '').trim().replace(/^@/, '').toLowerCase();
 
-const PLAN_TITLES = {
-  free: 'Foro Free',
-  plus: 'Foro Plus',
-  admin: 'Foro Admin',
-};
-
 const getMatchPriority = (user, query) => {
   const normalizedQuery = normalizeHandle(query);
   const username = normalizeHandle(user?.username);
@@ -139,9 +133,6 @@ const RightSidebar = ({
   onShareList,
   isMobileOpen,
   onCloseMobile,
-  activePlanId,
-  onOpenPricing,
-  planNotice,
 }) => {
   const [expandedId, setExpandedId] = useState(null);
   const [addHandle, setAddHandle] = useState('');

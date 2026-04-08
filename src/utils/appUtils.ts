@@ -256,7 +256,7 @@ export const getPreferredPostSummary = (post) => {
 
 export const getRssCardPresentation = (
   post,
-  options: { hasMediaPreview?: boolean } = {},
+  _options: { hasMediaPreview?: boolean } = {},
 ) => {
   const rawTitle = cleanCardCopy(getPreferredPostTitle(post));
   const rawSummary = cleanCardCopy(getPreferredPostSummary(post));

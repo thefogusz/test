@@ -1,5 +1,4 @@
 const fs = require('fs');
-const path = require('path');
 const filePath = 'vite.config.js';
 let content = fs.readFileSync(filePath, 'utf8');
 

@@ -1,7 +1,6 @@
 import { createElement, useEffect, useState } from 'react';
 import { Check, CreditCard, Shield, Sparkles, X } from 'lucide-react';
 import {
-  FEATURE_HINTS,
   FEATURE_LABELS,
   PLAN_DEFINITIONS,
   formatPlanLimit,

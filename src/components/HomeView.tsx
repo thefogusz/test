@@ -39,8 +39,6 @@ const HomeView = ({
   onReadArticle,
   onSummaryCopied,
 }) => {
-  if (!isVisible) return null;
-
   const hasHomeSecondaryActions = originalFeedLength > 0 || deletedFeedLength > 0;
   const showHomeFeedToolbar = feed.length > 0 || isFiltered;
   const normalizedAiFilterSummary = normalizeSummaryMarkdown(aiFilterSummary);
@@ -49,6 +47,8 @@ const HomeView = ({
     () => watchlistHandleSet ?? new Set(),
     [watchlistHandleSet],
   );
+
+  if (!isVisible) return null;
 
   return (
     <div className="animate-fade-in">

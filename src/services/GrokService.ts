@@ -1068,7 +1068,7 @@ export const generateGrokSummary = async (fullStoryText) => {
   return results[0] || fullStoryText;
 };
 
-const shortenInsightText = (value = '', maxLength = 400) => {
+const shortenInsightText = (value = '', _maxLength = 400) => {
   const cleaned = normalizeCacheText(cleanGeneratedContent(value));
   if (!cleaned) return '';
   return cleaned; // Do not truncate, let the UI layout handle text length naturally to avoid lost information

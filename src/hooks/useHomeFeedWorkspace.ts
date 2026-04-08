@@ -279,7 +279,7 @@ export const useHomeFeedWorkspace = ({
               if (article.ok && article.leadImageUrl) {
                 return { id: post.id, imageUrl: article.leadImageUrl };
               }
-            } catch (e) {
+            } catch {
               // Ignore individual failures
             }
             return null;
