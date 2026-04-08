@@ -893,7 +893,7 @@ h6,
 
 .feed-card-body-copy {
   overflow-wrap: anywhere;
-  font-family: "Kanit", var(--font-card);
+  font-family: "Noto Sans Thai", "Inter", sans-serif;
 }
 
 .feed-card-footer .btn-forge {
