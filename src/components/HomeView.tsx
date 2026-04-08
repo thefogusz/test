@@ -18,6 +18,8 @@ const HomeView = ({
   visibleQuickPresets,
   quickFilterPresets,
   isFiltering,
+  isLoadingMore,
+  isSyncing,
   loading,
   pendingFeed,
   nextCursor,
@@ -134,7 +136,7 @@ const HomeView = ({
               disabled={loading}
               className="btn-pill primary"
             >
-              {loading ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} ฟีดข้อมูล
+              {isSyncing ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} ฟีดข้อมูล
             </button>
           </div>
         </div>
@@ -275,10 +277,10 @@ const HomeView = ({
           ))}
       </div>
 
-      {(pendingFeed.length > 0 || nextCursor) && !loading && (
-        <div style={{ textAlign: 'center', padding: '40px' }}>
-          <button onClick={onLoadMore} className="btn-pill">
-            โหลดเพิ่มเติม
+      {feed.length > 0 && (pendingFeed.length > 0 || nextCursor || isLoadingMore) && (
+        <div className="home-load-more-shell">
+          <button onClick={onLoadMore} className="btn-pill" disabled={loading}>
+            {isLoadingMore ? <RefreshCw size={14} className="animate-spin" /> : 'โหลดเพิ่มเติม'}
           </button>
         </div>
       )}

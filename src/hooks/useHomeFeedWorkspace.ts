@@ -733,6 +733,8 @@ export const useHomeFeedWorkspace = ({
     handleUndo,
     isFiltered,
     isFiltering: aiFilterMutation.isPending,
+    isLoadingMore: loadMoreMutation.isPending,
+    isSyncing: syncMutation.isPending,
     loading: syncMutation.isPending || loadMoreMutation.isPending,
     nextCursor,
   };

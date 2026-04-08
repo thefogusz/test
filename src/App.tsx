@@ -235,6 +235,8 @@ const App = () => {
     handleUndo,
     isFiltered,
     isFiltering,
+    isLoadingMore,
+    isSyncing,
     loading,
     nextCursor,
   } = useHomeFeedWorkspace({
@@ -558,6 +560,8 @@ const App = () => {
             visibleQuickPresets={visibleQuickPresets}
             quickFilterPresets={quickFilterPresets}
             isFiltering={isFiltering}
+            isLoadingMore={isLoadingMore}
+            isSyncing={isSyncing}
             loading={loading}
             pendingFeed={pendingFeed}
             nextCursor={nextCursor}
