@@ -86,6 +86,56 @@ export const useHomeFeedWorkspace = ({
   const failedThaiSummaryIdsRef = useRef(new Set<string>());
   const enrichedImageIdsRef = useRef(new Set<string>());
 
+  const getNormalizedPostId = (post: any) => String(post?.id || '').trim();
+
+  const mergeIncomingPosts = (incomingPosts: any[] = []) => {
+    if (!incomingPosts.length) return;
+
+    setOriginalFeed((prev) => {
+      const postMap = new Map(prev.map((post) => [post.id, sanitizeStoredPost(post)]));
+      let didChange = false;
+
+      incomingPosts.forEach((incomingPost) => {
+        const postId = getNormalizedPostId(incomingPost);
+        if (!postId) return;
+
+        const normalizedIncomingPost = sanitizeStoredPost(incomingPost);
+        const existingPost = postMap.get(postId);
+
+        if (!existingPost) {
+          postMap.set(postId, normalizedIncomingPost);
+          didChange = true;
+          return;
+        }
+
+        const mergedPost = sanitizeStoredPost({
+          ...existingPost,
+          ...normalizedIncomingPost,
+          summary: existingPost.summary || normalizedIncomingPost.summary,
+          primaryImageUrl: existingPost.primaryImageUrl || normalizedIncomingPost.primaryImageUrl,
+          imageUrls:
+            Array.isArray(existingPost.imageUrls) && existingPost.imageUrls.length > 0
+              ? existingPost.imageUrls
+              : normalizedIncomingPost.imageUrls,
+          ai_reasoning: existingPost.ai_reasoning || normalizedIncomingPost.ai_reasoning,
+          citation_id: existingPost.citation_id || normalizedIncomingPost.citation_id,
+          temporalTag: existingPost.temporalTag || normalizedIncomingPost.temporalTag,
+        });
+
+        if (JSON.stringify(existingPost) !== JSON.stringify(mergedPost)) {
+          postMap.set(postId, mergedPost);
+          didChange = true;
+        }
+      });
+
+      if (!didChange) return prev;
+
+      return Array.from(postMap.values()).sort(
+        (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
+      );
+    });
+  };
+
   const activeListMembers = useMemo(() => {
     if (!activeListId) {
       return {
@@ -468,8 +518,16 @@ export const useHomeFeedWorkspace = ({
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
       const nextFreshFeedIds = displayData
-        .map((post) => String(post?.id || '').trim())
+        .map((post) => getNormalizedPostId(post))
         .filter((id) => id && !existingIds.has(id));
+      const newDisplayData = displayData.filter((post) => {
+        const postId = getNormalizedPostId(post);
+        return postId && !existingIds.has(postId);
+      });
+      const existingDisplayData = displayData.filter((post) => {
+        const postId = getNormalizedPostId(post);
+        return postId && existingIds.has(postId);
+      });
 
       setPendingFeed(twitterRemaining);
 
@@ -479,14 +537,24 @@ export const useHomeFeedWorkspace = ({
       if (twitterCount > 0) statusParts.push(`${twitterCount} โพสต์จาก X`);
       if (rssCount > 0) statusParts.push(`${rssCount} ข่าวจาก RSS`);
 
-      if (displayData.length > 0) {
+      if (existingDisplayData.length > 0) {
+        mergeIncomingPosts(existingDisplayData);
+      }
+
+      if (newDisplayData.length > 0) {
         await processAndSummarizeFeed(
-          displayData,
+          newDisplayData,
           `ดึงข้อมูลสำเร็จ! ได้มา ${statusParts.join(' + ')} กำลังแปลและแสดงผล`,
         );
       }
 
-      setStatus('อัปเดตข้อมูลเรียบร้อย');
+      if (displayData.length === 0) {
+        setStatus('ไม่มีข้อมูลใหม่');
+      } else if (newDisplayData.length === 0) {
+        setStatus('อัปเดตข้อมูลเรียบร้อย - ไม่มีโพสต์ใหม่ให้ประมวลผล');
+      } else {
+        setStatus('อัปเดตข้อมูลเรียบร้อย');
+      }
       setFreshFeedIds(nextFreshFeedIds);
     },
     onError: (error: any) => {
@@ -528,10 +596,27 @@ export const useHomeFeedWorkspace = ({
 
       if (nextBatch.length > 0) {
         const nextFreshFeedIds = nextBatch
-          .map((post) => String(post?.id || '').trim())
+          .map((post) => getNormalizedPostId(post))
           .filter((id) => id && !existingIds.has(id));
-        await processAndSummarizeFeed(nextBatch, 'กำลังดึงข้อมูลเพิ่มอีก');
-        setStatus('อัปเดตข้อมูลเพิ่มเติมเรียบร้อย');
+        const newNextBatch = nextBatch.filter((post) => {
+          const postId = getNormalizedPostId(post);
+          return postId && !existingIds.has(postId);
+        });
+        const existingNextBatch = nextBatch.filter((post) => {
+          const postId = getNormalizedPostId(post);
+          return postId && existingIds.has(postId);
+        });
+
+        if (existingNextBatch.length > 0) {
+          mergeIncomingPosts(existingNextBatch);
+        }
+
+        if (newNextBatch.length > 0) {
+          await processAndSummarizeFeed(newNextBatch, 'กำลังดึงข้อมูลเพิ่มอีก');
+          setStatus('อัปเดตข้อมูลเพิ่มเติมเรียบร้อย');
+        } else {
+          setStatus('อัปเดตข้อมูลเพิ่มเติมเรียบร้อย - ไม่มีโพสต์ใหม่ให้ประมวลผล');
+        }
         setFreshFeedIds(nextFreshFeedIds);
       } else {
         setFreshFeedIds([]);
