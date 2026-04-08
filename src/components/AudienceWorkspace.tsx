@@ -166,10 +166,15 @@ const AudienceWorkspace = ({
             </div>
 
             {aiSearchLoading && aiSearchResults.length === 0 && (
-              <div style={{ padding: '60px 0', textAlign: 'center' }}>
-                <div className="ai-loader-ring" style={{ margin: '0 auto 20px' }}></div>
-                <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--accent-secondary)' }} className="animate-pulse">
-                  FORO IS FINDING PEOPLE...
+              <div className="audience-loading-state" aria-live="polite">
+                <div className="audience-loading-kicker">Finding high-signal accounts</div>
+                <div className="audience-loading-line">
+                  <span />
+                </div>
+                <div className="audience-loading-steps">
+                  <span>Recent posts</span>
+                  <span>Topic fit</span>
+                  <span>Quality signals</span>
                 </div>
               </div>
             )}

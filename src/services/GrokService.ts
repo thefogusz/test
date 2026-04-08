@@ -423,6 +423,18 @@ const formatExpertActivityLabel = (lastSeenDays) => {
   return '';
 };
 
+const buildNaturalExpertReasoning = (categoryQuery) =>
+  `น่าติดตามในหัวข้อ ${categoryQuery} เพราะช่วยให้เห็นมุมมองเฉพาะทางและประเด็นสำคัญที่คนทั่วไปอาจมองข้าม`;
+
+const sanitizeExpertReasoning = (reasoning = '', categoryQuery = '') => {
+  const text = String(reasoning || '').trim();
+  if (!text) return buildNaturalExpertReasoning(categoryQuery);
+  if (/แอคทีฟ|engagement|สัญญาณ|โพสต์สม่ำเสมอ|\bactive\b|\bsignal\b|\brecency\b/i.test(text)) {
+    return buildNaturalExpertReasoning(categoryQuery);
+  }
+  return text;
+};
+
 const hasExpertQualitySignal = (activity = {}) => {
   const followers = Number(activity.followers || 0);
   const engagementSignal = Number(activity.engagementSignal || 0);
@@ -2198,8 +2210,8 @@ Hard rules:
 - Do not hallucinate usernames. If you are not confident a username is real and active, skip it.
 - Prefer diversity: mix practitioners, analysts, journalists, researchers — not 6 accounts of the same type.
 - Exclude list — never recommend these: [${excludeUsernames.join(', ')}]
-- Write "reasoning" in Thai, 1 sentence — state specifically WHY this account is a must-follow for "${categoryQuery}".`,
-      prompt: `Recommend the best 6 Twitter/X accounts for "${categoryQuery}". Username must not start with @.`,
+- Write "reasoning" in natural Thai, 1 sentence, about why this account is useful to follow for "${categoryQuery}". Do not describe activity, engagement, scoring, or internal verification.`,
+      prompt: `Recommend the best 6 Twitter/X accounts for "${categoryQuery}". Username must not start with @. Write reasoning in natural Thai, 1 sentence, as a human recommendation about domain expertise or useful perspective. Never mention backend scoring, activity checks, engagement, signals, recency, "แอคทีฟ", or "โพสต์สม่ำเสมอ" in reasoning.`,
       schema: z.object({
         experts: z.array(
           z.object({
@@ -2249,6 +2261,7 @@ Hard rules:
         const activityLabel = formatExpertActivityLabel(activity?.lastSeenDays);
         return {
           ...expert,
+          reasoning: sanitizeExpertReasoning(expert.reasoning, categoryQuery),
           lastSeenDays: activity?.lastSeenDays,
           activityLabel,
           recentTweetCount: activity?.tweetCount || 0,
@@ -2266,10 +2279,14 @@ Hard rules:
       .map((author) => ({
         username: String(author?.username || '').replace(/^@/, '').trim(),
         name: author?.name || author?.username || 'Unknown',
-        reasoning: `ยังแอคทีฟในหัวข้อ ${categoryQuery} และมีสัญญาณโพสต์สม่ำเสมอพร้อม engagement ที่ดีในช่วงล่าสุด`,
+        reasoning: buildNaturalExpertReasoning(categoryQuery),
         lastSeenDays: author?._latestTweetAgeDays,
         activityLabel: formatExpertActivityLabel(author?._latestTweetAgeDays),
         recentTweetCount: author?._topicTweetCount || 0,
+      }))
+      .map((expert) => ({
+        ...expert,
+        reasoning: buildNaturalExpertReasoning(categoryQuery),
       }));
 
     return [...verifiedExperts, ...fallbackExperts].slice(0, 6);
