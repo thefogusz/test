@@ -6,6 +6,16 @@ React + Vite application with an Express edge server for API proxying, AI integr
 
 Use `DESIGN.md` as the UI source of truth before changing FORO screens, components, or styling. It captures the current dark command-center direction, color tokens, typography, component rules, responsive behavior, and agent prompts for keeping future UI work on-brand.
 
+## Product Docs
+
+Use the VitePress docs in `docs/` as the living source of truth for product behavior and architecture.
+
+- Feature behavior lives in `docs/features/`
+- Product tradeoffs live in `docs/decisions/`
+- Docs workflow lives in `docs/process/docs-governance.md`
+
+When a PR changes user-facing behavior, business rules, workflow steps, or UI states, update the matching docs page in the same PR.
+
 ## What Changed
 
 This codebase now supports two persistence modes:
@@ -103,4 +113,5 @@ npm run start
 ```bash
 npm run typecheck
 npm run lint
+npm run docs:build
 ```

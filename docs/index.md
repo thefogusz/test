@@ -3,58 +3,37 @@ layout: home
 
 hero:
   name: "Foro Docs"
-  text: "เอกสารระบบสำหรับทีมพัฒนา"
-  tagline: "เอกสารที่เน้นให้ dev เปิดแล้วไล่โค้ดตามได้ง่าย เข้าใจ flow เร็ว และ debug ต่อได้"
+  text: "Living product and engineering docs"
+  tagline: "Built so devs can open one place and understand what the app does today, even when ideas keep moving."
   actions:
     - theme: brand
-      text: เริ่มอ่าน
+      text: Start Here
       link: /getting-started
     - theme: alt
-      text: ดูภาพรวมระบบ
-      link: /architecture/overview
+      text: Feature Docs
+      link: /features/
     - theme: alt
-      text: Cost Analysis
-      link: /cost-analysis
+      text: Docs Governance
+      link: /process/docs-governance
 
 features:
-  - title: Read the Code Fast
-    details: มีหน้าเริ่มต้นสำหรับ dev ใหม่ บอกว่าควรอ่านไฟล์ไหนก่อนและ debug ตรงไหน
-  - title: Feature by Feature
-    details: แยกเอกสารตามของจริงในระบบ เช่น Frontend, Feed/Search, AI Pipeline, Integrations, State
-  - title: Built for Handoff
-    details: ใช้เป็น internal docs สำหรับ onboarding, review architecture และคุย implementation ได้เลย
+  - title: Product Source Of Truth
+    details: Feature pages capture current behavior, rules, states, and ownership so implementation does not drift with chat.
+  - title: Built For Fast Teams
+    details: Architecture pages explain the system, while feature docs explain what should stay true during rapid iteration.
+  - title: PR-Friendly
+    details: Docs updates now have a lightweight governance rule and pull request checklist so behavior changes ship with matching docs.
 ---
 
-## วิธีเปิดเอกสาร
+## Use This Site In Layers
 
-เอกสารชุดนี้ถูกจัดให้อยู่ในโครงสร้างของ VitePress แล้ว สามารถรันได้ด้วยคำสั่ง:
+Start with [Getting Started](/getting-started), then open the matching page in [Feature Docs](/features/) for the area you are changing.
+
+If a behavior changed because of a product tradeoff, capture the reason in [Decision Index](/decisions/). Keep architecture pages focused on implementation structure, not moving product requirements.
+
+## Commands
 
 ```bash
 npm run docs:dev
-```
-
-และ build production docs ได้ด้วย:
-
-```bash
 npm run docs:build
 ```
-
-## เส้นทางแนะนำ
-
-- เริ่มจาก [อ่านเริ่มจากตรงนี้](/getting-started)
-- ต่อด้วย [ภาพรวมระบบ](/architecture/overview)
-- แล้วค่อยไล่หน้าตาม feature ที่สนใจ
-- ถ้ากำลังออกแบบ billing ให้ต่อที่ [Cost Analysis](/cost-analysis)
-
-## โครงเอกสารปัจจุบัน
-
-- [Getting Started](/getting-started)
-- [Architecture Overview](/architecture/overview)
-- [Frontend](/architecture/frontend)
-- [Feed และ Search](/architecture/feed-search)
-- [AI Content Pipeline](/architecture/ai-pipeline)
-- [Proxy และ External APIs](/architecture/integrations)
-- [State และ Persistence](/architecture/state)
-- [API Integrations](/api-integrations)
-- [Cost Analysis](/cost-analysis)
-- [เอกสารฉบับเต็ม](/architecture-th)
