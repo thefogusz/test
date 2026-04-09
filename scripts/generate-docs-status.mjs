@@ -4,6 +4,7 @@ import {
   appViewRegistry,
   buildCommitUrl,
   compareIsoDates,
+  extractDeclaredActiveViews,
   featureRegistry,
   isDirty,
   latestMeta,
@@ -84,6 +85,15 @@ const views = appViewRegistry.map((view) => {
   }
 })
 
+const declaredActiveViews = extractDeclaredActiveViews()
+const trackedViewIds = new Set(appViewRegistry.map((view) => view.id))
+const untrackedDeclaredViews = declaredActiveViews
+  .filter((viewId) => !trackedViewIds.has(viewId))
+  .map((viewId) => ({
+    id: viewId,
+    reason: 'Declared in ActiveView type but missing from docs appViewRegistry',
+  }))
+
 const recentDocUpdates = [...featureStatus]
   .filter((entry) => entry.doc?.committedAt)
   .sort((left, right) => compareIsoDates(right.doc.committedAt, left.doc.committedAt))
@@ -109,8 +119,11 @@ const report = {
     needsAttention: featureStatus.filter((entry) => entry.status !== 'ok').length,
     totalViews: views.length,
     coveredViews: views.filter((entry) => entry.covered).length,
+    declaredActiveViews: declaredActiveViews.length,
+    untrackedDeclaredViews: untrackedDeclaredViews.length,
   },
   views,
+  untrackedDeclaredViews,
   features: featureStatus,
   recentDocUpdates,
 }

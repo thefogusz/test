@@ -140,5 +140,5 @@ export interface ForoFilterBrief {
   confidenceLabel?: string;
 }
 
-export type ActiveView = 'home' | 'content' | 'read' | 'audience' | 'bookmarks' | 'pricing' | 'search';
+export type ActiveView = 'home' | 'content' | 'read' | 'audience' | 'bookmarks' | 'pricing';
 export type ContentTab = 'search' | 'create';

@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -131,4 +132,31 @@ export const getChangedFiles = ({ baseRef, headRef } = {}) => {
 
   const branchDiff = runGit(['diff', '--name-only', `${mergeBase}...HEAD`])
   return branchDiff ? branchDiff.split(/\r?\n/).filter(Boolean).map(toPosix) : []
+}
+
+export const extractDeclaredActiveViews = () => {
+  const domainTypesPath = path.join(repoRoot, 'src', 'types', 'domain.ts')
+  const source = readFileSafe(domainTypesPath)
+  if (!source) return []
+
+  const match = source.match(/export\s+type\s+ActiveView\s*=\s*([^;]+);/m)
+  if (!match?.[1]) return []
+
+  return Array.from(
+    new Set(
+      match[1]
+        .split('|')
+        .map((entry) => entry.trim())
+        .map((entry) => entry.replace(/^'/, '').replace(/'$/, ''))
+        .filter(Boolean),
+    ),
+  )
+}
+
+function readFileSafe(filePath) {
+  try {
+    return fs.readFileSync(filePath, 'utf8')
+  } catch {
+    return ''
+  }
 }

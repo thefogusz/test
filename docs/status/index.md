@@ -10,24 +10,8 @@
 อ้างอิงแนวทาง docs-as-code: [VitePress Site Config](https://vitepress.dev/reference/site-config), [VitePress Data Loading](https://vitepress.dev/guide/data-loading), [Docusaurus Versioning](https://docusaurus.io/docs/next/versioning), [GitLab Docs Architecture](https://docs.gitlab.com/development/documentation/site_architecture/), [GitLab /help](https://docs.gitlab.com/development/documentation/help/)
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
 import { withBase } from 'vitepress'
-
-const statusReport = ref({
-  generatedAt: null,
-  summary: {
-    totalFeatures: 0,
-    healthyFeatures: 0,
-    needsAttention: 0,
-    totalViews: 0,
-    coveredViews: 0,
-  },
-  views: [],
-  features: [],
-  recentDocUpdates: [],
-})
-const isLoading = ref(true)
-const loadError = ref('')
+import statusReport from '../.vitepress/data/docs-status.json'
 
 const statusTone = {
   ok: 'background:#0f2f1e;color:#90f3b3;',
@@ -37,8 +21,6 @@ const statusTone = {
   missing: 'background:#4b1717;color:#ff9c9c;',
 }
 
-const dataUrl = computed(() => withBase('/__data/docs-status.json'))
-
 const formatDate = (value) => {
   if (!value) return '-'
   return new Date(value).toLocaleString('th-TH', {
@@ -46,28 +28,6 @@ const formatDate = (value) => {
     timeStyle: 'short',
   })
 }
-
-const loadReport = async () => {
-  isLoading.value = true
-  loadError.value = ''
-
-  try {
-    const response = await fetch(`${dataUrl.value}?t=${Date.now()}`, { cache: 'no-store' })
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`)
-    }
-
-    statusReport.value = await response.json()
-  } catch (error) {
-    loadError.value = error instanceof Error ? error.message : 'Failed to load status data'
-  } finally {
-    isLoading.value = false
-  }
-}
-
-onMounted(() => {
-  void loadReport()
-})
 </script>
 
 ## Snapshot ล่าสุด
@@ -77,9 +37,16 @@ onMounted(() => {
 - ฟีเจอร์ที่สถานะปกติ: `{{ statusReport.summary.healthyFeatures }}`
 - ฟีเจอร์ที่ต้องเช็ก: `{{ statusReport.summary.needsAttention }}`
 - `activeView` ที่มี coverage แล้ว: `{{ statusReport.summary.coveredViews }}/{{ statusReport.summary.totalViews }}`
+- `ActiveView` ที่ประกาศในโค้ดแต่ยังไม่ถูก track: `{{ statusReport.summary.untrackedDeclaredViews }}/{{ statusReport.summary.declaredActiveViews }}`
 
-<div v-if="isLoading" style="margin:14px 0;color:var(--vp-c-text-2);">กำลังโหลดสถานะ docs...</div>
-<div v-else-if="loadError" style="margin:14px 0;color:#ff9c9c;">โหลดสถานะ docs ไม่สำเร็จ: {{ loadError }}</div>
+<div v-if="statusReport.untrackedDeclaredViews?.length" style="border:1px solid #6b4c14;border-radius:16px;padding:16px 18px;margin:14px 0;background:#2f2412;color:#ffd37a;">
+  <strong>พบ ActiveView ที่ docs tracker ยังไม่ครอบ</strong>
+  <ul style="margin:10px 0 0 18px;">
+    <li v-for="view in statusReport.untrackedDeclaredViews" :key="view.id">
+      <code>{{ view.id }}</code> · {{ view.reason }}
+    </li>
+  </ul>
+</div>
 
 ## View Coverage
 
