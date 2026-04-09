@@ -37,6 +37,8 @@ let runTimer = null
 let activeRun = null
 let rerunRequested = false
 
+const vitepressCliPath = path.join(repoRoot, 'node_modules', 'vitepress', 'bin', 'vitepress.js')
+
 const shouldHandleFile = (filePath = '') => {
   const normalizedPath = path.normalize(String(filePath || '')).toLowerCase()
   if (!normalizedPath) return false
@@ -66,6 +68,26 @@ const spawnNodeScript = (scriptName) =>
     child.on('error', reject)
   })
 
+const buildDocsSite = () =>
+  new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [vitepressCliPath, 'build', 'docs'], {
+      cwd: repoRoot,
+      stdio: 'inherit',
+      env: process.env,
+    })
+
+    child.on('exit', (code) => {
+      if (code === 0) {
+        resolve()
+        return
+      }
+
+      reject(new Error(`vitepress build exited with code ${code ?? 'unknown'}`))
+    })
+
+    child.on('error', reject)
+  })
+
 const runDocsData = async () => {
   if (activeRun) {
     rerunRequested = true
@@ -80,9 +102,11 @@ const runDocsData = async () => {
       await spawnNodeScript('generate-docs-status.mjs')
       await spawnNodeScript('generate-docs-changelog.mjs')
       await spawnNodeScript('generate-docs-draft.mjs')
-      console.log('[docs-watch] Docs data updated')
+      console.log('[docs-watch] Docs data updated, rebuilding docs site...')
+      await buildDocsSite()
+      console.log('[docs-watch] Docs site rebuilt')
     } catch (error) {
-      console.error('[docs-watch] Failed to regenerate docs data:', error.message)
+      console.error('[docs-watch] Failed to refresh docs artifacts:', error.message)
     } finally {
       activeRun = null
       if (rerunRequested) {
