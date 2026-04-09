@@ -15,6 +15,27 @@ const parseBriefItem = (value = '') => {
   return { text, citations };
 };
 
+const buildBriefClipboardText = (brief, filteredCount = 0) => {
+  if (!brief) return '';
+
+  const headline = String(brief.headline || '').trim();
+  const whyNow = String(brief.whyNow || '').trim();
+  const sectionLabel = String(brief.sectionLabel || 'ประเด็นสำคัญ').trim();
+  const matchedSignals = Array.isArray(brief.matchedSignals)
+    ? brief.matchedSignals.map((item) => parseBriefItem(item).text).filter(Boolean)
+    : [];
+
+  return [
+    headline,
+    whyNow,
+    matchedSignals.length ? [sectionLabel, ...matchedSignals.map((item) => `- ${item}`)].join('\n') : '',
+    filteredCount ? `คัดมาจาก ${filteredCount} เรื่อง` : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+    .trim();
+};
+
 const HomeView = ({
   isVisible,
   currentActiveList,
@@ -57,7 +78,7 @@ const HomeView = ({
   const normalizedAiFilterSummary = normalizeSummaryMarkdown(aiFilterSummary);
   const hasStructuredAiBrief = Boolean(
     aiFilterBrief?.headline &&
-    (aiFilterBrief?.matchedSignals?.length || aiFilterBrief?.whyNow || aiFilterBrief?.decisionNote),
+    (aiFilterBrief?.matchedSignals?.length || aiFilterBrief?.whyNow),
   );
   const shouldShowAiFilterSummarySkeleton = isFiltering && isFiltered && !aiFilterSummary;
   const effectiveBookmarkIdSet = useMemo(() => bookmarkIdSet ?? new Set(), [bookmarkIdSet]);
@@ -75,7 +96,6 @@ const HomeView = ({
 
   const takeawayItems = hasStructuredAiBrief ? (aiFilterBrief?.matchedSignals || []) : [];
   const outputLabel = aiFilterBrief?.outputLabel || 'ผลการวิเคราะห์';
-  const outputMode = aiFilterBrief?.outputMode || 'analysis';
   const sectionLabel = aiFilterBrief?.sectionLabel || 'ประเด็นสำคัญ';
 
   return (
@@ -227,7 +247,10 @@ const HomeView = ({
             </div>
             <button
               onClick={() => {
-                navigator.clipboard.writeText(cleanMarkdownForClipboard(normalizedAiFilterSummary));
+                const clipboardText = hasStructuredAiBrief
+                  ? buildBriefClipboardText(aiFilterBrief, feed.length)
+                  : cleanMarkdownForClipboard(normalizedAiFilterSummary);
+                navigator.clipboard.writeText(clipboardText);
                 onSummaryCopied();
               }}
               className="icon-btn-large"
@@ -258,10 +281,10 @@ const HomeView = ({
                 {aiFilterBrief.whyNow && (
                   <div
                     style={{
-                      fontSize: '15px',
-                      lineHeight: '1.75',
-                      color: 'rgba(255,255,255,0.78)',
-                      maxWidth: '840px',
+                      fontSize: '17px',
+                      lineHeight: '1.8',
+                      color: 'rgba(255,255,255,0.86)',
+                      maxWidth: '900px',
                     }}
                   >
                     {aiFilterBrief.whyNow}
@@ -269,14 +292,11 @@ const HomeView = ({
                 )}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   <div className="foro-filter-meta-pill foro-filter-output-pill">{outputLabel}</div>
-                  {aiFilterBrief.confidenceLabel && (
-                    <div className="foro-filter-meta-pill">ความมั่นใจ {aiFilterBrief.confidenceLabel}</div>
-                  )}
                   <div className="foro-filter-meta-pill">คัดได้ {feed.length} เรื่อง</div>
                 </div>
               </div>
 
-              {(takeawayItems.length > 0 || aiFilterBrief.decisionNote) && (
+              {takeawayItems.length > 0 && (
                 <div className="foro-filter-brief-card">
                   {takeawayItems.length > 0 && (
                     <>
@@ -302,13 +322,6 @@ const HomeView = ({
                       </div>
                     </>
                   )}
-
-                  {aiFilterBrief.decisionNote && (
-                    <div className="foro-filter-brief-note">
-                      <span className="foro-filter-brief-note-label">Note</span>
-                      <span>{aiFilterBrief.decisionNote}</span>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -322,7 +335,7 @@ const HomeView = ({
 
           <div className="foro-filter-summary-footer">
             <ShieldCheck size={12} className="text-accent" />
-            FORO สังเคราะห์ผลลัพธ์จากการ์ดในชุดนี้ตาม prompt ของคุณในโหมด {outputMode}
+            FORO สรุปจากการ์ดที่ถูกคัดในชุดนี้
           </div>
         </div>
       )}

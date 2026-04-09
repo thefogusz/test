@@ -2221,10 +2221,9 @@ h6,
 .foro-filter-brief-title {
   margin-bottom: 10px;
   color: rgba(138, 198, 255, 0.95);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .foro-filter-brief-list {
@@ -2232,35 +2231,16 @@ h6,
   gap: 10px;
 }
 
-.foro-filter-brief-note {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  font-size: 13px;
-  line-height: 1.65;
-  color: rgba(255, 255, 255, 0.76);
-}
-
-.foro-filter-brief-note-label {
-  color: rgba(138, 198, 255, 0.95);
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
 .foro-filter-brief-item {
   position: relative;
-  padding-left: 16px;
-  color: rgba(255, 255, 255, 0.82);
-  font-size: 13px;
-  line-height: 1.65;
+  padding: 2px 0 2px 18px;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 15px;
+  line-height: 1.8;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
 }
 
 .foro-filter-brief-item::before {
@@ -2285,11 +2265,12 @@ h6,
 }
 
 .reference-badge.foro-filter-brief-citation-badge {
-  min-width: 28px;
-  min-height: 20px;
+  min-width: 32px;
+  min-height: 24px;
   margin: 0;
-  padding: 0 7px;
-  border-radius: 7px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 11px;
 }
 
 .foro-filter-summary-footer {

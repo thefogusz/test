@@ -1661,31 +1661,18 @@ export const buildForoFilterBriefMarkdown = (brief, userQuery = '', filteredCoun
 
   const safeHeadline = cleanGeneratedContent(brief.headline || '');
   const safeWhyNow = cleanGeneratedContent(brief.whyNow || '');
-  const safeDecisionNote = cleanGeneratedContent(brief.decisionNote || '');
-  const safeOutputLabel = cleanGeneratedContent(brief.outputLabel || 'FORO Filter Result');
-  const safeSectionLabel = cleanGeneratedContent(brief.sectionLabel || 'Key Takeaways');
+  const safeSectionLabel = cleanGeneratedContent(brief.sectionLabel || 'ประเด็นสำคัญ');
   const matchedSignals = Array.isArray(brief.matchedSignals)
     ? brief.matchedSignals.map((item) => cleanGeneratedContent(item || '')).filter(Boolean)
     : [];
-  const excludedSignals = Array.isArray(brief.excludedSignals)
-    ? brief.excludedSignals.map((item) => cleanGeneratedContent(item || '')).filter(Boolean)
-    : [];
-  const confidenceLabel = cleanGeneratedContent(brief.confidenceLabel || '');
 
   return [
-    safeOutputLabel ? `## ${safeOutputLabel}` : '',
     safeHeadline,
-    safeWhyNow ? `## Why It Matters\n${safeWhyNow}` : '',
+    safeWhyNow,
     matchedSignals.length
-      ? `## ${safeSectionLabel}\n${matchedSignals.map((item) => `- ${item}`).join('\n')}`
+      ? `${safeSectionLabel}\n${matchedSignals.map((item) => `- ${item}`).join('\n')}`
       : '',
-    excludedSignals.length
-      ? `## What Was Excluded\n${excludedSignals.map((item) => `- ${item}`).join('\n')}`
-      : '',
-    safeDecisionNote ? `## Decision Note\n${safeDecisionNote}` : '',
-    confidenceLabel
-      ? `Confidence: ${confidenceLabel}${filteredCount ? ` • ${filteredCount} picks` : ''}${userQuery ? ` • Query: ${userQuery}` : ''}`
-      : '',
+    filteredCount ? `คัดมาจาก ${filteredCount} เรื่อง` : '',
   ]
     .filter(Boolean)
     .join('\n\n')
@@ -1742,9 +1729,10 @@ Rules:
 - Be exact and grounded only in the provided picks.
 - Treat the full provided set as the working set. Synthesize across all selected posts, not just the first few.
 - Infer the best output mode from the user query. Examples include overview, opinion, ranking, shortlist, opportunities, risks, themes, contradictions, content angles, or another concise analysis mode if it fits better.
-- headline: 1 short sentence describing the dominant signal across the full result set.
-- whyNow: 1 short sentence explaining why this cluster matters right now in a way a human can quickly understand.
-- matchedSignals: 3-6 bullets. Each bullet must explain an important theme, pattern, or takeaway from the selected posts in plain Thai and end with one or more citations like [F1] or [F2][F4]. Together, these bullets should cover the full set as much as possible.
+- Write like a sharp human editor summarizing this for a friend or teammate in chat or email.
+- headline: 1 short sentence that instantly tells the reader what is going on across the whole set. Avoid vague or dramatic phrasing.
+- whyNow: 1-2 short lines in plain Thai that help the reader understand the big picture immediately. This must feel natural, not robotic, and should be easy to read in under 2 lines.
+- matchedSignals: 3-6 bullets. Each bullet must explain an important theme, pattern, or takeaway from the selected posts in plain Thai and end with one or more citations like [F1] or [F2][F4]. Keep each bullet concise, concrete, and easy to scan. Together, these bullets should cover the full set as much as possible.
 - excludedSignals: 1-2 bullets. Explain what kinds of items were not prioritized, based only on what the selected set implies. Keep this conservative and end with citations.
 - decisionNote: 1 short sentence telling the user how to use this filtered set, such as follow, monitor, or turn into content.
 - confidenceLabel: one short Thai label such as "สูง", "กลาง", or "สูงเพราะสัญญาณชัด"
@@ -1754,6 +1742,8 @@ Rules:
 - Do not use markdown in field values.
 - Do not add periods at the end of Thai sentences.
 - Keep proper names in Latin script when needed.
+- Do not write labels like "Why It Matters", "Decision Note", "Key Takeaways", or anything that sounds like a formal report inside the field values.
+- Avoid consultant, analyst, or AI-assistant tone. Prefer natural Thai that a person would actually forward to friends or teammates.
 ${focusMode ? `- Treat this as the preferred analysis mode: ${focusMode}` : ''}`,
       prompt: `User filter query: ${safeQuery}\n\nSelected posts:\n${compressedInput}`,
       schema: z.object({
