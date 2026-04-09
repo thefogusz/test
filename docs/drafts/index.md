@@ -1,8 +1,9 @@
 # Draft Docs Suggestions
 
-หน้านี้สร้างจากไฟล์ที่เปลี่ยนอยู่ใน branch หรือ working tree ปัจจุบัน เพื่อช่วยบอกว่า PR นี้ควรกลับไปเช็กหน้า docs ไหนบ้าง
+หน้านี้สรุปจากไฟล์ที่เปลี่ยนใน branch หรือ working tree ปัจจุบัน เพื่อบอกว่า PR นี้ควรกลับไปเช็กหน้า docs ไหนบ้าง
 
 <script setup>
+import { withBase } from 'vitepress'
 import draftReport from '../.vitepress/data/docs-draft.json'
 
 const formatDate = (value) => {
@@ -39,7 +40,7 @@ const formatDate = (value) => {
     <div>
       <div style="font-size:12px;color:var(--vp-c-text-2);font-weight:700;">{{ feature.surface }}</div>
       <div style="font-size:20px;font-weight:800;">{{ feature.title }}</div>
-      <div style="margin-top:6px;"><a :href="feature.route">เปิดหน้า docs</a></div>
+      <div style="margin-top:6px;"><a :href="withBase(feature.route)">เปิดหน้า docs</a></div>
     </div>
     <div :style="feature.needsDocsUpdate ? 'background:#3a2a10;color:#ffd37a;' : 'background:#0f2f1e;color:#90f3b3;'" style="padding:6px 10px;border-radius:999px;font-weight:800;">
       {{ feature.needsDocsUpdate ? 'ควรอัปเดต docs' : 'มีการแตะ docs แล้ว' }}

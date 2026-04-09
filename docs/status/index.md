@@ -1,15 +1,16 @@
 # สถานะ Docs และ Coverage
 
-หน้านี้มีไว้ให้ dev และคนออก requirement เปิดดูเร็วๆ ว่า:
+หน้านี้ช่วยให้ทีมเช็กได้เร็วว่า:
 
 - ฟีเจอร์ไหนมี docs แล้ว
-- docs หน้าปัจจุบันตาม code ทันไหม
+- docs ยังตาม code ทันหรือไม่
 - หน้าไหนเพิ่งอัปเดต
-- `activeView` ไหนของแอปยังไม่มี coverage
+- `activeView` ไหนยังไม่มี coverage
 
-ทีมที่ทำ docs-as-code แบบจริงจังมักแยกสิ่งนี้ชัดเจน: docs อยู่กับ code, deploy ตาม default branch อย่างสม่ำเสมอ, และมีระบบแยก current docs ออกจาก versioned docs เมื่อต้องตรึง release เช่น GitLab และ Docusaurus [VitePress Site Config](https://vitepress.dev/reference/site-config) [VitePress Data Loading](https://vitepress.dev/guide/data-loading) [Docusaurus Versioning](https://docusaurus.io/docs/next/versioning) [GitLab Docs Architecture](https://docs.gitlab.com/development/documentation/site_architecture/) [GitLab /help](https://docs.gitlab.com/development/documentation/help/)
+อ้างอิงแนวทาง docs-as-code: [VitePress Site Config](https://vitepress.dev/reference/site-config), [VitePress Data Loading](https://vitepress.dev/guide/data-loading), [Docusaurus Versioning](https://docusaurus.io/docs/next/versioning), [GitLab Docs Architecture](https://docs.gitlab.com/development/documentation/site_architecture/), [GitLab /help](https://docs.gitlab.com/development/documentation/help/)
 
 <script setup>
+import { withBase } from 'vitepress'
 import statusReport from '../.vitepress/data/docs-status.json'
 
 const statusTone = {
@@ -45,7 +46,7 @@ const formatDate = (value) => {
     <div style="font-size:18px;font-weight:800;">{{ view.id }}</div>
   </div>
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-    <a v-if="view.covered" :href="view.route">เปิดหน้า docs</a>
+    <a v-if="view.covered" :href="withBase(view.route)">เปิดหน้า docs</a>
     <span v-else>-</span>
     <span :style="statusTone[view.featureStatus] || statusTone.missing" style="padding:4px 10px;border-radius:999px;font-weight:800;">
       {{ view.featureStatus }}
@@ -60,7 +61,7 @@ const formatDate = (value) => {
     <div>
       <div style="font-size:12px;color:var(--vp-c-text-2);font-weight:700;">{{ feature.surface }}</div>
       <div style="font-size:20px;font-weight:800;">{{ feature.title }}</div>
-      <div style="margin-top:6px;"><a :href="feature.route">เปิดหน้า docs</a></div>
+      <div style="margin-top:6px;"><a :href="withBase(feature.route)">เปิดหน้า docs</a></div>
     </div>
     <div :style="statusTone[feature.status] || statusTone.missing" style="padding:6px 10px;border-radius:999px;font-weight:800;">
       {{ feature.statusLabel }}
@@ -71,7 +72,7 @@ const formatDate = (value) => {
     <strong>Docs ล่าสุด:</strong>
     <span v-if="feature.doc.committedAt">
       {{ formatDate(feature.doc.committedAt) }}
-      <span v-if="feature.doc.author">โดย {{ feature.doc.author }}</span>
+      <span v-if="feature.doc.author"> โดย {{ feature.doc.author }}</span>
       <span v-if="feature.doc.commitUrl"> · <a :href="feature.doc.commitUrl" target="_blank" rel="noreferrer">commit {{ feature.doc.shortHash }}</a></span>
     </span>
     <span v-else>-</span>
@@ -110,7 +111,7 @@ const formatDate = (value) => {
 
 <div v-for="item in statusReport.recentDocUpdates" :key="item.id" style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;border:1px solid var(--vp-c-divider);border-radius:14px;padding:12px 14px;margin:10px 0;">
   <div>
-    <div style="font-size:18px;font-weight:800;"><a :href="item.route">{{ item.title }}</a></div>
+    <div style="font-size:18px;font-weight:800;"><a :href="withBase(item.route)">{{ item.title }}</a></div>
     <div style="margin-top:6px;color:var(--vp-c-text-2);">{{ formatDate(item.committedAt) }}</div>
     <div v-if="item.commitUrl" style="margin-top:4px;"><a :href="item.commitUrl" target="_blank" rel="noreferrer">commit {{ item.shortHash }}</a></div>
   </div>
@@ -129,5 +130,5 @@ const formatDate = (value) => {
 
 - ใช้ `lastUpdated` ของ VitePress เพื่อโชว์เวลาหน้า docs ถูกแก้ล่าสุดจาก Git โดยตรง
 - ใช้ data loader หรือ script build-time เพื่อสร้าง dashboard แบบหน้านี้จากไฟล์จริงใน repo
-- ถ้าต้อง support release history จริง ค่อยเพิ่ม versioning แยกแบบที่ Docusaurus ใช้กับ `current` และ `versioned docs`
-- ถ้าจะ scale ใหญ่ขึ้น ให้ยึดแนว docs อยู่กับ code repository เดียวกับ product เหมือนที่ GitLab ทำ
+- ถ้าต้อง support release history จริง ค่อยเพิ่ม versioning แบบ `current` และ `versioned docs`
+- ถ้าจะ scale ใหญ่ขึ้น ให้ยึดแนว docs อยู่กับ code repository เดียวกับ product
