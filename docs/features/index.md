@@ -21,6 +21,7 @@
 
 - [Home Feed](/features/home-feed)
 - [Content Workspace](/features/content-workspace)
+- [App Shell](/features/app-shell)
 - [Read Workspace](/features/read-workspace)
 - [News Sources](/features/news-sources)
 - [Audience Workspace](/features/audience-workspace)

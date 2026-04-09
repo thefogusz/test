@@ -28,6 +28,15 @@ npm run docs:status
 
 The dashboard is rendered at `/status/` inside the VitePress site and is regenerated automatically before `docs:dev`, `docs:build`, and `docs:preview`.
 
+### Docs changelog and draft suggestions
+
+The docs site also includes:
+
+- `/changelog/` for a readable timeline of tracked feature changes from Git
+- `/drafts/` for suggested docs follow-up based on the current branch or working tree
+
+These are generated automatically together with the docs site.
+
 ### Serving docs with the app
 
 Production builds now include both the app and the docs site. The Express server serves the app at `/test` and Foro Docs at `/test/docs/`.

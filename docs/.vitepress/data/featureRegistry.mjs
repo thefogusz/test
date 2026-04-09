@@ -32,6 +32,20 @@ export const featureRegistry = [
     ],
   },
   {
+    id: 'app-shell',
+    title: 'App Shell',
+    route: '/features/app-shell',
+    docPath: 'docs/features/app-shell.md',
+    surface: 'global: shell',
+    type: 'global',
+    sourceFiles: [
+      'src/App.tsx',
+      'src/components/Sidebar.tsx',
+      'src/components/PlanPanel.tsx',
+      'src/components/RightSidebar.tsx',
+    ],
+  },
+  {
     id: 'read-workspace',
     title: 'Read Workspace',
     route: '/features/read-workspace',

@@ -15,6 +15,7 @@ export default defineConfig({
       { text: 'หน้าหลัก', link: '/' },
       { text: 'เริ่มต้นใช้งาน', link: '/getting-started' },
       { text: 'ฟีเจอร์', link: '/features/' },
+      { text: 'Changelog', link: '/changelog/' },
       { text: 'สถานะ Docs', link: '/status/' },
       { text: 'Architecture', link: '/architecture/overview' },
       { text: 'Process', link: '/process/docs-governance' },
@@ -25,6 +26,8 @@ export default defineConfig({
         items: [
           { text: 'หน้าหลัก', link: '/' },
           { text: 'เริ่มต้นใช้งาน', link: '/getting-started' },
+          { text: 'Changelog', link: '/changelog/' },
+          { text: 'Draft Suggestions', link: '/drafts/' },
           { text: 'สถานะ Docs', link: '/status/' },
           { text: 'กติกาการอัปเดต Docs', link: '/process/docs-governance' },
         ],
@@ -35,6 +38,7 @@ export default defineConfig({
           { text: 'สารบัญฟีเจอร์', link: '/features/' },
           { text: 'Home Feed', link: '/features/home-feed' },
           { text: 'Content Workspace', link: '/features/content-workspace' },
+          { text: 'App Shell', link: '/features/app-shell' },
           { text: 'Read Workspace', link: '/features/read-workspace' },
           { text: 'News Sources', link: '/features/news-sources' },
           { text: 'Audience Workspace', link: '/features/audience-workspace' },
@@ -45,6 +49,8 @@ export default defineConfig({
       {
         text: 'Process',
         items: [
+          { text: 'Changelog', link: '/changelog/' },
+          { text: 'Draft Suggestions', link: '/drafts/' },
           { text: 'กติกาการอัปเดต Docs', link: '/process/docs-governance' },
           { text: 'Template เอกสารฟีเจอร์', link: '/process/feature-template' },
           { text: 'Template Decision Log', link: '/process/decision-template' },

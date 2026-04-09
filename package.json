@@ -16,11 +16,14 @@
     "preview": "vite preview",
     "start": "node server.cjs",
     "docs:status": "node scripts/generate-docs-status.mjs",
-    "predocs:dev": "npm run docs:status",
+    "docs:changelog": "node scripts/generate-docs-changelog.mjs",
+    "docs:draft": "node scripts/generate-docs-draft.mjs",
+    "docs:data": "npm run docs:status && npm run docs:changelog && npm run docs:draft",
+    "predocs:dev": "npm run docs:data",
     "docs:dev": "vitepress dev docs",
-    "predocs:build": "npm run docs:status",
+    "predocs:build": "npm run docs:data",
     "docs:build": "vitepress build docs",
-    "predocs:preview": "npm run docs:status",
+    "predocs:preview": "npm run docs:data",
     "docs:preview": "vitepress preview docs"
   },
   "dependencies": {

@@ -1,62 +1,18 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { execFileSync } from 'node:child_process'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import {
+  appViewRegistry,
+  buildCommitUrl,
+  compareIsoDates,
+  featureRegistry,
+  isDirty,
+  latestMeta,
+  parseGitMeta,
+  repoRoot,
+  toPosix,
+} from './lib/docs-report-helpers.mjs'
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const repoRoot = path.resolve(__dirname, '..')
 const outputPath = path.join(repoRoot, 'docs', '.vitepress', 'data', 'docs-status.json')
-const registryModuleUrl = pathToFileURL(path.join(repoRoot, 'docs', '.vitepress', 'data', 'featureRegistry.mjs')).href
-const { featureRegistry, appViewRegistry } = await import(registryModuleUrl)
-
-const toPosix = (value) => value.replaceAll('\\', '/')
-
-const runGit = (args) => {
-  try {
-    return execFileSync('git', args, {
-      cwd: repoRoot,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim()
-  } catch {
-    return ''
-  }
-}
-
-const parseGitMeta = (filePath) => {
-  const output = runGit(['log', '-1', '--format=%cI|%h|%an|%s', '--', filePath])
-  if (!output) return null
-
-  const [committedAt, shortHash, author, subject] = output.split('|')
-  if (!committedAt) return null
-
-  return {
-    committedAt,
-    shortHash,
-    author,
-    subject,
-  }
-}
-
-const isDirty = (filePath) => Boolean(runGit(['status', '--short', '--', filePath]))
-
-const compareIsoDates = (left, right) => {
-  if (!left && !right) return 0
-  if (!left) return -1
-  if (!right) return 1
-  return new Date(left).getTime() - new Date(right).getTime()
-}
-
-const latestMeta = (entries) =>
-  entries.reduce((currentLatest, entry) => {
-    if (!entry?.committedAt) return currentLatest
-    if (!currentLatest) return entry
-    return compareIsoDates(entry.committedAt, currentLatest.committedAt) > 0 ? entry : currentLatest
-  }, null)
-
-const buildCommitUrl = (shortHash) =>
-  shortHash ? `https://github.com/thefogusz/test/commit/${shortHash}` : null
 
 const featureStatus = featureRegistry.map((feature) => {
   const docMeta = parseGitMeta(feature.docPath)

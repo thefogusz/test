@@ -1,0 +1,81 @@
+name: Docs Draft Assistant
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+    paths:
+      - 'src/**'
+      - 'server/**'
+      - 'docs/**'
+      - 'scripts/**'
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  docs-draft-assistant:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.base_ref }} --depth=1
+
+      - name: Generate docs draft summary
+        run: node scripts/generate-docs-draft.mjs --base origin/${{ github.base_ref }} --head ${{ github.event.pull_request.head.sha }} --output tmp/docs-pr-draft.md --json-output tmp/docs-pr-draft.json
+
+      - name: Upload draft artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-pr-draft
+          path: |
+            tmp/docs-pr-draft.md
+            tmp/docs-pr-draft.json
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- foro-docs-draft -->';
+            const body = fs.readFileSync('tmp/docs-pr-draft.md', 'utf8');
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+
+            const existing = comments.find((comment) =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number,
+                body,
+              });
+            }

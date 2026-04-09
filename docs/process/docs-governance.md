@@ -54,6 +54,15 @@ repo นี้ใช้ docs เป็น living source of truth ของพฤ
 - `docs-dirty`: docs มีการแก้ค้างยังไม่ commit
 - `missing`: ยังไม่มี metadata หรือ coverage ที่ระบบตามได้
 
+## Automation ที่เพิ่มเข้ามา
+
+ตอนนี้ repo นี้มี automation 2 ชั้น:
+
+- หน้า [Changelog](/changelog/) สำหรับสรุปว่า commit ล่าสุดกระทบฟีเจอร์ไหน
+- หน้า [Draft Docs Suggestions](/drafts/) สำหรับดูว่าการเปลี่ยนใน branch ปัจจุบันควรกลับไปอัปเดต docs หน้าไหน
+
+ใน GitHub Actions ยังมี workflow ที่สามารถคอมเมนต์ draft docs summary กลับเข้า pull request อัตโนมัติได้ด้วย เพื่อให้ reviewer เห็นเลยว่ามีฟีเจอร์ไหนได้รับผลกระทบและ docs ถูกแตะแล้วหรือยัง
+
 ## คำถามที่ reviewer ควรถามก่อน merge
 
 ก่อน merge ให้ถามประโยคนี้:
