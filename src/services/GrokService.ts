@@ -1839,14 +1839,17 @@ export const generateForoFilterBrief = async (validTweets, userQuery, options = 
   const preferredProfile = getForoOutputProfile(preferredOutputMode);
   const candidates = validTweets;
 
-  const cacheKey = buildCacheKey('foro-filter-brief-v7', {
+  const perTweetCharLimit = candidates.length > 36 ? 110 : candidates.length > 20 ? 140 : 220;
+
+  const cacheKey = buildCacheKey('foro-filter-brief-v8', {
     safeQuery,
     focusMode,
     preferredOutputMode,
+    candidateCount: candidates.length,
     tweets: candidates.map((tweet) => ({
       id: tweet.id,
       citation: tweet.citation_id,
-      text: normalizeCacheText(tweet.text || tweet.summary || ''),
+      text: normalizeCacheText(tweet.text || tweet.summary || '').slice(0, perTweetCharLimit),
       reasoning: normalizeCacheText(tweet.ai_reasoning || ''),
       temporalTag: tweet.temporalTag || '',
     })),
@@ -1856,9 +1859,12 @@ export const generateForoFilterBrief = async (validTweets, userQuery, options = 
 
   const compressedInput = candidates
     .map((tweet) => {
+      const summarySource = sanitizeForPrompt(tweet.summary || tweet.text || '', perTweetCharLimit);
+      const reasoningSource = sanitizeForPrompt(tweet.ai_reasoning || '', 120);
       return [
         `${tweet.citation_id || '[F?]'} | ${tweet.temporalTag || 'Related'}`,
-        `Content: ${sanitizeForPrompt(tweet.text || tweet.summary || '', 220)}`,
+        `Content: ${summarySource}`,
+        reasoningSource ? `Signal: ${reasoningSource}` : '',
       ]
         .filter(Boolean)
         .join('\n');
@@ -1874,6 +1880,7 @@ Rules:
 - Return Thai only.
 - Be exact and grounded only in the provided picks.
 - Treat the full provided set as the working set. Synthesize across all selected posts, not just the first few.
+- Before writing, identify the main clusters or strands in the set and make sure the brief reflects that spread.
 - Infer the best output mode from the user query. Examples include overview, opinion, ranking, shortlist, opportunities, risks, themes, contradictions, content angles, or another concise analysis mode if it fits better.
 - Preferred output mode for this request: ${preferredOutputMode}
 - Preferred output label: ${preferredProfile.outputLabel}
@@ -1884,10 +1891,13 @@ Rules:
 - headline: 1 short sentence that instantly tells the reader what is going on across the whole set. It must describe the theme or change itself, not praise the people involved, and must avoid dramatic phrasing.
 - whyNow: 1-2 short lines in plain Thai that help the reader understand the big picture immediately. This must feel natural, neutral, and easy to read in under 2 lines.
 - headline and whyNow must never include citations like [F1].
+- If the selected posts are heterogeneous, keep headline and whyNow at umbrella level. Do not let one company, product, or post dominate the lead unless it clearly represents most of the set.
 - Do not mention the names or handles of the people who posted these items unless that person is genuinely the subject of the news itself. Prefer describing the topic, shift, product, or implication directly.
 - sections: 2-3 sections. Each section needs a short Thai title and 2-4 bullets. Use formal section titles that work across industries and general audiences. Good examples are "ประเด็นสำคัญ", "รายละเอียดสนับสนุน", and "นัยสำคัญ". Across all sections together, cover the full set as much as possible.
 - Every bullet must explain an important theme, pattern, standout item, or takeaway from the selected posts in plain Thai and end with one or more citations like [F1] or [F2][F4].
 - Total bullets across all sections should usually be 5-9 unless the filtered set is extremely small.
+- When the set is larger than 8 posts, the brief should usually cite at least 4 different posts across the full output and should cover more than one topic cluster when multiple clusters exist.
+- Avoid repeating the same company, product, or event in most bullets unless the evidence truly shows that it dominates the selected set.
 - outputMode: one short lowercase English token for the inferred mode, such as "overview", "opinion", "ranking", "shortlist", "themes", "opportunities", "risks", "content_angles", or another close fit
 - outputLabel: a short Thai label for this result mode, such as "สรุปภาพรวม", "มุมมองจากชุดโพสต์", "โพสต์เด่น", or "shortlist ตามโจทย์"
 - Do not use markdown in field values.
@@ -1921,7 +1931,7 @@ ${focusMode ? `- Treat this as the preferred analysis mode: ${focusMode}` : ''}`
 
     const sections = (object.sections || [])
       .map((section, index, allSections) => ({
-        title: normalizeForoSectionTitle(index, allSections.length),
+        title: normalizeForoSectionTitle(object.outputMode || preferredOutputMode, index, allSections.length),
         items: (section.items || []).map((item) => polishForoBriefTone(item)).filter(Boolean),
       }))
       .filter((section) => section.title && section.items.length > 0);

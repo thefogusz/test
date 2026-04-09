@@ -59,6 +59,25 @@ type UseHomeFeedWorkspaceParams = {
   subscribedSources?: RssSourceInfo[];
 };
 
+const BROAD_FORO_OVERVIEW_PATTERNS = [
+  /^สรุป$/,
+  /^สรุปภาพรวม$/,
+  /^ภาพรวม$/,
+  /^overview$/,
+  /^digest$/,
+  /^สรุปจากชุดนี้$/,
+  /^สรุปโพสต์ชุดนี้$/,
+  /^สรุปฟีดนี้$/,
+  /^สรุปให้หน่อย$/,
+];
+
+const shouldSummarizeWholeVisibleFeed = (prompt: string) => {
+  const normalizedPrompt = String(prompt || '').trim().toLowerCase();
+  if (!normalizedPrompt) return false;
+
+  return BROAD_FORO_OVERVIEW_PATTERNS.some((pattern) => pattern.test(normalizedPrompt));
+};
+
 export const useHomeFeedWorkspace = ({
   activeListId,
   activeView,
@@ -662,6 +681,7 @@ export const useHomeFeedWorkspace = ({
     mutationFn: async (prompt: string) => {
       const normalizedPrompt = String(prompt || '').trim();
       if (!normalizedPrompt) return;
+      const useWholeVisibleFeed = shouldSummarizeWholeVisibleFeed(normalizedPrompt);
 
       setStatus('AI กำลังวิเคราะห์และคัดกรองเนื้อหา...');
       setAiFilterBrief(null);
@@ -680,18 +700,25 @@ export const useHomeFeedWorkspace = ({
         return;
       }
 
-      const validPicks = await agentFilterFeed(sourceFeed, normalizedPrompt);
-      const filteredResult = sourceFeed
-        .filter((tweet) => validPicks.some((pick) => String(pick.id) === String(tweet.id)))
-        .map((tweet) => {
-          const matchingPick = validPicks.find((pick) => String(pick.id) === String(tweet.id));
-          return {
-            ...tweet,
-            ai_reasoning: matchingPick?.reasoning,
-            temporalTag: matchingPick?.temporalTag,
-            citation_id: matchingPick?.citation_id,
-          };
-        });
+      const filteredResult = useWholeVisibleFeed
+        ? sourceFeed.map((tweet, index) => ({
+          ...tweet,
+          temporalTag: tweet.temporalTag || 'Related',
+          citation_id: `[F${index + 1}]`,
+        }))
+        : await agentFilterFeed(sourceFeed, normalizedPrompt).then((validPicks) =>
+          sourceFeed
+            .filter((tweet) => validPicks.some((pick) => String(pick.id) === String(tweet.id)))
+            .map((tweet) => {
+              const matchingPick = validPicks.find((pick) => String(pick.id) === String(tweet.id));
+              return {
+                ...tweet,
+                ai_reasoning: matchingPick?.reasoning,
+                temporalTag: matchingPick?.temporalTag,
+                citation_id: matchingPick?.citation_id,
+              };
+            }),
+        );
 
       setFeed(filteredResult);
       setIsFiltered(true);

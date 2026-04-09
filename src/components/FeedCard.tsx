@@ -106,6 +106,21 @@ const FEED_CARD_ACTIONS_STYLE: React.CSSProperties = {
   marginLeft: 'auto',
 };
 
+const FEED_CARD_BODY_COPY_STYLE: React.CSSProperties = {
+  fontSize: '15px',
+  lineHeight: '1.45',
+  color: 'rgba(255, 255, 255, 0.95)',
+  fontWeight: '400',
+  margin: 0,
+  fontFamily: 'var(--font-card)',
+  letterSpacing: '-0.01em',
+  wordBreak: 'break-word',
+  display: '-webkit-box',
+  WebkitBoxOrient: 'vertical',
+  WebkitLineClamp: 5,
+  overflow: 'hidden',
+};
+
 type FeedCardStat = {
   key: string;
   icon: LucideIcon;
@@ -750,13 +765,7 @@ const FeedCard = ({
             <p
               className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
               style={{
-                fontSize: '16px',
-                lineHeight: '1.62',
-                color: 'rgba(255, 255, 255, 0.9)',
-                fontWeight: '500',
-                margin: 0,
-                letterSpacing: '-0.01em',
-                wordBreak: 'break-word',
+                ...FEED_CARD_BODY_COPY_STYLE,
               }}
             >
               {displayText}
@@ -834,18 +843,10 @@ const FeedCard = ({
               <p
                 className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
                 style={{
-                  fontSize: '15px',
-                  lineHeight: isRssPost ? '1.58' : '1.45',
-                  color: isRssPost ? 'rgba(255, 255, 255, 0.78)' : 'rgba(255, 255, 255, 0.95)',
-                  fontWeight: '400',
-                  margin: 0,
-                  fontFamily: 'var(--font-card)',
-                  letterSpacing: '-0.01em',
-                  wordBreak: 'break-word',
-                  display: '-webkit-box',
-                  WebkitBoxOrient: 'vertical',
-                  WebkitLineClamp: isRssPost ? (rssCardPresentation?.summaryLineClamp || 3) : 5,
-                  overflow: 'hidden'
+                  ...FEED_CARD_BODY_COPY_STYLE,
+                  lineHeight: isRssPost ? '1.58' : FEED_CARD_BODY_COPY_STYLE.lineHeight,
+                  color: isRssPost ? 'rgba(255, 255, 255, 0.78)' : FEED_CARD_BODY_COPY_STYLE.color,
+                  WebkitLineClamp: isRssPost ? (rssCardPresentation?.summaryLineClamp || 3) : FEED_CARD_BODY_COPY_STYLE.WebkitLineClamp,
                 }}
               >
                 {isRssPost ? (rssSummaryText || displayTitle) : displayText}
@@ -876,18 +877,10 @@ const FeedCard = ({
             <p
               className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
               style={{
-                fontSize: '15px',
-                lineHeight: isRssPost ? '1.58' : '1.45',
-                color: isRssPost ? 'rgba(255, 255, 255, 0.78)' : 'rgba(255, 255, 255, 0.95)',
-                fontWeight: '400',
-                margin: 0,
-                fontFamily: 'var(--font-card)',
-                letterSpacing: '-0.01em',
-                wordBreak: 'break-word',
-                display: '-webkit-box',
-                WebkitBoxOrient: 'vertical',
-                WebkitLineClamp: isRssPost ? (rssCardPresentation?.summaryLineClamp || 3) : 5,
-                overflow: 'hidden'
+                ...FEED_CARD_BODY_COPY_STYLE,
+                lineHeight: isRssPost ? '1.58' : FEED_CARD_BODY_COPY_STYLE.lineHeight,
+                color: isRssPost ? 'rgba(255, 255, 255, 0.78)' : FEED_CARD_BODY_COPY_STYLE.color,
+                WebkitLineClamp: isRssPost ? (rssCardPresentation?.summaryLineClamp || 3) : FEED_CARD_BODY_COPY_STYLE.WebkitLineClamp,
               }}
             >
               {isRssPost ? (rssSummaryText || displayTitle) : displayText}
