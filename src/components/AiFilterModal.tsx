@@ -25,7 +25,7 @@ const AiFilterModal = ({
           <div className="ai-filter-modal-heading">
             <div className="ai-filter-modal-eyebrow">Analysis Mode</div>
             <div className="modal-title">FORO Filter</div>
-            <div className="ai-filter-modal-hint">บอก FORO ว่าอยากเห็นสัญญาณแบบไหนในฟีดนี้</div>
+            <div className="ai-filter-modal-hint">บอก FORO ว่าอยากวิเคราะห์ชุดการ์ดนี้แบบไหน</div>
           </div>
         </div>
 
@@ -77,7 +77,7 @@ const AiFilterModal = ({
           <div className="ai-filter-section-header ai-filter-section-header-tight">
             <div>
               <div className="ai-filter-section-title">Prompt</div>
-              <div className="ai-filter-section-copy">เขียนสั้นๆ ว่าอยากให้ FORO คัดอะไร</div>
+              <div className="ai-filter-section-copy">จะให้สรุป ขอความเห็น จัดอันดับ หา angle หรือคิดแบบอื่นจากชุดการ์ดนี้ก็ได้</div>
             </div>
           </div>
 
@@ -85,7 +85,7 @@ const AiFilterModal = ({
             className="modal-input ai-filter-input"
             autoFocus
             disabled={filterModal.isFiltering}
-            placeholder="เช่น สรุปโพสต์ AI ที่มีผลต่อ product และ software"
+            placeholder="เช่น ขอความเห็นจากชุดโพสต์นี้ว่ากระแส AI ตอนนี้ไปทางไหน หรือหาโพสต์ที่น่าทำวิดีโอ"
             value={filterModal.prompt}
             onChange={(event) => onPromptChange(event.target.value)}
           />

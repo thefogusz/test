@@ -1662,6 +1662,8 @@ export const buildForoFilterBriefMarkdown = (brief, userQuery = '', filteredCoun
   const safeHeadline = cleanGeneratedContent(brief.headline || '');
   const safeWhyNow = cleanGeneratedContent(brief.whyNow || '');
   const safeDecisionNote = cleanGeneratedContent(brief.decisionNote || '');
+  const safeOutputLabel = cleanGeneratedContent(brief.outputLabel || 'FORO Filter Result');
+  const safeSectionLabel = cleanGeneratedContent(brief.sectionLabel || 'Key Takeaways');
   const matchedSignals = Array.isArray(brief.matchedSignals)
     ? brief.matchedSignals.map((item) => cleanGeneratedContent(item || '')).filter(Boolean)
     : [];
@@ -1671,10 +1673,11 @@ export const buildForoFilterBriefMarkdown = (brief, userQuery = '', filteredCoun
   const confidenceLabel = cleanGeneratedContent(brief.confidenceLabel || '');
 
   return [
+    safeOutputLabel ? `## ${safeOutputLabel}` : '',
     safeHeadline,
     safeWhyNow ? `## Why It Matters\n${safeWhyNow}` : '',
     matchedSignals.length
-      ? `## What Matched\n${matchedSignals.map((item) => `- ${item}`).join('\n')}`
+      ? `## ${safeSectionLabel}\n${matchedSignals.map((item) => `- ${item}`).join('\n')}`
       : '',
     excludedSignals.length
       ? `## What Was Excluded\n${excludedSignals.map((item) => `- ${item}`).join('\n')}`
@@ -1694,7 +1697,7 @@ export const generateForoFilterBrief = async (validTweets, userQuery, options = 
 
   const safeQuery = sanitizeForPrompt(userQuery, 260);
   const focusMode = sanitizeForPrompt(String(options.focusMode || ''), 80);
-  const candidates = validTweets.slice(0, 8);
+  const candidates = validTweets;
 
   const cacheKey = buildCacheKey('foro-filter-brief-v1', {
     safeQuery,
@@ -1721,8 +1724,8 @@ export const generateForoFilterBrief = async (validTweets, userQuery, options = 
 
       return [
         `${tweet.citation_id || '[F?]'} | ${sourceLabel} | ${tweet.temporalTag || 'Related'}`,
-        tweet.ai_reasoning ? `Reason picked: ${sanitizeForPrompt(tweet.ai_reasoning, 160)}` : '',
-        `Content: ${sanitizeForPrompt(tweet.text || tweet.summary || '', 320)}`,
+        tweet.ai_reasoning ? `Reason picked: ${sanitizeForPrompt(tweet.ai_reasoning, 110)}` : '',
+        `Content: ${sanitizeForPrompt(tweet.text || tweet.summary || '', 220)}`,
       ]
         .filter(Boolean)
         .join('\n');
@@ -1732,17 +1735,22 @@ export const generateForoFilterBrief = async (validTweets, userQuery, options = 
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
-      system: `You create a compact "FORO Filter" decision brief for a news feed UI.
+      system: `You create a compact "FORO Filter" synthesis brief for a news feed UI.
 
 Rules:
 - Return Thai only.
 - Be exact and grounded only in the provided picks.
-- headline: 1 short sentence describing the dominant signal across the filtered results.
-- whyNow: 1 short sentence explaining why this cluster matters right now.
-- matchedSignals: 2-4 bullets. Each bullet must mention a concrete angle or pattern and end with one or more citations like [F1] or [F2][F4].
+- Treat the full provided set as the working set. Synthesize across all selected posts, not just the first few.
+- Infer the best output mode from the user query. Examples include overview, opinion, ranking, shortlist, opportunities, risks, themes, contradictions, content angles, or another concise analysis mode if it fits better.
+- headline: 1 short sentence describing the dominant signal across the full result set.
+- whyNow: 1 short sentence explaining why this cluster matters right now in a way a human can quickly understand.
+- matchedSignals: 3-6 bullets. Each bullet must explain an important theme, pattern, or takeaway from the selected posts in plain Thai and end with one or more citations like [F1] or [F2][F4]. Together, these bullets should cover the full set as much as possible.
 - excludedSignals: 1-2 bullets. Explain what kinds of items were not prioritized, based only on what the selected set implies. Keep this conservative and end with citations.
 - decisionNote: 1 short sentence telling the user how to use this filtered set, such as follow, monitor, or turn into content.
 - confidenceLabel: one short Thai label such as "สูง", "กลาง", or "สูงเพราะสัญญาณชัด"
+- outputMode: one short lowercase English token for the inferred mode, such as "overview", "opinion", "ranking", "shortlist", "themes", "opportunities", "risks", "content_angles", or another close fit
+- outputLabel: a short Thai label for this result mode, such as "สรุปภาพรวม", "มุมมองจากชุดโพสต์", "โพสต์เด่น", or "shortlist ตามโจทย์"
+- sectionLabel: a short Thai label for the bullet list, matched to the mode, such as "ประเด็นสำคัญ", "มุมมองที่ได้", "โพสต์ที่เด่น", or "รายการที่คัดมา"
 - Do not use markdown in field values.
 - Do not add periods at the end of Thai sentences.
 - Keep proper names in Latin script when needed.
@@ -1751,10 +1759,13 @@ ${focusMode ? `- Treat this as the preferred analysis mode: ${focusMode}` : ''}`
       schema: z.object({
         headline: z.string().min(10).max(180),
         whyNow: z.string().min(10).max(180),
-        matchedSignals: z.array(z.string().min(10).max(220)).min(2).max(4),
+        matchedSignals: z.array(z.string().min(10).max(260)).min(3).max(6),
         excludedSignals: z.array(z.string().min(10).max(220)).min(1).max(2),
         decisionNote: z.string().min(10).max(180),
         confidenceLabel: z.string().min(2).max(60),
+        outputMode: z.string().min(3).max(40),
+        outputLabel: z.string().min(4).max(80),
+        sectionLabel: z.string().min(4).max(80),
       }),
       temperature: 0.15,
     });
@@ -1766,6 +1777,9 @@ ${focusMode ? `- Treat this as the preferred analysis mode: ${focusMode}` : ''}`
       excludedSignals: (object.excludedSignals || []).map((item) => cleanGeneratedContent(item)).filter(Boolean),
       decisionNote: cleanGeneratedContent(object.decisionNote),
       confidenceLabel: cleanGeneratedContent(object.confidenceLabel),
+      outputMode: cleanGeneratedContent(object.outputMode),
+      outputLabel: cleanGeneratedContent(object.outputLabel),
+      sectionLabel: cleanGeneratedContent(object.sectionLabel),
     };
 
     return setCachedValue(responseCache, cacheKey, payload, EXECUTIVE_SUMMARY_CACHE_TTL_MS);
@@ -3284,7 +3298,7 @@ Hard rules:
       const username = String(expert.username || '').toLowerCase();
       if (!isValidExpertUsername(username) || normalizedExcludedUsernames.has(username)) return false;
       if (strictUsernames.has(username) || isLowQualityExpertAuthor(expert)) return false;
-      if (!Boolean(expert.activityLabel)) return false;
+      if (!expert.activityLabel) return false;
 
       const hasUsefulEvidence =
         Number(expert.followers || 0) >= 5000 ||

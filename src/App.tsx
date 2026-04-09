@@ -572,7 +572,7 @@ const App = () => {
             onBookmark={handleBookmark}
             onArticleGen={openContentComposerFromPost}
             onReadArticle={openArticleReader}
-            onSummaryCopied={() => setStatus('คัดลอกบทสรุปแล้ว')}
+            onSummaryCopied={() => setStatus('คัดลอกผลลัพธ์จาก FORO Filter แล้ว')}
           />)}
 
           {activeView === 'content' && (

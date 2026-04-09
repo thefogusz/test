@@ -7,6 +7,14 @@ import FeedCardSkeleton from './FeedCardSkeleton';
 import ForoFilterSummarySkeleton from './ForoFilterSummarySkeleton';
 import HomeCanvas from './HomeCanvas';
 
+const FILTER_BRIEF_CITATION_PATTERN = /\[(?:F|W)\d+\]/gi;
+
+const parseBriefItem = (value = '') => {
+  const citations = Array.from(new Set(String(value || '').match(FILTER_BRIEF_CITATION_PATTERN) || []));
+  const text = String(value || '').replace(FILTER_BRIEF_CITATION_PATTERN, '').replace(/\s{2,}/g, ' ').trim();
+  return { text, citations };
+};
+
 const HomeView = ({
   isVisible,
   currentActiveList,
@@ -66,6 +74,9 @@ const HomeView = ({
   if (!isVisible) return null;
 
   const takeawayItems = hasStructuredAiBrief ? (aiFilterBrief?.matchedSignals || []) : [];
+  const outputLabel = aiFilterBrief?.outputLabel || 'ผลการวิเคราะห์';
+  const outputMode = aiFilterBrief?.outputMode || 'analysis';
+  const sectionLabel = aiFilterBrief?.sectionLabel || 'ประเด็นสำคัญ';
 
   return (
     <div className="animate-fade-in">
@@ -202,10 +213,10 @@ const HomeView = ({
               </div>
               <div>
                 <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>
-                  FORO FILTER SUMMARY
+                  FORO FILTER RESULT
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>
-                  CURATED FROM {feed.length} FILTERED RESULTS
+                  BUILT FROM {feed.length} FILTERED RESULTS
                 </div>
                 {aiFilterSummaryDateLabel && (
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', marginTop: '4px' }}>
@@ -221,7 +232,7 @@ const HomeView = ({
               }}
               className="icon-btn-large"
               style={{ width: '32px', height: '32px' }}
-              title="ก๊อปปี้สรุป"
+              title="คัดลอกผลลัพธ์"
             >
               <Copy size={14} />
             </button>
@@ -257,6 +268,7 @@ const HomeView = ({
                   </div>
                 )}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  <div className="foro-filter-meta-pill foro-filter-output-pill">{outputLabel}</div>
                   {aiFilterBrief.confidenceLabel && (
                     <div className="foro-filter-meta-pill">ความมั่นใจ {aiFilterBrief.confidenceLabel}</div>
                   )}
@@ -268,11 +280,25 @@ const HomeView = ({
                 <div className="foro-filter-brief-card">
                   {takeawayItems.length > 0 && (
                     <>
-                      <div className="foro-filter-brief-title">Key Takeaways</div>
+                      <div className="foro-filter-brief-title">{sectionLabel}</div>
                       <div className="foro-filter-brief-list">
-                        {takeawayItems.map((item) => (
-                          <div key={item} className="foro-filter-brief-item">{item}</div>
-                        ))}
+                        {takeawayItems.map((item) => {
+                          const parsedItem = parseBriefItem(item);
+                          return (
+                            <div key={item} className="foro-filter-brief-item">
+                              <span>{parsedItem.text}</span>
+                              {parsedItem.citations.length > 0 && (
+                                <span className="foro-filter-brief-citations">
+                                  {parsedItem.citations.map((citation) => (
+                                    <span key={`${item}-${citation}`} className="reference-badge foro-filter-brief-citation-badge">
+                                      {citation.replaceAll('[', '').replaceAll(']', '')}
+                                    </span>
+                                  ))}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </>
                   )}
@@ -296,7 +322,7 @@ const HomeView = ({
 
           <div className="foro-filter-summary-footer">
             <ShieldCheck size={12} className="text-accent" />
-            สรุปโดย FORO จากผลที่ถูกกรองตาม prompt ของคุณ
+            FORO สังเคราะห์ผลลัพธ์จากการ์ดในชุดนี้ตาม prompt ของคุณในโหมด {outputMode}
           </div>
         </div>
       )}

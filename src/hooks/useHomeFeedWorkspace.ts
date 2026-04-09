@@ -695,14 +695,14 @@ export const useHomeFeedWorkspace = ({
 
       if (filteredResult.length > 0) {
         setStatus('กำลังวิเคราะห์บทสรุปสำหรับคุณ...');
-        const brief = await generateForoFilterBrief(filteredResult.slice(0, 8), prompt, {
+        const brief = await generateForoFilterBrief(filteredResult, prompt, {
           focusMode: prompt,
         });
         if (brief) {
           setAiFilterBrief(brief);
           setAiFilterSummary(buildForoFilterBriefMarkdown(brief, prompt, filteredResult.length));
         } else {
-          const summary = await generateExecutiveSummary(filteredResult.slice(0, 8), prompt, undefined);
+          const summary = await generateExecutiveSummary(filteredResult, prompt, undefined);
           setAiFilterBrief(null);
           setAiFilterSummary(summary);
         }

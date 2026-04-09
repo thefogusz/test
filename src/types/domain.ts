@@ -138,6 +138,9 @@ export interface ForoFilterBrief {
   excludedSignals: string[];
   decisionNote: string;
   confidenceLabel?: string;
+  outputMode?: string;
+  outputLabel?: string;
+  sectionLabel?: string;
 }
 
 export type ActiveView = 'home' | 'content' | 'read' | 'audience' | 'bookmarks' | 'pricing';
