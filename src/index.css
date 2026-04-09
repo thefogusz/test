@@ -6224,7 +6224,7 @@ h6,
 }
 
 
-.markdown-body .reference-badge {
+.reference-badge {
   background: var(--bg-800);
   color: var(--text-muted);
   border: 1px solid var(--glass-border);
@@ -6241,6 +6241,10 @@ h6,
   line-height: normal;
   text-transform: uppercase;
   flex-shrink: 0;
+}
+
+.markdown-body .reference-badge {
+  margin: -3px 4px 0;
 }
 
 .reference-badge.feed-card-citation-badge {
