@@ -1,45 +1,111 @@
----
-layout: home
+# อ่านเริ่มจากตรงนี้
 
-hero:
-  name: "Foro Docs"
-  text: "เอกสาร product และ engineering ที่อิงของจริง"
-  tagline: "ให้ทีมเปิดที่เดียวแล้วเข้าใจได้ทันทีว่า feature ทำงานยังไง ตอนนี้อะไรเปลี่ยนไป และจุดไหนต้องตามเอกสารต่อ"
-  actions:
-    - theme: brand
-      text: เริ่มอ่าน
-      link: /getting-started
-    - theme: alt
-      text: เอกสารฟีเจอร์
-      link: /features/
-    - theme: alt
-      text: กติกา Docs
-      link: /process/docs-governance
+หน้านี้ออกแบบมาสำหรับ dev ที่เพิ่งเปิดโปรเจ็กต์ครั้งแรกและอยากเข้าใจระบบให้เร็วที่สุด
 
-features:
-  - title: Source Of Truth ของฟีเจอร์
-    details: หน้า feature docs จะบอก behavior, rules, states และจุดที่เกี่ยวข้องกับ implementation เพื่อให้ dev ไม่ต้องเดาจากแชตย้อนหลัง
-  - title: ใช้กับทีมที่เปลี่ยนเร็วได้
-    details: หน้า architecture อธิบายโครงระบบ ส่วน feature docs อธิบายของจริงที่ยังต้องรักษาไว้ระหว่างรอบแก้งานเร็วๆ
-  - title: ผูกกับ PR ได้เลย
-    details: ตอนนี้มีทั้งกติกาและ checklist สำหรับ PR เพื่อให้การเปลี่ยน behavior ไปพร้อมกับการอัปเดต docs
----
+## ถ้าจะไล่ระบบแบบเร็ว
 
-## วิธีใช้ docs ชุดนี้
+อ่านตามลำดับนี้:
 
-เริ่มจาก [Getting Started](/getting-started) เพื่อจับภาพรวมก่อน แล้วค่อยเปิดหน้าใน [เอกสารฟีเจอร์](/features/) ให้ตรงกับส่วนที่กำลังจะแก้
+1. `src/main.tsx`
+2. `src/App.tsx`
+3. `src/services/TwitterService.ts`
+4. `src/services/GrokService.ts`
+5. `src/components/CreateContent.tsx`
+6. `server.cjs`
 
-ถ้าพฤติกรรมของระบบเปลี่ยนเพราะมี tradeoff หรือการตัดสินใจเชิง product ให้บันทึกเหตุผลไว้ใน [สารบัญ Decision Log](/decisions/) เพื่อให้ทีมรุ่นถัดไปไม่ต้องเดาว่าทำไมถึงเลือกแบบนี้
+ถ้าอ่านตามนี้ จะเห็นทั้ง entry point, state กลาง, data flow, AI flow และ proxy integration ครบ
 
-หน้า architecture ควรใช้ตอบคำถามว่า "ระบบต่อกันยังไง" ส่วนหน้า feature docs ควรใช้ตอบคำถามว่า "ของที่ผู้ใช้เจอตอนนี้ควรทำงานยังไง"
+## Mental Model ของระบบ
 
-ถ้าต้องการดูว่าเอกสารตาม code ทันไหมหรือฟีเจอร์ไหนเพิ่งถูกอัปเดต ให้เปิด [สถานะ Docs และ Coverage](/status/) ซึ่งจะสรุปจาก Git และไฟล์ feature registry ของ repo นี้โดยตรง
+Foro คือแอป React ตัวเดียวที่ทำ 3 อย่างพร้อมกัน:
 
-ถ้าต้องการดูไทม์ไลน์การเปลี่ยนแปลงแบบอ่านง่าย ให้เปิด [Changelog](/changelog/) และถ้ากำลังแก้ branch อยู่แล้วอยากรู้ว่าควรกลับไปอัปเดตหน้า docs ไหน ให้เปิด [Draft Docs Suggestions](/drafts/)
+- ดึงข่าวและโพสต์จาก X
+- ใช้ AI ช่วยคัดกรอง แปล และสรุป
+- ใช้ AI สร้างคอนเทนต์ภาษาไทยจากข้อมูลที่ค้นคว้าแล้ว
 
-## คำสั่งที่ใช้
+พูดแบบง่ายที่สุด:
 
-```bash
-npm run docs:dev
-npm run docs:build
+```text
+UI ใน App.tsx
+  -> เรียก service
+  -> service คุยกับ proxy
+  -> proxy คุยกับ external APIs
+  -> ผลลัพธ์กลับมาเก็บใน state + storage
+  -> UI render ต่อ
 ```
+
+## ถ้าจะ debug feature หลัก
+
+### Feed ไม่ขึ้น
+
+ดูไฟล์:
+
+- `src/App.tsx`
+- `src/hooks/useHomeFeedWorkspace.ts`
+- `src/services/TwitterService.ts`
+- `server.cjs`
+
+ดู flow:
+
+- `handleSync()`
+- `fetchWatchlistFeed()`
+
+### Search ผลไม่ตรง
+
+ดูไฟล์:
+
+- `src/App.tsx`
+- `src/hooks/useSearchWorkspace.ts`
+- `src/services/GrokService.ts`
+- `src/services/TwitterService.ts`
+
+ดู flow:
+
+- `handleSearch()`
+- `expandSearchQuery()`
+- `searchEverything()`
+- `agentFilterFeed()`
+- `generateExecutiveSummary()`
+
+### AI สร้างคอนเทนต์ไม่ตรง
+
+ดูไฟล์:
+
+- `src/components/CreateContent.tsx`
+- `src/services/GrokService.ts`
+
+ดู flow:
+
+- `handleGenerate()`
+- `researchAndPreventHallucination()`
+- `buildContentBrief()`
+- `generateStructuredContentV2()`
+
+### อยากเข้าใจต้นทุนระบบ
+
+ดูเอกสาร:
+
+- [Cost Analysis](/cost-analysis)
+- [API Integrations](/api-integrations)
+
+## หน้าที่ของไฟล์สำคัญ
+
+| ไฟล์ | หน้าที่ |
+| :--- | :--- |
+| `src/main.tsx` | boot app |
+| `src/App.tsx` | state กลาง + orchestration ของทุก feature |
+| `src/hooks/useHomeFeedWorkspace.ts` | flow ของ home feed และ sync |
+| `src/hooks/useSearchWorkspace.ts` | flow ของ search workspace |
+| `src/services/TwitterService.ts` | ดึงข้อมูลจาก X และจัดรูปข้อมูล |
+| `src/services/GrokService.ts` | AI logic ทั้งระบบ |
+| `src/components/CreateContent.tsx` | UI ของ content generation |
+| `server.cjs` | proxy ไป Twitter, xAI และ Tavily |
+
+## แผนการอ่านต่อ
+
+- เริ่มจาก [ภาพรวมระบบ](/architecture/overview)
+- ถ้าอยากเข้าใจ UI และ state ก่อน ไปที่ [Frontend](/architecture/frontend)
+- ถ้าสนใจ flow ข่าวและการค้นหา ไปที่ [Feed และ Search](/architecture/feed-search)
+- ถ้าสนใจ AI writer ไปที่ [AI Content Pipeline](/architecture/ai-pipeline)
+- ถ้ากำลังไล่ดูว่าใช้ provider ไหนบ้าง ไปที่ [API Integrations](/api-integrations)
+- ถ้ากำลังทำระบบเก็บเงินหรือวิเคราะห์ต้นทุน ไปที่ [Cost Analysis](/cost-analysis)
