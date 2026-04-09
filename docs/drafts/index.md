@@ -2,6 +2,8 @@
 
 หน้านี้สรุปจากไฟล์ที่เปลี่ยนใน branch หรือ working tree ปัจจุบัน เพื่อบอกว่า PR นี้ควรกลับไปเช็กหน้า docs ไหนบ้าง
 
+ข้อมูลในหน้านี้เป็น generated snapshot จากสถานะ Git ล่าสุดในตอนที่รัน `docs:dev`, `docs:data` หรือ `docs:build`
+
 <script setup>
 import { withBase } from 'vitepress'
 import draftReport from '../.vitepress/data/docs-draft.json'

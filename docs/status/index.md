@@ -9,6 +9,8 @@
 
 อ้างอิงแนวทาง docs-as-code: [VitePress Site Config](https://vitepress.dev/reference/site-config), [VitePress Data Loading](https://vitepress.dev/guide/data-loading), [Docusaurus Versioning](https://docusaurus.io/docs/next/versioning), [GitLab Docs Architecture](https://docs.gitlab.com/development/documentation/site_architecture/), [GitLab /help](https://docs.gitlab.com/development/documentation/help/)
 
+ข้อมูลในหน้านี้มาจาก snapshot ที่ generate ตอน `docs:dev` และ `docs:build` โดยตรง จึงควรตรงกับรายงานล่าสุดของ repo และไม่ควรพังเพราะ runtime data path หาย
+
 <script setup>
 import { withBase } from 'vitepress'
 import statusReport from '../.vitepress/data/docs-status.json'

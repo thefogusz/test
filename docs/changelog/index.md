@@ -2,6 +2,8 @@
 
 หน้านี้สรุปการเปลี่ยนแปลงล่าสุดของฟีเจอร์ที่ tracked ไว้ใน registry โดยอ่านจาก Git โดยตรง เหมาะกับคนที่อยากดูว่า "เพิ่งมีอะไรเปลี่ยนไปบ้าง" โดยไม่ต้องไล่เปิด commit ทีละตัว
 
+ข้อมูลในหน้านี้เป็น generated snapshot ที่ถูกฝังมาตอน `docs:dev` และ `docs:build` เพื่อให้เปิดจาก static docs ได้ตรงกับรายงานล่าสุด
+
 <script setup>
 import { withBase } from 'vitepress'
 import changelogReport from '../.vitepress/data/docs-changelog.json'

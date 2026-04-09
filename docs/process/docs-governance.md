@@ -46,6 +46,14 @@ repo นี้ใช้ docs เป็น living source of truth ของพฤ
 - มีไฟล์ source ไหนที่แก้ค้างแต่ docs ยังไม่ถูกแตะ
 - `activeView` ไหนยังไม่มี coverage
 
+หน้ารายงานที่เป็น generated dashboard เช่น [สถานะ Docs และ Coverage](/status/), [Changelog](/changelog/) และ [Draft Docs Suggestions](/drafts/) ใช้ snapshot data ที่ generate ตอน `docs:dev` และ `docs:build` โดยตรง ไม่ได้พึ่ง runtime fetch จาก path พิเศษระหว่างเปิดหน้า
+
+ผลที่คาดหวังคือ:
+
+- ถ้า build ผ่าน หน้า dashboard ควรเปิดได้แม้รันจาก static output
+- ถ้าข้อมูลบนหน้าแปลก ให้เช็ก `npm run docs:data` หรือ `npm run docs:build` ก่อนว่ารายงานล่าสุดถูก regenerate แล้วหรือยัง
+- ถ้าในโค้ดมี `ActiveView` ใหม่ แต่หน้า status ยังไม่ track ระบบควรเตือนบนหน้า status เอง เพื่อให้เพิ่ม coverage ใน registry หรือปรับ type ให้ตรงกับของจริง
+
 สถานะหลักที่ใช้ตอนนี้:
 
 - `ok`: docs ยังตาม source ทัน
@@ -53,6 +61,11 @@ repo นี้ใช้ docs เป็น living source of truth ของพฤ
 - `source-dirty`: source มีการแก้ค้าง ควรเช็ก docs
 - `docs-dirty`: docs มีการแก้ค้างยังไม่ commit
 - `missing`: ยังไม่มี metadata หรือ coverage ที่ระบบตามได้
+
+อีกสัญญาณที่ควรดูคือ `ActiveView ที่ประกาศในโค้ดแต่ยังไม่ถูก track`
+
+- ถ้าค่านี้มากกว่า 0 แปลว่า source of truth ระหว่าง type กับ docs tracker ยังไม่ตรงกัน
+- ก่อน merge ควรตัดสินใจให้ชัดว่าจะเพิ่ม coverage ให้ view นั้น หรือเอาค่าที่ไม่ใช้แล้วออกจาก type/registry
 
 ## Automation ที่เพิ่มเข้ามา
 
