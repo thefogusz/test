@@ -194,13 +194,15 @@ const PlanPanel = ({
           </div>
 
           <div className="sidebar-user-actions compact">
-            <button
+            <a
               className="btn-pill"
-              onClick={() => window.location.assign(foroDocsUrl)}
-              style={{ width: '100%', justifyContent: 'center' }}
+              href={foroDocsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ width: '100%', justifyContent: 'center', display: 'inline-flex' }}
             >
               Foro Docs
-            </button>
+            </a>
             <button
               className="btn-pill primary"
               onClick={onOpenPricing}
