@@ -207,14 +207,9 @@ const App = () => {
     shouldRemove: shouldRemoveWhenFalsy,
   });
 
-  const DEFAULT_FILTER_ANALYSIS_PRESETS = [
-    'จับสัญญาณ breakout ที่เริ่มชัด',
-    'คัด policy และ risk ที่กระทบ AI',
-    'หา angle ที่เอาไปทำคอนเทนต์ได้',
-  ];
   const [filterModal, setFilterModal] = useState({ show: false, prompt: '' });
   const DEFAULT_QUICK_PRESETS = ['สรุป', 'หาโพสต์เด่น', 'โพสต์ไหนน่าทำคอนเทนต์'];
-  const [quickFilterPresets, setQuickFilterPresets] = usePersistentState(STORAGE_KEYS.quickFilterPresets, DEFAULT_FILTER_ANALYSIS_PRESETS);
+  const [quickFilterPresets, setQuickFilterPresets] = usePersistentState(STORAGE_KEYS.quickFilterPresets, DEFAULT_QUICK_PRESETS);
   const [readFilters, setReadFilters] = useState({ view: false, engagement: false });
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [genPhase, setGenPhase] = useState('idle');
@@ -419,14 +414,6 @@ const App = () => {
     () => quickFilterPresets.slice(0, 3),
     [quickFilterPresets],
   );
-
-  useEffect(() => {
-    setQuickFilterPresets((prev) => {
-      if (!Array.isArray(prev) || prev.length !== DEFAULT_QUICK_PRESETS.length) return prev;
-      const isLegacyDefault = prev.every((preset, index) => preset === DEFAULT_QUICK_PRESETS[index]);
-      return isLegacyDefault ? DEFAULT_FILTER_ANALYSIS_PRESETS : prev;
-    });
-  }, [setQuickFilterPresets]);
 
   // --- Handlers ---
   const handleBookmark = (tweet, isSaving) => {

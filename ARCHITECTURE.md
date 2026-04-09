@@ -934,10 +934,9 @@ base: '/test/'  // ทุก asset URL prefix ด้วย /test/
 "docs:dev":   "vitepress dev docs"
 ```
 
-### Deployment (Railway)
+### Deployment
 
 ```toml
-# nixpacks.toml + railway.toml
 # Build: npm run build
 # Start: node server.cjs
 # Port: $PORT (default 8000)

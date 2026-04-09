@@ -583,7 +583,7 @@ export const useHomeFeedWorkspace = ({
     onError: (error: any) => {
       console.error(error);
       if (error?.message?.includes('401')) {
-        setStatus('❌ ผิดพลาด (401): กุญแจ API ไม่ถูกต้อง กรุณาเช็ค Railway Environment Variables');
+        setStatus('❌ ผิดพลาด (401): กุญแจ API ไม่ถูกต้อง กรุณาเช็ค environment variables');
         return;
       }
       setStatus('เกิดข้อผิดพลาดในการซิงค์ข้อมูล');
@@ -670,7 +670,7 @@ export const useHomeFeedWorkspace = ({
     onError: (error: any) => {
       console.error(error);
       if (error?.message?.includes('401')) {
-        setStatus('❌ ผิดพลาด (401): กุญแจ API ไม่ถูกต้อง กรุณาเช็ค Railway Environment Variables');
+        setStatus('❌ ผิดพลาด (401): กุญแจ API ไม่ถูกต้อง กรุณาเช็ค environment variables');
         return;
       }
       setStatus('เกิดข้อผิดพลาดในการโหลดข้อมูลเพิ่มเติม');
