@@ -1682,12 +1682,6 @@ const normalizeForoFilterSections = (brief) => {
     : [];
 };
 
-const FORMAL_FORO_SECTION_TITLE_BY_INDEX = {
-  0: 'ประเด็นสำคัญ',
-  1: 'รายละเอียดสนับสนุน',
-  2: 'นัยสำคัญ',
-};
-
 const FORO_BRIEF_TONE_RULES = [
   [/^ชุดโพสต์\s+/gi, ''],
   [/^โพสต์\s+/gi, ''],
@@ -1717,6 +1711,54 @@ const FORMAL_FORO_OUTPUT_LABELS = {
   content_angles: 'มุมที่นำไปใช้ต่อได้',
 };
 
+const FORO_OUTPUT_PROFILES = {
+  overview: {
+    outputLabel: 'สรุปภาพรวม',
+    sectionTitles: ['ประเด็นสำคัญ', 'รายละเอียดสนับสนุน', 'นัยสำคัญ'],
+    sectionHint: 'Use this when the user wants an overall synthesis that helps them understand the full picture quickly',
+  },
+  themes: {
+    outputLabel: 'ประเด็นสำคัญ',
+    sectionTitles: ['ประเด็นสำคัญ', 'รายละเอียดสนับสนุน', 'นัยสำคัญ'],
+    sectionHint: 'Use this when the user wants the major themes or patterns across the set',
+  },
+  opinion: {
+    outputLabel: 'มุมมองจากชุดข้อมูล',
+    sectionTitles: ['ข้อสังเกตหลัก', 'เหตุผลประกอบ', 'นัยสำคัญ'],
+    sectionHint: 'Use this when the user asks for a view, interpretation, or take grounded in the selected items',
+  },
+  ranking: {
+    outputLabel: 'ลำดับความสำคัญ',
+    sectionTitles: ['ลำดับหลัก', 'เหตุผลประกอบ', 'รายการถัดไป'],
+    sectionHint: 'Use this when the user wants items arranged by importance, strength, or urgency',
+  },
+  shortlist: {
+    outputLabel: 'รายการที่คัดเลือก',
+    sectionTitles: ['รายการที่คัดเลือก', 'เหตุผลประกอบ', 'ข้อพิจารณาเพิ่มเติม'],
+    sectionHint: 'Use this when the user wants a small set of selected items with reasons',
+  },
+  opportunities: {
+    outputLabel: 'โอกาสที่เห็น',
+    sectionTitles: ['โอกาสหลัก', 'หลักฐานสนับสนุน', 'นัยสำคัญ'],
+    sectionHint: 'Use this when the user asks what opportunities, openings, or upside can be taken from the feed',
+  },
+  risks: {
+    outputLabel: 'ประเด็นที่ควรระวัง',
+    sectionTitles: ['ประเด็นที่ควรระวัง', 'สัญญาณสนับสนุน', 'ผลกระทบที่ควรจับตา'],
+    sectionHint: 'Use this when the user asks about risk, downside, uncertainty, or caution points',
+  },
+  content_angles: {
+    outputLabel: 'มุมที่นำไปใช้ต่อได้',
+    sectionTitles: ['มุมที่นำไปใช้ต่อได้', 'เหตุผลที่น่าสนใจ', 'ประเด็นต่อยอด'],
+    sectionHint: 'Use this when the user asks for hooks, angles, or directions they can use for follow-up work',
+  },
+  contradictions: {
+    outputLabel: 'จุดที่ขัดกัน',
+    sectionTitles: ['จุดที่ขัดกัน', 'รายละเอียดสนับสนุน', 'สิ่งที่ควรติดตาม'],
+    sectionHint: 'Use this when the user asks what signals conflict, diverge, or do not line up cleanly',
+  },
+};
+
 const polishForoBriefTone = (value = '') =>
   FORO_BRIEF_TONE_RULES.reduce(
     (text, [pattern, replacement]) => text.replace(pattern, replacement),
@@ -1728,18 +1770,44 @@ const polishForoBriefTone = (value = '') =>
 const stripForoBriefCitations = (value = '') =>
   polishForoBriefTone(value).replace(/\[(?:F|W)\d+\]/gi, '').replace(/\s{2,}/g, ' ').trim();
 
-const normalizeForoSectionTitle = (index, total) => {
-  if (total <= 1) return 'ประเด็นสำคัญ';
+const getForoOutputProfile = (outputMode = '') => {
+  const normalizedMode = cleanGeneratedContent(outputMode).toLowerCase();
+  return FORO_OUTPUT_PROFILES[normalizedMode] || FORO_OUTPUT_PROFILES.overview;
+};
+
+const normalizeForoSectionTitle = (outputMode = '', index, total) => {
+  const profile = getForoOutputProfile(outputMode);
+  if (total <= 1) return profile.sectionTitles[0] || 'ประเด็นสำคัญ';
   if (total === 2) {
-    return index === 0 ? 'ประเด็นสำคัญ' : 'รายละเอียดสนับสนุน';
+    return profile.sectionTitles[index] || profile.sectionTitles[Math.min(index, profile.sectionTitles.length - 1)] || 'รายละเอียดสนับสนุน';
   }
-  return FORMAL_FORO_SECTION_TITLE_BY_INDEX[index] || 'รายละเอียดสนับสนุน';
+  return profile.sectionTitles[index] || profile.sectionTitles[profile.sectionTitles.length - 1] || 'รายละเอียดสนับสนุน';
 };
 
 const normalizeForoOutputLabel = (outputMode = '', fallbackLabel = '') => {
   const normalizedMode = cleanGeneratedContent(outputMode).toLowerCase();
   if (FORMAL_FORO_OUTPUT_LABELS[normalizedMode]) return FORMAL_FORO_OUTPUT_LABELS[normalizedMode];
+  if (getForoOutputProfile(outputMode)?.outputLabel) return getForoOutputProfile(outputMode).outputLabel;
   return stripForoBriefCitations(fallbackLabel || '') || 'สรุปภาพรวม';
+};
+
+const inferForoOutputMode = (query = '') => {
+  const normalizedQuery = sanitizeForPrompt(query, 260).toLowerCase();
+
+  const matchers = [
+    { mode: 'ranking', patterns: [/จัดอันดับ/, /\btop\b/, /\brank/, /ลำดับ/, /priority/] },
+    { mode: 'shortlist', patterns: [/shortlist/, /คัดเลือก/, /คัดมา/, /เลือกชุด/, /รายการที่เลือก/] },
+    { mode: 'opinion', patterns: [/ความเห็น/, /ความคิดเห็น/, /มุมมอง/, /ตีความ/, /คิดเห็นอย่างไร/, /\bopinion\b/, /\bview\b/] },
+    { mode: 'opportunities', patterns: [/โอกาส/, /\bopportunit/, /upside/, /ช่องว่าง/] },
+    { mode: 'risks', patterns: [/ความเสี่ยง/, /เสี่ยง/, /ข้อควรระวัง/, /\brisk\b/, /downside/] },
+    { mode: 'content_angles', patterns: [/คอนเทนต์/, /วิดีโอ/, /angle/, /hook/, /ต่อยอด/, /ไอเดียวิดีโอ/, /ไอเดียคอนเทนต์/] },
+    { mode: 'contradictions', patterns: [/ขัดกัน/, /ไม่ตรงกัน/, /สวนทาง/, /contradict/, /conflict/] },
+    { mode: 'themes', patterns: [/ธีม/, /pattern/, /แพตเทิร์น/, /สัญญาณ/, /ประเด็นหลัก/] },
+    { mode: 'overview', patterns: [/สรุป/, /ภาพรวม/, /overview/, /digest/] },
+  ];
+
+  const matched = matchers.find(({ patterns }) => patterns.some((pattern) => pattern.test(normalizedQuery)));
+  return matched?.mode || 'overview';
 };
 
 export const buildForoFilterBriefMarkdown = (brief) => {
@@ -1767,11 +1835,14 @@ export const generateForoFilterBrief = async (validTweets, userQuery, options = 
 
   const safeQuery = sanitizeForPrompt(userQuery, 260);
   const focusMode = sanitizeForPrompt(String(options.focusMode || ''), 80);
+  const preferredOutputMode = inferForoOutputMode(focusMode || safeQuery);
+  const preferredProfile = getForoOutputProfile(preferredOutputMode);
   const candidates = validTweets;
 
-  const cacheKey = buildCacheKey('foro-filter-brief-v6', {
+  const cacheKey = buildCacheKey('foro-filter-brief-v7', {
     safeQuery,
     focusMode,
+    preferredOutputMode,
     tweets: candidates.map((tweet) => ({
       id: tweet.id,
       citation: tweet.citation_id,
@@ -1804,6 +1875,10 @@ Rules:
 - Be exact and grounded only in the provided picks.
 - Treat the full provided set as the working set. Synthesize across all selected posts, not just the first few.
 - Infer the best output mode from the user query. Examples include overview, opinion, ranking, shortlist, opportunities, risks, themes, contradictions, content angles, or another concise analysis mode if it fits better.
+- Preferred output mode for this request: ${preferredOutputMode}
+- Preferred output label: ${preferredProfile.outputLabel}
+- Preferred section titles: ${preferredProfile.sectionTitles.join(' | ')}
+- Preferred mode guidance: ${preferredProfile.sectionHint}
 - Write like a sharp human editor summarizing this for a friend or teammate in chat or email.
 - The result should feel like a compact newspaper front page: one clear lead, then 2-3 varied sub-sections that together cover the main heat, the supporting signals, and any interesting angle worth noticing when present.
 - headline: 1 short sentence that instantly tells the reader what is going on across the whole set. It must describe the theme or change itself, not praise the people involved, and must avoid dramatic phrasing.
@@ -1856,8 +1931,8 @@ ${focusMode ? `- Treat this as the preferred analysis mode: ${focusMode}` : ''}`
       whyNow: polishForoBriefTone(object.whyNow),
       sections,
       matchedSignals: sections.flatMap((section) => section.items),
-      outputMode: cleanGeneratedContent(object.outputMode),
-      outputLabel: normalizeForoOutputLabel(object.outputMode, object.outputLabel),
+      outputMode: cleanGeneratedContent(object.outputMode || preferredOutputMode),
+      outputLabel: normalizeForoOutputLabel(object.outputMode || preferredOutputMode, object.outputLabel),
       sectionLabel: sections[0]?.title || 'ประเด็นสำคัญ',
     };
 
