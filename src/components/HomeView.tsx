@@ -3,6 +3,7 @@ import { Copy, Eraser, FileText, List, RefreshCw, ShieldCheck, Undo2 } from 'luc
 import { cleanMarkdownForClipboard, normalizeSummaryMarkdown, renderMarkdownToHtml } from '../utils/markdown';
 import AiFilteredBadge from './AiFilteredBadge';
 import FeedCard from './FeedCard';
+import FeedCardSkeleton from './FeedCardSkeleton';
 import HomeCanvas from './HomeCanvas';
 
 const HomeView = ({
@@ -56,6 +57,10 @@ const HomeView = ({
     [watchlistHandleSet],
   );
   const freshFeedIdSet = useMemo(() => new Set((freshFeedIds ?? []).map((id) => String(id))), [freshFeedIds]);
+  const shouldShowIncomingSkeletons = isSyncing && feed.length > 0;
+  const incomingSkeletonCount = pendingFeed.length > 0
+    ? Math.min(4, Math.max(2, pendingFeed.length))
+    : 3;
 
   if (!isVisible) return null;
 
@@ -347,6 +352,10 @@ const HomeView = ({
               <h2 className="home-splash-title no-select-ui">FORO ติดตามทุกเรื่องที่คุณสนใจ</h2>
             </div>
           </div>
+        )}
+
+        {shouldShowIncomingSkeletons && (
+          <FeedCardSkeleton count={incomingSkeletonCount} />
         )}
 
         {feed.length > 0 &&
