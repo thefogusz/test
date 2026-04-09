@@ -61,6 +61,14 @@ const buildBriefClipboardText = (brief) => {
     .trim();
 };
 
+const BRIEF_SECTION_TONES = [
+  { eyebrow: 'ภาพหลัก', hint: 'ประเด็นใหญ่ที่เห็นชัดจากข่าวและโพสต์ที่คัดมา', className: 'is-lead' },
+  { eyebrow: 'แรงส่ง', hint: 'รายละเอียดที่ทำให้ประเด็นนี้ชัดขึ้น', className: 'is-supporting' },
+  { eyebrow: 'จับตาต่อ', hint: 'มุมที่ควรตามต่อหลังจากนี้', className: 'is-watch' },
+];
+
+const getBriefSectionTone = (index) => BRIEF_SECTION_TONES[index] || BRIEF_SECTION_TONES[BRIEF_SECTION_TONES.length - 1];
+
 const HomeView = ({
   isVisible,
   currentActiveList,
@@ -150,6 +158,11 @@ const HomeView = ({
   const outputLabel = aiFilterBrief?.outputLabel || 'ผลการวิเคราะห์';
   const briefHeadline = parseBriefItem(aiFilterBrief?.headline || '').text;
   const briefWhyNow = parseBriefItem(aiFilterBrief?.whyNow || '').text;
+  const briefItemCount = briefSections.reduce((total, section) => total + section.items.length, 0);
+  const briefCitationCount = briefSections.reduce(
+    (total, section) => total + section.items.reduce((sectionTotal, item) => sectionTotal + parseBriefItem(item).citations.length, 0),
+    0,
+  );
 
   return (
     <div className="animate-fade-in">
@@ -321,62 +334,67 @@ const HomeView = ({
               className="foro-filter-brief"
               style={{ position: 'relative', zIndex: 1, display: 'grid', gap: '18px' }}
             >
-              <div style={{ display: 'grid', gap: '10px' }}>
-                <div
-                  style={{
-                    fontSize: '26px',
-                    lineHeight: '1.35',
-                    fontWeight: '800',
-                    letterSpacing: '-0.03em',
-                    color: '#fff',
-                  }}
-                >
-                  {briefHeadline}
-                </div>
-                {briefWhyNow && (
-                  <div
-                    style={{
-                      fontSize: '18px',
-                      lineHeight: '1.75',
-                      color: 'rgba(255,255,255,0.86)',
-                      maxWidth: '840px',
-                    }}
-                  >
-                    {briefWhyNow}
+              <div className="foro-filter-hero">
+                <div className="foro-filter-hero-copy">
+                  <div className="foro-filter-kicker-row">
+                    <div className="foro-filter-kicker">อ่านภาพรวมก่อน แล้วค่อยไล่ลงรายละเอียด</div>
+                    <div className="foro-filter-meta-pill foro-filter-output-pill">{outputLabel}</div>
                   </div>
-                )}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  <div className="foro-filter-meta-pill foro-filter-output-pill">{outputLabel}</div>
+                  <div className="foro-filter-hero-headline">{briefHeadline}</div>
+                  {briefWhyNow && (
+                    <div className="foro-filter-hero-why">{briefWhyNow}</div>
+                  )}
+                </div>
+                <div className="foro-filter-hero-rail">
+                  <div className="foro-filter-hero-stat">
+                    <span className="foro-filter-hero-stat-value">{briefSections.length}</span>
+                    <span className="foro-filter-hero-stat-label">แกนเรื่อง</span>
+                  </div>
+                  <div className="foro-filter-hero-stat">
+                    <span className="foro-filter-hero-stat-value">{briefItemCount}</span>
+                    <span className="foro-filter-hero-stat-label">ประเด็นคัดแล้ว</span>
+                  </div>
+                  <div className="foro-filter-hero-stat">
+                    <span className="foro-filter-hero-stat-value">{briefCitationCount}</span>
+                    <span className="foro-filter-hero-stat-label">จุดอ้างอิง</span>
+                  </div>
                 </div>
               </div>
 
               {briefSections.length > 0 && (
-                <div className="foro-filter-brief-card">
+                <div className="foro-filter-brief-card foro-filter-brief-stage">
                   <div className="foro-filter-brief-sections">
-                    {briefSections.map((section) => (
-                      <div key={`${outputLabel}-${section.title}`} className="foro-filter-brief-section">
-                        <div className="foro-filter-brief-title">{section.title}</div>
-                        <div className="foro-filter-brief-list">
-                          {section.items.map((item) => {
-                            const parsedItem = parseBriefItem(item);
-                            return (
-                              <div key={`${section.title}-${item}`} className="foro-filter-brief-item">
-                                <span>{parsedItem.text}</span>
-                                {parsedItem.citations.length > 0 && (
-                                  <span className="foro-filter-brief-citations">
-                                    {parsedItem.citations.map((citation) => (
-                                      <span key={`${section.title}-${item}-${citation}`} className="reference-badge foro-filter-brief-citation-badge">
-                                        {citation.replaceAll('[', '').replaceAll(']', '')}
-                                      </span>
-                                    ))}
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })}
+                    {briefSections.map((section, index) => {
+                      const tone = getBriefSectionTone(index);
+                      return (
+                        <div key={`${outputLabel}-${section.title}`} className={`foro-filter-brief-section ${tone.className}`}>
+                          <div className="foro-filter-brief-section-top">
+                            <div className="foro-filter-brief-eyebrow">{tone.eyebrow}</div>
+                            <div className="foro-filter-brief-hint">{tone.hint}</div>
+                          </div>
+                          <div className="foro-filter-brief-title">{section.title}</div>
+                          <div className="foro-filter-brief-list">
+                            {section.items.map((item) => {
+                              const parsedItem = parseBriefItem(item);
+                              return (
+                                <div key={`${section.title}-${item}`} className="foro-filter-brief-item">
+                                  <span className="foro-filter-brief-item-text">{parsedItem.text}</span>
+                                  {parsedItem.citations.length > 0 && (
+                                    <span className="foro-filter-brief-citations">
+                                      {parsedItem.citations.map((citation) => (
+                                        <span key={`${section.title}-${item}-${citation}`} className="reference-badge foro-filter-brief-citation-badge">
+                                          {citation.replaceAll('[', '').replaceAll(']', '')}
+                                        </span>
+                                      ))}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

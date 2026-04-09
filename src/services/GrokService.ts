@@ -1702,7 +1702,7 @@ const FORO_BRIEF_TONE_RULES = [
 
 const FORMAL_FORO_OUTPUT_LABELS = {
   overview: 'สรุปภาพรวม',
-  opinion: 'มุมมองจากชุดข้อมูล',
+  opinion: 'มุมมองต่อประเด็นนี้',
   ranking: 'ลำดับความสำคัญ',
   shortlist: 'รายการที่คัดเลือก',
   themes: 'ประเด็นสำคัญ',
@@ -1723,7 +1723,7 @@ const FORO_OUTPUT_PROFILES = {
     sectionHint: 'Use this when the user wants the major themes or patterns across the set',
   },
   opinion: {
-    outputLabel: 'มุมมองจากชุดข้อมูล',
+    outputLabel: 'มุมมองต่อประเด็นนี้',
     sectionTitles: ['ข้อสังเกตหลัก', 'เหตุผลประกอบ', 'นัยสำคัญ'],
     sectionHint: 'Use this when the user asks for a view, interpretation, or take grounded in the selected items',
   },
@@ -1895,15 +1895,18 @@ Rules:
 - Do not mention the names or handles of the people who posted these items unless that person is genuinely the subject of the news itself. Prefer describing the topic, shift, product, or implication directly.
 - sections: 2-3 sections. Each section needs a short Thai title and 2-4 bullets. Use formal section titles that work across industries and general audiences. Good examples are "ประเด็นสำคัญ", "รายละเอียดสนับสนุน", and "นัยสำคัญ". Across all sections together, cover the full set as much as possible.
 - Every bullet must explain an important theme, pattern, standout item, or takeaway from the selected posts in plain Thai and end with one or more citations like [F1] or [F2][F4].
+- Every bullet must be understandable on its own even if the reader only skims that one line. Start with the topic, product, company, policy, or issue first, then explain what changed or why it matters.
+- Avoid vague floating bullets that begin with verbs or fragments such as "แก้ปัญหา...", "ขยาย...", "เปิดตัว...", "ทดสอบ..." unless the subject is already named at the start of that same bullet.
 - Total bullets across all sections should usually be 5-9 unless the filtered set is extremely small.
 - When the set is larger than 8 posts, the brief should usually cite at least 4 different posts across the full output and should cover more than one topic cluster when multiple clusters exist.
 - Avoid repeating the same company, product, or event in most bullets unless the evidence truly shows that it dominates the selected set.
 - outputMode: one short lowercase English token for the inferred mode, such as "overview", "opinion", "ranking", "shortlist", "themes", "opportunities", "risks", "content_angles", or another close fit
-- outputLabel: a short Thai label for this result mode, such as "สรุปภาพรวม", "มุมมองจากชุดโพสต์", "โพสต์เด่น", or "shortlist ตามโจทย์"
+- outputLabel: a short Thai label for this result mode, such as "สรุปภาพรวม", "มุมมองจากประเด็นนี้", "โพสต์เด่น", or "shortlist ตามโจทย์"
 - Do not use markdown in field values.
 - Do not add periods at the end of Thai sentences.
 - Keep proper names in Latin script when needed.
 - Do not write labels like "Why It Matters", "Decision Note", "Key Takeaways", or anything that sounds like a formal report inside the field values.
+- Avoid system-y phrasing such as "ชุดโพสต์", "โพสต์ชุดนี้", "ชุดข้อมูล", or other wording that would sound odd if someone copied the result into chat or email.
 - Avoid consultant, analyst, or AI-assistant tone. Prefer natural Thai that a person would actually forward to friends or teammates.
 - Avoid hype, fanboy, celebrity-first, or clickbait wording such as "สุดล้ำ", "ร้อนแรง", "ตัวท็อป", "ยอดฝีมือ", "บิ๊กเนม", "ดราม่าเดือด", or similar language unless the source itself truly centers on that exact point.
 - Prefer calm, concrete phrasing that explains what changed, why it matters, and what to pay attention to next.
