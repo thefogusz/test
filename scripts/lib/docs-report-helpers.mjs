@@ -29,6 +29,19 @@ export const runGit = (args, options = {}) => {
   }
 }
 
+export const runGitBuffer = (args, options = {}) => {
+  try {
+    return execFileSync('git', args, {
+      cwd: repoRoot,
+      encoding: 'buffer',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      ...options,
+    })
+  } catch {
+    return Buffer.alloc(0)
+  }
+}
+
 export const compareIsoDates = (left, right) => {
   if (!left && !right) return 0
   if (!left) return -1
@@ -71,17 +84,43 @@ export const getTrackedFeatureByFile = (filePath) =>
 
 export const getChangedFiles = ({ baseRef, headRef } = {}) => {
   if (baseRef && headRef) {
-    const output = runGit(['diff', '--name-only', `${baseRef}...${headRef}`])
-    return output ? output.split(/\r?\n/).filter(Boolean).map(toPosix) : []
+    const output = runGitBuffer(['diff', '--name-only', '-z', `${baseRef}...${headRef}`])
+    return output.length
+      ? output
+          .toString('utf8')
+          .split('\0')
+          .filter(Boolean)
+          .map(toPosix)
+      : []
   }
 
-  const output = runGit(['status', '--short'])
-  if (output) {
-    return output
-      .split(/\r?\n/)
-      .map((line) => line.slice(3).trim())
-      .filter(Boolean)
-      .map(toPosix)
+  const porcelainOutput = runGitBuffer(['status', '--porcelain', '-z'])
+  if (porcelainOutput.length) {
+    const entries = porcelainOutput.toString('utf8').split('\0').filter(Boolean)
+    const changedFiles = []
+
+    for (let index = 0; index < entries.length; index += 1) {
+      const entry = entries[index]
+      if (!entry) continue
+
+      const status = entry.slice(0, 2)
+      const rawPath = entry.slice(3).trim()
+
+      if (status.startsWith('R') || status.startsWith('C')) {
+        const renamedPath = entries[index + 1]
+        if (renamedPath) {
+          changedFiles.push(toPosix(renamedPath))
+          index += 1
+          continue
+        }
+      }
+
+      if (rawPath) {
+        changedFiles.push(toPosix(rawPath))
+      }
+    }
+
+    return changedFiles
   }
 
   const hasOriginMain = Boolean(runGit(['rev-parse', '--verify', 'origin/main']))
