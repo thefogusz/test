@@ -144,73 +144,54 @@ const AudienceWorkspace = ({
     if (followers >= 1000) return `${(followers / 1000).toFixed(followers >= 100000 ? 0 : 1).replace(/\.0$/, '')}K`;
     return followers.toLocaleString();
   };
+  const cleanRecommendationText = (value = '') =>
+    String(value || '')
+      .replace(/^["'“”]+|["'“”]+$/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
   const buildExpertIdentityReasoning = (expert) => {
-    const topic = String(aiQuery || '').trim();
-    const bio = String(expert?.description || '').replace(/\s+/g, ' ').trim();
+    const name = String(expert?.name || expert?.username || '\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e19\u0e35\u0e49').trim();
+    const bio = cleanRecommendationText(expert?.description || '');
     if (!bio) return '';
 
     const shortBio = bio.split(/(?<=[.!?])\s+/)[0]?.trim() || bio;
-    const companyMatch = shortBio.match(/\b(OpenAI|Anthropic|Google DeepMind|DeepMind|Meta|NVIDIA|Microsoft|Amazon|Tesla|xAI|Perplexity|Hugging Face)\b/i);
-    const roleMatch = shortBio.match(/\b(founder|co-founder|ceo|cto|engineer|researcher|scientist|author|investor|journalist|editor|creator|educator|professor|writer|operator|developer)\b/i);
-
-    const thaiTopic =
-      topic && /ai/i.test(topic)
-        ? 'AI'
-        : topic || '';
-
-    if (companyMatch && roleMatch) {
-      return `${shortBio} เลยเหมาะกับคนที่อยากตาม${thaiTopic || 'เรื่องนี้'}จากประสบการณ์ตรง`;
-    }
-    if (companyMatch) {
-      return `${shortBio} เหมาะถ้าอยากตาม${thaiTopic || 'ประเด็นนี้'}จากคนในวงการโดยตรง`;
-    }
-    if (roleMatch) {
-      return `${shortBio} และมักแชร์มุมจากประสบการณ์ทำงานจริง`;
-    }
-    if (shortBio.length <= 110) {
-      return shortBio;
-    }
-
-    return '';
+    const cleanedBio = shortBio.replace(/[.]+$/g, '').trim();
+    if (!cleanedBio) return '';
+    if (cleanedBio.toLowerCase().startsWith(name.toLowerCase())) return cleanedBio;
+    return `${name} : ${cleanedBio}`;
   };
   const formatExpertReasoning = (expert) => {
     const topic = String(aiQuery || '').trim();
     const identityReason = buildExpertIdentityReasoning(expert);
-    const raw = String(expert?.reasoning || '')
-      .trim()
-      .replace(/^["'“”]+|["'“”]+$/g, '')
-      .replace(/\s+/g, ' ');
+    const raw = cleanRecommendationText(expert?.reasoning || '');
+    const rawLooksGeneric =
+      !raw ||
+      /(\u0e0a\u0e48\u0e27\u0e22\u0e43\u0e2b\u0e49\u0e40\u0e2b\u0e47\u0e19\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21|\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e19\u0e35\u0e49\u0e0a\u0e48\u0e27\u0e22\u0e44\u0e14\u0e49\u0e14\u0e35|\u0e16\u0e49\u0e32\u0e04\u0e38\u0e13\u0e2d\u0e22\u0e32\u0e01\u0e15\u0e32\u0e21|\u0e04\u0e38\u0e13\u0e2d\u0e22\u0e32\u0e01|\u0e40\u0e2b\u0e47\u0e19\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21\u0e0a\u0e31\u0e14\u0e02\u0e36\u0e49\u0e19|\u0e40\u0e2b\u0e21\u0e32\u0e30|\u0e43\u0e0a\u0e49\u0e40\u0e1b\u0e47\u0e19\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e2b\u0e25\u0e31\u0e01\u0e44\u0e27\u0e49\u0e15\u0e32\u0e21|\u0e0a\u0e48\u0e27\u0e22\u0e43\u0e2b\u0e49\u0e15\u0e32\u0e21|\u0e40\u0e01\u0e47\u0e1a\u0e43\u0e19\u0e25\u0e34\u0e2a\u0e15\u0e4c|\u0e42\u0e2d\u0e40\u0e04)/i.test(raw) ||
+      raw.length > 110;
 
-    if (identityReason) {
-      if (
-        !raw ||
-        /(ช่วยให้เห็นภาพรวม|บัญชีนี้ช่วยได้ดี|ถ้าคุณอยากตาม|คุณอยาก|เห็นภาพรวมชัดขึ้น)/i.test(raw) ||
-        raw.length > 90
-      ) {
-        return identityReason;
-      }
+    if (identityReason && rawLooksGeneric) {
+      return identityReason;
     }
 
     if (!raw) {
-      return topic ? `เหมาะไว้ตามประเด็น${topic}แบบต่อเนื่อง` : 'เหมาะไว้เก็บในลิสต์สำหรับตามต่อ';
+      return topic
+        ? `\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\u0e1b\u0e23\u0e30\u0e40\u0e14\u0e47\u0e19${topic}\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e15\u0e48\u0e2d\u0e40\u0e19\u0e37\u0e48\u0e2d\u0e07`
+        : '\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e2b\u0e22\u0e34\u0e1a\u0e1b\u0e23\u0e30\u0e40\u0e14\u0e47\u0e19\u0e2a\u0e33\u0e04\u0e31\u0e0d\u0e21\u0e32\u0e40\u0e25\u0e48\u0e32\u0e44\u0e14\u0e49\u0e01\u0e23\u0e30\u0e0a\u0e31\u0e1a\u0e41\u0e25\u0e30\u0e15\u0e32\u0e21\u0e15\u0e48\u0e2d\u0e44\u0e14\u0e49\u0e07\u0e48\u0e32\u0e22';
     }
 
-    if (
-      /(ช่วยให้เห็นภาพรวม|บัญชีนี้ช่วยได้ดี|ถ้าคุณอยากตาม|คุณอยาก|เห็นภาพรวมชัดขึ้น)/i.test(raw) ||
-      raw.length > 90
-    ) {
+    if (rawLooksGeneric) {
+      if (identityReason) return identityReason;
       if (/followers|creator|writer|author|book|habit|mindset|lifestyle|self-improvement/i.test(`${expert?.name || ''} ${expert?.username || ''}`)) {
-        return 'เด่นเรื่องมุมคิดและการนำไปใช้จริง เหมาะไว้ตามต่อเนื่อง';
+        return '\u0e04\u0e23\u0e35\u0e40\u0e2d\u0e40\u0e15\u0e2d\u0e23\u0e4c\u0e17\u0e35\u0e48\u0e40\u0e25\u0e48\u0e32\u0e21\u0e38\u0e21\u0e04\u0e34\u0e14\u0e41\u0e25\u0e30\u0e01\u0e32\u0e23\u0e19\u0e33\u0e44\u0e1b\u0e43\u0e0a\u0e49\u0e08\u0e23\u0e34\u0e07\u0e41\u0e1a\u0e1a\u0e2d\u0e48\u0e32\u0e19\u0e41\u0e25\u0e49\u0e27\u0e40\u0e2b\u0e47\u0e19\u0e20\u0e32\u0e1e';
       }
       if (topic) {
-        return `ใช้เป็นบัญชีหลักไว้เช็กความเคลื่อนไหวของ${topic}ได้`;
+        return `\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e42\u0e1f\u0e01\u0e31\u0e2a\u0e04\u0e27\u0e32\u0e21\u0e40\u0e04\u0e25\u0e37\u0e48\u0e2d\u0e19\u0e44\u0e2b\u0e27\u0e02\u0e2d\u0e07${topic}\u0e40\u0e1b\u0e47\u0e19\u0e2b\u0e25\u0e31\u0e01`;
       }
-      return 'ช่วยให้ตามประเด็นนี้ได้ทันโดยไม่ต้องไล่หลายแหล่ง';
+      return '\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e21\u0e35\u0e21\u0e38\u0e21\u0e21\u0e2d\u0e07\u0e0a\u0e31\u0e14\u0e41\u0e25\u0e30\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\u0e1b\u0e23\u0e30\u0e40\u0e14\u0e47\u0e19\u0e43\u0e19\u0e2a\u0e32\u0e22\u0e19\u0e35\u0e49\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e2a\u0e21\u0e48\u0e33\u0e40\u0e2a\u0e21\u0e2d';
     }
 
     return raw;
   };
-
 
   return (
     <div style={{ display: isVisible ? 'block' : 'none' }}>

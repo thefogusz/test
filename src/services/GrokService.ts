@@ -489,8 +489,44 @@ const inferExpertStrength = (expert = {}) => {
 };
 
 const buildNaturalExpertReasoning = (categoryQuery, expert = {}) => {
-  const topic = String(categoryQuery || '').trim() || 'หัวข้อนี้';
+  const topic = String(categoryQuery || '').trim() || '?????????';
   const identity = `${expert.name || ''} ${expert.username || ''}`.toLowerCase();
+  const displayName = String(expert?.name || expert?.username || '\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e19\u0e35\u0e49').trim();
+  const description = String(expert?.description || '').replace(/\s+/g, ' ').trim();
+  const buildBioSummary = () => {
+    if (!description) return '';
+    const firstSentence = description.split(/(?<=[.!?])\s+/)[0]?.trim() || description;
+    const cleaned = firstSentence.replace(/^["'??]+|["'??]+$/g, '').replace(/[.]+$/g, '').trim();
+    if (!cleaned) return '';
+    if (cleaned.toLowerCase().startsWith(displayName.toLowerCase())) return cleaned;
+    return `${displayName} : ${cleaned}`;
+  };
+  const bioSummary = buildBioSummary();
+
+  if (/variety|deadline|hollywood reporter|thr|discussingfilm/.test(identity)) {
+    return `${displayName} : \u0e2a\u0e37\u0e48\u0e2d\u0e1a\u0e31\u0e19\u0e40\u0e17\u0e34\u0e07\u0e17\u0e35\u0e48\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\u0e02\u0e48\u0e32\u0e27\u0e2b\u0e19\u0e31\u0e07 \u0e0b\u0e35\u0e23\u0e35\u0e2a\u0e4c \u0e41\u0e25\u0e30\u0e14\u0e35\u0e25\u0e2a\u0e33\u0e04\u0e31\u0e0d\u0e43\u0e19\u0e27\u0e07\u0e01\u0e32\u0e23\u0e41\u0e1a\u0e1a\u0e23\u0e27\u0e14\u0e40\u0e23\u0e47\u0e27`;
+  }
+  if (/rottentomatoes/.test(identity)) {
+    return `${displayName} : \u0e41\u0e2b\u0e25\u0e48\u0e07\u0e23\u0e27\u0e21\u0e01\u0e23\u0e30\u0e41\u0e2a\u0e23\u0e35\u0e27\u0e34\u0e27\u0e41\u0e25\u0e30\u0e40\u0e2a\u0e35\u0e22\u0e07\u0e15\u0e2d\u0e1a\u0e23\u0e31\u0e1a\u0e02\u0e2d\u0e07\u0e2b\u0e19\u0e31\u0e07\u0e01\u0e31\u0e1a\u0e0b\u0e35\u0e23\u0e35\u0e2a\u0e4c\u0e17\u0e35\u0e48\u0e04\u0e19\u0e14\u0e39\u0e08\u0e31\u0e1a\u0e15\u0e32`;
+  }
+  if (/netflix/.test(identity)) {
+    return `${displayName} : \u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e08\u0e32\u0e01\u0e41\u0e1e\u0e25\u0e15\u0e1f\u0e2d\u0e23\u0e4c\u0e21\u0e17\u0e35\u0e48\u0e43\u0e0a\u0e49\u0e15\u0e32\u0e21\u0e04\u0e2d\u0e19\u0e40\u0e17\u0e19\u0e15\u0e4c\u0e43\u0e2b\u0e21\u0e48\u0e41\u0e25\u0e30\u0e41\u0e04\u0e21\u0e40\u0e1b\u0e0d\u0e40\u0e1b\u0e34\u0e14\u0e15\u0e31\u0e27\u0e44\u0e14\u0e49\u0e15\u0e23\u0e07\u0e17\u0e35\u0e48\u0e2a\u0e38\u0e14`;
+  }
+  if (/openai/.test(identity)) {
+    return `${displayName} : \u0e17\u0e35\u0e21\u0e17\u0e35\u0e48\u0e02\u0e22\u0e31\u0e1a\u0e1c\u0e25\u0e34\u0e15\u0e20\u0e31\u0e13\u0e11\u0e4c AI \u0e23\u0e30\u0e14\u0e31\u0e1a\u0e41\u0e19\u0e27\u0e2b\u0e19\u0e49\u0e32\u0e41\u0e25\u0e30\u0e21\u0e31\u0e01\u0e1b\u0e23\u0e30\u0e01\u0e32\u0e28\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\u0e2a\u0e33\u0e04\u0e31\u0e0d\u0e08\u0e32\u0e01\u0e15\u0e49\u0e19\u0e17\u0e32\u0e07`;
+  }
+  if (/demishassabis|demis hassabis/.test(identity)) {
+    return `${displayName} : \u0e1c\u0e39\u0e49\u0e1a\u0e23\u0e34\u0e2b\u0e32\u0e23\u0e41\u0e25\u0e30\u0e19\u0e31\u0e01\u0e27\u0e34\u0e08\u0e31\u0e22 AI \u0e17\u0e35\u0e48\u0e40\u0e0a\u0e37\u0e48\u0e2d\u0e21\u0e21\u0e38\u0e21\u0e27\u0e34\u0e08\u0e31\u0e22\u0e01\u0e31\u0e1a\u0e17\u0e34\u0e28\u0e17\u0e32\u0e07\u0e01\u0e32\u0e23\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19\u0e08\u0e23\u0e34\u0e07\u0e44\u0e14\u0e49\u0e0a\u0e31\u0e14`;
+  }
+  if (/karpathy|andrej karpathy/.test(identity)) {
+    return `${displayName} : \u0e27\u0e34\u0e28\u0e27\u0e01\u0e23 AI \u0e17\u0e35\u0e48\u0e2d\u0e18\u0e34\u0e1a\u0e32\u0e22\u0e40\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e42\u0e21\u0e40\u0e14\u0e25 \u0e42\u0e04\u0e49\u0e14 \u0e41\u0e25\u0e30\u0e01\u0e32\u0e23\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19\u0e44\u0e14\u0e49\u0e40\u0e02\u0e49\u0e32\u0e43\u0e08\u0e07\u0e48\u0e32\u0e22`;
+  }
+  if (/andrewyng|andrew ng/.test(identity)) {
+    return `${displayName} : \u0e19\u0e31\u0e01\u0e01\u0e32\u0e23\u0e28\u0e36\u0e01\u0e29\u0e32\u0e14\u0e49\u0e32\u0e19 AI \u0e17\u0e35\u0e48\u0e40\u0e25\u0e48\u0e32\u0e40\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e40\u0e17\u0e04\u0e42\u0e19\u0e42\u0e25\u0e22\u0e35\u0e43\u0e2b\u0e49\u0e15\u0e48\u0e2d\u0e22\u0e2d\u0e14\u0e2a\u0e39\u0e48\u0e01\u0e32\u0e23\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19\u0e08\u0e23\u0e34\u0e07\u0e44\u0e14\u0e49\u0e07\u0e48\u0e32\u0e22`;
+  }
+  if (bioSummary) {
+    return bioSummary;
+  }
 
   if (/บันเทิง|entertainment|film|movie|music|celebrity/i.test(topic)) {
     if (/variety|deadline|hollywood reporter|thr|discussingfilm/.test(identity)) {
@@ -3067,7 +3103,7 @@ Hard rules:
       });
     });
 
-    const rankedExperts = Array.from(candidateMap.values())
+    const rankedCandidates = Array.from(candidateMap.values())
       .map((candidate) => {
         const username = String(candidate.username || '').toLowerCase();
         const activity = activityMap.get(username);
@@ -3100,14 +3136,6 @@ Hard rules:
           _isSeed: Boolean(candidate.sources?.has('seed')),
         };
       })
-      .filter((expert) => {
-        const username = String(expert.username || '').toLowerCase();
-        if (!isValidExpertUsername(username) || normalizedExcludedUsernames.has(username)) return false;
-        if (isLowQualityExpertAuthor(expert)) return false;
-        const activity = activityMap.get(username);
-        const hasActivity = Boolean(expert.activityLabel) && hasExpertQualitySignal(activity);
-        return hasActivity;
-      })
       .sort((a, b) => b._score - a._score || b._sourceCount - a._sourceCount || String(a.username).localeCompare(String(b.username)))
       .map((expert) => ({
         username: expert.username,
@@ -3124,7 +3152,7 @@ Hard rules:
         _score: expert._score,
       }));
 
-    const strictExperts = rankedExperts.filter((expert) => {
+    const strictExperts = rankedCandidates.filter((expert) => {
       const username = String(expert.username || '').toLowerCase();
       if (!isValidExpertUsername(username) || normalizedExcludedUsernames.has(username)) return false;
       if (isLowQualityExpertAuthor(expert)) return false;
@@ -3133,7 +3161,7 @@ Hard rules:
     });
 
     const strictUsernames = new Set(strictExperts.map((expert) => String(expert.username || '').toLowerCase()));
-    const relaxedBackfillExperts = rankedExperts.filter((expert) => {
+    const relaxedBackfillExperts = rankedCandidates.filter((expert) => {
       const username = String(expert.username || '').toLowerCase();
       if (!isValidExpertUsername(username) || normalizedExcludedUsernames.has(username)) return false;
       if (strictUsernames.has(username) || isLowQualityExpertAuthor(expert)) return false;
@@ -3148,7 +3176,7 @@ Hard rules:
     });
 
     const scoredExperts = strictExperts.length >= 6
-      ? [...strictExperts, ...rankedExperts.filter((expert) => !strictUsernames.has(String(expert.username || '').toLowerCase()))]
+      ? [...strictExperts, ...rankedCandidates.filter((expert) => !strictUsernames.has(String(expert.username || '').toLowerCase()))]
       : [...strictExperts, ...relaxedBackfillExperts];
 
     const rerankCandidates = scoredExperts.slice(0, 18);
