@@ -1,0 +1,103 @@
+:root {
+  --vp-font-family-base: "Noto Sans Thai", "Sarabun", Inter, "Segoe UI", sans-serif;
+  --vp-font-family-mono: "JetBrains Mono", "Fira Code", monospace;
+}
+
+.VPHome .VPHero {
+  padding-top: 56px;
+}
+
+.VPHome .VPHero .container {
+  max-width: 1240px;
+}
+
+.VPHome .VPHero .main {
+  max-width: 920px;
+}
+
+.VPHome .VPHero .name,
+.VPHome .VPHero .text,
+.VPHome .VPHero .tagline {
+  max-width: 100%;
+  text-wrap: balance;
+  word-break: normal;
+}
+
+.VPHome .VPHero .name {
+  font-size: clamp(3rem, 5vw, 5rem);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+
+.VPHome .VPHero .text {
+  font-size: clamp(2.4rem, 4.2vw, 4.6rem);
+  line-height: 1.03;
+  letter-spacing: -0.035em;
+  max-width: 16ch;
+}
+
+.VPHome .VPHero .tagline {
+  font-size: clamp(1.05rem, 1.4vw, 1.3rem);
+  line-height: 1.7;
+  max-width: 760px;
+  color: var(--vp-c-text-2);
+}
+
+.VPHome .VPHero .actions {
+  gap: 14px;
+}
+
+.VPHome .VPHero .action {
+  flex-wrap: wrap;
+}
+
+.VPHome .VPFeatures {
+  padding-top: 12px;
+}
+
+.VPHome .VPFeature {
+  min-height: 100%;
+}
+
+.VPDoc .container {
+  max-width: 1400px;
+}
+
+.vp-doc p,
+.vp-doc li {
+  line-height: 1.8;
+}
+
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3 {
+  text-wrap: balance;
+}
+
+@media (min-width: 961px) {
+  .VPHome .VPHero .container {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .VPHome .VPHero.has-image .container {
+    grid-template-columns: minmax(0, 1fr) 420px;
+  }
+}
+
+@media (max-width: 960px) {
+  .VPHome .VPHero {
+    padding-top: 32px;
+  }
+
+  .VPHome .VPHero .text {
+    max-width: 100%;
+    font-size: clamp(2.1rem, 8vw, 3.4rem);
+    line-height: 1.08;
+  }
+
+  .VPHome .VPHero .tagline {
+    max-width: 100%;
+    font-size: 1rem;
+    line-height: 1.65;
+  }
+}
