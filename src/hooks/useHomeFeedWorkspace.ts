@@ -700,7 +700,7 @@ export const useHomeFeedWorkspace = ({
         });
         if (brief) {
           setAiFilterBrief(brief);
-          setAiFilterSummary(buildForoFilterBriefMarkdown(brief, prompt, filteredResult.length));
+          setAiFilterSummary(buildForoFilterBriefMarkdown(brief));
         } else {
           const summary = await generateExecutiveSummary(filteredResult, prompt, undefined);
           setAiFilterBrief(null);

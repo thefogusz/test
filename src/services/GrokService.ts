@@ -1656,23 +1656,106 @@ ${preferCredibleSources ? '- Prioritize topic fit first, then strictly prefer cr
   }
 };
 
-export const buildForoFilterBriefMarkdown = (brief, userQuery = '', filteredCount = 0) => {
-  if (!brief) return '';
+const normalizeForoFilterSections = (brief) => {
+  if (!brief) return [];
 
-  const safeHeadline = cleanGeneratedContent(brief.headline || '');
-  const safeWhyNow = cleanGeneratedContent(brief.whyNow || '');
+  const structuredSections = Array.isArray(brief.sections)
+    ? brief.sections
+      .map((section) => ({
+        title: cleanGeneratedContent(section?.title || ''),
+        items: Array.isArray(section?.items)
+          ? section.items.map((item) => cleanGeneratedContent(item || '')).filter(Boolean)
+          : [],
+      }))
+      .filter((section) => section.title && section.items.length > 0)
+    : [];
+
+  if (structuredSections.length > 0) return structuredSections;
+
   const safeSectionLabel = cleanGeneratedContent(brief.sectionLabel || 'ประเด็นสำคัญ');
   const matchedSignals = Array.isArray(brief.matchedSignals)
     ? brief.matchedSignals.map((item) => cleanGeneratedContent(item || '')).filter(Boolean)
     : [];
 
+  return matchedSignals.length > 0
+    ? [{ title: safeSectionLabel, items: matchedSignals }]
+    : [];
+};
+
+const FORMAL_FORO_SECTION_TITLE_BY_INDEX = {
+  0: 'ประเด็นสำคัญ',
+  1: 'รายละเอียดสนับสนุน',
+  2: 'นัยสำคัญ',
+};
+
+const FORO_BRIEF_TONE_RULES = [
+  [/^ชุดโพสต์\s+/gi, ''],
+  [/^โพสต์\s+/gi, ''],
+  [/\btrending\b/gi, 'ที่ถูกพูดถึง'],
+  [/\btool\b/gi, 'เครื่องมือ'],
+  [/\bbusiness\b/gi, 'ธุรกิจ'],
+  [/\binsight\b/gi, 'มุมมอง'],
+  [/ใหม่ๆ/gi, 'รุ่นใหม่'],
+  [/กำลังมาแรง/gi, 'ถูกพูดถึงมากขึ้น'],
+  [/มาแรง/gi, 'ถูกพูดถึงมากขึ้น'],
+  [/ร้อนแรง/gi, 'ถูกพูดถึงมาก'],
+  [/กำลังร้อน/gi, 'ชัดขึ้น'],
+  [/เดือด/gi, 'เข้มข้น'],
+  [/เจ๋ง/gi, 'น่าจับตา'],
+  [/ครอบคลุมทุกมุม/gi, 'ให้ภาพรวม'],
+  [/แชร์ insight ล่าสุด/gi, 'อธิบายแนวโน้มล่าสุด'],
+];
+
+const FORMAL_FORO_OUTPUT_LABELS = {
+  overview: 'สรุปภาพรวม',
+  opinion: 'มุมมองจากชุดข้อมูล',
+  ranking: 'ลำดับความสำคัญ',
+  shortlist: 'รายการที่คัดเลือก',
+  themes: 'ประเด็นสำคัญ',
+  opportunities: 'โอกาสที่เห็น',
+  risks: 'ประเด็นที่ควรระวัง',
+  content_angles: 'มุมที่นำไปใช้ต่อได้',
+};
+
+const polishForoBriefTone = (value = '') =>
+  FORO_BRIEF_TONE_RULES.reduce(
+    (text, [pattern, replacement]) => text.replace(pattern, replacement),
+    cleanGeneratedContent(value),
+  )
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+const stripForoBriefCitations = (value = '') =>
+  polishForoBriefTone(value).replace(/\[(?:F|W)\d+\]/gi, '').replace(/\s{2,}/g, ' ').trim();
+
+const normalizeForoSectionTitle = (index, total) => {
+  if (total <= 1) return 'ประเด็นสำคัญ';
+  if (total === 2) {
+    return index === 0 ? 'ประเด็นสำคัญ' : 'รายละเอียดสนับสนุน';
+  }
+  return FORMAL_FORO_SECTION_TITLE_BY_INDEX[index] || 'รายละเอียดสนับสนุน';
+};
+
+const normalizeForoOutputLabel = (outputMode = '', fallbackLabel = '') => {
+  const normalizedMode = cleanGeneratedContent(outputMode).toLowerCase();
+  if (FORMAL_FORO_OUTPUT_LABELS[normalizedMode]) return FORMAL_FORO_OUTPUT_LABELS[normalizedMode];
+  return stripForoBriefCitations(fallbackLabel || '') || 'สรุปภาพรวม';
+};
+
+export const buildForoFilterBriefMarkdown = (brief) => {
+  if (!brief) return '';
+
+  const safeHeadline = stripForoBriefCitations(brief.headline || '');
+  const safeWhyNow = stripForoBriefCitations(brief.whyNow || '');
+  const sections = normalizeForoFilterSections(brief);
+
   return [
     safeHeadline,
     safeWhyNow,
-    matchedSignals.length
-      ? `${safeSectionLabel}\n${matchedSignals.map((item) => `- ${item}`).join('\n')}`
-      : '',
-    filteredCount ? `คัดมาจาก ${filteredCount} เรื่อง` : '',
+    ...sections.map((section) => [
+      section.title,
+      ...section.items.map((item) => `- ${item}`),
+    ].join('\n')),
   ]
     .filter(Boolean)
     .join('\n\n')
@@ -1686,7 +1769,7 @@ export const generateForoFilterBrief = async (validTweets, userQuery, options = 
   const focusMode = sanitizeForPrompt(String(options.focusMode || ''), 80);
   const candidates = validTweets;
 
-  const cacheKey = buildCacheKey('foro-filter-brief-v1', {
+  const cacheKey = buildCacheKey('foro-filter-brief-v6', {
     safeQuery,
     focusMode,
     tweets: candidates.map((tweet) => ({
@@ -1702,16 +1785,8 @@ export const generateForoFilterBrief = async (validTweets, userQuery, options = 
 
   const compressedInput = candidates
     .map((tweet) => {
-      const sourceLabel =
-        String(tweet.sourceType || '').toLowerCase() === 'rss'
-          ? tweet.author?.name || tweet.author?.username || 'rss-source'
-          : tweet.author?.username
-            ? `@${tweet.author.username}`
-            : tweet.author?.name || 'unknown';
-
       return [
-        `${tweet.citation_id || '[F?]'} | ${sourceLabel} | ${tweet.temporalTag || 'Related'}`,
-        tweet.ai_reasoning ? `Reason picked: ${sanitizeForPrompt(tweet.ai_reasoning, 110)}` : '',
+        `${tweet.citation_id || '[F?]'} | ${tweet.temporalTag || 'Related'}`,
         `Content: ${sanitizeForPrompt(tweet.text || tweet.summary || '', 220)}`,
       ]
         .filter(Boolean)
@@ -1730,46 +1805,60 @@ Rules:
 - Treat the full provided set as the working set. Synthesize across all selected posts, not just the first few.
 - Infer the best output mode from the user query. Examples include overview, opinion, ranking, shortlist, opportunities, risks, themes, contradictions, content angles, or another concise analysis mode if it fits better.
 - Write like a sharp human editor summarizing this for a friend or teammate in chat or email.
-- headline: 1 short sentence that instantly tells the reader what is going on across the whole set. Avoid vague or dramatic phrasing.
-- whyNow: 1-2 short lines in plain Thai that help the reader understand the big picture immediately. This must feel natural, not robotic, and should be easy to read in under 2 lines.
-- matchedSignals: 3-6 bullets. Each bullet must explain an important theme, pattern, or takeaway from the selected posts in plain Thai and end with one or more citations like [F1] or [F2][F4]. Keep each bullet concise, concrete, and easy to scan. Together, these bullets should cover the full set as much as possible.
-- excludedSignals: 1-2 bullets. Explain what kinds of items were not prioritized, based only on what the selected set implies. Keep this conservative and end with citations.
-- decisionNote: 1 short sentence telling the user how to use this filtered set, such as follow, monitor, or turn into content.
-- confidenceLabel: one short Thai label such as "สูง", "กลาง", or "สูงเพราะสัญญาณชัด"
+- The result should feel like a compact newspaper front page: one clear lead, then 2-3 varied sub-sections that together cover the main heat, the supporting signals, and any interesting angle worth noticing when present.
+- headline: 1 short sentence that instantly tells the reader what is going on across the whole set. It must describe the theme or change itself, not praise the people involved, and must avoid dramatic phrasing.
+- whyNow: 1-2 short lines in plain Thai that help the reader understand the big picture immediately. This must feel natural, neutral, and easy to read in under 2 lines.
+- headline and whyNow must never include citations like [F1].
+- Do not mention the names or handles of the people who posted these items unless that person is genuinely the subject of the news itself. Prefer describing the topic, shift, product, or implication directly.
+- sections: 2-3 sections. Each section needs a short Thai title and 2-4 bullets. Use formal section titles that work across industries and general audiences. Good examples are "ประเด็นสำคัญ", "รายละเอียดสนับสนุน", and "นัยสำคัญ". Across all sections together, cover the full set as much as possible.
+- Every bullet must explain an important theme, pattern, standout item, or takeaway from the selected posts in plain Thai and end with one or more citations like [F1] or [F2][F4].
+- Total bullets across all sections should usually be 5-9 unless the filtered set is extremely small.
 - outputMode: one short lowercase English token for the inferred mode, such as "overview", "opinion", "ranking", "shortlist", "themes", "opportunities", "risks", "content_angles", or another close fit
 - outputLabel: a short Thai label for this result mode, such as "สรุปภาพรวม", "มุมมองจากชุดโพสต์", "โพสต์เด่น", or "shortlist ตามโจทย์"
-- sectionLabel: a short Thai label for the bullet list, matched to the mode, such as "ประเด็นสำคัญ", "มุมมองที่ได้", "โพสต์ที่เด่น", or "รายการที่คัดมา"
 - Do not use markdown in field values.
 - Do not add periods at the end of Thai sentences.
 - Keep proper names in Latin script when needed.
 - Do not write labels like "Why It Matters", "Decision Note", "Key Takeaways", or anything that sounds like a formal report inside the field values.
 - Avoid consultant, analyst, or AI-assistant tone. Prefer natural Thai that a person would actually forward to friends or teammates.
+- Avoid hype, fanboy, celebrity-first, or clickbait wording such as "สุดล้ำ", "ร้อนแรง", "ตัวท็อป", "ยอดฝีมือ", "บิ๊กเนม", "ดราม่าเดือด", or similar language unless the source itself truly centers on that exact point.
+- Prefer calm, concrete phrasing that explains what changed, why it matters, and what to pay attention to next.
+- For overview-style prompts, focus on the themes and signals first, not on celebrity names.
+- Bullets should read like someone explaining the feed clearly to a colleague, not like ad copy, fan commentary, or social hype.
+- Avoid source-attribution phrasing such as "X แชร์", "Y พูด", "Z ชี้" when the name is only the poster, not the subject.
+- Do not mention how many posts were filtered, selected, or summarized.
+- Do not use filler labels or meta phrases that talk about the system itself.
 ${focusMode ? `- Treat this as the preferred analysis mode: ${focusMode}` : ''}`,
       prompt: `User filter query: ${safeQuery}\n\nSelected posts:\n${compressedInput}`,
       schema: z.object({
         headline: z.string().min(10).max(180),
-        whyNow: z.string().min(10).max(180),
-        matchedSignals: z.array(z.string().min(10).max(260)).min(3).max(6),
-        excludedSignals: z.array(z.string().min(10).max(220)).min(1).max(2),
-        decisionNote: z.string().min(10).max(180),
-        confidenceLabel: z.string().min(2).max(60),
+        whyNow: z.string().min(10).max(220),
+        sections: z.array(
+          z.object({
+            title: z.string().min(4).max(40),
+            items: z.array(z.string().min(10).max(260)).min(2).max(4),
+          }),
+        ).min(2).max(3),
         outputMode: z.string().min(3).max(40),
         outputLabel: z.string().min(4).max(80),
-        sectionLabel: z.string().min(4).max(80),
       }),
-      temperature: 0.15,
+      temperature: 0.05,
     });
 
+    const sections = (object.sections || [])
+      .map((section, index, allSections) => ({
+        title: normalizeForoSectionTitle(index, allSections.length),
+        items: (section.items || []).map((item) => polishForoBriefTone(item)).filter(Boolean),
+      }))
+      .filter((section) => section.title && section.items.length > 0);
+
     const payload = {
-      headline: cleanGeneratedContent(object.headline),
-      whyNow: cleanGeneratedContent(object.whyNow),
-      matchedSignals: (object.matchedSignals || []).map((item) => cleanGeneratedContent(item)).filter(Boolean),
-      excludedSignals: (object.excludedSignals || []).map((item) => cleanGeneratedContent(item)).filter(Boolean),
-      decisionNote: cleanGeneratedContent(object.decisionNote),
-      confidenceLabel: cleanGeneratedContent(object.confidenceLabel),
+      headline: polishForoBriefTone(object.headline),
+      whyNow: polishForoBriefTone(object.whyNow),
+      sections,
+      matchedSignals: sections.flatMap((section) => section.items),
       outputMode: cleanGeneratedContent(object.outputMode),
-      outputLabel: cleanGeneratedContent(object.outputLabel),
-      sectionLabel: cleanGeneratedContent(object.sectionLabel),
+      outputLabel: normalizeForoOutputLabel(object.outputMode, object.outputLabel),
+      sectionLabel: sections[0]?.title || 'ประเด็นสำคัญ',
     };
 
     return setCachedValue(responseCache, cacheKey, payload, EXECUTIVE_SUMMARY_CACHE_TTL_MS);

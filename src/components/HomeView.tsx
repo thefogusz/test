@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Copy, Eraser, FileText, List, RefreshCw, ShieldCheck, Undo2 } from 'lucide-react';
+import { Copy, Eraser, FileText, List, RefreshCw, Undo2 } from 'lucide-react';
 import { cleanMarkdownForClipboard, normalizeSummaryMarkdown, renderMarkdownToHtml } from '../utils/markdown';
 import AiFilteredBadge from './AiFilteredBadge';
 import FeedCard from './FeedCard';
@@ -15,21 +15,46 @@ const parseBriefItem = (value = '') => {
   return { text, citations };
 };
 
-const buildBriefClipboardText = (brief, filteredCount = 0) => {
+const normalizeBriefSections = (brief) => {
+  if (!brief) return [];
+
+  const sectionLabel = String(brief.sectionLabel || 'ประเด็นสำคัญ').trim();
+  const structuredSections = Array.isArray(brief.sections)
+    ? brief.sections
+      .map((section) => ({
+        title: String(section?.title || '').trim(),
+        items: Array.isArray(section?.items)
+          ? section.items.map((item) => String(item || '').trim()).filter(Boolean)
+          : [],
+      }))
+      .filter((section) => section.title && section.items.length > 0)
+    : [];
+
+  if (structuredSections.length > 0) return structuredSections;
+
+  const fallbackItems = Array.isArray(brief.matchedSignals)
+    ? brief.matchedSignals.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+
+  return fallbackItems.length > 0
+    ? [{ title: sectionLabel, items: fallbackItems }]
+    : [];
+};
+
+const buildBriefClipboardText = (brief) => {
   if (!brief) return '';
 
-  const headline = String(brief.headline || '').trim();
-  const whyNow = String(brief.whyNow || '').trim();
-  const sectionLabel = String(brief.sectionLabel || 'ประเด็นสำคัญ').trim();
-  const matchedSignals = Array.isArray(brief.matchedSignals)
-    ? brief.matchedSignals.map((item) => parseBriefItem(item).text).filter(Boolean)
-    : [];
+  const headline = parseBriefItem(brief.headline || '').text;
+  const whyNow = parseBriefItem(brief.whyNow || '').text;
+  const sections = normalizeBriefSections(brief);
 
   return [
     headline,
     whyNow,
-    matchedSignals.length ? [sectionLabel, ...matchedSignals.map((item) => `- ${item}`)].join('\n') : '',
-    filteredCount ? `คัดมาจาก ${filteredCount} เรื่อง` : '',
+    ...sections.map((section) => [
+      section.title,
+      ...section.items.map((item) => `- ${parseBriefItem(item).text}`),
+    ].join('\n')),
   ]
     .filter(Boolean)
     .join('\n\n')
@@ -76,9 +101,10 @@ const HomeView = ({
   const hasHomeSecondaryActions = originalFeedLength > 0 || deletedFeedLength > 0;
   const showHomeFeedToolbar = feed.length > 0 || isFiltered;
   const normalizedAiFilterSummary = normalizeSummaryMarkdown(aiFilterSummary);
+  const briefSections = normalizeBriefSections(aiFilterBrief);
   const hasStructuredAiBrief = Boolean(
     aiFilterBrief?.headline &&
-    (aiFilterBrief?.matchedSignals?.length || aiFilterBrief?.whyNow),
+    (briefSections.length > 0 || aiFilterBrief?.whyNow),
   );
   const shouldShowAiFilterSummarySkeleton = isFiltering && isFiltered && !aiFilterSummary;
   const effectiveBookmarkIdSet = useMemo(() => bookmarkIdSet ?? new Set(), [bookmarkIdSet]);
@@ -94,9 +120,9 @@ const HomeView = ({
 
   if (!isVisible) return null;
 
-  const takeawayItems = hasStructuredAiBrief ? (aiFilterBrief?.matchedSignals || []) : [];
   const outputLabel = aiFilterBrief?.outputLabel || 'ผลการวิเคราะห์';
-  const sectionLabel = aiFilterBrief?.sectionLabel || 'ประเด็นสำคัญ';
+  const briefHeadline = parseBriefItem(aiFilterBrief?.headline || '').text;
+  const briefWhyNow = parseBriefItem(aiFilterBrief?.whyNow || '').text;
 
   return (
     <div className="animate-fade-in">
@@ -233,10 +259,7 @@ const HomeView = ({
               </div>
               <div>
                 <div style={{ fontSize: '14px', fontWeight: '800', letterSpacing: '0.05em', color: 'var(--accent-secondary)' }}>
-                  FORO FILTER RESULT
-                </div>
-                <div style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>
-                  BUILT FROM {feed.length} FILTERED RESULTS
+                  FORO FILTER
                 </div>
                 {aiFilterSummaryDateLabel && (
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', marginTop: '4px' }}>
@@ -248,7 +271,7 @@ const HomeView = ({
             <button
               onClick={() => {
                 const clipboardText = hasStructuredAiBrief
-                  ? buildBriefClipboardText(aiFilterBrief, feed.length)
+                  ? buildBriefClipboardText(aiFilterBrief)
                   : cleanMarkdownForClipboard(normalizedAiFilterSummary);
                 navigator.clipboard.writeText(clipboardText);
                 onSummaryCopied();
@@ -276,52 +299,53 @@ const HomeView = ({
                     color: '#fff',
                   }}
                 >
-                  {aiFilterBrief.headline}
+                  {briefHeadline}
                 </div>
-                {aiFilterBrief.whyNow && (
+                {briefWhyNow && (
                   <div
                     style={{
-                      fontSize: '17px',
-                      lineHeight: '1.8',
+                      fontSize: '18px',
+                      lineHeight: '1.75',
                       color: 'rgba(255,255,255,0.86)',
-                      maxWidth: '900px',
+                      maxWidth: '840px',
                     }}
                   >
-                    {aiFilterBrief.whyNow}
+                    {briefWhyNow}
                   </div>
                 )}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   <div className="foro-filter-meta-pill foro-filter-output-pill">{outputLabel}</div>
-                  <div className="foro-filter-meta-pill">คัดได้ {feed.length} เรื่อง</div>
                 </div>
               </div>
 
-              {takeawayItems.length > 0 && (
+              {briefSections.length > 0 && (
                 <div className="foro-filter-brief-card">
-                  {takeawayItems.length > 0 && (
-                    <>
-                      <div className="foro-filter-brief-title">{sectionLabel}</div>
-                      <div className="foro-filter-brief-list">
-                        {takeawayItems.map((item) => {
-                          const parsedItem = parseBriefItem(item);
-                          return (
-                            <div key={item} className="foro-filter-brief-item">
-                              <span>{parsedItem.text}</span>
-                              {parsedItem.citations.length > 0 && (
-                                <span className="foro-filter-brief-citations">
-                                  {parsedItem.citations.map((citation) => (
-                                    <span key={`${item}-${citation}`} className="reference-badge foro-filter-brief-citation-badge">
-                                      {citation.replaceAll('[', '').replaceAll(']', '')}
-                                    </span>
-                                  ))}
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })}
+                  <div className="foro-filter-brief-sections">
+                    {briefSections.map((section) => (
+                      <div key={`${outputLabel}-${section.title}`} className="foro-filter-brief-section">
+                        <div className="foro-filter-brief-title">{section.title}</div>
+                        <div className="foro-filter-brief-list">
+                          {section.items.map((item) => {
+                            const parsedItem = parseBriefItem(item);
+                            return (
+                              <div key={`${section.title}-${item}`} className="foro-filter-brief-item">
+                                <span>{parsedItem.text}</span>
+                                {parsedItem.citations.length > 0 && (
+                                  <span className="foro-filter-brief-citations">
+                                    {parsedItem.citations.map((citation) => (
+                                      <span key={`${section.title}-${item}-${citation}`} className="reference-badge foro-filter-brief-citation-badge">
+                                        {citation.replaceAll('[', '').replaceAll(']', '')}
+                                      </span>
+                                    ))}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </>
-                  )}
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -332,11 +356,6 @@ const HomeView = ({
               dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(normalizedAiFilterSummary) }}
             />
           )}
-
-          <div className="foro-filter-summary-footer">
-            <ShieldCheck size={12} className="text-accent" />
-            FORO สรุปจากการ์ดที่ถูกคัดในชุดนี้
-          </div>
         </div>
       )}
 

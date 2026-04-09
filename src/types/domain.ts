@@ -131,12 +131,18 @@ export interface SearchHistoryEntry {
   lastUsedAt: string;
 }
 
+export interface ForoFilterBriefSection {
+  title: string;
+  items: string[];
+}
+
 export interface ForoFilterBrief {
   headline: string;
   whyNow: string;
   matchedSignals: string[];
-  excludedSignals: string[];
-  decisionNote: string;
+  sections?: ForoFilterBriefSection[];
+  excludedSignals?: string[];
+  decisionNote?: string;
   confidenceLabel?: string;
   outputMode?: string;
   outputLabel?: string;
