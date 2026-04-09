@@ -4,6 +4,7 @@ import {
   featureRegistry,
   getChangedFiles,
   repoRoot,
+  runGit,
   toPosix,
 } from './lib/docs-report-helpers.mjs'
 
@@ -21,6 +22,61 @@ const jsonOutputPath =
   path.join(repoRoot, 'docs', '.vitepress', 'data', 'docs-draft.json')
 
 const changedFiles = getChangedFiles({ baseRef, headRef })
+
+const currentBranch = runGit(['branch', '--show-current'])
+const workingTreeDirty = Boolean(runGit(['status', '--short']))
+const hasOriginMain = Boolean(runGit(['rev-parse', '--verify', 'origin/main']))
+const mergeBase =
+  !baseRef && !headRef && hasOriginMain
+    ? runGit(['merge-base', 'HEAD', 'origin/main'])
+    : null
+const branchDiffFiles =
+  !baseRef && !headRef && mergeBase
+    ? runGit(['diff', '--name-only', `${mergeBase}...HEAD`])
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .map(toPosix)
+    : []
+
+const draftContext = (() => {
+  if (baseRef && headRef) {
+    return {
+      mode: 'ref-compare',
+      comparedAgainst: `${baseRef}...${headRef}`,
+      explanation: `กำลังเทียบ diff ระหว่าง ${baseRef} และ ${headRef}`,
+    }
+  }
+
+  if (workingTreeDirty) {
+    return {
+      mode: 'working-tree',
+      comparedAgainst: 'working tree ปัจจุบัน',
+      explanation: 'กำลังใช้ไฟล์ที่ยังไม่ได้ commit หรือ staged ใน working tree เป็นตัวแนะนำ docs',
+    }
+  }
+
+  if (currentBranch && currentBranch !== 'main' && branchDiffFiles.length > 0) {
+    return {
+      mode: 'branch-diff',
+      comparedAgainst: `merge-base กับ origin/main บน branch ${currentBranch}`,
+      explanation: `working tree สะอาดแล้ว แต่ยังมี commit บน ${currentBranch} ที่ต่างจาก origin/main`,
+    }
+  }
+
+  if (currentBranch === 'main' && !workingTreeDirty) {
+    return {
+      mode: 'main-synced',
+      comparedAgainst: 'origin/main',
+      explanation: 'ตอนนี้อยู่บน main และไม่มี diff ค้างเมื่อเทียบกับ origin/main จึงไม่พบ feature ที่ต้อง review เพิ่ม',
+    }
+  }
+
+  return {
+    mode: 'clean-branch',
+    comparedAgainst: hasOriginMain ? 'origin/main' : 'ไม่มี branch อ้างอิง',
+    explanation: 'working tree สะอาดและไม่พบ diff ที่ตัว draft detector ใช้สำหรับแนะนำ docs ในรอบนี้',
+  }
+})()
 
 const impactedFeatures = featureRegistry
   .map((feature) => {
@@ -69,6 +125,10 @@ const report = {
   generatedAt: new Date().toISOString(),
   baseRef,
   headRef,
+  context: {
+    currentBranch,
+    ...draftContext,
+  },
   changedFiles,
   impactedFeatures,
   unmappedFiles,

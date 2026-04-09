@@ -17,14 +17,21 @@ const formatDate = (value) => {
 ## Snapshot
 
 - สร้างรายงานเมื่อ: `{{ formatDate(draftReport.generatedAt) }}`
+- โหมดการตรวจ: `{{ draftReport.context?.mode || '-' }}`
+- กำลังเทียบกับ: `{{ draftReport.context?.comparedAgainst || '-' }}`
 - ฟีเจอร์ที่ได้รับผลกระทบ: `{{ draftReport.summary.impactedFeatures }}`
 - ฟีเจอร์ที่ควรอัปเดต docs เพิ่ม: `{{ draftReport.summary.needsDocsUpdate }}`
 - ฟีเจอร์ที่มีการแตะ docs แล้ว: `{{ draftReport.summary.docsAlreadyTouched }}`
 
 ## Suggested Review
 
+<div v-if="draftReport.context?.explanation" style="border:1px solid var(--vp-c-divider);border-radius:16px;padding:16px 18px;margin:14px 0;background:color-mix(in srgb, var(--vp-c-bg-soft) 80%, transparent);">
+  <strong>สถานะการตรวจล่าสุด</strong>
+  <div style="margin-top:6px;">{{ draftReport.context.explanation }}</div>
+</div>
+
 <div v-if="draftReport.impactedFeatures.length === 0" style="border:1px solid var(--vp-c-divider);border-radius:16px;padding:16px 18px;margin:14px 0;">
-  ไม่พบการเปลี่ยนแปลงที่ชนกับ feature registry ใน working tree ปัจจุบัน
+  ไม่พบการเปลี่ยนแปลงที่ชนกับ feature registry ในรอบการตรวจนี้
 </div>
 
 <div v-for="feature in draftReport.impactedFeatures" :key="feature.id" style="border:1px solid var(--vp-c-divider);border-radius:16px;padding:16px 18px;margin:14px 0;">
