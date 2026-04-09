@@ -1,103 +1,469 @@
 :root {
   --vp-font-family-base: "Noto Sans Thai", "Sarabun", Inter, "Segoe UI", sans-serif;
   --vp-font-family-mono: "JetBrains Mono", "Fira Code", monospace;
+  --vp-home-hero-name-color: #8fa2ff;
+  --vp-home-hero-name-background: transparent;
+  --vp-home-hero-image-background-image: none;
+  --vp-home-hero-image-filter: none;
+  --vp-c-brand-1: #4f7cff;
+  --vp-c-brand-2: #7094ff;
+  --vp-c-brand-3: #3d69ea;
+  --vp-c-brand-soft: rgba(79, 124, 255, 0.14);
+  --vp-c-bg: #0b0d12;
+  --vp-c-bg-alt: #0f1218;
+  --vp-c-bg-elv: #12161d;
+  --vp-c-bg-soft: #171c24;
+  --vp-c-border: rgba(255, 255, 255, 0.08);
+  --vp-c-divider: rgba(255, 255, 255, 0.08);
+  --vp-c-gutter: rgba(255, 255, 255, 0.06);
+  --vp-c-text-1: rgba(255, 255, 255, 0.96);
+  --vp-c-text-2: rgba(227, 233, 244, 0.78);
+  --vp-c-text-3: rgba(180, 191, 211, 0.72);
+  --vp-layout-max-width: 1460px;
+}
+
+html {
+  background: #080a0e;
+}
+
+body {
+  background:
+    radial-gradient(circle at top, rgba(79, 124, 255, 0.08), transparent 28%),
+    linear-gradient(180deg, #090b10 0%, #0b0d12 100%);
+}
+
+.Layout {
+  background: transparent;
+}
+
+.VPNav {
+  background: rgba(9, 11, 16, 0.78) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.VPNavBar {
+  border-bottom: none !important;
+}
+
+.VPNavBar .title,
+.VPNavBar .curtain {
+  background: transparent !important;
+}
+
+.VPNavBarTitle .title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.VPNavBarMenuLink,
+.VPNavBarExtra .VPLink {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.VPNavBarMenuLink.active {
+  color: var(--vp-c-text-1);
+}
+
+.VPHome {
+  position: relative;
+}
+
+.VPHome::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 18%),
+    radial-gradient(circle at 14% 12%, rgba(79, 124, 255, 0.08), transparent 24%);
 }
 
 .VPHome .VPHero {
-  padding-top: 56px;
+  padding-top: 64px;
+  padding-bottom: 24px;
 }
 
 .VPHome .VPHero .container {
-  max-width: 1240px;
+  max-width: 1280px;
 }
 
 .VPHome .VPHero .main {
-  max-width: 920px;
+  max-width: 980px;
 }
 
 .VPHome .VPHero .name,
 .VPHome .VPHero .text,
 .VPHome .VPHero .tagline {
   max-width: 100%;
-  text-wrap: balance;
   word-break: normal;
+  text-wrap: balance;
 }
 
 .VPHome .VPHero .name {
-  font-size: clamp(3rem, 5vw, 5rem);
+  font-size: clamp(2.8rem, 4vw, 4.4rem);
   line-height: 0.98;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.05em;
+  font-weight: 780;
 }
 
 .VPHome .VPHero .text {
-  font-size: clamp(2.4rem, 4.2vw, 4.6rem);
-  line-height: 1.03;
-  letter-spacing: -0.035em;
-  max-width: 16ch;
+  max-width: 13ch;
+  font-size: clamp(2.6rem, 4vw, 4.8rem);
+  line-height: 1.02;
+  letter-spacing: -0.05em;
+  color: var(--vp-c-text-1);
 }
 
 .VPHome .VPHero .tagline {
-  font-size: clamp(1.05rem, 1.4vw, 1.3rem);
-  line-height: 1.7;
   max-width: 760px;
+  font-size: clamp(1.02rem, 1.4vw, 1.18rem);
+  line-height: 1.82;
   color: var(--vp-c-text-2);
 }
 
 .VPHome .VPHero .actions {
-  gap: 14px;
+  gap: 12px;
 }
 
 .VPHome .VPHero .action {
   flex-wrap: wrap;
 }
 
+.VPButton {
+  border-radius: 12px !important;
+  font-weight: 650 !important;
+  box-shadow: none !important;
+  transition:
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease !important;
+}
+
+.VPButton.brand {
+  background: linear-gradient(180deg, #5885ff 0%, #4470eb 100%) !important;
+  border: 1px solid rgba(133, 166, 255, 0.34) !important;
+}
+
+.VPButton.brand:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(180deg, #6290ff 0%, #4e79ee 100%) !important;
+}
+
+.VPButton.alt {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: var(--vp-c-text-1) !important;
+}
+
+.VPButton.alt:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.06) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
 .VPHome .VPFeatures {
-  padding-top: 12px;
+  padding-top: 20px;
+  padding-bottom: 12px;
 }
 
 .VPHome .VPFeature {
-  min-height: 100%;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.015)),
+    rgba(16, 19, 25, 0.92);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
 }
 
+.VPHome .VPFeature .title {
+  font-size: 16px;
+  letter-spacing: -0.02em;
+}
+
+.VPHome .VPFeature .details {
+  line-height: 1.72;
+  color: var(--vp-c-text-2);
+}
+
+.VPContent.is-home {
+  padding-bottom: 56px;
+}
+
+.vp-doc .container,
 .VPDoc .container {
-  max-width: 1400px;
+  max-width: 1440px;
 }
 
-.vp-doc p,
-.vp-doc li {
-  line-height: 1.8;
+.VPDoc.has-sidebar .content-container {
+  max-width: 860px;
+}
+
+.VPSidebar {
+  padding-top: 18px !important;
+  background: transparent !important;
+}
+
+.VPSidebarItem.level-0 > .item > .text {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.VPSidebarItem .item .link,
+.VPSidebarItem .item .text {
+  border-radius: 10px;
+}
+
+.VPSidebarItem .item .link:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.VPSidebarItem.is-active > .item .link {
+  background: rgba(79, 124, 255, 0.12);
+  border: 1px solid rgba(102, 145, 255, 0.16);
+}
+
+.VPDocOutlineItem.active > .outline-link {
+  color: var(--vp-c-text-1);
+}
+
+.vp-doc {
+  font-size: 15px;
 }
 
 .vp-doc h1,
 .vp-doc h2,
 .vp-doc h3 {
   text-wrap: balance;
+  letter-spacing: -0.03em;
+}
+
+.vp-doc h1 {
+  margin-top: 8px;
+  margin-bottom: 22px;
+  font-size: 34px;
+  line-height: 1.06;
+}
+
+.vp-doc h2 {
+  margin-top: 44px;
+  margin-bottom: 16px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 24px;
+  line-height: 1.18;
+}
+
+.vp-doc h3 {
+  margin-top: 26px;
+  margin-bottom: 10px;
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.vp-doc p,
+.vp-doc li {
+  line-height: 1.84;
+  color: var(--vp-c-text-2);
+}
+
+.vp-doc strong {
+  color: var(--vp-c-text-1);
+  font-weight: 700;
+}
+
+.vp-doc blockquote {
+  border-left: 3px solid rgba(95, 136, 255, 0.42);
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 0 14px 14px 0;
+  padding: 14px 18px;
+}
+
+.vp-doc table {
+  display: table;
+  width: 100%;
+  margin: 22px 0 28px;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.vp-doc th,
+.vp-doc td {
+  padding: 12px 14px;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.vp-doc th:last-child,
+.vp-doc td:last-child {
+  border-right: none;
+}
+
+.vp-doc tr {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.vp-doc tr:nth-child(2n) {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.vp-doc th {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--vp-c-text-1);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.vp-doc div[class*="language-"] {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: #0f131a;
+  box-shadow: none;
+}
+
+.vp-doc :not(pre) > code {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 3px 7px;
+  color: #d9e4ff;
+}
+
+.vp-doc a {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.custom-block {
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.custom-block.tip {
+  background: rgba(79, 124, 255, 0.08);
+}
+
+.custom-block.warning {
+  background: rgba(245, 158, 11, 0.08);
+}
+
+.VPFooter {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: transparent !important;
+}
+
+.foro-home-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 28px 0 36px;
+}
+
+.foro-home-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.015)),
+    rgba(17, 20, 26, 0.94);
+  color: inherit;
+  text-decoration: none !important;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.foro-home-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(112, 148, 255, 0.2);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.034), rgba(255, 255, 255, 0.02)),
+    rgba(18, 22, 29, 0.98);
+}
+
+.foro-home-card-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #98ace5;
+}
+
+.foro-home-card strong {
+  font-size: 17px;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.foro-home-card p {
+  margin: 0;
+  color: var(--vp-c-text-2);
+  line-height: 1.75;
+}
+
+.foro-home-principles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 24px 0 10px;
+}
+
+.foro-home-principle {
+  padding: 18px 18px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.foro-home-principle h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.foro-home-principle p {
+  margin: 0;
 }
 
 @media (min-width: 961px) {
   .VPHome .VPHero .container {
     grid-template-columns: minmax(0, 1fr);
   }
-
-  .VPHome .VPHero.has-image .container {
-    grid-template-columns: minmax(0, 1fr) 420px;
-  }
 }
 
 @media (max-width: 960px) {
   .VPHome .VPHero {
-    padding-top: 32px;
+    padding-top: 34px;
   }
 
   .VPHome .VPHero .text {
     max-width: 100%;
-    font-size: clamp(2.1rem, 8vw, 3.4rem);
+    font-size: clamp(2.15rem, 8vw, 3.6rem);
     line-height: 1.08;
   }
 
   .VPHome .VPHero .tagline {
     max-width: 100%;
     font-size: 1rem;
-    line-height: 1.65;
+    line-height: 1.72;
+  }
+
+  .foro-home-grid,
+  .foro-home-principles {
+    grid-template-columns: 1fr;
+  }
+
+  .VPDoc.has-sidebar .content-container {
+    max-width: 100%;
   }
 }

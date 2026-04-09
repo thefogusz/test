@@ -1,242 +1,455 @@
 # FORO DESIGN.md
 
-Design system guide for FORO. Use this file when editing UI so new screens, states, and components stay aligned with the current product language.
+Design system guide for FORO. Use this file as the source of truth when editing product UI so every new screen, state, and component moves the product toward a more mature software feel.
 
-## 1. Visual Theme & Atmosphere
+## 1. Product Aesthetic
 
-FORO is a dark, high-focus intelligence workspace for reading, filtering, and turning feeds into usable content. The interface should feel like a calm command center: black canvas, dense but breathable panels, crisp typography, restrained motion, and electric-blue feedback for live AI or data activity.
+FORO should feel like a serious intelligence workspace, not a concept mockup and not a marketing site. The closest references are:
 
-The product direction blends three references:
+- Linear: sharp alignment, disciplined density, subtle motion, clear active states.
+- Notion: calm reading rhythm, low-noise surfaces, content-first hierarchy.
+- GitHub / modern developer tools: practical controls, strong information structure, restrained polish.
 
-- Linear: precise alignment, quiet borders, crisp state changes, fast but subtle motion.
-- Spotify: dark media-like surfaces, confident side navigation, immersive feed/list energy.
-- Notion: calm reading surfaces, editorial spacing, low-noise controls, content-first hierarchy.
+The desired outcome:
 
-Core mood:
+- Premium but quiet.
+- Dense but legible.
+- Technical but not cold.
+- Dark, focused, and editorial.
+- Confident without looking flashy.
 
-- Dark editorial dashboard, not a marketing landing page.
-- Utility-first and content-first: feeds, summaries, search, and workspaces are the hero.
-- Premium black surfaces with soft elevation and subtle borders.
-- Blue is the active intelligence signal. Use it for focus, progress, primary actions, and AI/filter states.
-- Avoid decorative clutter. Do not add random gradient blobs, floating orbs, or ornamental illustration unless a feature explicitly needs an asset.
-- Motion should feel like Linear: short, directional, and useful. Prefer small lifts, fades, and focus rings over sweeping animations.
+FORO should not feel playful, neon-heavy, gamer-ish, glassmorphic, or decorative.
 
-## 2. Color Palette & Roles
+## 2. Core Direction
 
-Primary tokens are defined in `src/index.css`.
+### What "world-class" means here
+
+- Fewer visual ideas, executed consistently.
+- Strong information hierarchy before visual flourish.
+- Components that feel interoperable across the app.
+- Motion that supports clarity instead of calling attention to itself.
+- High-quality defaults: spacing, radii, typography, and states should already look correct before extra styling.
+
+### Reference balance
+
+- Take `precision` from Linear.
+- Take `readability` from Notion.
+- Keep FORO's own dark intelligence identity through black surfaces and blue system accents.
+
+Do not copy any reference literally. Borrow the discipline, not the branding.
+
+## 3. Visual Personality
+
+FORO is a command-center product. The interface should suggest:
+
+- continuous monitoring
+- structured thinking
+- fast action on content
+- trust in the system state
+
+This means the UI should prioritize:
+
+- panels
+- lists
+- cards
+- toolbars
+- drawers
+- modals
+- search surfaces
+
+It should not prioritize:
+
+- hero banners
+- showcase sections
+- ornamental gradients
+- oversized copy blocks
+- decorative imagery
+
+## 4. Color System
+
+Primary tokens live in [src/index.css](D:/Work/FORO-MOCK/test/src/index.css). Reuse them before inventing new ones.
+
+### Core palette
 
 | Token | Value | Role |
 | --- | --- | --- |
-| `--bg-950` | `#000000` | App shell, outer gutters, negative space between panels |
-| `--bg-900` | `#121212` | Main panel, sidebars, dominant dark surface |
-| `--bg-800` | `#1c1c1c` | Cards and elevated content surfaces |
-| `--bg-700` | `#161922` | Hover, active, and nested surface states |
-| `--accent-primary` | `#ffffff` | Highest contrast foreground/action contrast |
-| `--accent-secondary` | `#2997ff` | Primary FORO blue, active intelligence signal |
-| `--accent-blue` | `#2997ff` | Alias for electric blue |
-| `--accent-purple` | `#9d75ff` | Rare secondary highlight only, never dominant |
-| `--accent-gradient` | `linear-gradient(135deg, #0062ff 0%, #2997ff 100%)` | Primary CTA and AI emphasis |
-| `--accent-gradient-hover` | `linear-gradient(135deg, #0050d2 0%, #0062ff 100%)` | Primary CTA hover |
-| `--accent-glow-blue` | `rgba(41, 151, 255, 0.22)` | Blue glow, focus ring, active shadow |
-| `--accent-glow-subtle` | `rgba(41, 151, 255, 0.08)` | Quiet blue background tint |
-| `--accent-tint` | `rgba(41, 151, 255, 0.14)` | Filled chips and selected states |
-| `--text-main` | `rgba(255, 255, 255, 0.98)` | Primary text |
-| `--text-muted` | `#cbd5e1` | Secondary labels and readable metadata |
-| `--text-dim` | `#94a3b8` | Timestamps, helper copy, inactive controls |
-| `--glass-border` | `rgba(255, 255, 255, 0.08)` | Standard dark border |
-| `--blue-border` | `rgba(41, 151, 255, 0.45)` | Focused or selected border |
-| `--card-border` | `rgba(255, 255, 255, 0.05)` | Quiet card border |
-| `--card-shadow` | `0 4px 20px rgba(0, 0, 0, 0.6)` | Default dark elevation |
+| `--bg-950` | `#000000` | Global shell, negative space, app backdrop |
+| `--bg-900` | `#121212` | Main panels and workspace surfaces |
+| `--bg-800` | `#1c1c1c` | Cards and elevated blocks |
+| `--bg-700` | `#161922` | Active/hover nested surfaces |
+| `--accent-secondary` | `#2997ff` | Primary active signal |
+| `--text-main` | `rgba(255,255,255,0.98)` | Primary copy |
+| `--text-muted` | `#cbd5e1` | Secondary labels |
+| `--text-dim` | `#94a3b8` | Metadata and passive UI |
+| `--glass-border` | `rgba(255,255,255,0.08)` | Standard border |
+| `--blue-border` | `rgba(41,151,255,0.45)` | Focused state border |
 
-Usage rules:
+### Color rules
 
-- Keep surfaces black-to-charcoal. Do not introduce beige, cream, or pastel page backgrounds.
-- Use white text sparingly for emphasis. Most metadata should use `--text-muted` or `--text-dim`.
-- Use blue for state, not decoration. If an element glows blue, it should communicate focus, selection, AI work, or a primary action.
-- Purple may appear as a supporting tint in existing gradients, but do not make purple the dominant brand direction.
-- Warning and billing colors can be local exceptions, but keep them muted on dark surfaces.
+- The product is black and charcoal first, blue second.
+- Blue is a system signal, not decoration.
+- White should establish hierarchy, not fill the whole screen.
+- Purple must remain rare and supporting only. It should never become the dominant identity.
+- Prefer flat fills, thin borders, and subtle tints over glowing gradients.
+- If an element uses a glow, it must communicate one of these:
+  - primary action
+  - focus
+  - selected state
+  - live AI / live processing
 
-## 3. Typography Rules
+### Avoid
 
-Primary UI font:
+- rainbow gradients
+- strong purple-blue blends as a default
+- glossy "startup" CTA treatments
+- background effects that compete with content
 
-- `Inter`, `Noto Sans Thai`, `sans-serif`
+## 5. Typography
 
-Heading/display font:
+### Font stack
 
-- `Kanit`, `sans-serif`
+- UI copy: `Inter`, `Noto Sans Thai`, `sans-serif`
+- Display titles: `Kanit`, `sans-serif`
 
-Rules:
+### Role assignment
 
-- Use `Kanit` for major screen titles, modal titles, feed titles, reader titles, and high-emphasis Thai headings.
-- Use `Inter`/`Noto Sans Thai` for nav, controls, labels, metadata, long UI copy, and dense panels.
-- Preserve Thai readability. Avoid overly tight line-height on Thai paragraphs.
-- Keep all labels short and functional. FORO UI copy should say what the action does, not explain the interface.
-- Existing UI uses slightly tight tracking. Do not reduce letter spacing further.
+Use `Kanit` only where emphasis matters:
 
-Suggested scale:
+- workspace titles
+- modal titles
+- major section headings
+- key Thai-first display labels
+
+Use `Inter` / `Noto Sans Thai` for:
+
+- navigation
+- buttons
+- metadata
+- lists
+- body copy
+- cards
+- settings
+- long-form reading
+
+### Typography rules
+
+- Thai readability is mandatory. Keep generous enough line-height for Thai.
+- Avoid overly compressed display headings.
+- Avoid large title blocks that consume the first screen.
+- Prefer short, exact labels over expressive marketing copy.
+- Keep sentence casing or practical title casing. Avoid random all caps except for tiny metadata or chips.
+
+### Suggested scale
 
 | Use | Size | Weight | Notes |
 | --- | --- | --- | --- |
-| Workspace title | `32px` | `800` | Current dashboard title scale |
-| Search hero title | `48px` | `800` | Only for focused search workspace hero states |
-| Section title | `18px-22px` | `700-800` | Toolbars, feed sections |
-| Card body | `15px-16px` | `500-650` | Feed body and summaries |
-| Nav item | `15px` | `620-700` | Sidebar actions |
-| Metadata | `11px-13px` | `600-800` | Uppercase badges, counts, source labels |
-| Button label | `13px-15px` | `700` | Compact, high-confidence actions |
+| App / workspace title | `28px-32px` | `750-800` | Strong but compact |
+| Large focused title | `40px-44px` | `800` | Rare, only for key empty/search hero states |
+| Section heading | `18px-22px` | `700-750` | Toolbars, major group titles |
+| Card title / high-value row | `15px-17px` | `650-750` | Dense but readable |
+| Body copy | `14px-16px` | `450-550` | Default content rhythm |
+| Label / nav | `13px-15px` | `600-700` | Product chrome |
+| Metadata | `11px-13px` | `600-700` | Counts, sources, timestamps |
 
-## 4. Component Stylings
+## 6. Spacing & Rhythm
 
-### App Shell
+FORO should feel disciplined. Spacing should look intentional, not improvised.
 
-- Desktop layout is a three-panel command center:
-  - Left sidebar: `288px`, fixed, `top: 12px`, `left: 8px`, `bottom: 12px`.
-  - Main workspace: centered, `margin: 12px 0`, `padding: 24px 48px`, dark panel.
-  - Right sidebar: `320px`, fixed, `top: 12px`, `right: 8px`, `bottom: 12px`.
-- Outer background should remain pure black so panel gaps feel intentional.
-- Main and side panels use `--bg-900` with large `20px` radius.
-- Inner panels can scroll; body should not become the primary scroll container.
+Use this primary rhythm:
+
+- `8`
+- `12`
+- `16`
+- `20`
+- `24`
+- `32`
+- `40`
+- `48`
+
+Rules:
+
+- Choose one spacing scale per component and stay consistent.
+- Avoid mixing too many gap values in a single block.
+- Tighten controls before tightening reading content.
+- Favor clean internal spacing over oversized outer padding.
+
+## 7. Radius, Borders, and Depth
+
+The current product can support soft corners, but they should feel deliberate and modern.
+
+### Radius guidance
+
+- Main panels: `20px`
+- Cards: `16px-24px`
+- Small controls: `10px-14px`
+- Pills: full radius
+
+Do not over-round every element. A "premium" feel comes from consistency, not maximum radius.
+
+### Border guidance
+
+- Borders do more work than shadows in this product.
+- Most panels and cards should be separated by subtle border contrast.
+- Active states should prefer border/tint changes before stronger glow.
+
+### Shadow guidance
+
+- Use shadows sparingly on dark UI.
+- Favor short, soft shadows over huge ambient blur.
+- Hover elevation should feel like a 1-step lift, not a floating card.
+
+## 8. Motion
+
+Motion should feel like Linear:
+
+- fast
+- quiet
+- directional
+- useful
+
+### Good motion
+
+- `120ms-220ms` hover / focus transitions
+- small lift on hover
+- subtle fade / slide for panel reveal
+- clear state transitions for loading, selection, and expansion
+
+### Bad motion
+
+- infinite decorative shimmer
+- large sweeping transforms
+- rubbery bounce
+- animated gradients on standard UI controls
+- motion that competes with reading
+
+If animation can be removed without losing meaning, it probably should be removed.
+
+## 9. Layout Architecture
+
+### Desktop
+
+FORO remains a 3-region application:
+
+- Left rail for navigation and account / workspace context
+- Main workspace for the current task
+- Right rail for support context, sources, related entities, or secondary actions
+
+The layout should feel like a tool that stays open all day. That means:
+
+- content-first above the fold
+- no oversized headers
+- no decorative dead zones
+- no giant empty gutters inside the workspace
+
+### Tablet
+
+- Compress horizontal padding first
+- Collapse or defer low-priority right-rail content
+- Keep toolbar actions wrap-safe
+
+### Mobile
+
+- Prioritize current task content
+- Collapse secondary chrome aggressively
+- Avoid any horizontal overflow, especially pills, chips, and stats
+- Keep action buttons obvious and reachable
+
+## 10. Component Principles
+
+### App shell
+
+- Black outer canvas
+- Main surfaces on `--bg-900`
+- Rails should feel stable and quiet
+- Workspace should visually own the screen
 
 ### Navigation
 
-- Nav items are pill-like rows with icon shell, label, optional spinner.
-- Active nav item uses a deep blue-black linear fill plus a thin blue left indicator.
-- Busy state uses a small spinning icon and blue text/accent.
-- Hover should be quiet: slight white surface tint and brighter text.
-- Mobile may hide pricing from the nav and expose profile/plan controls contextually.
+- Navigation should feel surgical, not loud
+- Active state should read immediately with shape, tint, and text contrast
+- Hover should be gentle
+- Busy state should feel informative, not alarming
+
+Preferred nav behavior:
+
+- restrained background tint
+- subtle left indicator or border accent
+- compact icon + label relationship
+
+Avoid:
+
+- oversized pills that look like consumer apps
+- overly glossy active states
+- strong gradients in default navigation
 
 ### Buttons
 
-- Use `.btn-pill` for compact pill actions.
-- Primary actions use `--accent-gradient` and blue glow.
-- Secondary actions use transparent or dark surfaces with `--glass-border`.
-- Icon-only actions use compact square/circular dark controls with blue hover/focus.
-- Disabled actions should stay visible but muted; explain disabled context through title/status where useful.
+Buttons should feel decisive and mature.
 
-### Feed Cards
+Preferred hierarchy:
 
-- Feed cards are the main content artifact.
-- Surface: `linear-gradient(145deg, var(--bg-800) 0%, #1a1a1a 100%)`.
-- Border: faint white, upgraded to blue on hover/focus.
-- Radius: current card language allows large radii around `24px-28px`.
-- Motion: subtle lift on hover is allowed for desktop cards.
-- Preserve readable text width and prevent overflow with wrapping.
-- Metadata and action rows should compress gracefully; never let badges push cards wider than their container.
+- Primary: solid blue or restrained gradient if already established
+- Secondary: dark fill or transparent with border
+- Tertiary: quiet text/ghost treatment
 
-### Search & Filter
+Rules:
 
-- Search forms should feel like command input: full-width pill, dark translucent surface, blue focus ring.
-- AI filter controls should be visibly related to FORO intelligence features through blue tint or gradient.
-- Summary cards can use a subtle glass surface and a small blue icon badge.
-- Avoid decorative blue blobs inside summary cards unless they are already part of an existing pattern and do not distract from reading.
+- Minimize animation on buttons
+- Keep labels short
+- Default to clarity over flair
+- Avoid making every CTA glow
+
+### Cards
+
+Cards are the core artifact in FORO. They should feel structured and readable.
+
+Card rules:
+
+- clear header / body / footer zones
+- strong text wrapping discipline
+- predictable action placement
+- stable metadata rhythm
+- subtle hover feedback
+
+Avoid:
+
+- too many nested visual treatments inside one card
+- multiple competing accent colors
+- footer actions fighting with metadata
+- decorative gradients as content background
+
+### Inputs and search
+
+Search should feel like a tool, not a marketing hero.
+
+- Dark field
+- clear focus ring
+- strong placeholder contrast
+- enough height to feel important
+- no flashy chrome around it
 
 ### Sidebars
 
-- Left sidebar is navigation and plan context.
-- Right sidebar is supporting intelligence: lists, sources, recent items, workspace context.
-- Sidebar titles should be compact, uppercase or high-weight when useful.
-- Right sidebar list rows should be low-friction: small hover surface, soft separators, no heavy nested cards.
+- Keep sidebars dense but breathable
+- Use list patterns, not stacked mini-cards unless necessary
+- Reduce visual competition with main workspace
+- Account / plan section should feel composed and product-like, not toy-like
 
 ### Modals
 
-- Keep modal surfaces dark, bordered, and focused.
-- Use `Kanit` for modal titles and `Inter`/`Noto Sans Thai` for body text and controls.
-- Close buttons should be visible but secondary.
-- Modal copy should be direct. Avoid explaining the whole app in the modal.
+- Title first, task second
+- Compact framing
+- Dark surface, calm border, strong contrast
+- One primary action focus
 
-### Pricing
+## 11. Content Hierarchy
 
-- Pricing is an exception where plan identity may use warmer or premium accents.
-- Still keep the page dark and panel-based.
-- Plan cards must remain compact on mobile and avoid dense copy blocks.
+FORO is a content product, so hierarchy matters more than ornament.
 
-## 5. Layout Principles
+Order of importance on most screens:
 
-- Prefer panels, rails, and cards over full-page marketing sections.
-- Build the usable workspace as the first screen. Do not add a landing page in front of the app.
-- Keep desktop density high but not cramped. FORO should feel like a tool that can stay open all day.
-- Use `8px`, `12px`, `16px`, `20px`, `24px`, `32px`, `48px` as the main spacing rhythm.
-- Use grid/flex layouts with `min-width: 0` on text-heavy children to prevent overflow.
-- Important content should remain visible above the fold. Avoid tall headers that hide the feed.
-- Mobile should prioritize current task controls, then feed/content. Hide or collapse secondary rails.
+1. Current task or selected entity
+2. Primary content/result
+3. Supporting context
+4. Metadata
+5. Secondary actions
 
-## 6. Depth & Elevation
+If metadata or chrome is louder than the content, the design is off.
 
-- Default surface hierarchy:
-  - Page shell: `--bg-950`.
-  - Workspace panels: `--bg-900`.
-  - Cards: `--bg-800`.
-  - Hover/active inset surfaces: `--bg-700` or translucent white.
-- Use shadows sparingly because dark UI can get muddy.
-- Use border and tint before heavy shadow.
-- Blue glow is for active/focused intelligence states only.
+## 12. Tone of UI Copy
 
-## 7. Do's and Don'ts
+Copy should sound practical and high-confidence.
 
-Do:
+Use:
 
-- Reuse existing tokens from `src/index.css`.
-- Keep blue as the primary action and intelligence color.
-- Use real content density: summaries, cards, feeds, source names, timestamps, actions.
-- Use `Kanit` for Thai-heavy titles and important display text.
-- Keep action labels short and practical.
-- Test responsive behavior for sidebars, feed cards, and search forms.
-- Preserve accessibility basics: visible focus, readable contrast, real button elements.
+- direct verbs
+- short labels
+- plain product language
+- clear system states
 
-Don't:
+Avoid:
 
-- Do not add a marketing landing page before the app workspace.
-- Do not introduce beige, cream, or pastel page backgrounds.
-- Do not make purple or purple-blue gradients the main brand direction.
-- Do not add decorative gradient orbs, bokeh blobs, or unrelated illustrations.
-- Do not put cards inside cards unless the existing component pattern already demands it.
-- Do not make text or controls exceed their parent container.
-- Do not add wide copy blocks inside nav/sidebar rails.
-- Do not reduce letter spacing beyond current values.
+- hype language
+- cute labels
+- vague AI marketing wording
+- overly explanatory buttons
 
-## 8. Responsive Behavior
+Good:
 
-Desktop:
+- `Open pricing`
+- `Read article`
+- `Generate summary`
+- `Add to watchlist`
 
-- Preserve the three-panel layout where space allows.
-- Keep the main workspace scrollable and sidebars fixed.
-- Hover lift and glow interactions are acceptable.
+Bad:
 
-Tablet:
+- `Unlock the future`
+- `Supercharge this`
+- `Experience AI magic`
 
-- Compress horizontal padding before removing information.
-- Sidebars may collapse or hide secondary sections.
-- Keep action bars wrap-safe and avoid horizontal scroll.
+## 13. Anti-Patterns
 
-Mobile:
+Do not introduce these patterns into FORO:
 
-- Prioritize the active workspace.
-- Navigation should become compact and avoid crowding the top of the feed.
-- Buttons and chips must wrap or reduce text, never overflow.
-- Feed cards should keep readable padding while reducing decorative metadata.
-- Pricing cards should collapse copy and keep primary action reachable.
+- landing-page sections inside the product shell
+- giant hero banners before the actual tool
+- decorative blur blobs
+- consumer-social style floating chips everywhere
+- excessive glassmorphism
+- purple-led branding drift
+- long gradients as default control styling
+- too many simultaneous shadows, borders, and glows on one component
+- inconsistent corner radii across neighboring components
+- overly tall cards with weak information density
 
-## 9. Agent Prompt Guide
+## 14. Design Corrections to Favor
+
+When in doubt, move the UI in these directions:
+
+- less glow
+- less gradient
+- less visual noise
+- stronger alignment
+- tighter hierarchy
+- cleaner spacing
+- more readable text
+- more stable component patterns
+- more obvious active states
+- more practical controls
+
+## 15. Implementation Guidance
+
+Before editing UI:
+
+1. Check [src/index.css](D:/Work/FORO-MOCK/test/src/index.css) first.
+2. Reuse existing tokens before inventing new ones.
+3. Preserve app-shell structure unless there is a real usability reason to change it.
+4. Test both Thai and English text lengths.
+5. Check desktop and mobile overflow.
+6. Prefer improving an existing pattern over creating a new visual language.
+
+### If you need to simplify the current UI
+
+Start in this order:
+
+1. Reduce unnecessary animation
+2. Reduce glow intensity
+3. Reduce gradient usage
+4. Normalize spacing and radius
+5. Strengthen text hierarchy
+6. Simplify card and sidebar internals
+
+## 16. Agent Prompt Guide
 
 Use this when asking a coding agent to edit FORO UI:
 
-> Use `DESIGN.md` as the source of truth. Keep FORO as a dark command-center UI with black panels, electric-blue active states, Kanit display headings, compact pill controls, and content-first feed cards. Reuse tokens in `src/index.css`; do not introduce a marketing landing page, beige backgrounds, decorative gradient blobs, or a purple-dominant brand direction.
+> Use [DESIGN.md](D:/Work/FORO-MOCK/test/DESIGN.md) as the source of truth. Push FORO toward a mature product-software aesthetic inspired by Linear and Notion: dark command-center layout, quiet surfaces, disciplined spacing, strong hierarchy, restrained motion, and blue as the primary system accent. Reuse tokens from [src/index.css](D:/Work/FORO-MOCK/test/src/index.css). Reduce decorative gradients, heavy glow, purple emphasis, oversized hero treatment, and any mockup-like styling. Prioritize clarity, density, and calm polish.
 
-Quick color reference:
+### Quick checklist
 
-- Shell: `#000000`
-- Panel: `#121212`
-- Card: `#1c1c1c`
-- Active blue: `#2997ff`
-- Text: `rgba(255,255,255,0.98)`
-- Muted text: `#cbd5e1`
-- Dim text: `#94a3b8`
-
-Implementation checklist:
-
-- Check `src/index.css` before inventing new tokens.
-- Match existing radii and density unless intentionally fixing a responsive issue.
-- Keep components task-oriented and avoid landing-page patterns.
-- Verify mobile and desktop widths after UI edits.
-- If adding new text, make sure Thai and English both render cleanly and do not overflow.
+- Does the screen feel like a serious tool instead of a concept mockup?
+- Is the hierarchy clear within 3 seconds?
+- Are blue accents signaling state, not decoration?
+- Are cards, rails, and controls visually related?
+- Is the motion subtle enough to disappear into the workflow?
+- Does Thai text still read cleanly at real content lengths?
