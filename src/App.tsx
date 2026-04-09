@@ -215,10 +215,6 @@ const App = () => {
   const [filterModal, setFilterModal] = useState({ show: false, prompt: '' });
   const DEFAULT_QUICK_PRESETS = ['สรุป', 'หาโพสต์เด่น', 'โพสต์ไหนน่าทำคอนเทนต์'];
   const [quickFilterPresets, setQuickFilterPresets] = usePersistentState(STORAGE_KEYS.quickFilterPresets, DEFAULT_FILTER_ANALYSIS_PRESETS);
-  const [quickFilterVisiblePresets, setQuickFilterVisiblePresets] = usePersistentState(
-    STORAGE_KEYS.quickFilterVisiblePresets,
-    DEFAULT_FILTER_ANALYSIS_PRESETS.slice(0, 3),
-  );
   const [readFilters, setReadFilters] = useState({ view: false, engagement: false });
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [genPhase, setGenPhase] = useState('idle');
@@ -409,7 +405,6 @@ const App = () => {
   // --- Quick Filter Presets ---
   const removeQuickPreset = (preset) => {
     setQuickFilterPresets(prev => prev.filter(p => p !== preset));
-    setQuickFilterVisiblePresets(prev => prev.filter(p => p !== preset));
   };
 
   const addQuickPreset = (preset) => {
@@ -418,17 +413,9 @@ const App = () => {
     setQuickFilterPresets(prev => prev.includes(trimmed) ? prev : [...prev, trimmed]);
   };
 
-  const toggleVisibleQuickPreset = (preset) => {
-    setQuickFilterVisiblePresets((prev) => {
-      if (prev.includes(preset)) return prev.filter((item) => item !== preset);
-      if (prev.length >= 3) return prev;
-      return [...prev, preset];
-    });
-  };
-
   const visibleQuickPresets = useMemo(
-    () => quickFilterVisiblePresets.filter((preset) => quickFilterPresets.includes(preset)).slice(0, 3),
-    [quickFilterPresets, quickFilterVisiblePresets],
+    () => quickFilterPresets.slice(0, 3),
+    [quickFilterPresets],
   );
 
   useEffect(() => {
@@ -437,21 +424,7 @@ const App = () => {
       const isLegacyDefault = prev.every((preset, index) => preset === DEFAULT_QUICK_PRESETS[index]);
       return isLegacyDefault ? DEFAULT_FILTER_ANALYSIS_PRESETS : prev;
     });
-    setQuickFilterVisiblePresets((prev) => {
-      if (!Array.isArray(prev) || prev.length !== DEFAULT_QUICK_PRESETS.slice(0, 3).length) return prev;
-      const legacyVisible = DEFAULT_QUICK_PRESETS.slice(0, 3);
-      const isLegacyDefault = prev.every((preset, index) => preset === legacyVisible[index]);
-      return isLegacyDefault ? DEFAULT_FILTER_ANALYSIS_PRESETS.slice(0, 3) : prev;
-    });
-  }, [setQuickFilterPresets, setQuickFilterVisiblePresets]);
-
-  useEffect(() => {
-    setQuickFilterVisiblePresets((prev) => {
-      const next = prev.filter((preset) => quickFilterPresets.includes(preset)).slice(0, 3);
-      if (next.length === prev.length && next.every((preset, index) => preset === prev[index])) return prev;
-      return next;
-    });
-  }, [quickFilterPresets, setQuickFilterVisiblePresets]);
+  }, [setQuickFilterPresets]);
 
   // --- Handlers ---
   const handleBookmark = (tweet, isSaving) => {
@@ -575,7 +548,6 @@ const App = () => {
             isFiltered={isFiltered}
             activeFilters={activeFilters}
             visibleQuickPresets={visibleQuickPresets}
-            quickFilterPresets={quickFilterPresets}
             isFiltering={isFiltering}
             isLoadingMore={isLoadingMore}
             isSyncing={isSyncing}
@@ -770,13 +742,10 @@ const App = () => {
       <AiFilterModal
         filterModal={{ ...filterModal, isFiltering }}
         quickFilterPresets={quickFilterPresets}
-        quickFilterVisiblePresets={quickFilterVisiblePresets}
-        visibleQuickPresets={visibleQuickPresets}
         onClose={closeFilterModal}
         onPromptChange={(value) => setFilterModal((prev) => ({ ...prev, prompt: value }))}
         onSelectPreset={(preset) => setFilterModal((prev) => ({ ...prev, prompt: preset }))}
         onRemovePreset={removeQuickPreset}
-        onToggleVisiblePreset={toggleVisibleQuickPreset}
         onAddPreset={addQuickPreset}
         onSubmit={() => handleAiFilter()}
       />

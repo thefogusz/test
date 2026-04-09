@@ -15,7 +15,6 @@ import {
   PenSquare,
   Repeat,
   Reply,
-  Sparkles,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -46,17 +45,6 @@ const fmt = (num) => {
   if (n >= 1000000) return `${Math.floor(n / 1000000)}M`;
   if (n >= 1000) return `${Math.floor(n / 1000)}K`;
   return n.toString();
-};
-
-const getTemporalTagLabel = (value = '') => {
-  switch (String(value || '').trim().toLowerCase()) {
-    case 'breaking':
-      return 'จับตอนสัญญาณกำลังขึ้น';
-    case 'trending':
-      return 'แรงในกระแสตอนนี้';
-    default:
-      return 'เกี่ยวข้องกับโจทย์นี้';
-  }
 };
 
 const safeReadStoredValue = (key, fallbackValue) => {
@@ -399,9 +387,6 @@ const FeedCard = ({
   const showInlineReplyBanner = false;
   const feedCardClassName = `feed-card animate-fade-in${showProfileMenu ? ' feed-card-menu-open' : ''}`;
   const footerClassName = `feed-card-footer${isReadableArticle ? ' feed-card-footer-priority' : ''}`;
-  const hasFilterReasoning = Boolean(String(tweet.ai_reasoning || '').trim());
-  const temporalLabel = tweet.temporalTag ? getTemporalTagLabel(tweet.temporalTag) : '';
-
   const handleReadArticle = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
     onReadArticle?.(displayTweet);
@@ -908,73 +893,6 @@ const FeedCard = ({
               {isRssPost ? (rssSummaryText || displayTitle) : displayText}
             </p>
           )}
-        </div>
-      )}
-
-      {hasFilterReasoning && (
-        <div
-          className="feed-card-filter-reason"
-          style={{
-            marginBottom: '16px',
-            padding: '12px 14px',
-            borderRadius: '16px',
-            background: 'linear-gradient(180deg, rgba(20, 33, 54, 0.82) 0%, rgba(11, 18, 31, 0.92) 100%)',
-            border: '1px solid rgba(41, 151, 255, 0.14)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: '10px',
-              marginBottom: '8px',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '7px',
-                fontSize: '11px',
-                fontWeight: '800',
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
-                color: '#7ec1ff',
-              }}
-            >
-              <Sparkles size={12} />
-              Why This Matched
-            </div>
-            {temporalLabel && (
-              <div
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  padding: '4px 9px',
-                  borderRadius: '999px',
-                  background: 'rgba(41, 151, 255, 0.08)',
-                  border: '1px solid rgba(41, 151, 255, 0.14)',
-                  color: 'rgba(214, 236, 255, 0.84)',
-                  fontSize: '10px',
-                  fontWeight: '700',
-                }}
-              >
-                {temporalLabel}
-              </div>
-            )}
-          </div>
-          <div
-            style={{
-              fontSize: '13px',
-              lineHeight: '1.65',
-              color: 'rgba(255,255,255,0.78)',
-            }}
-          >
-            {tweet.ai_reasoning}
-          </div>
         </div>
       )}
 

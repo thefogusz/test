@@ -4,6 +4,7 @@ import { cleanMarkdownForClipboard, normalizeSummaryMarkdown, renderMarkdownToHt
 import AiFilteredBadge from './AiFilteredBadge';
 import FeedCard from './FeedCard';
 import FeedCardSkeleton from './FeedCardSkeleton';
+import ForoFilterSummarySkeleton from './ForoFilterSummarySkeleton';
 import HomeCanvas from './HomeCanvas';
 
 const HomeView = ({
@@ -17,7 +18,6 @@ const HomeView = ({
   isFiltered,
   activeFilters,
   visibleQuickPresets,
-  quickFilterPresets,
   isFiltering,
   isLoadingMore,
   isSyncing,
@@ -51,6 +51,7 @@ const HomeView = ({
     aiFilterBrief?.headline &&
     (aiFilterBrief?.matchedSignals?.length || aiFilterBrief?.whyNow || aiFilterBrief?.decisionNote),
   );
+  const shouldShowAiFilterSummarySkeleton = isFiltering && isFiltered && !aiFilterSummary;
   const effectiveBookmarkIdSet = useMemo(() => bookmarkIdSet ?? new Set(), [bookmarkIdSet]);
   const effectiveWatchlistHandleSet = useMemo(
     () => watchlistHandleSet ?? new Set(),
@@ -64,20 +65,7 @@ const HomeView = ({
 
   if (!isVisible) return null;
 
-  const briefSections = hasStructuredAiBrief
-    ? [
-      {
-        key: 'matched',
-        title: 'What Matched',
-        items: aiFilterBrief?.matchedSignals || [],
-      },
-      {
-        key: 'excluded',
-        title: 'What Was Excluded',
-        items: aiFilterBrief?.excludedSignals || [],
-      },
-    ].filter((section) => section.items.length > 0)
-    : [];
+  const takeawayItems = hasStructuredAiBrief ? (aiFilterBrief?.matchedSignals || []) : [];
 
   return (
     <div className="animate-fade-in">
@@ -145,11 +133,6 @@ const HomeView = ({
                 ))}
               </div>
             )}
-            {feed.length > 0 && !isFiltered && quickFilterPresets.length > 0 && (
-              <div className="home-ai-connector">
-                <div className="home-ai-connector-line" />
-              </div>
-            )}
             <button
               onClick={onOpenFilterModal}
               className={`btn-pill home-ai-filter-btn ${feed.length > 0 ? 'home-ai-filter-ready' : ''}`}
@@ -184,6 +167,8 @@ const HomeView = ({
           </div>
         </div>
       )}
+
+      {shouldShowAiFilterSummarySkeleton && <ForoFilterSummarySkeleton />}
 
       {aiFilterSummary && (
         <div className="search-summary-card animate-fade-in">
@@ -245,7 +230,7 @@ const HomeView = ({
           {hasStructuredAiBrief ? (
             <div
               className="foro-filter-brief"
-              style={{ position: 'relative', zIndex: 1, display: 'grid', gap: '16px' }}
+              style={{ position: 'relative', zIndex: 1, display: 'grid', gap: '18px' }}
             >
               <div style={{ display: 'grid', gap: '10px' }}>
                 <div
@@ -262,9 +247,9 @@ const HomeView = ({
                 {aiFilterBrief.whyNow && (
                   <div
                     style={{
-                      fontSize: '14px',
-                      lineHeight: '1.7',
-                      color: 'rgba(255,255,255,0.72)',
+                      fontSize: '15px',
+                      lineHeight: '1.75',
+                      color: 'rgba(255,255,255,0.78)',
                       maxWidth: '840px',
                     }}
                   >
@@ -279,34 +264,25 @@ const HomeView = ({
                 </div>
               </div>
 
-              {briefSections.length > 0 && (
-                <div
-                  className="foro-filter-brief-grid"
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-                    gap: '14px',
-                  }}
-                >
-                  {briefSections.map((section) => (
-                    <div key={section.key} className="foro-filter-brief-card">
-                      <div className="foro-filter-brief-title">{section.title}</div>
+              {(takeawayItems.length > 0 || aiFilterBrief.decisionNote) && (
+                <div className="foro-filter-brief-card">
+                  {takeawayItems.length > 0 && (
+                    <>
+                      <div className="foro-filter-brief-title">Key Takeaways</div>
                       <div className="foro-filter-brief-list">
-                        {section.items.map((item) => (
+                        {takeawayItems.map((item) => (
                           <div key={item} className="foro-filter-brief-item">{item}</div>
                         ))}
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    </>
+                  )}
 
-              {aiFilterBrief.decisionNote && (
-                <div className="foro-filter-decision-note">
-                  <div className="foro-filter-brief-title">Decision Note</div>
-                  <div style={{ fontSize: '14px', lineHeight: '1.7', color: 'rgba(255,255,255,0.84)' }}>
-                    {aiFilterBrief.decisionNote}
-                  </div>
+                  {aiFilterBrief.decisionNote && (
+                    <div className="foro-filter-brief-note">
+                      <span className="foro-filter-brief-note-label">Note</span>
+                      <span>{aiFilterBrief.decisionNote}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -318,21 +294,9 @@ const HomeView = ({
             />
           )}
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginTop: '20px',
-              paddingTop: '16px',
-              borderTop: '1px solid rgba(255,255,255,0.05)',
-              fontSize: '11px',
-              color: 'var(--text-muted)',
-              fontWeight: '600',
-            }}
-          >
+          <div className="foro-filter-summary-footer">
             <ShieldCheck size={12} className="text-accent" />
-            สรุปโดย FORO อ้างอิงจากบทสนทนาและเงื่อนไขการกรองของคุณ
+            สรุปโดย FORO จากผลที่ถูกกรองตาม prompt ของคุณ
           </div>
         </div>
       )}

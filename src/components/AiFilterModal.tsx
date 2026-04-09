@@ -1,15 +1,12 @@
-import { Eye, EyeOff, Filter as FilterIcon, Plus, RefreshCw, Sparkles, X } from 'lucide-react';
+import { Filter as FilterIcon, Plus, RefreshCw, X } from 'lucide-react';
 
 const AiFilterModal = ({
   filterModal,
   quickFilterPresets,
-  quickFilterVisiblePresets,
-  visibleQuickPresets,
   onClose,
   onPromptChange,
   onSelectPreset,
   onRemovePreset,
-  onToggleVisiblePreset,
   onAddPreset,
   onSubmit,
 }) => {
@@ -36,21 +33,16 @@ const AiFilterModal = ({
           <div className="ai-filter-section">
             <div className="ai-filter-section-header">
               <div>
-                <div className="ai-filter-section-title">Modes</div>
+                <div className="ai-filter-section-title">Preset</div>
                 <div className="ai-filter-section-copy">
-                  แตะเพื่อใส่ prompt ทันที แล้วเลือกอันที่อยากโชว์บนหน้า Today
+                  แตะเพื่อใส่ prompt ได้ทันที แล้วค่อยกดกรอง
                 </div>
-              </div>
-              <div className="ai-filter-visibility-counter">
-                <Sparkles size={12} />
-                <span>{visibleQuickPresets.length}/3 visible</span>
               </div>
             </div>
 
             <div className="ai-filter-presets">
               {quickFilterPresets.map((preset) => {
                 const isSelected = filterModal.prompt === preset;
-                const isVisible = quickFilterVisiblePresets.includes(preset);
 
                 return (
                   <div key={preset} className={`ai-filter-modal-preset-chip ${isSelected ? 'is-selected' : ''}`}>
@@ -64,19 +56,6 @@ const AiFilterModal = ({
                     </button>
 
                     <div className="ai-filter-preset-tools">
-                      <button
-                        type="button"
-                        className={`ai-filter-preset-visibility-btn ${isVisible ? 'active' : ''}`}
-                        disabled={
-                          filterModal.isFiltering ||
-                          (!isVisible && visibleQuickPresets.length >= 3)
-                        }
-                        onClick={() => onToggleVisiblePreset(preset)}
-                        title={isVisible ? 'ซ่อนจากหน้าข่าววันนี้' : 'แสดงบนหน้าข่าววันนี้'}
-                      >
-                        {isVisible ? <EyeOff size={13} /> : <Eye size={13} />}
-                      </button>
-
                       <button
                         type="button"
                         className="ai-filter-preset-remove-btn"
@@ -98,7 +77,7 @@ const AiFilterModal = ({
           <div className="ai-filter-section-header ai-filter-section-header-tight">
             <div>
               <div className="ai-filter-section-title">Prompt</div>
-              <div className="ai-filter-section-copy">เขียนสิ่งที่อยากให้ FORO หาให้ชัดเจนที่สุด</div>
+              <div className="ai-filter-section-copy">เขียนสั้นๆ ว่าอยากให้ FORO คัดอะไร</div>
             </div>
           </div>
 
@@ -106,13 +85,13 @@ const AiFilterModal = ({
             className="modal-input ai-filter-input"
             autoFocus
             disabled={filterModal.isFiltering}
-            placeholder="เช่น AI ที่มี engagement สูง"
+            placeholder="เช่น สรุปโพสต์ AI ที่มีผลต่อ product และ software"
             value={filterModal.prompt}
             onChange={(event) => onPromptChange(event.target.value)}
           />
 
           <div className="ai-filter-compose-footer">
-            <div className="ai-filter-visible-hint">เลือก preset ไปโชว์บนหน้าข่าววันนี้ได้สูงสุด 3 อัน</div>
+            <div className="ai-filter-visible-hint">preset ด้านบนจะแสดงบนหน้า home อัตโนมัติ 3 อันแรก</div>
             {canSavePreset && (
               <button type="button" className="ai-filter-save-preset-btn" onClick={() => onAddPreset(trimmedPrompt)}>
                 <Plus size={12} /> บันทึกเป็น Preset

@@ -2226,6 +2226,25 @@ h6,
   gap: 10px;
 }
 
+.foro-filter-brief-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 13px;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.foro-filter-brief-note-label {
+  color: rgba(138, 198, 255, 0.95);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .foro-filter-brief-item {
   position: relative;
   padding-left: 16px;
@@ -2244,6 +2263,118 @@ h6,
   border-radius: 999px;
   background: var(--accent-blue);
   box-shadow: 0 0 12px rgba(41, 151, 255, 0.35);
+}
+
+.foro-filter-summary-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.foro-filter-summary-skeleton {
+  display: grid;
+  gap: 18px;
+}
+
+.foro-filter-summary-skeleton-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.foro-filter-summary-skeleton-heading,
+.foro-filter-summary-skeleton-copy,
+.foro-filter-summary-skeleton-panel,
+.foro-filter-summary-skeleton-pills {
+  display: grid;
+  gap: 10px;
+}
+
+.foro-filter-summary-skeleton-icon,
+.foro-filter-summary-skeleton-line,
+.foro-filter-summary-skeleton-pill {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.foro-filter-summary-skeleton-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  flex: 0 0 auto;
+}
+
+.foro-filter-summary-skeleton-heading {
+  flex: 1;
+}
+
+.foro-filter-summary-skeleton-line {
+  height: 12px;
+  border-radius: 999px;
+}
+
+.foro-filter-summary-skeleton-line-label {
+  width: 180px;
+  height: 10px;
+}
+
+.foro-filter-summary-skeleton-line-meta {
+  width: 220px;
+}
+
+.foro-filter-summary-skeleton-line-title {
+  width: min(100%, 680px);
+  height: 32px;
+  border-radius: 18px;
+}
+
+.foro-filter-summary-skeleton-line-medium {
+  width: 72%;
+}
+
+.foro-filter-summary-skeleton-line-section {
+  width: 140px;
+  height: 10px;
+}
+
+.foro-filter-summary-skeleton-pills {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.foro-filter-summary-skeleton-pill {
+  width: 120px;
+  height: 28px;
+  border-radius: 999px;
+}
+
+.foro-filter-summary-skeleton-panel {
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.015));
+}
+
+.foro-filter-summary-skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.18) 50%, transparent 100%);
+  animation: foroFilterSummarySweep 1.85s ease-in-out infinite;
+}
+
+@keyframes foroFilterSummarySweep {
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 .expert-username {

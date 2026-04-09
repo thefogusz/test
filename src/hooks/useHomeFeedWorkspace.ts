@@ -662,6 +662,7 @@ export const useHomeFeedWorkspace = ({
 
       setStatus('AI กำลังวิเคราะห์และคัดกรองเนื้อหา...');
       setAiFilterBrief(null);
+      setAiFilterSummary('');
       const sourceFeed = deriveVisibleFeed({
         activeFilters,
         activeListId,
