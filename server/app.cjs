@@ -453,6 +453,15 @@ const createServerApp = ({
     }),
   );
 
+  app.use(
+    '/test/docs/__data',
+    express.static(path.join(rootDir, 'docs', '.vitepress', 'data'), {
+      setHeaders: (res) => {
+        res.setHeader('Cache-Control', 'no-store');
+      },
+    }),
+  );
+
   app.use('/test/docs', express.static(path.join(rootDir, 'docs', '.vitepress', 'dist')));
 
   app.get('/test/docs/*', (req, res) => {

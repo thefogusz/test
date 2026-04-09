@@ -10,8 +10,24 @@
 อ้างอิงแนวทาง docs-as-code: [VitePress Site Config](https://vitepress.dev/reference/site-config), [VitePress Data Loading](https://vitepress.dev/guide/data-loading), [Docusaurus Versioning](https://docusaurus.io/docs/next/versioning), [GitLab Docs Architecture](https://docs.gitlab.com/development/documentation/site_architecture/), [GitLab /help](https://docs.gitlab.com/development/documentation/help/)
 
 <script setup>
+import { computed, onMounted, ref } from 'vue'
 import { withBase } from 'vitepress'
-import statusReport from '../.vitepress/data/docs-status.json'
+
+const statusReport = ref({
+  generatedAt: null,
+  summary: {
+    totalFeatures: 0,
+    healthyFeatures: 0,
+    needsAttention: 0,
+    totalViews: 0,
+    coveredViews: 0,
+  },
+  views: [],
+  features: [],
+  recentDocUpdates: [],
+})
+const isLoading = ref(true)
+const loadError = ref('')
 
 const statusTone = {
   ok: 'background:#0f2f1e;color:#90f3b3;',
@@ -21,6 +37,8 @@ const statusTone = {
   missing: 'background:#4b1717;color:#ff9c9c;',
 }
 
+const dataUrl = computed(() => withBase('/__data/docs-status.json'))
+
 const formatDate = (value) => {
   if (!value) return '-'
   return new Date(value).toLocaleString('th-TH', {
@@ -28,6 +46,28 @@ const formatDate = (value) => {
     timeStyle: 'short',
   })
 }
+
+const loadReport = async () => {
+  isLoading.value = true
+  loadError.value = ''
+
+  try {
+    const response = await fetch(`${dataUrl.value}?t=${Date.now()}`, { cache: 'no-store' })
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    statusReport.value = await response.json()
+  } catch (error) {
+    loadError.value = error instanceof Error ? error.message : 'Failed to load status data'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(() => {
+  void loadReport()
+})
 </script>
 
 ## Snapshot ล่าสุด
@@ -37,6 +77,9 @@ const formatDate = (value) => {
 - ฟีเจอร์ที่สถานะปกติ: `{{ statusReport.summary.healthyFeatures }}`
 - ฟีเจอร์ที่ต้องเช็ก: `{{ statusReport.summary.needsAttention }}`
 - `activeView` ที่มี coverage แล้ว: `{{ statusReport.summary.coveredViews }}/{{ statusReport.summary.totalViews }}`
+
+<div v-if="isLoading" style="margin:14px 0;color:var(--vp-c-text-2);">กำลังโหลดสถานะ docs...</div>
+<div v-else-if="loadError" style="margin:14px 0;color:#ff9c9c;">โหลดสถานะ docs ไม่สำเร็จ: {{ loadError }}</div>
 
 ## View Coverage
 
@@ -125,10 +168,3 @@ const formatDate = (value) => {
 1. เวลาแก้ code ที่เปลี่ยน behavior ให้ดูหน้านี้ก่อนว่าฟีเจอร์นั้น tracked อยู่หรือยัง
 2. ถ้า `source ใหม่กว่า docs` หรือ `source เปลี่ยนแล้ว ควรเช็ก docs` ให้แก้หน้า docs ใน PR เดียวกัน
 3. ถ้ายังไม่มี coverage ให้เพิ่ม feature page จาก template แล้วผูกเข้า registry
-
-## แนวทางที่ควรใช้ระยะยาว
-
-- ใช้ `lastUpdated` ของ VitePress เพื่อโชว์เวลาหน้า docs ถูกแก้ล่าสุดจาก Git โดยตรง
-- ใช้ data loader หรือ script build-time เพื่อสร้าง dashboard แบบหน้านี้จากไฟล์จริงใน repo
-- ถ้าต้อง support release history จริง ค่อยเพิ่ม versioning แบบ `current` และ `versioned docs`
-- ถ้าจะ scale ใหญ่ขึ้น ให้ยึดแนว docs อยู่กับ code repository เดียวกับ product

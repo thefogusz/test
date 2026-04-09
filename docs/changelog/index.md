@@ -3,13 +3,30 @@
 หน้านี้สรุปการเปลี่ยนแปลงล่าสุดของฟีเจอร์ที่ tracked ไว้ใน registry โดยอ่านจาก Git โดยตรง เหมาะกับคนที่อยากดูว่า "เพิ่งมีอะไรเปลี่ยนไปบ้าง" โดยไม่ต้องไล่เปิด commit ทีละตัว
 
 <script setup>
-import changelogReport from '../.vitepress/data/docs-changelog.json'
+import { computed, onMounted, ref } from 'vue'
+import { withBase } from 'vitepress'
+
+const changelogReport = ref({
+  generatedAt: null,
+  summary: {
+    totalEntries: 0,
+    featureAndDocs: 0,
+    docsOnly: 0,
+    sourceOnly: 0,
+  },
+  kindLabels: {},
+  entries: [],
+})
+const isLoading = ref(true)
+const loadError = ref('')
 
 const kindTone = {
   'feature-and-docs': 'background:#132b4d;color:#90c2ff;',
   'docs-only': 'background:#0f2f1e;color:#90f3b3;',
   'source-only': 'background:#3a2a10;color:#ffd37a;',
 }
+
+const dataUrl = computed(() => withBase('/__data/docs-changelog.json'))
 
 const formatDate = (value) => {
   if (!value) return '-'
@@ -18,6 +35,28 @@ const formatDate = (value) => {
     timeStyle: 'short',
   })
 }
+
+const loadReport = async () => {
+  isLoading.value = true
+  loadError.value = ''
+
+  try {
+    const response = await fetch(`${dataUrl.value}?t=${Date.now()}`, { cache: 'no-store' })
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    changelogReport.value = await response.json()
+  } catch (error) {
+    loadError.value = error instanceof Error ? error.message : 'Failed to load changelog data'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(() => {
+  void loadReport()
+})
 </script>
 
 ## Snapshot
@@ -28,7 +67,14 @@ const formatDate = (value) => {
 - อัปเดต docs อย่างเดียว: `{{ changelogReport.summary.docsOnly }}`
 - อัปเดตโค้ดอย่างเดียว: `{{ changelogReport.summary.sourceOnly }}`
 
+<div v-if="isLoading" style="margin:14px 0;color:var(--vp-c-text-2);">กำลังโหลด changelog...</div>
+<div v-else-if="loadError" style="margin:14px 0;color:#ff9c9c;">โหลด changelog ไม่สำเร็จ: {{ loadError }}</div>
+
 ## Recent Changes
+
+<div v-if="!isLoading && !loadError && changelogReport.entries.length === 0" style="border:1px solid var(--vp-c-divider);border-radius:16px;padding:16px 18px;margin:14px 0;">
+  ยังไม่มีรายการที่ตรงกับ feature registry
+</div>
 
 <div v-for="entry in changelogReport.entries" :key="entry.hash" style="border:1px solid var(--vp-c-divider);border-radius:16px;padding:16px 18px;margin:14px 0;">
   <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;">
@@ -47,7 +93,7 @@ const formatDate = (value) => {
   <div style="margin-top:12px;">
     <strong>ฟีเจอร์ที่เกี่ยวข้อง:</strong>
     <span v-for="feature in entry.impactedFeatures" :key="feature.id" style="display:inline-block;margin:6px 8px 0 0;">
-      <a :href="feature.route">{{ feature.title }}</a>
+      <a :href="withBase(feature.route)">{{ feature.title }}</a>
     </span>
   </div>
 

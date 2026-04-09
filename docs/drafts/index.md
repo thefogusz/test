@@ -3,8 +3,24 @@
 หน้านี้สรุปจากไฟล์ที่เปลี่ยนใน branch หรือ working tree ปัจจุบัน เพื่อบอกว่า PR นี้ควรกลับไปเช็กหน้า docs ไหนบ้าง
 
 <script setup>
+import { computed, onMounted, ref } from 'vue'
 import { withBase } from 'vitepress'
-import draftReport from '../.vitepress/data/docs-draft.json'
+
+const draftReport = ref({
+  generatedAt: null,
+  context: {},
+  impactedFeatures: [],
+  unmappedFiles: [],
+  summary: {
+    impactedFeatures: 0,
+    needsDocsUpdate: 0,
+    docsAlreadyTouched: 0,
+  },
+})
+const isLoading = ref(true)
+const loadError = ref('')
+
+const dataUrl = computed(() => withBase('/__data/docs-draft.json'))
 
 const formatDate = (value) => {
   if (!value) return '-'
@@ -13,6 +29,28 @@ const formatDate = (value) => {
     timeStyle: 'short',
   })
 }
+
+const loadReport = async () => {
+  isLoading.value = true
+  loadError.value = ''
+
+  try {
+    const response = await fetch(`${dataUrl.value}?t=${Date.now()}`, { cache: 'no-store' })
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    draftReport.value = await response.json()
+  } catch (error) {
+    loadError.value = error instanceof Error ? error.message : 'Failed to load draft data'
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(() => {
+  void loadReport()
+})
 </script>
 
 ## Snapshot
@@ -24,6 +62,9 @@ const formatDate = (value) => {
 - ฟีเจอร์ที่ควรอัปเดต docs เพิ่ม: `{{ draftReport.summary.needsDocsUpdate }}`
 - ฟีเจอร์ที่มีการแตะ docs แล้ว: `{{ draftReport.summary.docsAlreadyTouched }}`
 
+<div v-if="isLoading" style="margin:14px 0;color:var(--vp-c-text-2);">กำลังโหลด draft suggestions...</div>
+<div v-else-if="loadError" style="margin:14px 0;color:#ff9c9c;">โหลด draft suggestions ไม่สำเร็จ: {{ loadError }}</div>
+
 ## Suggested Review
 
 <div v-if="draftReport.context?.explanation" style="border:1px solid var(--vp-c-divider);border-radius:16px;padding:16px 18px;margin:14px 0;background:color-mix(in srgb, var(--vp-c-bg-soft) 80%, transparent);">
@@ -31,7 +72,7 @@ const formatDate = (value) => {
   <div style="margin-top:6px;">{{ draftReport.context.explanation }}</div>
 </div>
 
-<div v-if="draftReport.impactedFeatures.length === 0" style="border:1px solid var(--vp-c-divider);border-radius:16px;padding:16px 18px;margin:14px 0;">
+<div v-if="!isLoading && !loadError && draftReport.impactedFeatures.length === 0" style="border:1px solid var(--vp-c-divider);border-radius:16px;padding:16px 18px;margin:14px 0;">
   ไม่พบการเปลี่ยนแปลงที่ชนกับ feature registry ในรอบการตรวจนี้
 </div>
 
