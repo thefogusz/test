@@ -122,7 +122,8 @@ const HomeView = ({
     [watchlistHandleSet],
   );
   const freshFeedIdSet = useMemo(() => new Set((freshFeedIds ?? []).map((id) => String(id))), [freshFeedIds]);
-  const shouldShowIncomingSkeletons = isSyncing && feed.length > 0;
+  const hasVisibleFeed = feed.length > 0;
+  const shouldShowIncomingSkeletons = hasVisibleFeed && (isSyncing || isLoadingMore);
   const incomingSkeletonCount = isCompactSkeletonLayout ? 2 : 4;
 
   useEffect(() => {
@@ -411,7 +412,7 @@ const HomeView = ({
           <FeedCardSkeleton count={incomingSkeletonCount} />
         )}
 
-        {feed.length > 0 &&
+        {hasVisibleFeed &&
           feed.map((item, index) => (
             <FeedCard
               key={item.id || index}
@@ -429,7 +430,7 @@ const HomeView = ({
           ))}
       </div>
 
-      {feed.length > 0 && (pendingFeed.length > 0 || nextCursor || isLoadingMore) && (
+      {hasVisibleFeed && (pendingFeed.length > 0 || nextCursor || isLoadingMore) && (
         <div className="home-load-more-shell">
           <button onClick={onLoadMore} className="btn-pill" disabled={loading}>
             {isLoadingMore ? <RefreshCw size={14} className="animate-spin" /> : 'โหลดเพิ่มเติม'}
