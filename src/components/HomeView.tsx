@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Copy, Eraser, FileText, List, RefreshCw, Undo2 } from 'lucide-react';
 import { cleanMarkdownForClipboard, normalizeSummaryMarkdown, renderMarkdownToHtml } from '../utils/markdown';
 import AiFilteredBadge from './AiFilteredBadge';
@@ -69,9 +69,11 @@ const HomeView = ({
   deletedFeedLength,
   feed,
   freshFeedIds,
+  activeFilterPrompt,
   isFiltered,
   activeFilters,
   visibleQuickPresets,
+  isFilterPrimed,
   isFiltering,
   isLoadingMore,
   isSyncing,
@@ -102,11 +104,18 @@ const HomeView = ({
   const showHomeFeedToolbar = feed.length > 0 || isFiltered;
   const normalizedAiFilterSummary = normalizeSummaryMarkdown(aiFilterSummary);
   const briefSections = normalizeBriefSections(aiFilterBrief);
+  const [isCompactSkeletonLayout, setIsCompactSkeletonLayout] = useState(
+    () => (typeof window !== 'undefined' ? window.matchMedia('(max-width: 768px)').matches : false),
+  );
+  const isFilterUiActive = isFiltering || isFilterPrimed;
   const hasStructuredAiBrief = Boolean(
     aiFilterBrief?.headline &&
     (briefSections.length > 0 || aiFilterBrief?.whyNow),
   );
-  const shouldShowAiFilterSummarySkeleton = isFiltering && isFiltered && !aiFilterSummary;
+  const shouldShowAiFilterSummarySkeleton =
+    isFilterUiActive &&
+    !aiFilterSummary &&
+    (isFiltered || isFilterPrimed);
   const effectiveBookmarkIdSet = useMemo(() => bookmarkIdSet ?? new Set(), [bookmarkIdSet]);
   const effectiveWatchlistHandleSet = useMemo(
     () => watchlistHandleSet ?? new Set(),
@@ -114,11 +123,28 @@ const HomeView = ({
   );
   const freshFeedIdSet = useMemo(() => new Set((freshFeedIds ?? []).map((id) => String(id))), [freshFeedIds]);
   const shouldShowIncomingSkeletons = isSyncing && feed.length > 0;
-  const incomingSkeletonCount = pendingFeed.length > 0
-    ? Math.min(4, Math.max(2, pendingFeed.length))
-    : 3;
+  const incomingSkeletonCount = isCompactSkeletonLayout ? 2 : 4;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const updateLayout = (event) => setIsCompactSkeletonLayout(event.matches);
+
+    setIsCompactSkeletonLayout(mediaQuery.matches);
+
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', updateLayout);
+      return () => mediaQuery.removeEventListener('change', updateLayout);
+    }
+
+    mediaQuery.addListener(updateLayout);
+    return () => mediaQuery.removeListener(updateLayout);
+  }, []);
 
   if (!isVisible) return null;
+
+  const normalizedActiveFilterPrompt = String(activeFilterPrompt || '').trim();
 
   const outputLabel = aiFilterBrief?.outputLabel || 'ผลการวิเคราะห์';
   const briefHeadline = parseBriefItem(aiFilterBrief?.headline || '').text;
@@ -174,15 +200,18 @@ const HomeView = ({
             </div>
           </div>
 
-          <div className="home-ai-filter-cluster">
+          <div className={`home-ai-filter-cluster ${isFilterUiActive ? 'is-filtering' : ''}`}>
             {feed.length > 0 && !isFiltered && visibleQuickPresets.length > 0 && (
               <div className="home-ai-quick-presets">
                 {visibleQuickPresets.map((preset) => (
-                  <div key={preset} className="home-ai-quick-chip">
+                  <div
+                    key={preset}
+                    className={`home-ai-quick-chip ${isFilterUiActive && normalizedActiveFilterPrompt === preset ? 'is-active' : ''}`}
+                  >
                     <button
                       onClick={() => onQuickFilter(preset)}
                       disabled={isFiltering}
-                      className="home-ai-quick-preset-btn"
+                      className={`home-ai-quick-preset-btn ${isFilterUiActive && normalizedActiveFilterPrompt === preset ? 'is-active' : ''}`}
                     >
                       {preset}
                     </button>
@@ -192,9 +221,11 @@ const HomeView = ({
             )}
             <button
               onClick={onOpenFilterModal}
-              className={`btn-pill home-ai-filter-btn ${feed.length > 0 ? 'home-ai-filter-ready' : ''}`}
+              aria-busy={isFilterUiActive}
+              className={`btn-pill home-ai-filter-btn ${feed.length > 0 ? 'home-ai-filter-ready' : ''} ${isFilterUiActive ? 'is-filtering' : ''}`}
             >
-              FORO Filter
+              <span className={`home-ai-filter-btn-signal ${isFilterUiActive ? 'is-visible' : ''}`} aria-hidden="true" />
+              <span className="home-ai-filter-btn-label">FORO Filter</span>
             </button>
             <button
               onClick={onSync}
@@ -359,7 +390,7 @@ const HomeView = ({
         </div>
       )}
 
-      <div className="feed-grid">
+      <div className={`feed-grid ${isFilterUiActive ? 'is-filter-transitioning' : ''}`}>
         {feed.length === 0 && (
           <div
             className="home-splash"

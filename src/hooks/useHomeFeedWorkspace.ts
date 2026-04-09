@@ -81,6 +81,8 @@ export const useHomeFeedWorkspace = ({
   const [isFiltered, setIsFiltered] = useState(false);
   const [aiFilterSummary, setAiFilterSummary] = useState('');
   const [aiFilterBrief, setAiFilterBrief] = useState(null);
+  const [activeFilterPrompt, setActiveFilterPrompt] = useState('');
+  const [isFilterPrimed, setIsFilterPrimed] = useState(false);
   const [freshFeedIds, setFreshFeedIds] = useState<string[]>([]);
 
   const isSummarizingRef = useRef(false);
@@ -658,7 +660,8 @@ export const useHomeFeedWorkspace = ({
 
   const aiFilterMutation = useMutation({
     mutationFn: async (prompt: string) => {
-      if (!prompt) return;
+      const normalizedPrompt = String(prompt || '').trim();
+      if (!normalizedPrompt) return;
 
       setStatus('AI กำลังวิเคราะห์และคัดกรองเนื้อหา...');
       setAiFilterBrief(null);
@@ -677,7 +680,7 @@ export const useHomeFeedWorkspace = ({
         return;
       }
 
-      const validPicks = await agentFilterFeed(sourceFeed, prompt);
+      const validPicks = await agentFilterFeed(sourceFeed, normalizedPrompt);
       const filteredResult = sourceFeed
         .filter((tweet) => validPicks.some((pick) => String(pick.id) === String(tweet.id)))
         .map((tweet) => {
@@ -695,14 +698,14 @@ export const useHomeFeedWorkspace = ({
 
       if (filteredResult.length > 0) {
         setStatus('กำลังวิเคราะห์บทสรุปสำหรับคุณ...');
-        const brief = await generateForoFilterBrief(filteredResult, prompt, {
-          focusMode: prompt,
+        const brief = await generateForoFilterBrief(filteredResult, normalizedPrompt, {
+          focusMode: normalizedPrompt,
         });
         if (brief) {
           setAiFilterBrief(brief);
           setAiFilterSummary(buildForoFilterBriefMarkdown(brief));
         } else {
-          const summary = await generateExecutiveSummary(filteredResult, prompt, undefined);
+          const summary = await generateExecutiveSummary(filteredResult, normalizedPrompt, undefined);
           setAiFilterBrief(null);
           setAiFilterSummary(summary);
         }
@@ -719,6 +722,20 @@ export const useHomeFeedWorkspace = ({
     },
   });
 
+  const applyAiFilter = async (prompt: string) => {
+    const normalizedPrompt = String(prompt || '').trim();
+    if (!normalizedPrompt || aiFilterMutation.isPending) return;
+
+    setActiveFilterPrompt(normalizedPrompt);
+    setIsFilterPrimed(true);
+
+    try {
+      await aiFilterMutation.mutateAsync(normalizedPrompt);
+    } finally {
+      setIsFilterPrimed(false);
+    }
+  };
+
   const handleDeleteAll = () => {
     if (originalFeed.length === 0) return;
 
@@ -729,6 +746,8 @@ export const useHomeFeedWorkspace = ({
     setIsFiltered(false);
     setAiFilterBrief(null);
     setAiFilterSummary('');
+    setActiveFilterPrompt('');
+    setIsFilterPrimed(false);
     setFreshFeedIds([]);
     setOriginalFeed([]);
     setFeed([]);
@@ -752,15 +771,18 @@ export const useHomeFeedWorkspace = ({
     setIsFiltered(false);
     setAiFilterBrief(null);
     setAiFilterSummary('');
+    setActiveFilterPrompt('');
+    setIsFilterPrimed(false);
     setOriginalFeed((prev) => [...prev]);
     setStatus('ล้างตัวกรองแล้ว');
   };
 
   return {
     activeFilters,
+    activeFilterPrompt,
     aiFilterBrief,
     aiFilterSummary,
-    applyAiFilter: aiFilterMutation.mutateAsync,
+    applyAiFilter,
     clearAiFilter,
     deletedFeedCount,
     feed,
@@ -771,6 +793,7 @@ export const useHomeFeedWorkspace = ({
     handleSync: syncMutation.mutateAsync,
     handleUndo,
     isFiltered,
+    isFilterPrimed,
     isFiltering: aiFilterMutation.isPending,
     isLoadingMore: loadMoreMutation.isPending,
     isSyncing: syncMutation.isPending,

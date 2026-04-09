@@ -222,6 +222,7 @@ const App = () => {
   // --- Composed Hooks ---
   const {
     activeFilters,
+    activeFilterPrompt,
     aiFilterBrief,
     aiFilterSummary,
     applyAiFilter,
@@ -235,6 +236,7 @@ const App = () => {
     handleSync,
     handleUndo,
     isFiltered,
+    isFilterPrimed,
     isFiltering,
     isLoadingMore,
     isSyncing,
@@ -545,9 +547,11 @@ const App = () => {
             deletedFeedLength={deletedFeedCount}
             feed={feed}
             freshFeedIds={freshFeedIds}
+            activeFilterPrompt={activeFilterPrompt}
             isFiltered={isFiltered}
             activeFilters={activeFilters}
             visibleQuickPresets={visibleQuickPresets}
+            isFilterPrimed={isFilterPrimed}
             isFiltering={isFiltering}
             isLoadingMore={isLoadingMore}
             isSyncing={isSyncing}
