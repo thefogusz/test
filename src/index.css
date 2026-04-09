@@ -3887,7 +3887,6 @@ h6,
   display: flex;
   align-items: center;
   gap: 8px;
-  flex: 1;
   justify-content: flex-end;
   min-width: 0;
   position: relative;
@@ -3934,6 +3933,260 @@ h6,
 .home-ai-filter-cluster.is-filtering::after {
   opacity: 1;
   animation: homeFilterClusterSweep 1.7s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.home-ai-filter-runway {
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 220ms ease;
+}
+
+.home-ai-filter-cluster.is-filtering .home-ai-filter-runway {
+  opacity: 1;
+}
+
+.home-ai-filter-runway-glow,
+.home-ai-filter-runner-shadow,
+.home-ai-filter-runner {
+  position: absolute;
+  pointer-events: none;
+}
+
+.home-ai-filter-runway-glow {
+  inset: 7px 18px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 18% 50%, rgba(162, 220, 255, 0.16), transparent 20%),
+    linear-gradient(90deg, rgba(18, 32, 54, 0.92), rgba(43, 62, 89, 0.72) 55%, rgba(26, 39, 61, 0.88));
+  border: 1px solid rgba(127, 191, 255, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(176, 222, 255, 0.08),
+    inset 0 -10px 22px rgba(0, 0, 0, 0.18);
+}
+
+.home-ai-filter-runner-shadow {
+  top: 50%;
+  left: -96px;
+  width: 170px;
+  height: 44px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 50% 50%, rgba(120, 205, 255, 0.28), rgba(120, 205, 255, 0.08) 52%, transparent 72%);
+  filter: blur(10px);
+  transform: translateY(-50%);
+  opacity: 0;
+}
+
+.home-ai-filter-runner {
+  top: 50%;
+  left: -120px;
+  width: 132px;
+  height: 84px;
+  color: rgba(8, 14, 28, 0.92);
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.32)) drop-shadow(0 0 22px rgba(114, 202, 255, 0.12));
+  transform: translateY(-50%);
+  opacity: 0;
+}
+
+.home-ai-filter-cat {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.home-ai-filter-cat-body {
+  position: absolute;
+  inset: 8px 18px 10px 16px;
+  background: linear-gradient(180deg, #122138 0%, #101b2d 48%, #0f1728 100%);
+  border-radius: 44% 44% 34% 34% / 28% 28% 62% 62%;
+  animation: homeFilterCatBounce 0.7s ease-in-out infinite;
+  transform-origin: 50% 80%;
+}
+
+.home-ai-filter-cat-face {
+  position: absolute;
+  inset: 0;
+}
+
+.home-ai-filter-cat-ear {
+  position: absolute;
+  top: -20px;
+  width: 38px;
+  height: 44px;
+  background: #122138;
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+  animation: homeFilterCatEarTwitch 1.4s ease-in-out infinite;
+}
+
+.home-ai-filter-cat-ear-left {
+  left: 8px;
+  transform-origin: 60% 100%;
+  transform: rotate(-12deg);
+}
+
+.home-ai-filter-cat-ear-right {
+  right: 10px;
+  height: 49px;
+  transform-origin: 40% 100%;
+  transform: rotate(8deg);
+  animation-delay: 0.15s;
+}
+
+.home-ai-filter-cat-tail {
+  position: absolute;
+  left: -6px;
+  bottom: 22px;
+  width: 58px;
+  height: 16px;
+  border-radius: 999px;
+  border: 8px solid #122138;
+  border-left: none;
+  border-bottom-color: transparent;
+  transform-origin: 100% 50%;
+  animation: homeFilterCatTail 0.72s ease-in-out infinite;
+}
+
+.home-ai-filter-cat-eye {
+  position: absolute;
+  top: 12px;
+  width: 24px;
+  height: 24px;
+  background: #f7f4ed;
+  border-radius: 50%;
+  overflow: hidden;
+  animation: homeFilterCatBlink 3.2s linear infinite;
+}
+
+.home-ai-filter-cat-eye-left {
+  left: 22px;
+}
+
+.home-ai-filter-cat-eye-right {
+  right: 20px;
+  width: 26px;
+  height: 26px;
+}
+
+.home-ai-filter-cat-pupil {
+  position: absolute;
+  inset: 6px 8px 6px 9px;
+  background: #101b2d;
+  border-radius: 50%;
+}
+
+.home-ai-filter-cat-nose {
+  position: absolute;
+  top: 38px;
+  left: 50%;
+  width: 14px;
+  height: 12px;
+  background: #f7f4ed;
+  clip-path: polygon(50% 100%, 0% 18%, 100% 0%);
+  transform: translateX(-50%) rotate(-8deg);
+}
+
+.home-ai-filter-cat-whiskers {
+  position: absolute;
+  top: 34px;
+  width: 40px;
+  height: 22px;
+}
+
+.home-ai-filter-cat-whiskers span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #f7f4ed;
+  border-radius: 999px;
+  transform-origin: center;
+  opacity: 0.9;
+}
+
+.home-ai-filter-cat-whiskers span:nth-child(1) {
+  top: 1px;
+}
+
+.home-ai-filter-cat-whiskers span:nth-child(2) {
+  top: 9px;
+}
+
+.home-ai-filter-cat-whiskers span:nth-child(3) {
+  top: 17px;
+}
+
+.home-ai-filter-cat-whiskers-left {
+  left: -10px;
+}
+
+.home-ai-filter-cat-whiskers-left span:nth-child(1) {
+  transform: rotate(-10deg);
+}
+
+.home-ai-filter-cat-whiskers-left span:nth-child(2) {
+  transform: rotate(-24deg);
+}
+
+.home-ai-filter-cat-whiskers-left span:nth-child(3) {
+  transform: rotate(-38deg);
+}
+
+.home-ai-filter-cat-whiskers-right {
+  right: -12px;
+}
+
+.home-ai-filter-cat-whiskers-right span:nth-child(1) {
+  transform: rotate(6deg);
+}
+
+.home-ai-filter-cat-whiskers-right span:nth-child(2) {
+  transform: rotate(2deg);
+}
+
+.home-ai-filter-cat-whiskers-right span:nth-child(3) {
+  transform: rotate(14deg);
+}
+
+.home-ai-filter-cat-paws {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: -4px;
+  height: 16px;
+}
+
+.home-ai-filter-cat-paw {
+  position: absolute;
+  bottom: 0;
+  width: 22px;
+  height: 12px;
+  background: linear-gradient(180deg, #15233c, #0f1728);
+  border-radius: 999px;
+}
+
+.home-ai-filter-cat-paw-front {
+  left: 18px;
+  animation: homeFilterCatPawFront 0.7s ease-in-out infinite;
+}
+
+.home-ai-filter-cat-paw-back {
+  right: 16px;
+  animation: homeFilterCatPawBack 0.7s ease-in-out infinite;
+}
+
+.home-ai-filter-cluster.is-filtering .home-ai-filter-runner-shadow {
+  opacity: 1;
+  animation: homeFilterCatRun 2.2s cubic-bezier(0.3, 0.06, 0.21, 1) infinite;
+}
+
+.home-ai-filter-cluster.is-filtering .home-ai-filter-runner {
+  opacity: 1;
+  animation: homeFilterCatRun 2.2s cubic-bezier(0.3, 0.06, 0.21, 1) infinite;
 }
 
 .home-ai-quick-presets {
@@ -4142,6 +4395,112 @@ h6,
 @keyframes homeFilterClusterSweep {
   100% {
     transform: translateX(24%) skewX(-16deg);
+  }
+}
+
+@keyframes homeFilterCatRun {
+  0% {
+    left: -120px;
+    transform: translateY(-50%) scale(0.92);
+  }
+
+  10% {
+    transform: translateY(-52%) scale(0.98);
+  }
+
+  35% {
+    transform: translateY(-47%) scale(1);
+  }
+
+  60% {
+    transform: translateY(-52%) scale(0.99);
+  }
+
+  100% {
+    left: calc(100% + 24px);
+    transform: translateY(-49%) scale(0.95);
+  }
+}
+
+@keyframes homeFilterCatBounce {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+
+  50% {
+    transform: translateY(-4px) scaleY(0.985);
+  }
+}
+
+@keyframes homeFilterCatTail {
+  0%,
+  100% {
+    transform: rotate(18deg) scaleX(1);
+  }
+
+  50% {
+    transform: rotate(-12deg) scaleX(1.04);
+  }
+}
+
+@keyframes homeFilterCatEarTwitch {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+
+  50% {
+    filter: brightness(1.08);
+  }
+}
+
+@keyframes homeFilterCatBlink {
+  0%,
+  44%,
+  48%,
+  100% {
+    transform: scaleY(1);
+  }
+
+  46% {
+    transform: scaleY(0.14);
+  }
+}
+
+@keyframes homeFilterCatPawFront {
+  0%,
+  100% {
+    transform: translateY(0) scaleX(1);
+  }
+
+  50% {
+    transform: translateY(4px) scaleX(1.08);
+  }
+}
+
+@keyframes homeFilterCatPawBack {
+  0%,
+  100% {
+    transform: translateY(4px) scaleX(1.08);
+  }
+
+  50% {
+    transform: translateY(0) scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-ai-filter-cluster.is-filtering::after,
+  .home-ai-filter-cluster.is-filtering .home-ai-filter-runner-shadow,
+  .home-ai-filter-cluster.is-filtering .home-ai-filter-runner,
+  .home-ai-filter-cat-body,
+  .home-ai-filter-cat-tail,
+  .home-ai-filter-cat-ear,
+  .home-ai-filter-cat-eye,
+  .home-ai-filter-cat-paw-front,
+  .home-ai-filter-cat-paw-back {
+    animation: none !important;
   }
 }
 

@@ -215,6 +215,42 @@ const HomeView = ({
           </div>
 
           <div className={`home-ai-filter-cluster ${isFilterUiActive ? 'is-filtering' : ''}`}>
+            <div className="home-ai-filter-runway" aria-hidden="true">
+              <span className="home-ai-filter-runway-glow" />
+              <span className="home-ai-filter-runner-shadow" />
+              <span className="home-ai-filter-runner">
+                <span className="home-ai-filter-cat">
+                  <span className="home-ai-filter-cat-tail" />
+                  <span className="home-ai-filter-cat-body">
+                    <span className="home-ai-filter-cat-ear home-ai-filter-cat-ear-left" />
+                    <span className="home-ai-filter-cat-ear home-ai-filter-cat-ear-right" />
+                    <span className="home-ai-filter-cat-face">
+                      <span className="home-ai-filter-cat-eye home-ai-filter-cat-eye-left">
+                        <span className="home-ai-filter-cat-pupil" />
+                      </span>
+                      <span className="home-ai-filter-cat-eye home-ai-filter-cat-eye-right">
+                        <span className="home-ai-filter-cat-pupil" />
+                      </span>
+                      <span className="home-ai-filter-cat-nose" />
+                      <span className="home-ai-filter-cat-whiskers home-ai-filter-cat-whiskers-left">
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                      <span className="home-ai-filter-cat-whiskers home-ai-filter-cat-whiskers-right">
+                        <span />
+                        <span />
+                        <span />
+                      </span>
+                    </span>
+                    <span className="home-ai-filter-cat-paws">
+                      <span className="home-ai-filter-cat-paw home-ai-filter-cat-paw-front" />
+                      <span className="home-ai-filter-cat-paw home-ai-filter-cat-paw-back" />
+                    </span>
+                  </span>
+                </span>
+              </span>
+            </div>
             {feed.length > 0 && !isFiltered && visibleQuickPresets.length > 0 && (
               <div className="home-ai-quick-presets">
                 {visibleQuickPresets.map((preset) => (
