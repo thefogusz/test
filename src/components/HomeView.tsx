@@ -23,6 +23,7 @@ const HomeView = ({
   loading,
   pendingFeed,
   nextCursor,
+  aiFilterBrief,
   aiFilterSummary,
   aiFilterSummaryDateLabel,
   bookmarkIdSet,
@@ -45,6 +46,10 @@ const HomeView = ({
   const hasHomeSecondaryActions = originalFeedLength > 0 || deletedFeedLength > 0;
   const showHomeFeedToolbar = feed.length > 0 || isFiltered;
   const normalizedAiFilterSummary = normalizeSummaryMarkdown(aiFilterSummary);
+  const hasStructuredAiBrief = Boolean(
+    aiFilterBrief?.headline &&
+    (aiFilterBrief?.matchedSignals?.length || aiFilterBrief?.whyNow || aiFilterBrief?.decisionNote),
+  );
   const effectiveBookmarkIdSet = useMemo(() => bookmarkIdSet ?? new Set(), [bookmarkIdSet]);
   const effectiveWatchlistHandleSet = useMemo(
     () => watchlistHandleSet ?? new Set(),
@@ -53,6 +58,21 @@ const HomeView = ({
   const freshFeedIdSet = useMemo(() => new Set((freshFeedIds ?? []).map((id) => String(id))), [freshFeedIds]);
 
   if (!isVisible) return null;
+
+  const briefSections = hasStructuredAiBrief
+    ? [
+      {
+        key: 'matched',
+        title: 'What Matched',
+        items: aiFilterBrief?.matchedSignals || [],
+      },
+      {
+        key: 'excluded',
+        title: 'What Was Excluded',
+        items: aiFilterBrief?.excludedSignals || [],
+      },
+    ].filter((section) => section.items.length > 0)
+    : [];
 
   return (
     <div className="animate-fade-in">
@@ -217,11 +237,81 @@ const HomeView = ({
             </button>
           </div>
 
-          <div
-            className="markdown-body search-summary-content"
-            style={{ fontSize: '15px', lineHeight: '1.8', color: 'rgba(255,255,255,0.9)', position: 'relative', zIndex: 1 }}
-            dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(normalizedAiFilterSummary) }}
-          />
+          {hasStructuredAiBrief ? (
+            <div
+              className="foro-filter-brief"
+              style={{ position: 'relative', zIndex: 1, display: 'grid', gap: '16px' }}
+            >
+              <div style={{ display: 'grid', gap: '10px' }}>
+                <div
+                  style={{
+                    fontSize: '26px',
+                    lineHeight: '1.35',
+                    fontWeight: '800',
+                    letterSpacing: '-0.03em',
+                    color: '#fff',
+                  }}
+                >
+                  {aiFilterBrief.headline}
+                </div>
+                {aiFilterBrief.whyNow && (
+                  <div
+                    style={{
+                      fontSize: '14px',
+                      lineHeight: '1.7',
+                      color: 'rgba(255,255,255,0.72)',
+                      maxWidth: '840px',
+                    }}
+                  >
+                    {aiFilterBrief.whyNow}
+                  </div>
+                )}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {aiFilterBrief.confidenceLabel && (
+                    <div className="foro-filter-meta-pill">ความมั่นใจ {aiFilterBrief.confidenceLabel}</div>
+                  )}
+                  <div className="foro-filter-meta-pill">คัดได้ {feed.length} เรื่อง</div>
+                </div>
+              </div>
+
+              {briefSections.length > 0 && (
+                <div
+                  className="foro-filter-brief-grid"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                    gap: '14px',
+                  }}
+                >
+                  {briefSections.map((section) => (
+                    <div key={section.key} className="foro-filter-brief-card">
+                      <div className="foro-filter-brief-title">{section.title}</div>
+                      <div className="foro-filter-brief-list">
+                        {section.items.map((item) => (
+                          <div key={item} className="foro-filter-brief-item">{item}</div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {aiFilterBrief.decisionNote && (
+                <div className="foro-filter-decision-note">
+                  <div className="foro-filter-brief-title">Decision Note</div>
+                  <div style={{ fontSize: '14px', lineHeight: '1.7', color: 'rgba(255,255,255,0.84)' }}>
+                    {aiFilterBrief.decisionNote}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div
+              className="markdown-body search-summary-content"
+              style={{ fontSize: '15px', lineHeight: '1.8', color: 'rgba(255,255,255,0.9)', position: 'relative', zIndex: 1 }}
+              dangerouslySetInnerHTML={{ __html: renderMarkdownToHtml(normalizedAiFilterSummary) }}
+            />
+          )}
 
           <div
             style={{

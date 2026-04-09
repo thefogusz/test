@@ -26,7 +26,7 @@ const AiFilterModal = ({
             <FilterIcon size={17} />
           </div>
           <div className="ai-filter-modal-heading">
-            <div className="ai-filter-modal-eyebrow">Smart Filter</div>
+            <div className="ai-filter-modal-eyebrow">Analysis Mode</div>
             <div className="modal-title">FORO Filter</div>
             <div className="ai-filter-modal-hint">บอก FORO ว่าอยากเห็นสัญญาณแบบไหนในฟีดนี้</div>
           </div>
@@ -36,7 +36,7 @@ const AiFilterModal = ({
           <div className="ai-filter-section">
             <div className="ai-filter-section-header">
               <div>
-                <div className="ai-filter-section-title">Preset</div>
+                <div className="ai-filter-section-title">Modes</div>
                 <div className="ai-filter-section-copy">
                   แตะเพื่อใส่ prompt ทันที แล้วเลือกอันที่อยากโชว์บนหน้า Today
                 </div>

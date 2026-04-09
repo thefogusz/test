@@ -1656,6 +1656,125 @@ ${preferCredibleSources ? '- Prioritize topic fit first, then strictly prefer cr
   }
 };
 
+export const buildForoFilterBriefMarkdown = (brief, userQuery = '', filteredCount = 0) => {
+  if (!brief) return '';
+
+  const safeHeadline = cleanGeneratedContent(brief.headline || '');
+  const safeWhyNow = cleanGeneratedContent(brief.whyNow || '');
+  const safeDecisionNote = cleanGeneratedContent(brief.decisionNote || '');
+  const matchedSignals = Array.isArray(brief.matchedSignals)
+    ? brief.matchedSignals.map((item) => cleanGeneratedContent(item || '')).filter(Boolean)
+    : [];
+  const excludedSignals = Array.isArray(brief.excludedSignals)
+    ? brief.excludedSignals.map((item) => cleanGeneratedContent(item || '')).filter(Boolean)
+    : [];
+  const confidenceLabel = cleanGeneratedContent(brief.confidenceLabel || '');
+
+  return [
+    safeHeadline,
+    safeWhyNow ? `## Why It Matters\n${safeWhyNow}` : '',
+    matchedSignals.length
+      ? `## What Matched\n${matchedSignals.map((item) => `- ${item}`).join('\n')}`
+      : '',
+    excludedSignals.length
+      ? `## What Was Excluded\n${excludedSignals.map((item) => `- ${item}`).join('\n')}`
+      : '',
+    safeDecisionNote ? `## Decision Note\n${safeDecisionNote}` : '',
+    confidenceLabel
+      ? `Confidence: ${confidenceLabel}${filteredCount ? ` • ${filteredCount} picks` : ''}${userQuery ? ` • Query: ${userQuery}` : ''}`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+    .trim();
+};
+
+export const generateForoFilterBrief = async (validTweets, userQuery, options = {}) => {
+  if (!validTweets?.length) return null;
+
+  const safeQuery = sanitizeForPrompt(userQuery, 260);
+  const focusMode = sanitizeForPrompt(String(options.focusMode || ''), 80);
+  const candidates = validTweets.slice(0, 8);
+
+  const cacheKey = buildCacheKey('foro-filter-brief-v1', {
+    safeQuery,
+    focusMode,
+    tweets: candidates.map((tweet) => ({
+      id: tweet.id,
+      citation: tweet.citation_id,
+      text: normalizeCacheText(tweet.text || tweet.summary || ''),
+      reasoning: normalizeCacheText(tweet.ai_reasoning || ''),
+      temporalTag: tweet.temporalTag || '',
+    })),
+  });
+  const cached = getCachedValue(responseCache, cacheKey);
+  if (cached) return cached;
+
+  const compressedInput = candidates
+    .map((tweet) => {
+      const sourceLabel =
+        String(tweet.sourceType || '').toLowerCase() === 'rss'
+          ? tweet.author?.name || tweet.author?.username || 'rss-source'
+          : tweet.author?.username
+            ? `@${tweet.author.username}`
+            : tweet.author?.name || 'unknown';
+
+      return [
+        `${tweet.citation_id || '[F?]'} | ${sourceLabel} | ${tweet.temporalTag || 'Related'}`,
+        tweet.ai_reasoning ? `Reason picked: ${sanitizeForPrompt(tweet.ai_reasoning, 160)}` : '',
+        `Content: ${sanitizeForPrompt(tweet.text || tweet.summary || '', 320)}`,
+      ]
+        .filter(Boolean)
+        .join('\n');
+    })
+    .join('\n---\n');
+
+  try {
+    const { object } = await generateObject({
+      model: grok(MODEL_NEWS_FAST),
+      system: `You create a compact "FORO Filter" decision brief for a news feed UI.
+
+Rules:
+- Return Thai only.
+- Be exact and grounded only in the provided picks.
+- headline: 1 short sentence describing the dominant signal across the filtered results.
+- whyNow: 1 short sentence explaining why this cluster matters right now.
+- matchedSignals: 2-4 bullets. Each bullet must mention a concrete angle or pattern and end with one or more citations like [F1] or [F2][F4].
+- excludedSignals: 1-2 bullets. Explain what kinds of items were not prioritized, based only on what the selected set implies. Keep this conservative and end with citations.
+- decisionNote: 1 short sentence telling the user how to use this filtered set, such as follow, monitor, or turn into content.
+- confidenceLabel: one short Thai label such as "สูง", "กลาง", or "สูงเพราะสัญญาณชัด"
+- Do not use markdown in field values.
+- Do not add periods at the end of Thai sentences.
+- Keep proper names in Latin script when needed.
+${focusMode ? `- Treat this as the preferred analysis mode: ${focusMode}` : ''}`,
+      prompt: `User filter query: ${safeQuery}\n\nSelected posts:\n${compressedInput}`,
+      schema: z.object({
+        headline: z.string().min(10).max(180),
+        whyNow: z.string().min(10).max(180),
+        matchedSignals: z.array(z.string().min(10).max(220)).min(2).max(4),
+        excludedSignals: z.array(z.string().min(10).max(220)).min(1).max(2),
+        decisionNote: z.string().min(10).max(180),
+        confidenceLabel: z.string().min(2).max(60),
+      }),
+      temperature: 0.15,
+    });
+
+    const payload = {
+      headline: cleanGeneratedContent(object.headline),
+      whyNow: cleanGeneratedContent(object.whyNow),
+      matchedSignals: (object.matchedSignals || []).map((item) => cleanGeneratedContent(item)).filter(Boolean),
+      excludedSignals: (object.excludedSignals || []).map((item) => cleanGeneratedContent(item)).filter(Boolean),
+      decisionNote: cleanGeneratedContent(object.decisionNote),
+      confidenceLabel: cleanGeneratedContent(object.confidenceLabel),
+    };
+
+    return setCachedValue(responseCache, cacheKey, payload, EXECUTIVE_SUMMARY_CACHE_TTL_MS);
+  } catch (error) {
+    console.warn('[GrokService] FORO filter brief failed:', error);
+    return null;
+  }
+};
+
 const URL_PATTERN = /https?:\/\/[^\s)\]]+/gi;
 
 const extractUrlsFromText = (text = '') =>

@@ -2003,6 +2003,61 @@ h6,
   color: #ef4444;
 }
 
+.foro-filter-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(41, 151, 255, 0.08);
+  border: 1px solid rgba(41, 151, 255, 0.14);
+  color: rgba(222, 239, 255, 0.88);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.foro-filter-brief-card,
+.foro-filter-decision-note {
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.015));
+}
+
+.foro-filter-brief-title {
+  margin-bottom: 10px;
+  color: rgba(138, 198, 255, 0.95);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.foro-filter-brief-list {
+  display: grid;
+  gap: 10px;
+}
+
+.foro-filter-brief-item {
+  position: relative;
+  padding-left: 16px;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.foro-filter-brief-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--accent-blue);
+  box-shadow: 0 0 12px rgba(41, 151, 255, 0.35);
+}
+
 .expert-username {
   font-size: 13px;
   color: var(--accent-secondary);

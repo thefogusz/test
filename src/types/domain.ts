@@ -131,5 +131,14 @@ export interface SearchHistoryEntry {
   lastUsedAt: string;
 }
 
+export interface ForoFilterBrief {
+  headline: string;
+  whyNow: string;
+  matchedSignals: string[];
+  excludedSignals: string[];
+  decisionNote: string;
+  confidenceLabel?: string;
+}
+
 export type ActiveView = 'home' | 'content' | 'read' | 'audience' | 'bookmarks' | 'pricing' | 'search';
 export type ContentTab = 'search' | 'create';

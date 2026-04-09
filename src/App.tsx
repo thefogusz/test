@@ -207,12 +207,17 @@ const App = () => {
     shouldRemove: shouldRemoveWhenFalsy,
   });
 
+  const DEFAULT_FILTER_ANALYSIS_PRESETS = [
+    'จับสัญญาณ breakout ที่เริ่มชัด',
+    'คัด policy และ risk ที่กระทบ AI',
+    'หา angle ที่เอาไปทำคอนเทนต์ได้',
+  ];
   const [filterModal, setFilterModal] = useState({ show: false, prompt: '' });
   const DEFAULT_QUICK_PRESETS = ['สรุป', 'หาโพสต์เด่น', 'โพสต์ไหนน่าทำคอนเทนต์'];
-  const [quickFilterPresets, setQuickFilterPresets] = usePersistentState(STORAGE_KEYS.quickFilterPresets, DEFAULT_QUICK_PRESETS);
+  const [quickFilterPresets, setQuickFilterPresets] = usePersistentState(STORAGE_KEYS.quickFilterPresets, DEFAULT_FILTER_ANALYSIS_PRESETS);
   const [quickFilterVisiblePresets, setQuickFilterVisiblePresets] = usePersistentState(
     STORAGE_KEYS.quickFilterVisiblePresets,
-    DEFAULT_QUICK_PRESETS.slice(0, 3),
+    DEFAULT_FILTER_ANALYSIS_PRESETS.slice(0, 3),
   );
   const [readFilters, setReadFilters] = useState({ view: false, engagement: false });
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
@@ -221,6 +226,7 @@ const App = () => {
   // --- Composed Hooks ---
   const {
     activeFilters,
+    aiFilterBrief,
     aiFilterSummary,
     applyAiFilter,
     clearAiFilter,
@@ -426,6 +432,20 @@ const App = () => {
   );
 
   useEffect(() => {
+    setQuickFilterPresets((prev) => {
+      if (!Array.isArray(prev) || prev.length !== DEFAULT_QUICK_PRESETS.length) return prev;
+      const isLegacyDefault = prev.every((preset, index) => preset === DEFAULT_QUICK_PRESETS[index]);
+      return isLegacyDefault ? DEFAULT_FILTER_ANALYSIS_PRESETS : prev;
+    });
+    setQuickFilterVisiblePresets((prev) => {
+      if (!Array.isArray(prev) || prev.length !== DEFAULT_QUICK_PRESETS.slice(0, 3).length) return prev;
+      const legacyVisible = DEFAULT_QUICK_PRESETS.slice(0, 3);
+      const isLegacyDefault = prev.every((preset, index) => preset === legacyVisible[index]);
+      return isLegacyDefault ? DEFAULT_FILTER_ANALYSIS_PRESETS.slice(0, 3) : prev;
+    });
+  }, [setQuickFilterPresets, setQuickFilterVisiblePresets]);
+
+  useEffect(() => {
     setQuickFilterVisiblePresets((prev) => {
       const next = prev.filter((preset) => quickFilterPresets.includes(preset)).slice(0, 3);
       if (next.length === prev.length && next.every((preset, index) => preset === prev[index])) return prev;
@@ -562,6 +582,7 @@ const App = () => {
             loading={loading}
             pendingFeed={pendingFeed}
             nextCursor={nextCursor}
+            aiFilterBrief={aiFilterBrief}
             aiFilterSummary={aiFilterSummary}
             aiFilterSummaryDateLabel={aiFilterSummaryDateLabel}
             bookmarkIdSet={bookmarkIdSet}

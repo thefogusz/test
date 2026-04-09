@@ -9,6 +9,8 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   agentFilterFeed,
+  buildForoFilterBriefMarkdown,
+  generateForoFilterBrief,
   generateExecutiveSummary,
   generateGrokBatch,
   generateGrokSummary,
@@ -78,6 +80,7 @@ export const useHomeFeedWorkspace = ({
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isFiltered, setIsFiltered] = useState(false);
   const [aiFilterSummary, setAiFilterSummary] = useState('');
+  const [aiFilterBrief, setAiFilterBrief] = useState(null);
   const [freshFeedIds, setFreshFeedIds] = useState<string[]>([]);
 
   const isSummarizingRef = useRef(false);
@@ -658,6 +661,7 @@ export const useHomeFeedWorkspace = ({
       if (!prompt) return;
 
       setStatus('AI กำลังวิเคราะห์และคัดกรองเนื้อหา...');
+      setAiFilterBrief(null);
       const sourceFeed = deriveVisibleFeed({
         activeFilters,
         activeListId,
@@ -690,10 +694,20 @@ export const useHomeFeedWorkspace = ({
 
       if (filteredResult.length > 0) {
         setStatus('กำลังวิเคราะห์บทสรุปสำหรับคุณ...');
-        const summary = await generateExecutiveSummary(filteredResult.slice(0, 8), prompt, undefined);
-        setAiFilterSummary(summary);
+        const brief = await generateForoFilterBrief(filteredResult.slice(0, 8), prompt, {
+          focusMode: prompt,
+        });
+        if (brief) {
+          setAiFilterBrief(brief);
+          setAiFilterSummary(buildForoFilterBriefMarkdown(brief, prompt, filteredResult.length));
+        } else {
+          const summary = await generateExecutiveSummary(filteredResult.slice(0, 8), prompt, undefined);
+          setAiFilterBrief(null);
+          setAiFilterSummary(summary);
+        }
         setStatus(`กรองสำเร็จ! พบ ${filteredResult.length} โพสต์ที่ตรงตามเจตนาของคุณ`);
       } else {
+        setAiFilterBrief(null);
         setAiFilterSummary('');
         setStatus('ไม่พบโพสต์ที่ตรงตามเงื่อนไข ลองปรับคำสั่งกรองใหม่');
       }
@@ -712,6 +726,7 @@ export const useHomeFeedWorkspace = ({
     setPendingFeed([]);
     setNextCursor(null);
     setIsFiltered(false);
+    setAiFilterBrief(null);
     setAiFilterSummary('');
     setFreshFeedIds([]);
     setOriginalFeed([]);
@@ -734,6 +749,7 @@ export const useHomeFeedWorkspace = ({
 
   const clearAiFilter = () => {
     setIsFiltered(false);
+    setAiFilterBrief(null);
     setAiFilterSummary('');
     setOriginalFeed((prev) => [...prev]);
     setStatus('ล้างตัวกรองแล้ว');
@@ -741,6 +757,7 @@ export const useHomeFeedWorkspace = ({
 
   return {
     activeFilters,
+    aiFilterBrief,
     aiFilterSummary,
     applyAiFilter: aiFilterMutation.mutateAsync,
     clearAiFilter,
