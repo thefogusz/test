@@ -286,14 +286,14 @@ Feature entry:
 Flow:
 
 1. X search for active accounts
-2. Tavily `basic` search for canonical expert lists
+2. Optional Tavily `basic` search for canonical expert lists when deeper web verification is needed
 3. xAI reasoning to select final experts
 4. Extra X search may be used to verify recency/activity
 
 Direct external cost:
 
 - twitterapi.io tweet search
-- Tavily basic search
+- optional Tavily basic search
 - xAI reasoning call
 
 Cost formula:
@@ -301,7 +301,7 @@ Cost formula:
 ```text
 audience_ai_cost
   = twitter_search_cost
-  + tavily_basic_cost
+  + optional_tavily_basic_cost
   + xai_reasoning_cost
 ```
 
@@ -450,7 +450,7 @@ regenerate_cost
 | Load More | Yes | No | Yes | No |
 | AI Feed Filter | No | No | Yes | No |
 | Search | Yes | Sometimes | Yes | Usually no |
-| Audience AI Discovery | Yes | Yes | Yes | No |
+| Audience AI Discovery | Yes | Sometimes | Yes | No |
 | Audience Manual Search | Yes | No | No | No |
 | Content Generation | Yes or No | Yes | Yes | Sometimes yes |
 | Regenerate Content | No | No | Yes | Sometimes yes |
