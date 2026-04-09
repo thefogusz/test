@@ -1,68 +1,74 @@
-# Feature Doc Template
+# Template เอกสารฟีเจอร์
 
-Copy this structure when adding a new feature page in `docs/features/`.
+คัดโครงนี้ไปใช้เวลาเพิ่มหน้าใหม่ใน `docs/features/`
 
 ```md
-# Feature Name
+# ชื่อฟีเจอร์
 
-## Purpose
+## เป้าหมายของฟีเจอร์
 
-Why this feature exists and what user problem it solves.
+ฟีเจอร์นี้มีไว้เพื่ออะไร และแก้ปัญหาอะไรให้ผู้ใช้
 
-## Current Behavior
+## พฤติกรรมปัจจุบัน
 
-- Describe the real behavior in production or on the current branch.
-- Focus on what devs should preserve.
+- อธิบาย behavior ที่เกิดขึ้นจริงบน branch ปัจจุบัน
+- เน้นสิ่งที่ dev ต้องรักษาไว้ไม่ให้พัง
 
-## User Flow
+## ลำดับการใช้งานหลัก
 
-1. User starts here.
-2. User takes an action.
-3. System responds.
+1. ผู้ใช้เริ่มตรงไหน
+2. ผู้ใช้ทำอะไร
+3. ระบบตอบสนองยังไง
 
-## Core Rules
+## กฎสำคัญที่ห้ามหลุด
 
-- Business rules
-- Limits
-- Important assumptions
+- business rules
+- limits
+- assumptions สำคัญ
 
-## UI States
+## UI States ที่ต้องนึกถึงเวลาแก้
 
 - Loading
 - Empty
 - Success
 - Error
 
-## Main Files
+## ไฟล์หลักที่เกี่ยวข้อง
 
 - `src/...`
 - `server/...`
 
-## Dependencies
+## Dependency สำคัญ
 
 - APIs
 - state hooks
 - background jobs
 
-## Out of Scope
+## สิ่งที่ฟีเจอร์นี้ไม่ได้เป็นเจ้าของ
 
-- Call out what this feature does not own.
+- ระบุให้ชัดว่าฟีเจอร์นี้ไม่ได้ดูแลอะไรบ้าง
+
+## สัญญาณว่าควรอัปเดตเอกสารหน้านี้
+
+- มีการเปลี่ยน flow หรือ rules
+- มี state ใหม่
+- มีข้อจำกัดใหม่
 
 ## Change Log
 
-- YYYY-MM-DD: Short note.
+- YYYY-MM-DD: บันทึกสั้นๆ
 ```
 
-## Naming Suggestion
+## คำแนะนำเรื่องการตั้งชื่อ
 
-Use one page per feature area, not one page per component.
+ให้ใช้หนึ่งหน้าต่อหนึ่ง feature area ไม่ใช่หนึ่งหน้าต่อหนึ่ง component
 
-Good:
+ตัวอย่างที่ดี:
 
 - `docs/features/home-feed.md`
 - `docs/features/news-sources.md`
 
-Avoid:
+ตัวอย่างที่ควรเลี่ยง:
 
 - `docs/features/button.md`
 - `docs/features/sidebar-icon.md`

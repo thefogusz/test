@@ -13,6 +13,8 @@ dist-ssr
 /tmp
 /tmp-home-toolbar-check.png
 *.local
+docs/.vitepress/cache/
+docs/.vitepress/data/docs-status.json
 
 # Editor directories and files
 .vscode/*

@@ -1,29 +1,35 @@
-# Feature Docs
+# เอกสารฟีเจอร์
 
-These pages are the product source of truth for how Foro behaves today.
+หน้าในหมวดนี้คือ source of truth ของพฤติกรรมจริงใน Foro ณ ตอนนี้
 
-Use feature docs when you need to answer:
+เปิด feature docs เมื่อต้องการตอบคำถามพวกนี้:
 
-- What does this feature do right now?
-- Which states and rules should devs preserve?
-- Which files and hooks are most likely involved?
-- Is a new request a bug fix, a polish pass, or a behavior change?
+- ฟีเจอร์นี้ตอนนี้ทำอะไรอยู่จริง
+- มี state หรือ business rule อะไรที่ห้ามทำพัง
+- ไฟล์หรือ hook ไหนน่าจะเกี่ยวมากที่สุด
+- คำขอใหม่เป็น bug fix, งาน polish หรือเป็น behavior change กันแน่
 
-## Working Rule
+## กติกาการใช้งาน
 
-If a pull request changes user-facing behavior, business rules, empty/loading/error states, or integration expectations, update the matching feature doc in the same PR.
+ถ้า PR เปลี่ยนพฤติกรรมที่ผู้ใช้เห็น เปลี่ยน business rule เปลี่ยน loading/empty/error state หรือเปลี่ยน expectation ของ integration ต้องอัปเดตหน้า feature doc ที่เกี่ยวข้องใน PR เดียวกัน
 
-If a feature does not exist here yet, create a new page from the template in [Feature Doc Template](/process/feature-template).
+ถ้ายังไม่มีหน้าของฟีเจอร์นั้น ให้สร้างหน้าใหม่จาก [Template เอกสารฟีเจอร์](/process/feature-template)
 
-## Current Feature Set
+## ฟีเจอร์ที่มีเอกสารแล้ว
+
+หมายเหตุ: หน้าที่มีอยู่ตอนนี้ผ่านการไล่เทียบกับโค้ดของ workspaces หลักในรอบนี้แล้ว แต่ยังไม่ครอบคลุมทุก view ของแอปทั้งหมด เช่น `read`, `bookmarks`, `pricing` และ flow ย่อยบางส่วนยังควรมีหน้าแยกเพิ่ม
 
 - [Home Feed](/features/home-feed)
 - [Content Workspace](/features/content-workspace)
+- [Read Workspace](/features/read-workspace)
 - [News Sources](/features/news-sources)
 - [Audience Workspace](/features/audience-workspace)
+- [Bookmarks Workspace](/features/bookmarks-workspace)
+- [Pricing Workspace](/features/pricing-workspace)
 
-## Related Docs
+## เอกสารที่เกี่ยวข้อง
 
-- [Docs Governance](/process/docs-governance)
-- [Decision Index](/decisions/)
+- [กติกาการอัปเดต Docs](/process/docs-governance)
+- [สารบัญ Decision Log](/decisions/)
+- [สถานะ Docs และ Coverage](/status/)
 - [Architecture Overview](/architecture/overview)

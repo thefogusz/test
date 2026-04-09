@@ -1,14 +1,14 @@
-# Decision Index
+# สารบัญ Decision Log
 
-Decision logs capture why a behavior exists when that reasoning is easy to forget after a few weeks of fast iteration.
+Decision log ใช้เก็บเหตุผลของ behavior ที่ทีมอาจลืมได้ง่ายหลังจากมีการเปลี่ยนเร็วหลายรอบ
 
-Add a decision log when:
+ควรเพิ่ม decision log เมื่อ:
 
-- product direction changed mid-build
-- a feature intentionally behaves in a surprising way
-- the team accepted a tradeoff to ship faster
-- a new teammate would likely ask "why is it like this?"
+- ทิศทาง product เปลี่ยนระหว่างทำ
+- ฟีเจอร์มี behavior ที่ดูแปลกแต่ตั้งใจให้เป็นแบบนั้น
+- ทีมยอมรับ tradeoff บางอย่างเพื่อให้ ship ได้เร็ว
+- มีโอกาสสูงที่คนมาใหม่จะถามว่า "ทำไมมันเป็นแบบนี้"
 
-Use the template in [Decision Log Template](/process/decision-template) for new entries.
+ใช้ [Template Decision Log](/process/decision-template) เวลาจะเพิ่มรายการใหม่
 
-No formal decision logs have been added yet. Start here the next time a feature change needs rationale that should outlive chat threads.
+ตอนนี้ยังไม่มี decision log แบบเป็นทางการเพิ่มเข้ามา หน้าแรกที่ควรเริ่มใช้คือครั้งถัดไปที่มีการเปลี่ยนฟีเจอร์แล้วทีมต้องการเก็บเหตุผลให้ยาวกว่าบทสนทนาในแชต

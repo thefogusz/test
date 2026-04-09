@@ -3,35 +3,39 @@ layout: home
 
 hero:
   name: "Foro Docs"
-  text: "Living product and engineering docs"
-  tagline: "Built so devs can open one place and understand what the app does today, even when ideas keep moving."
+  text: "เอกสาร product และ engineering ที่อิงของจริง"
+  tagline: "ทำให้ dev เปิดที่เดียวแล้วเข้าใจได้ว่าระบบตอนนี้ทำอะไรอยู่จริง แม้ requirement หรือไอเดียจะเปลี่ยนระหว่างทาง"
   actions:
     - theme: brand
-      text: Start Here
+      text: เริ่มอ่าน
       link: /getting-started
     - theme: alt
-      text: Feature Docs
+      text: เอกสารฟีเจอร์
       link: /features/
     - theme: alt
-      text: Docs Governance
+      text: กติกา Docs
       link: /process/docs-governance
 
 features:
-  - title: Product Source Of Truth
-    details: Feature pages capture current behavior, rules, states, and ownership so implementation does not drift with chat.
-  - title: Built For Fast Teams
-    details: Architecture pages explain the system, while feature docs explain what should stay true during rapid iteration.
-  - title: PR-Friendly
-    details: Docs updates now have a lightweight governance rule and pull request checklist so behavior changes ship with matching docs.
+  - title: Source Of Truth ของฟีเจอร์
+    details: หน้า feature docs จะบอก behavior, rules, states และจุดที่เกี่ยวข้องกับ implementation เพื่อให้ dev ไม่ต้องเดาจากแชตย้อนหลัง
+  - title: ใช้กับทีมที่เปลี่ยนเร็วได้
+    details: หน้า architecture อธิบายโครงระบบ ส่วน feature docs อธิบายของจริงที่ยังต้องรักษาไว้ระหว่างรอบแก้งานเร็วๆ
+  - title: ผูกกับ PR ได้เลย
+    details: ตอนนี้มีทั้งกติกาและ checklist สำหรับ PR เพื่อให้การเปลี่ยน behavior ไปพร้อมกับการอัปเดต docs
 ---
 
-## Use This Site In Layers
+## วิธีใช้ docs ชุดนี้
 
-Start with [Getting Started](/getting-started), then open the matching page in [Feature Docs](/features/) for the area you are changing.
+เริ่มจาก [Getting Started](/getting-started) เพื่อจับภาพรวมก่อน แล้วค่อยเปิดหน้าใน [เอกสารฟีเจอร์](/features/) ให้ตรงกับส่วนที่กำลังจะแก้
 
-If a behavior changed because of a product tradeoff, capture the reason in [Decision Index](/decisions/). Keep architecture pages focused on implementation structure, not moving product requirements.
+ถ้าพฤติกรรมของระบบเปลี่ยนเพราะมี tradeoff หรือการตัดสินใจเชิง product ให้บันทึกเหตุผลไว้ใน [สารบัญ Decision Log](/decisions/) เพื่อให้ทีมรุ่นถัดไปไม่ต้องเดาว่าทำไมถึงเลือกแบบนี้
 
-## Commands
+หน้า architecture ควรใช้ตอบคำถามว่า "ระบบต่อกันยังไง" ส่วนหน้า feature docs ควรใช้ตอบคำถามว่า "ของที่ผู้ใช้เจอตอนนี้ควรทำงานยังไง"
+
+ถ้าต้องการดูว่าเอกสารตาม code ทันไหมหรือฟีเจอร์ไหนเพิ่งถูกอัปเดต ให้เปิด [สถานะ Docs และ Coverage](/status/) ซึ่งจะสรุปจาก Git และไฟล์ feature registry ของ repo นี้โดยตรง
+
+## คำสั่งที่ใช้
 
 ```bash
 npm run docs:dev

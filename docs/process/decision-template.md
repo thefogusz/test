@@ -1,13 +1,13 @@
-# Decision Log Template
+# Template Decision Log
 
-Use a decision log when the team needs to remember why a behavior works the way it does.
+ใช้ decision log เมื่อทีมต้องการเก็บเหตุผลว่า "ทำไมฟีเจอร์นี้ถึงทำงานแบบนี้"
 
-Suggested file name:
+ชื่อไฟล์ที่แนะนำ:
 
 `docs/decisions/YYYY-MM-DD-short-title.md`
 
 ```md
-# Decision: Short Title
+# Decision: ชื่อสั้นๆ
 
 ## Status
 
@@ -15,17 +15,17 @@ Accepted
 
 ## Context
 
-What problem or instability forced this decision?
+มีปัญหา ความเสี่ยง หรือความไม่นิ่งอะไรที่ทำให้ต้องตัดสินใจแบบนี้
 
 ## Decision
 
-What did the team choose?
+ทีมเลือกทำอะไร
 
 ## Consequences
 
-- What gets simpler?
-- What becomes harder?
-- What should future devs watch for?
+- อะไรง่ายขึ้น
+- อะไรยากขึ้น
+- dev รุ่นต่อไปควรระวังอะไร
 
 ## Related Features
 

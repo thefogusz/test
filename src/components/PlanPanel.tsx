@@ -25,7 +25,6 @@ type PlanPanelProps = {
   remainingUsage: Record<MeteredFeature, number>;
   usageLimits: Record<MeteredFeature, number>;
   onSwitchPlan: (planId: PlanId) => void | Promise<void>;
-  onResetUsage: () => void;
   onOpenPricing: () => void;
   planNotice?: PlanNotice;
   onClearPlanNotice: () => void;
@@ -50,6 +49,14 @@ const MOCK_USER_CAPTIONS: Record<PlanId, string> = {
   free: 'Mockup - Free',
   plus: 'Mockup - Plus',
   admin: 'Internal mockup',
+};
+
+const getForoDocsUrl = () => {
+  const overrideUrl = import.meta.env.VITE_FORO_DOCS_URL?.trim();
+  if (overrideUrl) return overrideUrl;
+  if (typeof window === 'undefined') return '/test/docs/';
+
+  return new URL('docs/', new URL(import.meta.env.BASE_URL, window.location.origin)).toString();
 };
 
 const getPlusAccessBadgeLabel = (plusAccess?: PlusAccess) => {
@@ -83,13 +90,13 @@ const PlanPanel = ({
   remainingUsage,
   usageLimits,
   onSwitchPlan,
-  onResetUsage,
   onOpenPricing,
   plusAccess,
   defaultOpen = false,
   className = '',
 }: PlanPanelProps) => {
   const [isTesterOpen, setIsTesterOpen] = useState(defaultOpen);
+  const foroDocsUrl = getForoDocsUrl();
 
   const isPlusPlan = activePlanId === 'plus';
   const isLargePlanCard = activePlanId === 'free' || activePlanId === 'plus';
@@ -189,10 +196,10 @@ const PlanPanel = ({
           <div className="sidebar-user-actions compact">
             <button
               className="btn-pill"
-              onClick={onResetUsage}
+              onClick={() => window.location.assign(foroDocsUrl)}
               style={{ width: '100%', justifyContent: 'center' }}
             >
-              Reset usage
+              Foro Docs
             </button>
             <button
               className="btn-pill primary"

@@ -453,6 +453,12 @@ const createServerApp = ({
     }),
   );
 
+  app.use('/test/docs', express.static(path.join(rootDir, 'docs', '.vitepress', 'dist')));
+
+  app.get('/test/docs/*', (req, res) => {
+    res.sendFile(path.join(rootDir, 'docs', '.vitepress', 'dist', 'index.html'));
+  });
+
   app.use('/test', express.static(path.join(rootDir, 'dist')));
 
   app.get('/test/*', (req, res) => {

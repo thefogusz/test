@@ -1,16 +1,16 @@
-## Summary
+## สรุปงาน
 
-- What changed?
-- Why now?
+- เปลี่ยนอะไร
+- ทำไมต้องเปลี่ยนตอนนี้
 
-## Checks
+## Checklist
 
-- [ ] I updated docs in `docs/features/` if this PR changes product behavior, workflow, rules, or UI states.
-- [ ] I added or updated a decision log if this PR changes a meaningful product tradeoff.
-- [ ] I ran the relevant checks for this change.
+- [ ] ถ้า PR นี้เปลี่ยน behavior, workflow, rules หรือ UI states ของ product แล้ว ฉันได้อัปเดต docs ใน `docs/features/` แล้ว
+- [ ] ถ้า PR นี้เปลี่ยน tradeoff สำคัญของ product ฉันได้เพิ่มหรืออัปเดต decision log แล้ว
+- [ ] ฉันรัน checks ที่เกี่ยวข้องกับงานนี้แล้ว
 
-## Notes For Reviewers
+## หมายเหตุสำหรับ Reviewer
 
-- Feature docs touched:
-- Decisions touched:
-- Anything intentionally left out:
+- feature docs ที่แตะ:
+- decision logs ที่แตะ:
+- สิ่งที่ตั้งใจยังไม่ทำใน PR นี้:

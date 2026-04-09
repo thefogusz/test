@@ -16,6 +16,24 @@ Use the VitePress docs in `docs/` as the living source of truth for product beha
 
 When a PR changes user-facing behavior, business rules, workflow steps, or UI states, update the matching docs page in the same PR.
 
+แนวคิดนี้มีไว้เพื่อให้ทีม dev เปิด docs แล้วเข้าใจ "ของที่ระบบทำจริงตอนนี้" ได้โดยไม่ต้องไล่หา context จากแชตหรือ PR เก่า
+
+### Docs status dashboard
+
+Use the docs status generator to see which feature docs are current, which ones are behind source changes, and which app views still need coverage.
+
+```bash
+npm run docs:status
+```
+
+The dashboard is rendered at `/status/` inside the VitePress site and is regenerated automatically before `docs:dev`, `docs:build`, and `docs:preview`.
+
+### Serving docs with the app
+
+Production builds now include both the app and the docs site. The Express server serves the app at `/test` and Foro Docs at `/test/docs/`.
+
+If you need the in-app "Foro Docs" button to point somewhere else, set `VITE_FORO_DOCS_URL`.
+
 ## What Changed
 
 This codebase now supports two persistence modes:

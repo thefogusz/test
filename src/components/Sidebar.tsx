@@ -26,7 +26,6 @@ type SidebarProps = {
   usageLimits: Record<MeteredFeature, number>;
   dailyUsage: Record<MeteredFeature, number>;
   onSwitchPlan: (planId: PlanId) => void;
-  onResetUsage: () => void;
   onOpenPricing: () => void;
   planNotice?: { title: string; body: string; tone?: string } | null;
   onClearPlanNotice: () => void;
@@ -108,7 +107,6 @@ const Sidebar = ({
   usageLimits,
   dailyUsage: _dailyUsage,
   onSwitchPlan,
-  onResetUsage,
   onOpenPricing,
   planNotice,
   onClearPlanNotice,
@@ -191,7 +189,6 @@ const Sidebar = ({
           remainingUsage={remainingUsage}
           usageLimits={usageLimits}
           onSwitchPlan={onSwitchPlan}
-          onResetUsage={onResetUsage}
           onOpenPricing={() => {
             setIsPlanOpen(false);
             onOpenPricing();

@@ -65,7 +65,6 @@ const App = () => {
     canUseExportShare,
     handleSwitchPlan,
     handlePlanSelection,
-    handleResetUsage,
     setPlanNotice,
   } = useBilling({ setActiveView, setStatus });
 
@@ -532,7 +531,6 @@ const App = () => {
         usageLimits={currentPlan.usage}
         dailyUsage={dailyUsage}
         onSwitchPlan={handleSwitchPlan}
-        onResetUsage={handleResetUsage}
         onOpenPricing={openPricingView}
         planNotice={planNotice}
         onClearPlanNotice={() => setPlanNotice(null)}
