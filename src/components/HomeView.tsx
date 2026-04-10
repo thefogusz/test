@@ -48,14 +48,14 @@ const buildBriefClipboardText = (brief) => {
   const headline = parseBriefItem(brief.headline || '').text;
   const whyNow = parseBriefItem(brief.whyNow || '').text;
   const sections = normalizeBriefSections(brief);
+  const allItems = sections.flatMap((section) =>
+    section.items.map((item) => `- ${parseBriefItem(item).text}`).filter(Boolean),
+  );
 
   return [
     headline,
     whyNow,
-    ...sections.map((section) => [
-      section.title,
-      ...section.items.map((item) => `- ${parseBriefItem(item).text}`),
-    ].join('\n')),
+    allItems.join('\n'),
   ]
     .filter(Boolean)
     .join('\n\n')
