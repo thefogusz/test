@@ -1,0 +1,99 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - img "RO Logo" [ref=e6]
+    - navigation [ref=e7]:
+      - button "สรุปข่าววันนี้" [ref=e8] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: สรุปข่าววันนี้
+      - button "คอนเทนต์" [ref=e9] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: คอนเทนต์
+      - button "อ่านข่าว" [ref=e10] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: อ่านข่าว
+      - button "การติดตาม" [ref=e11] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: การติดตาม
+      - button "Bookmarks" [ref=e12] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: Bookmarks
+      - button "Pricing" [ref=e13] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: Pricing
+    - button "FG Foro Free Mockup - Free free" [ref=e16] [cursor=pointer]:
+      - generic [ref=e17]:
+        - generic [ref=e18]: FG
+        - generic [ref=e19]:
+          - generic [ref=e20]: Foro Free
+          - generic [ref=e22]: Mockup - Free
+      - generic [ref=e23]:
+        - generic [ref=e24]: free
+        - img [ref=e25]
+  - main [ref=e27]:
+    - generic [ref=e29]:
+      - generic [ref=e30]:
+        - generic [ref=e32]:
+          - generic [ref=e33]: WATCHLIST FEED
+          - heading "หน้าหลัก" [level=1] [ref=e34]
+        - generic [ref=e36]:
+          - button "FORO Filter" [ref=e37] [cursor=pointer]:
+            - generic [ref=e39]: FORO Filter
+          - button "ฟีดข้อมูล" [ref=e40] [cursor=pointer]:
+            - img [ref=e41]
+            - text: ฟีดข้อมูล
+      - heading "FORO ติดตามทุกเรื่องที่คุณสนใจ" [level=2] [ref=e49]
+  - generic [ref=e71]:
+    - generic [ref=e72]:
+      - img [ref=e74]
+      - generic [ref=e76]:
+        - generic [ref=e77]: Analysis Mode
+        - generic [ref=e78]: FORO Filter
+        - generic [ref=e79]: บอก FORO ว่าอยากให้ช่วยมองประเด็นนี้แบบไหน
+    - generic [ref=e80]:
+      - generic [ref=e82]:
+        - generic [ref=e83]: Preset
+        - generic [ref=e84]: แตะเพื่อใส่ prompt ได้ทันที แล้วค่อยกดกรอง
+      - generic [ref=e85]:
+        - generic [ref=e86]:
+          - button "สรุป" [active] [ref=e87] [cursor=pointer]
+          - button "ลบ preset" [ref=e89] [cursor=pointer]:
+            - img [ref=e90]
+        - generic [ref=e93]:
+          - button "หาโพสต์เด่น" [ref=e94] [cursor=pointer]
+          - button "ลบ preset" [ref=e96] [cursor=pointer]:
+            - img [ref=e97]
+        - generic [ref=e100]:
+          - button "โพสต์ไหนน่าทำคอนเทนต์" [ref=e101] [cursor=pointer]
+          - button "ลบ preset" [ref=e103] [cursor=pointer]:
+            - img [ref=e104]
+    - generic [ref=e107]:
+      - generic [ref=e109]:
+        - generic [ref=e110]: Prompt
+        - generic [ref=e111]: จะให้สรุป ขอความเห็น จัดอันดับ หา angle หรือคิดต่อจากข่าวที่คัดมาก็ได้
+      - textbox "เช่น ช่วยดูว่ากระแส AI ตอนนี้ไปทางไหน หรือคัดประเด็นที่น่าทำวิดีโอ" [ref=e112]: สรุป
+      - generic [ref=e114]: preset ด้านบนจะแสดงบนหน้า home อัตโนมัติ 3 อันแรก
+    - generic [ref=e115]:
+      - button "ยกเลิก" [ref=e116] [cursor=pointer]
+      - button "กรองฟีด" [ref=e117] [cursor=pointer]
+  - complementary [ref=e50]:
+    - generic [ref=e51]:
+      - generic [ref=e52] [cursor=pointer]:
+        - img [ref=e53]
+        - heading "Post list" [level=2] [ref=e55]
+      - button "จัดการ Post List" [ref=e57] [cursor=pointer]:
+        - img [ref=e58]
+    - generic [ref=e59]:
+      - button "สร้าง Post List" [ref=e61] [cursor=pointer]:
+        - img [ref=e62]
+        - text: สร้าง Post List
+      - generic [ref=e64]:
+        - img [ref=e65]
+        - generic [ref=e67]: ไม่มีรายการ Post list
+        - generic [ref=e68]: สร้างใหม่เพื่อจัดระเบียบแหล่งข้อมูลของคุณ
+        - button "สร้างลิสต์" [ref=e69] [cursor=pointer]

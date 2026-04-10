@@ -61,14 +61,6 @@ const buildBriefClipboardText = (brief) => {
     .trim();
 };
 
-const BRIEF_SECTION_TONES = [
-  { eyebrow: 'ภาพหลัก', hint: 'ประเด็นใหญ่ที่เห็นชัดจากข่าวและโพสต์ที่คัดมา', className: 'is-lead' },
-  { eyebrow: 'แรงส่ง', hint: 'รายละเอียดที่ทำให้ประเด็นนี้ชัดขึ้น', className: 'is-supporting' },
-  { eyebrow: 'จับตาต่อ', hint: 'มุมที่ควรตามต่อหลังจากนี้', className: 'is-watch' },
-];
-
-const getBriefSectionTone = (index) => BRIEF_SECTION_TONES[index] || BRIEF_SECTION_TONES[BRIEF_SECTION_TONES.length - 1];
-
 const HomeView = ({
   isVisible,
   currentActiveList,
@@ -131,7 +123,7 @@ const HomeView = ({
   );
   const freshFeedIdSet = useMemo(() => new Set((freshFeedIds ?? []).map((id) => String(id))), [freshFeedIds]);
   const hasVisibleFeed = feed.length > 0;
-  const shouldShowIncomingSkeletons = hasVisibleFeed && (isSyncing || isLoadingMore);
+  const shouldShowIncomingSkeletons = hasVisibleFeed && isLoadingMore;
   const incomingSkeletonCount = isCompactSkeletonLayout ? 2 : 4;
 
   useEffect(() => {
@@ -155,13 +147,12 @@ const HomeView = ({
 
   const normalizedActiveFilterPrompt = String(activeFilterPrompt || '').trim();
 
-  const outputLabel = aiFilterBrief?.outputLabel || 'ผลการวิเคราะห์';
   const briefHeadline = parseBriefItem(aiFilterBrief?.headline || '').text;
-  const briefWhyNow = parseBriefItem(aiFilterBrief?.whyNow || '').text;
-  const briefItemCount = briefSections.reduce((total, section) => total + section.items.length, 0);
-  const briefCitationCount = briefSections.reduce(
-    (total, section) => total + section.items.reduce((sectionTotal, item) => sectionTotal + parseBriefItem(item).citations.length, 0),
-    0,
+  const compactBriefItems = briefSections.flatMap((section) =>
+    section.items.map((item) => ({
+      key: `${section.title}-${item}`,
+      ...parseBriefItem(item),
+    })),
   );
 
   return (
@@ -215,42 +206,6 @@ const HomeView = ({
           </div>
 
           <div className={`home-ai-filter-cluster ${isFilterUiActive ? 'is-filtering' : ''}`}>
-            <div className="home-ai-filter-runway" aria-hidden="true">
-              <span className="home-ai-filter-runway-glow" />
-              <span className="home-ai-filter-runner-shadow" />
-              <span className="home-ai-filter-runner">
-                <span className="home-ai-filter-cat">
-                  <span className="home-ai-filter-cat-tail" />
-                  <span className="home-ai-filter-cat-body">
-                    <span className="home-ai-filter-cat-ear home-ai-filter-cat-ear-left" />
-                    <span className="home-ai-filter-cat-ear home-ai-filter-cat-ear-right" />
-                    <span className="home-ai-filter-cat-face">
-                      <span className="home-ai-filter-cat-eye home-ai-filter-cat-eye-left">
-                        <span className="home-ai-filter-cat-pupil" />
-                      </span>
-                      <span className="home-ai-filter-cat-eye home-ai-filter-cat-eye-right">
-                        <span className="home-ai-filter-cat-pupil" />
-                      </span>
-                      <span className="home-ai-filter-cat-nose" />
-                      <span className="home-ai-filter-cat-whiskers home-ai-filter-cat-whiskers-left">
-                        <span />
-                        <span />
-                        <span />
-                      </span>
-                      <span className="home-ai-filter-cat-whiskers home-ai-filter-cat-whiskers-right">
-                        <span />
-                        <span />
-                        <span />
-                      </span>
-                    </span>
-                    <span className="home-ai-filter-cat-paws">
-                      <span className="home-ai-filter-cat-paw home-ai-filter-cat-paw-front" />
-                      <span className="home-ai-filter-cat-paw home-ai-filter-cat-paw-back" />
-                    </span>
-                  </span>
-                </span>
-              </span>
-            </div>
             {feed.length > 0 && !isFiltered && visibleQuickPresets.length > 0 && (
               <div className="home-ai-quick-presets">
                 {visibleQuickPresets.map((preset) => (
@@ -368,70 +323,25 @@ const HomeView = ({
           {hasStructuredAiBrief ? (
             <div
               className="foro-filter-brief"
-              style={{ position: 'relative', zIndex: 1, display: 'grid', gap: '18px' }}
+              style={{ position: 'relative', zIndex: 1, display: 'grid', gap: '14px' }}
             >
-              <div className="foro-filter-hero">
-                <div className="foro-filter-hero-copy">
-                  <div className="foro-filter-kicker-row">
-                    <div className="foro-filter-kicker">อ่านภาพรวมก่อน แล้วค่อยไล่ลงรายละเอียด</div>
-                    <div className="foro-filter-meta-pill foro-filter-output-pill">{outputLabel}</div>
-                  </div>
-                  <div className="foro-filter-hero-headline">{briefHeadline}</div>
-                  {briefWhyNow && (
-                    <div className="foro-filter-hero-why">{briefWhyNow}</div>
-                  )}
-                </div>
-                <div className="foro-filter-hero-rail">
-                  <div className="foro-filter-hero-stat">
-                    <span className="foro-filter-hero-stat-value">{briefSections.length}</span>
-                    <span className="foro-filter-hero-stat-label">แกนเรื่อง</span>
-                  </div>
-                  <div className="foro-filter-hero-stat">
-                    <span className="foro-filter-hero-stat-value">{briefItemCount}</span>
-                    <span className="foro-filter-hero-stat-label">ประเด็นคัดแล้ว</span>
-                  </div>
-                  <div className="foro-filter-hero-stat">
-                    <span className="foro-filter-hero-stat-value">{briefCitationCount}</span>
-                    <span className="foro-filter-hero-stat-label">จุดอ้างอิง</span>
-                  </div>
-                </div>
-              </div>
-
-              {briefSections.length > 0 && (
-                <div className="foro-filter-brief-card foro-filter-brief-stage">
-                  <div className="foro-filter-brief-sections">
-                    {briefSections.map((section, index) => {
-                      const tone = getBriefSectionTone(index);
-                      return (
-                        <div key={`${outputLabel}-${section.title}`} className={`foro-filter-brief-section ${tone.className}`}>
-                          <div className="foro-filter-brief-section-top">
-                            <div className="foro-filter-brief-eyebrow">{tone.eyebrow}</div>
-                            <div className="foro-filter-brief-hint">{tone.hint}</div>
-                          </div>
-                          <div className="foro-filter-brief-title">{section.title}</div>
-                          <div className="foro-filter-brief-list">
-                            {section.items.map((item) => {
-                              const parsedItem = parseBriefItem(item);
-                              return (
-                                <div key={`${section.title}-${item}`} className="foro-filter-brief-item">
-                                  <span className="foro-filter-brief-item-text">{parsedItem.text}</span>
-                                  {parsedItem.citations.length > 0 && (
-                                    <span className="foro-filter-brief-citations">
-                                      {parsedItem.citations.map((citation) => (
-                                        <span key={`${section.title}-${item}-${citation}`} className="reference-badge foro-filter-brief-citation-badge">
-                                          {citation.replaceAll('[', '').replaceAll(']', '')}
-                                        </span>
-                                      ))}
-                                    </span>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+              {briefHeadline && <div className="foro-filter-compact-headline">{briefHeadline}</div>}
+              {compactBriefItems.length > 0 && (
+                <div className="foro-filter-compact-list">
+                  {compactBriefItems.map((item, index) => (
+                    <div key={`${item.key}-${index}`} className="foro-filter-compact-item">
+                      <span className="foro-filter-compact-item-text">{item.text}</span>
+                      {item.citations.length > 0 && (
+                        <span className="foro-filter-brief-citations">
+                          {item.citations.map((citation) => (
+                            <span key={`${item.key}-${citation}`} className="reference-badge foro-filter-brief-citation-badge">
+                              {citation.replaceAll('[', '').replaceAll(']', '')}
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
