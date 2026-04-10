@@ -1,0 +1,52 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic "Profile navigation" [ref=e89]:
+      - generic [ref=e90]:
+        - button "รายละเอียด" [pressed] [ref=e91]:
+          - generic [ref=e92]: รายละเอียด
+        - button "Pricing" [ref=e93]:
+          - generic [ref=e94]: Pricing
+        - button "การติดตาม" [ref=e95]:
+          - generic [ref=e96]: การติดตาม
+    - navigation [ref=e24]:
+      - button "หน้าหลัก" [ref=e25] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: สรุปข่าววันนี้ หน้าหลัก
+      - button "ค้นหา" [ref=e26] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: คอนเทนต์ ค้นหา
+      - button "อ่านข่าว" [ref=e27] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: อ่านข่าว อ่านข่าว
+      - text: การติดตาม Bookmarks
+      - button "โปรไฟล์" [active] [ref=e28] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: Pricing โปรไฟล์
+  - main [ref=e29]:
+    - generic [ref=e98]:
+      - generic [ref=e99]:
+        - generic [ref=e100]: แพ็กเกจ FORO
+        - generic [ref=e101]:
+          - img [ref=e102]
+          - text: Free
+      - generic [ref=e105]:
+        - heading "เลือกแพ็กที่เหมาะกับคุณ" [level=1] [ref=e106]
+        - paragraph [ref=e107]: เลือกตามปริมาณการใช้งานต่อวัน พื้นที่จัดการงาน และความต่อเนื่องของ workflow ที่คุณต้องการ
+      - generic [ref=e108]:
+        - button "free" [ref=e109] [cursor=pointer]
+        - button "plus" [ref=e110] [cursor=pointer]
+        - button "admin" [ref=e111] [cursor=pointer]
+      - generic [ref=e112]:
+        - generic [ref=e114]:
+          - generic [ref=e115]: Feed
+          - strong [ref=e116]: 5/5
+        - generic [ref=e119]:
+          - generic [ref=e120]: Search
+          - strong [ref=e121]: 1/1
+        - generic [ref=e124]:
+          - generic [ref=e125]: Generate
+          - strong [ref=e126]: 1/1

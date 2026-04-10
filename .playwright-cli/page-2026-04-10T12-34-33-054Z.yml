@@ -1,0 +1,104 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic "Profile navigation" [ref=e85]:
+      - button "รายละเอียด" [ref=e86]:
+        - generic [ref=e87]: รายละเอียด
+      - button "Pricing" [active] [ref=e88]:
+        - generic [ref=e89]: Pricing
+      - button "การติดตาม" [ref=e90]:
+        - generic [ref=e91]: การติดตาม
+    - navigation [ref=e7]:
+      - button "หน้าหลัก" [ref=e8] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: สรุปข่าววันนี้ หน้าหลัก
+      - button "ค้นหา" [ref=e9] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: คอนเทนต์ ค้นหา
+      - button "อ่านข่าว" [ref=e10] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: อ่านข่าว อ่านข่าว
+      - text: การติดตาม Bookmarks
+      - button "โปรไฟล์" [ref=e13] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: Pricing โปรไฟล์
+  - main [ref=e27]:
+    - generic [ref=e92]:
+      - generic [ref=e93]:
+        - generic [ref=e94]:
+          - generic [ref=e95]: แพ็กเกจ FORO
+          - generic [ref=e96]:
+            - img [ref=e97]
+            - text: Free
+        - generic [ref=e100]:
+          - heading "เลือกแพ็กที่เหมาะกับคุณ" [level=1] [ref=e101]
+          - paragraph [ref=e102]: เลือกตามปริมาณการใช้งานต่อวัน พื้นที่จัดการงาน และความต่อเนื่องของ workflow ที่คุณต้องการ
+        - generic [ref=e103]:
+          - generic [ref=e105]:
+            - generic [ref=e106]: Feed
+            - strong [ref=e107]: 5/5
+          - generic [ref=e110]:
+            - generic [ref=e111]: Search
+            - strong [ref=e112]: 1/1
+          - generic [ref=e115]:
+            - generic [ref=e116]: Generate
+            - strong [ref=e117]: 1/1
+      - generic [ref=e119]:
+        - generic [ref=e120]: การติดตาม
+        - generic [ref=e121]:
+          - generic [ref=e122]: จัดการแหล่งติดตามของคุณ
+          - generic [ref=e123]: ส่วนนี้เชื่อมกับหน้า การติดตาม ของ FORO เพื่อจัด watchlist และ post list โดยไม่ต้องออกจากหน้าโปรไฟล์บนมือถือ
+      - generic [ref=e125]:
+        - article [ref=e126]:
+          - generic [ref=e127]:
+            - generic [ref=e128]:
+              - generic [ref=e129]: Free
+              - generic [ref=e130]: ใช้ฟรี
+            - generic [ref=e131]: แพ็กปัจจุบัน
+          - generic [ref=e132]: ต่อวัน
+          - generic [ref=e133]:
+            - generic [ref=e134]:
+              - generic [ref=e135]: Feed
+              - strong [ref=e136]: 5 / วัน
+            - generic [ref=e137]:
+              - generic [ref=e138]: Search
+              - strong [ref=e139]: 1 / วัน
+            - generic [ref=e140]:
+              - generic [ref=e141]: Generate
+              - strong [ref=e142]: 1 / วัน
+          - generic [ref=e144]: พื้นที่จัดการงาน
+          - generic [ref=e145]:
+            - generic [ref=e146]:
+              - generic [ref=e147]: Watchlist
+              - strong [ref=e148]: "20"
+            - generic [ref=e149]:
+              - generic [ref=e150]: Post Lists
+              - strong [ref=e151]: "3"
+          - button "แพ็กปัจจุบัน" [ref=e153] [cursor=pointer]
+        - article [ref=e154]:
+          - generic [ref=e156]:
+            - generic [ref=e157]: Plus
+            - generic [ref=e158]: 300 บาท / 1 เดือน
+          - generic [ref=e159]: ต่อวัน
+          - generic [ref=e160]:
+            - generic [ref=e161]:
+              - generic [ref=e162]: Feed
+              - strong [ref=e163]: 15 / วัน
+            - generic [ref=e164]:
+              - generic [ref=e165]: Search
+              - strong [ref=e166]: 5 / วัน
+            - generic [ref=e167]:
+              - generic [ref=e168]: Generate
+              - strong [ref=e169]: 5 / วัน
+          - generic [ref=e171]: พื้นที่จัดการงาน
+          - generic [ref=e172]:
+            - generic [ref=e173]:
+              - generic [ref=e174]: Watchlist
+              - strong [ref=e175]: "50"
+            - generic [ref=e176]:
+              - generic [ref=e177]: Post Lists
+              - strong [ref=e178]: "10"
+          - button "เลือก Plus" [ref=e180] [cursor=pointer]

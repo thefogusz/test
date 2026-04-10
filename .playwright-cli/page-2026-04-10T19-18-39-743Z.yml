@@ -1,0 +1,36 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic "Library navigation" [ref=e35]:
+      - button "Open post list" [ref=e36]:
+        - generic [ref=e40]: ทั้งหมด
+      - generic [ref=e41]:
+        - button "อ่านข่าว" [pressed] [ref=e42]:
+          - img [ref=e43]
+          - generic [ref=e45]: อ่าน
+        - button "บันทึก" [ref=e46]:
+          - img [ref=e47]
+          - generic [ref=e49]: บันทึก
+    - navigation [ref=e20]:
+      - button "หน้าหลัก" [ref=e21] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: สรุปข่าววันนี้ หน้าหลัก
+      - button "ค้นหา" [ref=e22] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: คอนเทนต์ ค้นหา
+      - button "อ่านข่าว" [active] [ref=e23] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: อ่านข่าว อ่านข่าว
+      - text: การติดตาม Bookmarks
+      - button "โปรไฟล์" [ref=e24] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: Pricing โปรไฟล์
+  - main [ref=e25]:
+    - generic [ref=e50]:
+      - generic [ref=e53]:
+        - heading "อ่านข่าว" [level=1] [ref=e54]
+        - paragraph [ref=e55]: บทความและข่าวสารที่คุณบันทึกไว้อ่านแบบ Deep Read
+      - generic [ref=e57]: ยังไม่มีบทความในห้องสมุด

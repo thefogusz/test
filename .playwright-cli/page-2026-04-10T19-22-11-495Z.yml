@@ -1,0 +1,131 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - img "RO Logo" [ref=e41]
+    - navigation [ref=e20]:
+      - button "หน้าหลัก" [ref=e21] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: สรุปข่าววันนี้
+      - button "ค้นหา" [ref=e22] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: คอนเทนต์
+      - button "อ่านข่าว" [ref=e23] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: อ่านข่าว
+      - button "การติดตาม" [ref=e42] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: การติดตาม
+      - button "Bookmarks" [ref=e43] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: Bookmarks
+      - button "โปรไฟล์" [active] [ref=e24] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: Pricing
+    - button "FG Foro Free Mockup - Free free" [ref=e46] [cursor=pointer]:
+      - generic [ref=e47]:
+        - generic [ref=e48]: FG
+        - generic [ref=e49]:
+          - generic [ref=e50]: Foro Free
+          - generic [ref=e52]: Mockup - Free
+      - generic [ref=e53]:
+        - generic [ref=e54]: free
+        - img [ref=e55]
+  - main [ref=e25]:
+    - generic [ref=e77]:
+      - generic [ref=e78]:
+        - generic [ref=e79]:
+          - generic [ref=e80]: โปรไฟล์ FORO
+          - generic [ref=e81]:
+            - img [ref=e82]
+            - text: Free
+        - generic [ref=e85]:
+          - heading "โปรไฟล์และการใช้งาน" [level=1] [ref=e86]
+          - paragraph [ref=e87]: ดูแพ็กปัจจุบัน โควต้าที่เหลือในวันนี้ และพื้นที่จัดการงานของบัญชีคุณได้จากหน้านี้
+        - generic [ref=e88]:
+          - generic [ref=e90]:
+            - generic [ref=e91]: Feed
+            - strong [ref=e92]: 5/5
+          - generic [ref=e95]:
+            - generic [ref=e96]: Search
+            - strong [ref=e97]: 1/1
+          - generic [ref=e100]:
+            - generic [ref=e101]: Generate
+            - strong [ref=e102]: 1/1
+      - generic [ref=e105]:
+        - article [ref=e106]:
+          - generic [ref=e107]:
+            - generic [ref=e108]:
+              - generic [ref=e109]: Free
+              - generic [ref=e110]: ใช้ฟรี
+            - generic [ref=e111]: แพ็กปัจจุบัน
+          - paragraph [ref=e112]: เหมาะกับผู้ใช้ใหม่ที่อยากเช็กสัญญาณประจำวันและทดลอง workflow หลักของ Foro
+          - generic [ref=e113]: ต่อวัน
+          - generic [ref=e114]:
+            - generic [ref=e115]:
+              - generic [ref=e116]: Feed
+              - strong [ref=e117]: 5 / วัน
+            - generic [ref=e118]:
+              - generic [ref=e119]: Search
+              - strong [ref=e120]: 1 / วัน
+            - generic [ref=e121]:
+              - generic [ref=e122]: Generate
+              - strong [ref=e123]: 1 / วัน
+          - generic [ref=e125]: พื้นที่จัดการงาน
+          - generic [ref=e126]:
+            - generic [ref=e127]:
+              - generic [ref=e128]: Watchlist
+              - strong [ref=e129]: "20"
+            - generic [ref=e130]:
+              - generic [ref=e131]: Post Lists
+              - strong [ref=e132]: "3"
+          - generic [ref=e134]:
+            - generic [ref=e135]:
+              - img [ref=e136]
+              - text: เริ่มใช้ Feed, Search และ Generate ได้ทันที
+            - generic [ref=e138]:
+              - img [ref=e139]
+              - text: เหมาะกับการใช้ Foro จัดการแหล่งข้อมูลประจำวัน
+            - generic [ref=e141]:
+              - img [ref=e142]
+              - text: บันทึก bookmarks และ drafts ได้ไม่จำกัด
+          - button "แพ็กปัจจุบัน" [ref=e144] [cursor=pointer]
+        - article [ref=e145]:
+          - generic [ref=e147]:
+            - generic [ref=e148]: Plus
+            - generic [ref=e149]: 300 บาท / 1 เดือน
+          - paragraph [ref=e150]: เพิ่มปริมาณการใช้งานและพื้นที่จัดการงาน โดยยังคง workflow เต็มเหมือนกันทุกจุด
+          - generic [ref=e151]: ต่อวัน
+          - generic [ref=e152]:
+            - generic [ref=e153]:
+              - generic [ref=e154]: Feed
+              - strong [ref=e155]: 15 / วัน
+            - generic [ref=e156]:
+              - generic [ref=e157]: Search
+              - strong [ref=e158]: 5 / วัน
+            - generic [ref=e159]:
+              - generic [ref=e160]: Generate
+              - strong [ref=e161]: 5 / วัน
+          - generic [ref=e163]: พื้นที่จัดการงาน
+          - generic [ref=e164]:
+            - generic [ref=e165]:
+              - generic [ref=e166]: Watchlist
+              - strong [ref=e167]: "50"
+            - generic [ref=e168]:
+              - generic [ref=e169]: Post Lists
+              - strong [ref=e170]: "10"
+          - generic [ref=e172]:
+            - generic [ref=e173]:
+              - img [ref=e174]
+              - text: เพิ่มโควตา Search และ Generate สำหรับงานโปร
+            - generic [ref=e176]:
+              - img [ref=e177]
+              - text: เหมาะกับการสร้างคอนเทนต์ตลอดทั้งวัน
+            - generic [ref=e179]:
+              - img [ref=e180]
+              - text: ขยายพื้นที่จัดการ Watchlist และ Post Lists
+          - button "เลือก Plus" [ref=e182] [cursor=pointer]

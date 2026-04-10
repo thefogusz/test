@@ -1,0 +1,104 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic "Profile navigation" [ref=e31]:
+      - button "รายละเอียด" [active] [ref=e32]:
+        - generic [ref=e33]: รายละเอียด
+      - button "Pricing" [ref=e34]:
+        - generic [ref=e35]: Pricing
+      - button "การติดตาม" [ref=e36]:
+        - generic [ref=e37]: การติดตาม
+    - navigation [ref=e16]:
+      - button "หน้าหลัก" [ref=e17] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: สรุปข่าววันนี้ หน้าหลัก
+      - button "ค้นหา" [ref=e18] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: คอนเทนต์ ค้นหา
+      - button "อ่านข่าว" [ref=e19] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: อ่านข่าว อ่านข่าว
+      - text: การติดตาม Bookmarks
+      - button "โปรไฟล์" [ref=e20] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: Pricing โปรไฟล์
+  - main [ref=e21]:
+    - generic [ref=e38]:
+      - generic [ref=e39]:
+        - generic [ref=e40]:
+          - generic [ref=e41]: แพ็กเกจ FORO
+          - generic [ref=e42]:
+            - img [ref=e43]
+            - text: Free
+        - generic [ref=e46]:
+          - heading "เลือกแพ็กที่เหมาะกับคุณ" [level=1] [ref=e47]
+          - paragraph [ref=e48]: เลือกตามปริมาณการใช้งานต่อวัน พื้นที่จัดการงาน และความต่อเนื่องของ workflow ที่คุณต้องการ
+        - generic [ref=e49]:
+          - generic [ref=e51]:
+            - generic [ref=e52]: Feed
+            - strong [ref=e53]: 5/5
+          - generic [ref=e56]:
+            - generic [ref=e57]: Search
+            - strong [ref=e58]: 1/1
+          - generic [ref=e61]:
+            - generic [ref=e62]: Generate
+            - strong [ref=e63]: 1/1
+      - generic [ref=e65]:
+        - generic [ref=e66]: การติดตาม
+        - generic [ref=e67]:
+          - generic [ref=e68]: จัดการแหล่งติดตามของคุณ
+          - generic [ref=e69]: ส่วนนี้เชื่อมกับหน้า การติดตาม ของ FORO เพื่อจัด watchlist และ post list โดยไม่ต้องออกจากหน้าโปรไฟล์บนมือถือ
+      - generic [ref=e71]:
+        - article [ref=e72]:
+          - generic [ref=e73]:
+            - generic [ref=e74]:
+              - generic [ref=e75]: Free
+              - generic [ref=e76]: ใช้ฟรี
+            - generic [ref=e77]: แพ็กปัจจุบัน
+          - generic [ref=e78]: ต่อวัน
+          - generic [ref=e79]:
+            - generic [ref=e80]:
+              - generic [ref=e81]: Feed
+              - strong [ref=e82]: 5 / วัน
+            - generic [ref=e83]:
+              - generic [ref=e84]: Search
+              - strong [ref=e85]: 1 / วัน
+            - generic [ref=e86]:
+              - generic [ref=e87]: Generate
+              - strong [ref=e88]: 1 / วัน
+          - generic [ref=e90]: พื้นที่จัดการงาน
+          - generic [ref=e91]:
+            - generic [ref=e92]:
+              - generic [ref=e93]: Watchlist
+              - strong [ref=e94]: "20"
+            - generic [ref=e95]:
+              - generic [ref=e96]: Post Lists
+              - strong [ref=e97]: "3"
+          - button "แพ็กปัจจุบัน" [ref=e99] [cursor=pointer]
+        - article [ref=e100]:
+          - generic [ref=e102]:
+            - generic [ref=e103]: Plus
+            - generic [ref=e104]: 300 บาท / 1 เดือน
+          - generic [ref=e105]: ต่อวัน
+          - generic [ref=e106]:
+            - generic [ref=e107]:
+              - generic [ref=e108]: Feed
+              - strong [ref=e109]: 15 / วัน
+            - generic [ref=e110]:
+              - generic [ref=e111]: Search
+              - strong [ref=e112]: 5 / วัน
+            - generic [ref=e113]:
+              - generic [ref=e114]: Generate
+              - strong [ref=e115]: 5 / วัน
+          - generic [ref=e117]: พื้นที่จัดการงาน
+          - generic [ref=e118]:
+            - generic [ref=e119]:
+              - generic [ref=e120]: Watchlist
+              - strong [ref=e121]: "50"
+            - generic [ref=e122]:
+              - generic [ref=e123]: Post Lists
+              - strong [ref=e124]: "10"
+          - button "เลือก Plus" [ref=e126] [cursor=pointer]

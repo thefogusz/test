@@ -1,0 +1,104 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic "Profile navigation" [ref=e5]:
+      - button "รายละเอียด" [pressed] [ref=e6]:
+        - generic [ref=e7]: รายละเอียด
+      - button "Pricing" [ref=e8]:
+        - generic [ref=e9]: Pricing
+      - button "การติดตาม" [ref=e10]:
+        - generic [ref=e11]: การติดตาม
+    - navigation [ref=e12]:
+      - button "หน้าหลัก" [ref=e13] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: สรุปข่าววันนี้ หน้าหลัก
+      - button "ค้นหา" [ref=e14] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: คอนเทนต์ ค้นหา
+      - button "อ่านข่าว" [ref=e15] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: อ่านข่าว อ่านข่าว
+      - text: การติดตาม Bookmarks
+      - button "โปรไฟล์" [ref=e16] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: Pricing โปรไฟล์
+  - main [ref=e17]:
+    - generic [ref=e19]:
+      - generic [ref=e20]:
+        - generic [ref=e21]:
+          - generic [ref=e22]: แพ็กเกจ FORO
+          - generic [ref=e23]:
+            - img [ref=e24]
+            - text: Free
+        - generic [ref=e27]:
+          - heading "เลือกแพ็กที่เหมาะกับคุณ" [level=1] [ref=e28]
+          - paragraph [ref=e29]: เลือกตามปริมาณการใช้งานต่อวัน พื้นที่จัดการงาน และความต่อเนื่องของ workflow ที่คุณต้องการ
+        - generic [ref=e30]:
+          - generic [ref=e32]:
+            - generic [ref=e33]: Feed
+            - strong [ref=e34]: 5/5
+          - generic [ref=e37]:
+            - generic [ref=e38]: Search
+            - strong [ref=e39]: 1/1
+          - generic [ref=e42]:
+            - generic [ref=e43]: Generate
+            - strong [ref=e44]: 1/1
+      - generic [ref=e46]:
+        - generic [ref=e47]: การติดตาม
+        - generic [ref=e48]:
+          - generic [ref=e49]: จัดการแหล่งติดตามของคุณ
+          - generic [ref=e50]: ส่วนนี้เชื่อมกับหน้า การติดตาม ของ FORO เพื่อจัด watchlist และ post list โดยไม่ต้องออกจากหน้าโปรไฟล์บนมือถือ
+      - generic [ref=e52]:
+        - article [ref=e53]:
+          - generic [ref=e54]:
+            - generic [ref=e55]:
+              - generic [ref=e56]: Free
+              - generic [ref=e57]: ใช้ฟรี
+            - generic [ref=e58]: แพ็กปัจจุบัน
+          - generic [ref=e59]: ต่อวัน
+          - generic [ref=e60]:
+            - generic [ref=e61]:
+              - generic [ref=e62]: Feed
+              - strong [ref=e63]: 5 / วัน
+            - generic [ref=e64]:
+              - generic [ref=e65]: Search
+              - strong [ref=e66]: 1 / วัน
+            - generic [ref=e67]:
+              - generic [ref=e68]: Generate
+              - strong [ref=e69]: 1 / วัน
+          - generic [ref=e71]: พื้นที่จัดการงาน
+          - generic [ref=e72]:
+            - generic [ref=e73]:
+              - generic [ref=e74]: Watchlist
+              - strong [ref=e75]: "20"
+            - generic [ref=e76]:
+              - generic [ref=e77]: Post Lists
+              - strong [ref=e78]: "3"
+          - button "แพ็กปัจจุบัน" [ref=e80] [cursor=pointer]
+        - article [ref=e81]:
+          - generic [ref=e83]:
+            - generic [ref=e84]: Plus
+            - generic [ref=e85]: 300 บาท / 1 เดือน
+          - generic [ref=e86]: ต่อวัน
+          - generic [ref=e87]:
+            - generic [ref=e88]:
+              - generic [ref=e89]: Feed
+              - strong [ref=e90]: 15 / วัน
+            - generic [ref=e91]:
+              - generic [ref=e92]: Search
+              - strong [ref=e93]: 5 / วัน
+            - generic [ref=e94]:
+              - generic [ref=e95]: Generate
+              - strong [ref=e96]: 5 / วัน
+          - generic [ref=e98]: พื้นที่จัดการงาน
+          - generic [ref=e99]:
+            - generic [ref=e100]:
+              - generic [ref=e101]: Watchlist
+              - strong [ref=e102]: "50"
+            - generic [ref=e103]:
+              - generic [ref=e104]: Post Lists
+              - strong [ref=e105]: "10"
+          - button "เลือก Plus" [ref=e107] [cursor=pointer]

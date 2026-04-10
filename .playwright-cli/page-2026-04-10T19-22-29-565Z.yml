@@ -1,0 +1,138 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - img "RO Logo" [ref=e41]
+    - navigation [ref=e20]:
+      - button "หน้าหลัก" [ref=e21] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: สรุปข่าววันนี้
+      - button "ค้นหา" [ref=e22] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: คอนเทนต์
+      - button "อ่านข่าว" [ref=e23] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: อ่านข่าว
+      - button "การติดตาม" [active] [ref=e42] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: การติดตาม
+      - button "Bookmarks" [ref=e43] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: Bookmarks
+      - button "โปรไฟล์" [ref=e24] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: Pricing
+    - button "FG Foro Free Mockup - Free free" [ref=e46] [cursor=pointer]:
+      - generic [ref=e47]:
+        - generic [ref=e48]: FG
+        - generic [ref=e49]:
+          - generic [ref=e50]: Foro Free
+          - generic [ref=e52]: Mockup - Free
+      - generic [ref=e53]:
+        - generic [ref=e54]: free
+        - img [ref=e55]
+  - main [ref=e25]:
+    - generic [ref=e184]:
+      - generic [ref=e185]:
+        - heading "Smart Target Discovery" [level=1] [ref=e188]:
+          - img [ref=e190]
+          - generic [ref=e192]: Smart Target Discovery
+        - paragraph [ref=e193]: ค้นหาและเพิ่มแหล่งข้อมูลที่ตรงกับความสนใจของคุณ
+      - generic [ref=e194]:
+        - button "แนะนำโดย FORO" [ref=e195] [cursor=pointer]:
+          - img [ref=e196]
+          - generic [ref=e201]: แนะนำโดย FORO
+        - button "แหล่งข่าว" [ref=e202] [cursor=pointer]:
+          - img [ref=e203]
+          - generic [ref=e206]: แหล่งข่าว
+        - button "ค้นหาชื่อ" [ref=e207] [cursor=pointer]:
+          - img [ref=e208]
+          - generic [ref=e211]: ค้นหาชื่อ
+      - generic [ref=e212]:
+        - generic [ref=e213]:
+          - textbox "เช่น นักวิเคราะห์ตลาดเกม, ครีเอเตอร์สาย AI, ผู้ก่อตั้งสตาร์ทอัพสุขภาพ" [ref=e215]
+          - button "ค้นหา" [ref=e216] [cursor=pointer]
+        - generic [ref=e218]:
+          - button "เทคโนโลยี เทคโนโลยี" [ref=e219] [cursor=pointer]:
+            - img "เทคโนโลยี" [ref=e220]
+            - generic [ref=e221]: เทคโนโลยี
+          - button "AI AI" [ref=e222] [cursor=pointer]:
+            - img "AI" [ref=e223]
+            - generic [ref=e224]: AI
+          - button "ธุรกิจ ธุรกิจ" [ref=e225] [cursor=pointer]:
+            - img "ธุรกิจ" [ref=e226]
+            - generic [ref=e227]: ธุรกิจ
+          - button "การตลาด การตลาด" [ref=e228] [cursor=pointer]:
+            - img "การตลาด" [ref=e229]
+            - generic [ref=e230]: การตลาด
+          - button "การเงิน การเงิน" [ref=e231] [cursor=pointer]:
+            - img "การเงิน" [ref=e232]
+            - generic [ref=e233]: การเงิน
+          - button "การลงทุน การลงทุน" [ref=e234] [cursor=pointer]:
+            - img "การลงทุน" [ref=e235]
+            - generic [ref=e236]: การลงทุน
+          - button "คริปโต คริปโต" [ref=e237] [cursor=pointer]:
+            - img "คริปโต" [ref=e238]
+            - generic [ref=e239]: คริปโต
+          - button "ความปลอดภัยไซเบอร์ ความปลอดภัยไซเบอร์" [ref=e240] [cursor=pointer]:
+            - img "ความปลอดภัยไซเบอร์" [ref=e241]
+            - generic [ref=e242]: ความปลอดภัยไซเบอร์
+          - button "สุขภาพ สุขภาพ" [ref=e243] [cursor=pointer]:
+            - img "สุขภาพ" [ref=e244]
+            - generic [ref=e245]: สุขภาพ
+          - button "ไลฟ์สไตล์ ไลฟ์สไตล์" [ref=e246] [cursor=pointer]:
+            - img "ไลฟ์สไตล์" [ref=e247]
+            - generic [ref=e248]: ไลฟ์สไตล์
+          - button "เศรษฐกิจ เศรษฐกิจ" [ref=e249] [cursor=pointer]:
+            - img "เศรษฐกิจ" [ref=e250]
+            - generic [ref=e251]: เศรษฐกิจ
+          - button "การเมือง การเมือง" [ref=e252] [cursor=pointer]:
+            - img "การเมือง" [ref=e253]
+            - generic [ref=e254]: การเมือง
+          - button "กีฬา กีฬา" [ref=e255] [cursor=pointer]:
+            - img "กีฬา" [ref=e256]
+            - generic [ref=e257]: กีฬา
+          - button "บันเทิง บันเทิง" [ref=e258] [cursor=pointer]:
+            - img "บันเทิง" [ref=e259]
+            - generic [ref=e260]: บันเทิง
+          - button "ท่องเที่ยว ท่องเที่ยว" [ref=e261] [cursor=pointer]:
+            - img "ท่องเที่ยว" [ref=e262]
+            - generic [ref=e263]: ท่องเที่ยว
+          - button "อาหาร อาหาร" [ref=e264] [cursor=pointer]:
+            - img "อาหาร" [ref=e265]
+            - generic [ref=e266]: อาหาร
+          - button "สิ่งแวดล้อม สิ่งแวดล้อม" [ref=e267] [cursor=pointer]:
+            - img "สิ่งแวดล้อม" [ref=e268]
+            - generic [ref=e269]: สิ่งแวดล้อม
+          - button "การศึกษา การศึกษา" [ref=e270] [cursor=pointer]:
+            - img "การศึกษา" [ref=e271]
+            - generic [ref=e272]: การศึกษา
+          - button "บทวิเคราะห์ บทวิเคราะห์" [ref=e273] [cursor=pointer]:
+            - img "บทวิเคราะห์" [ref=e274]
+            - generic [ref=e275]: บทวิเคราะห์
+          - button "อสังหาฯ อสังหาฯ" [ref=e276] [cursor=pointer]:
+            - img "อสังหาฯ" [ref=e277]
+            - generic [ref=e278]: อสังหาฯ
+          - button "ยานยนต์ ยานยนต์" [ref=e279] [cursor=pointer]:
+            - img "ยานยนต์" [ref=e280]
+            - generic [ref=e281]: ยานยนต์
+  - complementary [ref=e282]:
+    - generic [ref=e283]:
+      - generic [ref=e284] [cursor=pointer]:
+        - img [ref=e285]
+        - heading "Post list" [level=2] [ref=e287]
+      - button "จัดการ Post List" [ref=e289] [cursor=pointer]:
+        - img [ref=e290]
+    - generic [ref=e291]:
+      - button "สร้าง Post List" [ref=e293] [cursor=pointer]:
+        - img [ref=e294]
+        - text: สร้าง Post List
+      - generic [ref=e296]:
+        - img [ref=e297]
+        - generic [ref=e299]: ไม่มีรายการ Post list
+        - generic [ref=e300]: สร้างใหม่เพื่อจัดระเบียบแหล่งข้อมูลของคุณ
+        - button "สร้างลิสต์" [ref=e301] [cursor=pointer]

@@ -1,0 +1,69 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - button "Open post list" [ref=e6]:
+        - generic [ref=e10]: ทั้งหมด
+      - generic [ref=e11]:
+        - button "Open filter" [ref=e12]:
+          - img [ref=e13]
+          - generic [ref=e16]: Filter
+        - button "Open feed" [ref=e17]:
+          - img [ref=e18]
+          - generic [ref=e23]: Feed
+    - navigation [ref=e24]:
+      - button "หน้าหลัก" [ref=e25] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: สรุปข่าววันนี้ หน้าหลัก
+      - button "ค้นหา" [ref=e26] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: คอนเทนต์ ค้นหา
+      - button "อ่านข่าว" [ref=e27] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: อ่านข่าว อ่านข่าว
+      - text: การติดตาม Bookmarks
+      - button "โปรไฟล์" [ref=e28] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: Pricing โปรไฟล์
+  - main [ref=e29]:
+    - generic [ref=e31]:
+      - generic [ref=e34]:
+        - heading "หน้าหลัก" [level=1] [ref=e35]
+        - paragraph [ref=e36]: WATCHLIST FEED
+      - heading "FORO ติดตามทุกเรื่องที่คุณสนใจ" [level=2] [ref=e40]
+  - generic [ref=e42]:
+    - generic [ref=e43]:
+      - img [ref=e45]
+      - generic [ref=e47]:
+        - generic [ref=e48]: Analysis Mode
+        - generic [ref=e49]: FORO Filter
+        - generic [ref=e50]: บอก FORO ว่าอยากให้ช่วยมองประเด็นนี้แบบไหน
+    - generic [ref=e51]:
+      - generic [ref=e53]:
+        - generic [ref=e54]: Preset
+        - generic [ref=e55]: แตะเพื่อใส่ prompt ได้ทันที แล้วค่อยกดกรอง
+      - generic [ref=e56]:
+        - generic [ref=e57]:
+          - button "สรุป" [ref=e58] [cursor=pointer]
+          - button "ลบ preset" [ref=e60] [cursor=pointer]:
+            - img [ref=e61]
+        - generic [ref=e64]:
+          - button "หาโพสต์เด่น" [ref=e65] [cursor=pointer]
+          - button "ลบ preset" [ref=e67] [cursor=pointer]:
+            - img [ref=e68]
+        - generic [ref=e71]:
+          - button "โพสต์ไหนน่าทำคอนเทนต์" [ref=e72] [cursor=pointer]
+          - button "ลบ preset" [ref=e74] [cursor=pointer]:
+            - img [ref=e75]
+    - generic [ref=e78]:
+      - generic [ref=e80]:
+        - generic [ref=e81]: Prompt
+        - generic [ref=e82]: จะให้สรุป ขอความเห็น จัดอันดับ หา angle หรือคิดต่อจากข่าวที่คัดมาก็ได้
+      - textbox "เช่น ช่วยดูว่ากระแส AI ตอนนี้ไปทางไหน หรือคัดประเด็นที่น่าทำวิดีโอ" [active] [ref=e83]
+      - generic [ref=e85]: preset ด้านบนจะแสดงบนหน้า home อัตโนมัติ 3 อันแรก
+    - generic [ref=e86]:
+      - button "ยกเลิก" [ref=e87] [cursor=pointer]
+      - button "กรองฟีด" [disabled] [ref=e88] [cursor=pointer]

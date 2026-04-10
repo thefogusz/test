@@ -1,0 +1,32 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic "Profile navigation" [ref=e5]:
+      - button "รายละเอียด" [pressed] [ref=e6]:
+        - generic [ref=e7]: รายละเอียด
+      - button "Pricing" [ref=e8]:
+        - generic [ref=e9]: Pricing
+      - button "การติดตาม" [ref=e10]:
+        - generic [ref=e11]: การติดตาม
+    - navigation [ref=e12]:
+      - button "หน้าหลัก" [ref=e13] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: สรุปข่าววันนี้ หน้าหลัก
+      - button "ค้นหา" [ref=e14] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: คอนเทนต์ ค้นหา
+      - button "อ่านข่าว" [ref=e15] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: อ่านข่าว อ่านข่าว
+      - text: การติดตาม Bookmarks
+      - button "โปรไฟล์" [ref=e16] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: Pricing โปรไฟล์
+  - main [ref=e17]:
+    - generic [ref=e20]:
+      - img [ref=e21]
+      - generic [ref=e23]: Loading workspace...
+  - generic: กำลังล้างข้อมูลแอปในเบราว์เซอร์...

@@ -1,0 +1,52 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic "Content navigation" [ref=e200]:
+      - button "ค้นหา" [pressed] [ref=e201]:
+        - img [ref=e202]
+        - generic [ref=e205]: ค้นหา
+      - button "สร้างคอนเทนต์" [ref=e206]:
+        - img [ref=e207]
+        - generic [ref=e210]: สร้างคอนเทนต์
+    - navigation [ref=e7]:
+      - button "หน้าหลัก" [ref=e8] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: สรุปข่าววันนี้ หน้าหลัก
+      - button "ค้นหา" [active] [ref=e9] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: คอนเทนต์ ค้นหา
+      - button "อ่านข่าว" [ref=e10] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: อ่านข่าว อ่านข่าว
+      - text: การติดตาม Bookmarks
+      - button "โปรไฟล์" [ref=e13] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: Pricing โปรไฟล์
+  - main [ref=e27]:
+    - generic [ref=e213]:
+      - generic [ref=e215]:
+        - heading "ค้นหาคอนเทนต์" [level=1] [ref=e216]
+        - paragraph [ref=e217]: สำรวจเทรนด์และเจาะลึกข้อมูลจากทั่วโลก
+      - generic [ref=e218]:
+        - generic [ref=e219]:
+          - img [ref=e220]
+          - textbox "พิมพ์คีย์เวิร์ดที่สนใจ..." [ref=e223]
+          - generic [ref=e224]:
+            - button "คอนเทนต์ใหม่" [ref=e225] [cursor=pointer]:
+              - img [ref=e226]
+            - button "ค้นหา" [ref=e228] [cursor=pointer]:
+              - generic [ref=e229]: ค้นหา
+        - generic [ref=e231]:
+          - button "ทั้งหมด" [ref=e232] [cursor=pointer]
+          - button "วิดีโอ" [ref=e233] [cursor=pointer]
+        - generic [ref=e234]:
+          - generic [ref=e235]:
+            - paragraph [ref=e236]: เริ่มจากหัวข้อยอดนิยม
+            - generic [ref=e237]: เมื่อคุณเริ่มค้นหา ระบบจะเรียนรู้และเปลี่ยนปุ่มชุดนี้ให้เหมาะกับคุณมากขึ้น
+          - generic [ref=e238]:
+            - button "AI" [ref=e240] [cursor=pointer]
+            - button "Artificial Intelligence" [ref=e242] [cursor=pointer]
+            - button "Elon Musk" [ref=e244] [cursor=pointer]

@@ -1,0 +1,36 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - button "Open post list" [ref=e6]:
+        - generic [ref=e10]: ทั้งหมด
+      - generic [ref=e11]:
+        - button "Open filter" [ref=e12]:
+          - img [ref=e13]
+          - generic [ref=e16]: Filter
+        - button "Open feed" [ref=e17]:
+          - img [ref=e18]
+          - generic [ref=e23]: Feed
+    - navigation [ref=e24]:
+      - button "หน้าหลัก" [ref=e25] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: สรุปข่าววันนี้ หน้าหลัก
+      - button "ค้นหา" [ref=e26] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: คอนเทนต์ ค้นหา
+      - button "อ่านข่าว" [ref=e27] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: อ่านข่าว อ่านข่าว
+      - text: การติดตาม Bookmarks
+      - button "โปรไฟล์" [ref=e28] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: Pricing โปรไฟล์
+  - main [ref=e29]:
+    - generic [ref=e31]:
+      - generic [ref=e34]:
+        - heading "หน้าหลัก" [level=1] [ref=e35]
+        - paragraph [ref=e36]: WATCHLIST FEED
+      - heading "FORO ติดตามทุกเรื่องที่คุณสนใจ" [level=2] [ref=e40]
