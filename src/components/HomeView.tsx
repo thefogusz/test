@@ -9,6 +9,9 @@ import ForoFilterSummarySkeleton from './ForoFilterSummarySkeleton';
 import HomeCanvas from './HomeCanvas';
 
 const FILTER_BRIEF_CITATION_PATTERN = /\[(?:F|W)\d+\]/gi;
+const FEED_ACTION_BUTTON_STYLE = { height: '34px', minHeight: '34px', width: '34px' };
+const FEED_SORT_BUTTON_STYLE = { height: '34px', minHeight: '34px', padding: '0 12px', fontSize: '12px' };
+const MOBILE_SECTION_TITLE_STYLE = { fontSize: '15px' };
 
 const parseBriefItem = (value = '') => {
   const citations = Array.from(new Set(String(value || '').match(FILTER_BRIEF_CITATION_PATTERN) || []));
@@ -129,7 +132,7 @@ const HomeView = ({
   const shouldShowIncomingSkeletons = hasVisibleFeed && isLoadingMore;
   const incomingSkeletonCount = isCompactSkeletonLayout ? 2 : 4;
   const showDesktopQuickPresets = feed.length > 0 && !isFiltered && visibleQuickPresets.length > 0;
-  const shouldCondenseHomeControlPanel = !showDesktopQuickPresets;
+  const shouldCondenseHomeControlPanel = hasVisibleFeed && !showDesktopQuickPresets;
   const listTitleStyle = useMemo(
     () => ({
       margin: 0,
@@ -156,7 +159,6 @@ const HomeView = ({
   if (!isVisible) return null;
 
   const normalizedActiveFilterPrompt = String(activeFilterPrompt || '').trim();
-
   const briefHeadline = parseBriefItem(aiFilterBrief?.headline || '').text;
   const compactBriefItems = briefSections.flatMap((section) =>
     section.items.map((item) => ({
@@ -164,47 +166,56 @@ const HomeView = ({
       ...parseBriefItem(item),
     })),
   );
-  const homeControlPanel = (
+  const renderFeedMaintenanceAction = (extraClassName = '') => {
+    const className = `icon-btn-large header-secondary-action${canUndoFeedClear ? ' undo-reveal' : ''}${extraClassName ? ` ${extraClassName}` : ''}`;
+    const title = canUndoFeedClear ? 'ฟื้นฟู' : 'เคลียร์ฟีด';
+    const onClick = canUndoFeedClear ? onUndo : onDeleteAll;
+    const Icon = canUndoFeedClear ? Undo2 : Eraser;
+
+    if (!canUndoFeedClear && !canClearFeed) return null;
+
+    return (
+      <button onClick={onClick} className={className} style={FEED_ACTION_BUTTON_STYLE} title={title}>
+        <Icon size={14} />
+      </button>
+    );
+  };
+
+  const renderSortButtons = () => (
+    <>
+      <button onClick={() => onSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`} style={FEED_SORT_BUTTON_STYLE}>
+        ยอดวิว
+      </button>
+      <button onClick={() => onSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`} style={FEED_SORT_BUTTON_STYLE}>
+        เอนเกจเมนต์
+      </button>
+    </>
+  );
+
+  const mobileFeedToolbar = (
     <div
       className={`dashboard-header-actions home-control-panel ${hasHomeSecondaryActions ? '' : 'home-control-panel-compact'} ${shouldCondenseHomeControlPanel ? 'home-control-panel-condensed' : ''}`}
       style={{ display: 'flex', alignItems: 'center', justifyContent: shouldCondenseHomeControlPanel ? 'flex-end' : 'space-between', width: '100%', gap: '12px' }}
     >
       <div className="mobile-only-flex home-mobile-feed-inline" style={{ alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
         <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <div className="section-title" style={{ fontSize: '15px' }}>à¹‚à¸žà¸ªà¸•à¹Œà¸¥à¹ˆà¸²à¸ªà¸¸à¸”</div>
-          {activeListId && <div className="active-list-pills" style={{ fontSize: '12px', padding: '4px 10px' }}>à¸à¸³à¸¥à¸±à¸‡à¸à¸£à¸­à¸‡à¸•à¸²à¸¡: {currentActiveList?.name}</div>}
-          {isFiltered && <AiFilteredBadge onClear={onClearAiFilter} clearTitle="à¸¥à¹‰à¸²à¸‡" />}
-          {!canUndoFeedClear && canClearFeed && (
-            <button
-              onClick={onDeleteAll}
-              className="icon-btn-large header-secondary-action home-mobile-clear-action"
-              style={{ height: '34px', minHeight: '34px', width: '34px' }}
-              title="à¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¸Ÿà¸µà¸”"
-            >
-              <Eraser size={14} />
-            </button>
-          )}
-          {canUndoFeedClear && (
-            <button
-              onClick={onUndo}
-              className="icon-btn-large header-secondary-action undo-reveal home-mobile-clear-action"
-              style={{ height: '34px', minHeight: '34px', width: '34px' }}
-              title="à¸Ÿà¸·à¹‰à¸™à¸Ÿà¸¹"
-            >
-              <Undo2 size={14} />
-            </button>
-          )}
+          <div className="section-title" style={MOBILE_SECTION_TITLE_STYLE}>โพสต์ล่าสุด</div>
+          {activeListId && <div className="active-list-pills" style={{ fontSize: '12px', padding: '4px 10px' }}>กำลังกรองตาม: {currentActiveList?.name}</div>}
+          {isFiltered && <AiFilteredBadge onClear={onClearAiFilter} clearTitle="ล้าง" />}
+          {renderFeedMaintenanceAction('home-mobile-clear-action')}
         </div>
         <div className="feed-section-filters" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button onClick={() => onSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`} style={{ height: '34px', minHeight: '34px', padding: '0 12px', fontSize: '12px' }}>
-            à¸¢à¸­à¸”à¸§à¸´à¸§
-          </button>
-          <button onClick={() => onSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`} style={{ height: '34px', minHeight: '34px', padding: '0 12px', fontSize: '12px' }}>
-            à¹€à¸­à¸™à¹€à¸à¸ˆà¹€à¸¡à¸™à¸•à¹Œ
-          </button>
+          {renderSortButtons()}
         </div>
       </div>
+    </div>
+  );
 
+  const desktopHeaderActions = (
+    <div
+      className={`dashboard-header-actions home-control-panel home-control-panel-desktop-shell ${hasHomeSecondaryActions ? '' : 'home-control-panel-compact'} ${shouldCondenseHomeControlPanel ? 'home-control-panel-condensed' : ''}`}
+      style={{ display: 'flex', alignItems: 'center', justifyContent: shouldCondenseHomeControlPanel ? 'flex-end' : 'space-between', width: '100%', gap: '12px' }}
+    >
       <div className={`home-ai-filter-cluster ${isFilterUiActive ? 'is-filtering' : ''}`}>
         {showDesktopQuickPresets && (
           <div className="home-ai-quick-presets">
@@ -230,14 +241,14 @@ const HomeView = ({
           className={`btn-pill home-ai-filter-btn ${feed.length > 0 ? 'home-ai-filter-ready' : ''} ${isFilterUiActive ? 'is-filtering' : ''}`}
         >
           <span className={`home-ai-filter-btn-signal ${isFilterUiActive ? 'is-visible is-spinning' : ''}`} aria-hidden="true" />
-          <span className="home-ai-filter-btn-label">{isFilterUiActive ? 'à¸à¸³à¸¥à¸±à¸‡à¸à¸£à¸­à¸‡' : 'FORO Filter'}</span>
+          <span className="home-ai-filter-btn-label">{isFilterUiActive ? 'กำลังกรอง' : 'FORO Filter'}</span>
         </button>
         <button
           onClick={onSync}
           disabled={loading}
           className="btn-pill primary"
         >
-          {isSyncing ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} à¸Ÿà¸µà¸”à¸‚à¹‰à¸­à¸¡à¸¹à¸¥
+          {isSyncing ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} ฟีดข้อมูล
         </button>
       </div>
     </div>
@@ -261,75 +272,10 @@ const HomeView = ({
           </button>
         </div>
 
-        <div
-          className={`dashboard-header-actions home-control-panel home-control-panel-desktop-shell ${hasHomeSecondaryActions ? '' : 'home-control-panel-compact'} ${shouldCondenseHomeControlPanel ? 'home-control-panel-condensed' : ''}`}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: shouldCondenseHomeControlPanel ? 'flex-end' : 'space-between', width: '100%', gap: '12px' }}
-        >
-          <div className="mobile-only-flex home-mobile-feed-inline" style={{ alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
-            <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <div className="section-title" style={{ fontSize: '15px' }}>โพสต์ล่าสุด</div>
-              {activeListId && <div className="active-list-pills" style={{ fontSize: '12px', padding: '4px 10px' }}>กำลังกรองตาม: {currentActiveList?.name}</div>}
-              {isFiltered && <AiFilteredBadge onClear={onClearAiFilter} clearTitle="ล้าง" />}
-            </div>
-            <div className="feed-section-filters" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              {!canUndoFeedClear && canClearFeed && (
-                <button onClick={onDeleteAll} className="icon-btn-large header-secondary-action" style={{ height: '34px', minHeight: '34px', width: '34px' }} title="เคลียร์ฟีด">
-                  <Eraser size={14} />
-                </button>
-              )}
-              {canUndoFeedClear && (
-                <button onClick={onUndo} className="icon-btn-large header-secondary-action undo-reveal" style={{ height: '34px', minHeight: '34px', width: '34px' }} title="ฟื้นฟู">
-                  <Undo2 size={14} />
-                </button>
-              )}
-              <button onClick={() => onSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`} style={{ height: '34px', minHeight: '34px', padding: '0 12px', fontSize: '12px' }}>
-                ยอดวิว
-              </button>
-              <button onClick={() => onSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`} style={{ height: '34px', minHeight: '34px', padding: '0 12px', fontSize: '12px' }}>
-                เอนเกจเมนต์
-              </button>
-            </div>
-          </div>
-
-          <div className={`home-ai-filter-cluster ${isFilterUiActive ? 'is-filtering' : ''}`}>
-            {showDesktopQuickPresets && (
-              <div className="home-ai-quick-presets">
-                {visibleQuickPresets.map((preset) => (
-                  <div
-                    key={preset}
-                    className={`home-ai-quick-chip ${isFilterUiActive && normalizedActiveFilterPrompt === preset ? 'is-active' : ''}`}
-                  >
-                    <button
-                      onClick={() => onQuickFilter(preset)}
-                      disabled={isFiltering}
-                      className={`home-ai-quick-preset-btn ${isFilterUiActive && normalizedActiveFilterPrompt === preset ? 'is-active' : ''}`}
-                    >
-                      {preset}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <button
-              onClick={onOpenFilterModal}
-              aria-busy={isFilterUiActive}
-              className={`btn-pill home-ai-filter-btn ${feed.length > 0 ? 'home-ai-filter-ready' : ''} ${isFilterUiActive ? 'is-filtering' : ''}`}
-            >
-              <span className={`home-ai-filter-btn-signal ${isFilterUiActive ? 'is-visible is-spinning' : ''}`} aria-hidden="true" />
-              <span className="home-ai-filter-btn-label">{isFilterUiActive ? 'กำลังกรอง' : 'FORO Filter'}</span>
-            </button>
-            <button
-              onClick={onSync}
-              disabled={loading}
-              className="btn-pill primary"
-            >
-              {isSyncing ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} ฟีดข้อมูล
-            </button>
-          </div>
-        </div>
+        {desktopHeaderActions}
       </header>
 
-      {isCompactSkeletonLayout && homeControlPanel}
+      {isCompactSkeletonLayout && mobileFeedToolbar}
 
       {showHomeFeedToolbar && (
         <div className="feed-section-header home-desktop-feed-header home-feed-toolbar reader-toolbar-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
@@ -339,22 +285,8 @@ const HomeView = ({
             {isFiltered && <AiFilteredBadge onClear={onClearAiFilter} clearTitle="ล้างตัวกรอง" />}
           </div>
           <div className="feed-section-filters reader-toolbar-actions-group" style={{ display: 'flex', gap: '8px' }}>
-            {!canUndoFeedClear && canClearFeed && (
-              <button onClick={onDeleteAll} className="icon-btn-large header-secondary-action" style={{ height: '34px', minHeight: '34px', width: '34px' }} title="เคลียร์ฟีด">
-                <Eraser size={14} />
-              </button>
-            )}
-            {canUndoFeedClear && (
-              <button onClick={onUndo} className="icon-btn-large header-secondary-action undo-reveal" style={{ height: '34px', minHeight: '34px', width: '34px' }} title="ฟื้นฟู">
-                <Undo2 size={14} />
-              </button>
-            )}
-            <button onClick={() => onSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`}>
-              ยอดวิว
-            </button>
-            <button onClick={() => onSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`}>
-              เอนเกจเมนต์
-            </button>
+            {renderFeedMaintenanceAction()}
+            {renderSortButtons()}
           </div>
         </div>
       )}

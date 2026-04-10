@@ -1112,13 +1112,13 @@ h6,
 }
 
 .hero-search-title {
-  font-size: 48px;
+  font-size: 40px;
   font-weight: 800;
   margin-bottom: 2px;
   display: inline-block;
   font-family: "Noto Sans Thai", "Inter", sans-serif;
   letter-spacing: 0;
-  line-height: 1.2;
+  line-height: 1.12;
   padding: 0.08em 0 0.12em;
   background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
   -webkit-background-clip: text;
@@ -1150,11 +1150,11 @@ h6,
 }
 
 .hero-search-subtitle {
-  font-size: 18px;
+  font-size: 16px;
   color: var(--text-muted);
-  margin-bottom: 18px;
-  max-width: 600px;
-  line-height: 1.45;
+  margin-bottom: 14px;
+  max-width: 560px;
+  line-height: 1.4;
 }
 
 .hero-search-form {
@@ -1519,9 +1519,9 @@ h6,
 }
 
 .reader-header {
-  padding: 0 0 24px 0;
+  padding: 0 0 20px 0;
   border-bottom: 1px solid var(--glass-border);
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .reader-header-top {
@@ -3667,7 +3667,7 @@ h6,
     font-size: 12.5px;
     line-height: 1.42;
   }
-} .dashboard-header { margin: 0 0 28px 0; display: flex; flex-direction: column; } .dashboard-header-home-layout { gap: 8px; margin-bottom: 2px; } .dashboard-header-top-layout { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; } .home-mobile-logo-layout { justify-content: center; width: auto; min-height: 32px; } .dashboard-header-title-stack { display: flex; flex-direction: column; gap: 4px; min-width: 0; } .home-mobile-logo-img { height: 24px; width: auto; display: block; } .home-control-panel,
+} .dashboard-header { margin: 0 0 22px 0; display: flex; flex-direction: column; } .dashboard-header-home-layout { gap: 6px; margin-bottom: 0; } .dashboard-header-top-layout { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; } .home-mobile-logo-layout { justify-content: center; width: auto; min-height: 32px; } .dashboard-header-title-stack { display: flex; flex-direction: column; gap: 2px; min-width: 0; } .home-mobile-logo-img { height: 24px; width: auto; display: block; } .home-control-panel,
 .home-feed-toolbar {
   border-radius: 20px;
 }
@@ -3700,7 +3700,7 @@ h6,
 }
 
 .dashboard-header-home .hero-search-subtitle {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .dashboard-header-home .dashboard-header-top-layout {
@@ -10183,6 +10183,7 @@ h6,
   .hero-search-container,
   .reader-header,
   .audience-hero-header,
+  .create-content-header,
   .pricing-minimal-header {
     padding: 0 0 10px !important;
     margin: 0 0 10px !important;
@@ -10209,6 +10210,18 @@ h6,
   .dashboard-header-title-block {
     align-items: flex-start !important;
     text-align: left !important;
+  }
+
+  .dashboard-header-title-stack,
+  .reader-header-copy,
+  .hero-search-container > div:first-child > div,
+  .audience-hero-copy,
+  .create-content-header-copy,
+  .pricing-minimal-copy {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
   }
 
   .dashboard-header-title-block > div:first-child {
@@ -10274,6 +10287,7 @@ h6,
   .dashboard-header h1,
   .reader-title,
   .hero-search-title,
+  .create-content-title,
   .audience-hero-title,
   .pricing-minimal-title {
     font-size: 24px !important;
@@ -10282,39 +10296,54 @@ h6,
     letter-spacing: -0.02em !important;
   }
 
+  .create-content-title {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+
+  .create-content-title svg,
+  .audience-hero-title-mark svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
   .reader-header-copy,
-  .hero-search-container > div:first-child {
+  .hero-search-container > div:first-child,
+  .audience-hero-copy,
+  .create-content-header-copy {
     width: 100% !important;
     max-width: 352px !important;
     min-width: 0 !important;
     padding-right: 0 !important;
   }
 
-  .reader-header-copy,
-  .hero-search-container > div:first-child > div {
-    display: flex !important;
+  .create-content-header {
     flex-direction: column !important;
     align-items: flex-start !important;
     gap: 8px !important;
+    padding-inline: 0 !important;
+  }
+
+  .create-content-subtitle,
+  .hero-search-subtitle,
+  .reader-subtitle,
+  .audience-hero-subtitle,
+  .pricing-minimal-subtitle {
+    max-width: none !important;
+    margin: 0 !important;
+    font-size: 13px !important;
+    line-height: 1.42 !important;
+    color: var(--text-dim) !important;
   }
 
   .reader-header-top {
     align-items: flex-start !important;
   }
 
+  .reader-subtitle,
   .hero-search-subtitle,
-  .reader-subtitle,
-  .audience-hero-subtitle,
-  .pricing-minimal-subtitle {
-    max-width: none !important;
-    margin-top: 0 !important;
-    font-size: 13px !important;
-    line-height: 1.42 !important;
-    color: var(--text-dim) !important;
-  }
-
-  .reader-subtitle,
-  .hero-search-subtitle {
+  .create-content-subtitle {
     max-width: 352px !important;
   }
 
