@@ -10117,8 +10117,8 @@ h6,
 
   .home-control-panel {
     display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
     gap: 10px !important;
     padding: 0 !important;
     background: transparent !important;
@@ -10126,6 +10126,33 @@ h6,
     box-shadow: none !important;
     border-radius: 0 !important;
     margin: 0 0 8px !important;
+  }
+
+  .home-mobile-feed-inline {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .home-mobile-feed-inline .feed-section-title-row {
+    display: flex !important;
+    min-width: 0 !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  .home-mobile-feed-inline .feed-section-filters {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    padding-bottom: 2px;
   }
 
   .home-control-panel .dashboard-header-actions-group {
