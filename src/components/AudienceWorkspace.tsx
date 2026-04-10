@@ -67,7 +67,7 @@ const AudienceWorkspace = ({
   subscribedSources = [],
   onToggleSource = () => { },
 }) => {
-  const CATEGORIES = [
+  const CATEGORIES = React.useMemo(() => [
     { label: 'เทคโนโลยี', image: 'Tech.jpg_202604080519.jpeg' },
     { label: 'AI', image: 'AI.jpg_202604080519.jpeg' },
     { label: 'ธุรกิจ', image: 'Business.png_202604080519.jpeg' },
@@ -89,10 +89,10 @@ const AudienceWorkspace = ({
     { label: 'บทวิเคราะห์', image: 'Analysis.jpg_202604080519.jpeg' },
     { label: 'อสังหาฯ', image: 'Realestate.jpg_202604080519.jpeg' },
     { label: 'ยานยนต์', image: 'Automotive.jpg_202604080519.jpeg' },
-  ];
+  ], []);
   const categoryImageUrls = React.useMemo(
     () => CATEGORIES.map((cat) => `${import.meta.env.BASE_URL}categories/${cat.image}`),
-    [],
+    [CATEGORIES],
   );
   const [loadedCategoryImages, setLoadedCategoryImages] = React.useState(() => new Set(LOADED_CATEGORY_IMAGE_URLS));
 

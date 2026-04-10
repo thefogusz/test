@@ -30,14 +30,13 @@ const ReadWorkspace = ({
           <header className="reader-header">
             <div className="reader-header-top">
               <div className="reader-header-copy">
-                <h1 className="reader-title">{'\u0e2d\u0e48\u0e32\u0e19\u0e02\u0e48\u0e32\u0e27'}</h1>
-                <p className="reader-subtitle">{'\u0e1a\u0e17\u0e04\u0e27\u0e32\u0e21\u0e41\u0e25\u0e30\u0e02\u0e48\u0e32\u0e27\u0e2a\u0e32\u0e23\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e44\u0e27\u0e49\u0e2d\u0e48\u0e32\u0e19\u0e41\u0e1a\u0e1a Deep Read'}</p>
+                <h1 className="hero-search-title">{'\u0e2d\u0e48\u0e32\u0e19\u0e02\u0e48\u0e32\u0e27'}</h1>
+                <p className="hero-search-subtitle">{'\u0e1a\u0e17\u0e04\u0e27\u0e32\u0e21\u0e41\u0e25\u0e30\u0e02\u0e48\u0e32\u0e27\u0e2a\u0e32\u0e23\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e44\u0e27\u0e49\u0e2d\u0e48\u0e32\u0e19\u0e41\u0e1a\u0e1a Deep Read'}</p>
               </div>
               <button className="mobile-only-flex icon-btn-large" onClick={() => setIsMobilePostListOpen(true)}>
                 <List size={20} />
               </button>
             </div>
-            {activeListId && <div className="active-list-pills">{'\u0e01\u0e33\u0e25\u0e31\u0e07\u0e01\u0e23\u0e2d\u0e07\u0e15\u0e32\u0e21:'} {currentActiveList?.name}</div>}
           </header>
 
           {readArchive.length > 0 && (
@@ -79,8 +78,15 @@ const ReadWorkspace = ({
                 )}
               </div>
 
-              <div className="reader-toolbar-actions">
-                <span className="reader-toolbar-count">{filteredReadArchive.length} {'\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23'}</span>
+              <div className="reader-toolbar-actions" style={{ flexWrap: 'wrap', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <span className="reader-toolbar-count">{filteredReadArchive.length} {'\u0e23\u0e32\u0e22\u0e01\u0e32\u0e23'}</span>
+                  {activeListId && (
+                    <div className="active-list-pills" style={{ fontSize: '12px', padding: '4px 10px', margin: 0 }}>
+                      {'\u0e01\u0e33\u0e25\u0e31\u0e07\u0e01\u0e23\u0e2d\u0e07\u0e15\u0e32\u0e21:'} {currentActiveList?.name}
+                    </div>
+                  )}
+                </div>
                 <div className="reader-toolbar-actions-group">
                   <button onClick={() => setReadFilters((p) => ({ ...p, view: !p.view }))} className={`btn-pill ${readFilters.view ? 'active' : ''}`}>
                     {'\u0e22\u0e2d\u0e14\u0e27\u0e34\u0e27'}

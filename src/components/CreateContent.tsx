@@ -842,20 +842,20 @@ const CreateContent = ({
   };
 
   return (
-    <div className="create-content-shell create-content-shell-modern" style={{ padding: '0 20px 40px', maxWidth: '920px', margin: '0 auto', color: '#fff', animation: 'fadeIn 0.3s ease-out' }}>
+    <div className="create-content-shell create-content-shell-modern">
       
       {/* Compact Header */}
-      <div className="create-content-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', marginTop: '10px' }}>
+      <div className="create-content-header">
         <div className="create-content-header-copy">
-          <h1 className="create-content-title" style={{ margin: 0, fontSize: '28px', fontWeight: '800', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <h1 className="create-content-title">
             <SquarePen size={22} strokeWidth={2.05} /> สร้างคอนเทนต์
           </h1>
-          <p className="create-content-subtitle" style={{ color: 'var(--text-dim)', margin: '6px 0 0', fontSize: '14px' }}>
+          <p className="create-content-subtitle">
             เริ่มจากหัวข้อเดียว แล้วค่อยกำหนดรูปแบบ น้ำเสียง และความยาวภายหลัง
           </p>
         </div>
         {generatedMarkdown && (
-          <button onClick={clearForm} className="btn-mini-ghost" style={{ padding: '8px 16px' }}>
+          <button onClick={clearForm} className="btn-mini-ghost">
             <Plus size={14} /> สร้างคอนเทนต์ใหม่
           </button>
         )}
@@ -866,59 +866,34 @@ const CreateContent = ({
         className="content-view-tabs-mobile-inline"
       />
 
-      <div className="create-content-panel" style={{
-        borderRadius: '24px',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-        overflow: 'hidden'
-      }}>
+      <div className="create-content-panel">
         <div className="create-content-composer">
           <div className="create-content-main">
             {activeSourceNode && (
-              <div style={{ padding: '20px 20px 0', animation: 'fadeIn 0.3s ease-out' }}>
-                <div className="create-content-source-pill" style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'flex-start'
-                }}>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', minWidth: 0 }}>
-                    <div style={{ 
-                      background: 'rgba(255,255,255,0.04)', padding: '9px', 
-                      borderRadius: '12px', color: 'var(--text-dim)',
-                      border: '1px solid rgba(255,255,255,0.06)'
-                    }}>
+              <div className="create-content-source-container">
+                <div className="create-content-source-pill">
+                  <div className="create-content-source-info">
+                    <div className="create-content-source-icon">
                       {attachedIsXVideo ? <ListVideo size={16} /> : <FileText size={16} />}
                     </div>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-dim)', letterSpacing: '0.08em', marginBottom: '4px', textTransform: 'uppercase' }}>
+                    <div className="create-content-source-text">
+                      <div className="create-content-source-label">
                         อ้างอิงจากแหล่งข้อมูล
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                      <div className="create-content-source-details">
                         <img 
                           src={activeSourceNode.author?.profile_image_url} 
                           alt="" 
-                          style={{ width: '18px', height: '18px', borderRadius: '50%' }}
+                          className="create-content-source-avatar"
                           onError={e => { e.target.style.display = 'none'; }}
                         />
-                        <div style={{ fontSize: '13px', color: '#fff', fontWeight: '600', whiteSpace: 'nowrap' }}>{getAttachedSourceAuthorLabel(activeSourceNode)}</div>
+                        <div className="create-content-source-author">{getAttachedSourceAuthorLabel(activeSourceNode)}</div>
                         {attachedIsXVideo && (
-                          <div
-                            style={{
-                              fontSize: '10px',
-                              fontWeight: '800',
-                              color: '#bfdbfe',
-                              background: 'rgba(96, 165, 250, 0.16)',
-                              border: '1px solid rgba(96, 165, 250, 0.28)',
-                              borderRadius: '999px',
-                              padding: '3px 8px',
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
+                          <div className="create-content-source-badge">
                             X VIDEO{attachedVideoDurationLabel ? ` • ${attachedVideoDurationLabel}` : ''}
                           </div>
                         )}
-                        <div style={{ color: 'var(--text-dim)', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div className="create-content-source-headline">
                           {attachedHeadline}
                         </div>
                       </div>
@@ -929,57 +904,26 @@ const CreateContent = ({
                       setResolvedInputSource(null);
                       if (sourceNode) onRemoveSource?.();
                     }} 
-                    className="icon-hover" 
-                    style={{ 
-                      padding: '8px', 
-                      color: 'rgba(255,255,255,0.4)', 
-                      background: 'rgba(255,255,255,0.05)',
-                      border: 'none',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseOver={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
-                    onMouseOut={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
+                    className="create-content-remove-source"
                   >
                     <X size={18} />
                   </button>
                 </div>
                 {attachedIsXVideo && (
-                  <div
-                    style={{
-                      marginTop: '12px',
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: '10px',
-                      padding: '12px 14px',
-                      borderRadius: '16px',
-                      background: 'rgba(96, 165, 250, 0.08)',
-                      border: '1px solid rgba(96, 165, 250, 0.18)',
-                      color: '#dbeafe',
-                    }}
-                  >
-                    <ListVideo size={15} style={{ marginTop: '2px', flexShrink: 0 }} />
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: '12px', fontWeight: '800', letterSpacing: '0.04em' }}>
+                  <div className="create-content-x-video-hint">
+                    <ListVideo size={15} />
+                    <div className="create-content-x-video-text">
+                      <div className="create-content-x-video-title">
                         X video source
                       </div>
-                      <div style={{ fontSize: '13px', lineHeight: '1.6', color: 'rgba(219, 234, 254, 0.86)' }}>
+                      <div className="create-content-x-video-desc">
                         ตอนกดสร้างคอนเทนต์ ระบบจะวิเคราะห์วิดีโอจากโพสต์ X นี้เพื่อดึงประเด็นสำคัญและนำมาใช้เป็นบริบทในการเขียน
                       </div>
                     </div>
                   </div>
                 )}
                 {attachedSummaryLine && (
-                  <div
-                    style={{
-                      marginTop: '12px',
-                      fontSize: '13px',
-                      lineHeight: '1.6',
-                      color: 'rgba(255,255,255,0.72)',
-                      maxWidth: '720px',
-                    }}
-                  >
+                  <div className="create-content-summary-line">
                     {attachedSummaryLine}
                   </div>
                 )}
@@ -1042,7 +986,7 @@ const CreateContent = ({
               }
               disabled={isGenerating}
               style={{ 
-                flex: 1, width: '100%', minHeight: activeSourceNode ? '240px' : '320px', resize: 'none', fontSize: '17px', lineHeight: '1.72',
+                flex: 1, width: '100%', minHeight: activeSourceNode ? '80px' : '120px', resize: 'none', fontSize: '17px', lineHeight: '1.72',
                 padding: activeSourceNode ? '10px 24px 24px' : '16px 24px 24px', background: 'transparent', border: 'none', color: '#ffffff', outline: 'none',
                 fontFamily: 'inherit'
               }}

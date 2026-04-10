@@ -77,8 +77,6 @@ const buildSearchRequestQuery = (query: string, mediaType: SearchMediaType) => {
   let nextQuery = String(query || '').trim();
   if (!nextQuery) return nextQuery;
 
-  const queryIntent = analyzeSearchQueryIntent(nextQuery);
-
   if (mediaType === 'videos' && !/\bfilter:videos\b/i.test(nextQuery)) {
     nextQuery = `${nextQuery} filter:videos`;
   }

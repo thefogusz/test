@@ -675,7 +675,11 @@ const NewsSourcesTab = ({
     if (typeof window === 'undefined') return undefined;
 
     const updateCompactTopicLayout = () => {
-      setIsCompactTopicLayout(window.innerWidth <= 768);
+      const nextIsCompactTopicLayout = window.innerWidth <= 768;
+      setIsCompactTopicLayout(nextIsCompactTopicLayout);
+      if (!nextIsCompactTopicLayout) {
+        setShowAllMobileTopics(false);
+      }
     };
 
     updateCompactTopicLayout();
@@ -683,12 +687,6 @@ const NewsSourcesTab = ({
 
     return () => window.removeEventListener('resize', updateCompactTopicLayout);
   }, []);
-
-  useEffect(() => {
-    if (!isCompactTopicLayout && showAllMobileTopics) {
-      setShowAllMobileTopics(false);
-    }
-  }, [isCompactTopicLayout, showAllMobileTopics]);
 
   const filteredSources = useMemo(() => {
     const allSources = Object.values(RSS_CATALOG).flat();

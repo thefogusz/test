@@ -1,4 +1,4 @@
-import { createElement, useEffect, useState } from 'react';
+import { createElement, useEffect, useRef, useState } from 'react';
 import { Check, CreditCard, Shield, Sparkles, X } from 'lucide-react';
 import {
   FEATURE_LABELS,
@@ -7,6 +7,7 @@ import {
   type MeteredFeature,
   type PlanId,
 } from '../config/pricingPlans';
+import PlanPanel from './PlanPanel';
 
 type PricingWorkspaceProps = {
   isVisible: boolean;
@@ -15,7 +16,13 @@ type PricingWorkspaceProps = {
   remainingUsage: Record<MeteredFeature, number>;
   onSelectPlan: (planId: PlanId) => void;
   isCheckoutLoading?: boolean;
-  onOpenContent: () => void;
+  usageLimits: Record<MeteredFeature, number>;
+  plusAccess?: {
+    activatedAt: string;
+    expiresAt: string;
+    source?: 'checkout' | 'manual';
+  } | null;
+  profileSectionEventName?: string;
 };
 
 const FEATURE_ORDER: MeteredFeature[] = ['feed', 'search', 'generate'];
@@ -61,8 +68,13 @@ const PricingWorkspace = ({
   remainingUsage,
   onSelectPlan,
   isCheckoutLoading = false,
+  usageLimits,
+  plusAccess = null,
+  profileSectionEventName,
 }: PricingWorkspaceProps) => {
   const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
+  const profileHeaderRef = useRef<HTMLElement | null>(null);
+  const pricingPlansRef = useRef<HTMLElement | null>(null);
   const currentPlan = PLAN_DEFINITIONS[activePlanId];
   const CurrentPlanIcon = PLAN_PILL_ICON[activePlanId] ?? CreditCard;
   const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY?.trim() ?? '';
@@ -92,11 +104,46 @@ const PricingWorkspace = ({
     };
   }, [isBuyModalOpen, isVisible]);
 
+  useEffect(() => {
+    if (!profileSectionEventName || typeof window === 'undefined') return undefined;
+
+    const handleProfileSection = (event: Event) => {
+      const customEvent = event as CustomEvent<string>;
+
+      // Robust scroll targeting for internal containers
+      window.setTimeout(() => {
+        const targetSection = customEvent.detail;
+        let el: HTMLElement | null = null;
+        
+        if (targetSection === 'pricing') el = pricingPlansRef.current;
+        else el = profileHeaderRef.current;
+
+        if (el) {
+          // Find the nearest scrollable parent (usually .foro-main-scroll)
+          const scrollParent = el.closest('.foro-main-scroll') || el.parentElement;
+          if (scrollParent) {
+            const elTop = el.offsetTop;
+            scrollParent.scrollTo({ top: elTop - 20, behavior: 'smooth' });
+          } else {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      }, 300);
+    };
+
+    window.addEventListener(profileSectionEventName, handleProfileSection as EventListener);
+    return () => window.removeEventListener(profileSectionEventName, handleProfileSection as EventListener);
+  }, [profileSectionEventName]);
+
   const openBuyModal = () => {
     setIsBuyModalOpen(true);
   };
 
   const handlePlanAction = (planId: PlanId) => {
+    if (planId === activePlanId) {
+      return;
+    }
+
     if (planId === 'plus') {
       openBuyModal();
       return;
@@ -111,28 +158,49 @@ const PricingWorkspace = ({
         className="pricing-shell pricing-shell-minimal animate-fade-in"
         style={{ display: isVisible ? 'block' : 'none' }}
       >
-        <section className="pricing-band pricing-band-tinted pricing-minimal-header">
+        <div className="mobile-only-block pricing-mobile-profile-panel">
+          <PlanPanel
+            activePlanId={activePlanId}
+            plusAccess={plusAccess}
+            remainingUsage={remainingUsage}
+            usageLimits={usageLimits}
+            onSwitchPlan={onSelectPlan}
+            onOpenPricing={() => {
+              if (typeof window === 'undefined') return;
+              window.dispatchEvent(
+                new CustomEvent(profileSectionEventName || 'foro:profile-section', {
+                  detail: 'pricing',
+                }),
+              );
+            }}
+            onClearPlanNotice={() => {}}
+            forceOpen
+            defaultOpen
+          />
+        </div>
+
+        <section
+          className="pricing-band pricing-band-tinted pricing-minimal-header desktop-only"
+          ref={profileHeaderRef}
+        >
           <div className="pricing-minimal-topline">
-            <span className="pricing-section-kicker">แพ็กเกจ FORO</span>
+            <span className="pricing-section-kicker">โปรไฟล์ FORO</span>
             <span className="pricing-current-plan-pill">
               <CurrentPlanIcon size={14} />
               {currentPlan.name}
             </span>
           </div>
 
-          <div className="pricing-minimal-head">
+          <div className="pricing-minimal-head" style={{ marginBottom: '16px' }}>
             <div className="pricing-minimal-copy">
-              <h1 className="pricing-minimal-title">เลือกแพ็กที่เหมาะกับคุณ</h1>
+              <h1 className="pricing-minimal-title">โปรไฟล์และการใช้งาน</h1>
               <p className="pricing-minimal-subtitle">
-                เลือกตามปริมาณการใช้งานต่อวัน พื้นที่จัดการงาน และความต่อเนื่องของ workflow
-                ที่คุณต้องการ
+                ดูแพ็กปัจจุบัน โควต้าที่เหลือในวันนี้ และพื้นที่จัดการงานของบัญชีคุณได้จากหน้านี้
               </p>
             </div>
-
-            {/* Redundant Plus button removed */}
           </div>
 
-          <div className="pricing-usage-strip">
+          <div className="pricing-usage-strip" style={{ marginTop: '0' }}>
             {FEATURE_ORDER.map((feature) => {
               const limit = currentPlan.usage[feature];
               const remaining = remainingUsage[feature];
@@ -154,14 +222,17 @@ const PricingWorkspace = ({
                   <div className="pricing-meter-track compact">
                     <div className="pricing-meter-fill" style={{ width: `${progress}%` }} />
                   </div>
-                  {/* FEATURE_HINTS removed as per request to keep UI clean */}
                 </div>
               );
             })}
           </div>
         </section>
 
-        <section className="pricing-band pricing-band-plain">
+
+        <section
+          className="pricing-band pricing-band-plain"
+          ref={pricingPlansRef}
+        >
           <div className="pricing-plan-grid">
             {PUBLIC_PLAN_IDS.map((planId) => {
               const plan = PLAN_DEFINITIONS[planId];
@@ -221,7 +292,7 @@ const PricingWorkspace = ({
                     className={`btn-pill ${planId === 'plus' ? 'primary' : ''}`}
                     style={{ width: '100%', justifyContent: 'center', marginTop: 'auto' }}
                     onClick={() => handlePlanAction(planId)}
-                    disabled={planId === 'plus' && isCheckoutLoading}
+                    disabled={isCurrent || (planId === 'plus' && isCheckoutLoading)}
                   >
                     {isCurrent ? 'แพ็กปัจจุบัน' : `เลือก ${plan.name}`}
                   </button>

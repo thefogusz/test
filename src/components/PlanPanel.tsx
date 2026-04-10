@@ -30,6 +30,7 @@ type PlanPanelProps = {
   onClearPlanNotice: () => void;
   plusAccess?: PlusAccess;
   defaultOpen?: boolean;
+  forceOpen?: boolean;
   className?: string;
 };
 
@@ -56,7 +57,9 @@ const getForoDocsUrl = () => {
   if (overrideUrl) return overrideUrl;
   if (typeof window === 'undefined') return '/test/docs/';
 
-  return new URL('docs/', new URL(import.meta.env.BASE_URL, window.location.origin)).toString();
+  const base = import.meta.env.BASE_URL || '/';
+  const safeBase = base.endsWith('/') ? base : `${base}/`;
+  return `${window.location.origin}${safeBase}docs/`;
 };
 
 const getPlusAccessBadgeLabel = (plusAccess?: PlusAccess) => {
@@ -93,6 +96,7 @@ const PlanPanel = ({
   onOpenPricing,
   plusAccess,
   defaultOpen = false,
+  forceOpen = false,
   className = '',
 }: PlanPanelProps) => {
   const [isTesterOpen, setIsTesterOpen] = useState(defaultOpen);
@@ -100,7 +104,7 @@ const PlanPanel = ({
 
   const isPlusPlan = activePlanId === 'plus';
   const isLargePlanCard = activePlanId === 'free' || activePlanId === 'plus';
-  const isPlanPanelOpen = isTesterOpen;
+  const isPlanPanelOpen = forceOpen || isTesterOpen;
   const profileName = MOCK_USER_NAMES[activePlanId] ?? MOCK_USER_NAMES.free;
   const profileInitials = MOCK_USER_INITIALS[activePlanId] ?? MOCK_USER_INITIALS.free;
   const profileCaption = MOCK_USER_CAPTIONS[activePlanId] ?? MOCK_USER_CAPTIONS.free;
@@ -141,7 +145,10 @@ const PlanPanel = ({
         className={`sidebar-user-summary ${isLargePlanCard ? 'is-large' : ''} ${
           isPlusPlan ? 'is-plus' : ''
         }`}
-        onClick={() => setIsTesterOpen((current) => !current)}
+        onClick={() => {
+          if (forceOpen) return;
+          setIsTesterOpen((current) => !current);
+        }}
         aria-expanded={isPlanPanelOpen}
       >
         <div className="sidebar-user-summary-main">

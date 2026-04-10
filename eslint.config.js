@@ -19,7 +19,7 @@ const sharedLanguageOptions = {
 }
 
 export default defineConfig([
-  globalIgnores(['dist', 'tmp', 'docs/.vitepress/dist']),
+  globalIgnores(['dist', 'tmp', 'docs/.vitepress/dist', 'docs/.vitepress/cache']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

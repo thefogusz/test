@@ -139,6 +139,7 @@ const RightSidebar = ({
   onShareList,
   isMobileOpen,
   onCloseMobile,
+  onOpenAudience,
 }) => {
   const [expandedId, setExpandedId] = useState(null);
   const [addHandle, setAddHandle] = useState('');
@@ -274,6 +275,18 @@ const RightSidebar = ({
       </header>
 
       <div className="right-sidebar-content" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+        {isMobileOpen && (
+          <div style={{ marginBottom: '16px' }}>
+            <button
+              type="button"
+              className="btn-pill"
+              onClick={onOpenAudience}
+              style={{ width: '100%', justifyContent: 'center', fontSize: '13px', padding: '10px 16px', background: 'rgba(255,255,255,0.06)' }}
+            >
+              <Users size={16} /> เพิ่มการติดตาม
+            </button>
+          </div>
+        )}
         
         {/* Create Action (Replaced Import) */}
         <div style={{ marginBottom: '16px', display: postLists.length > 0 ? 'none' : 'block' }}>

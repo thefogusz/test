@@ -112,6 +112,13 @@ const ContentWorkspace = ({
   const referencedWebSources = webSourcesWithCitationIds.filter((src) =>
     summaryWebCitationIds.includes(String(src.citation_id || '').replaceAll('[', '').replaceAll(']', '')),
   );
+  const shouldCenterSearchDiscovery =
+    contentTab === 'search' &&
+    !isSearching &&
+    !searchResults.length &&
+    !searchOverflowResults.length &&
+    !lastSubmittedSearchQuery &&
+    !(searchQuery || '').trim();
   const handleLockedCreateClick = () => {
     onOpenPricing?.();
   };
@@ -190,7 +197,11 @@ const ContentWorkspace = ({
       )}
 
       {contentTab === 'search' && (
-        <div className="search-discovery-view animate-fade-in">
+        <div
+          className={`search-discovery-view animate-fade-in ${
+            shouldCenterSearchDiscovery ? 'search-discovery-view-centered' : ''
+          }`.trim()}
+        >
           <div className="hero-search-container">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
@@ -212,7 +223,7 @@ const ContentWorkspace = ({
                   <input
                     type="text"
                     className="hero-search-input"
-                    placeholder={'\u0e1e\u0e34\u0e21\u0e1e\u0e4c\u0e04\u0e35\u0e22\u0e4c\u0e40\u0e27\u0e34\u0e23\u0e4c\u0e14\u0e17\u0e35\u0e48\u0e2a\u0e19\u0e43\u0e08...'}
+                    placeholder={'\u0e1e\u0e34\u0e21\u0e1e\u0e4c\u0e04\u0e35\u0e22\u0e4c\u0e40\u0e27\u0e34\u0e23\u0e4c\u0e14...'}
                     value={searchQuery}
                     onChange={(e) => {
                       setSearchQuery(e.target.value);

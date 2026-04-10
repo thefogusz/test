@@ -132,8 +132,6 @@ const HomeView = ({
     const mediaQuery = window.matchMedia('(max-width: 768px)');
     const updateLayout = (event) => setIsCompactSkeletonLayout(event.matches);
 
-    setIsCompactSkeletonLayout(mediaQuery.matches);
-
     if (typeof mediaQuery.addEventListener === 'function') {
       mediaQuery.addEventListener('change', updateLayout);
       return () => mediaQuery.removeEventListener('change', updateLayout);
@@ -163,10 +161,10 @@ const HomeView = ({
             <img src="logo.png" alt="FO" className="home-mobile-logo-img" loading="eager" />
           </div>
           <div className="dashboard-header-title-block dashboard-header-title-stack">
-            <div style={{ color: 'var(--text-dim)', fontSize: '13px', fontWeight: '500' }}>WATCHLIST FEED</div>
-            <h1 style={{ margin: 0, fontSize: '32px', fontWeight: '800', lineHeight: '1.4', color: currentActiveList?.color || 'inherit' }}>
+            <h1 className="hero-search-title" style={{ margin: 0, color: currentActiveList?.color || 'inherit' }}>
               {currentActiveList?.name || 'หน้าหลัก'}
             </h1>
+            <p className="hero-search-subtitle" style={{ margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>WATCHLIST FEED</p>
           </div>
           <button className="mobile-only-flex icon-btn-large" onClick={onOpenMobileList}>
             <List size={20} />
@@ -177,29 +175,27 @@ const HomeView = ({
           className={`dashboard-header-actions home-control-panel ${hasHomeSecondaryActions ? '' : 'home-control-panel-compact'}`}
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '12px' }}
         >
-          <div className="dashboard-header-actions-group" style={{ display: 'flex', gap: '8px' }}>
-            {originalFeedLength > 0 && (
-              <button onClick={onDeleteAll} className="icon-btn-large header-secondary-action" title="เคลียร์ฟีด">
-                <Eraser size={16} />
-              </button>
-            )}
-            {deletedFeedLength > 0 && (
-              <button onClick={onUndo} className="icon-btn-large header-secondary-action undo-reveal">
-                <Undo2 size={16} />
-              </button>
-            )}
-          </div>
-
-          <div className="mobile-only-flex home-mobile-feed-inline" style={{ alignItems: 'center', justifyContent: 'space-between', gap: '12px', width: '100%' }}>
-            <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div className="section-title">โพสต์ล่าสุด</div>
-              {isFiltered && <AiFilteredBadge onClear={onClearAiFilter} clearTitle="ล้างตัวกรอง" />}
+          <div className="mobile-only-flex home-mobile-feed-inline" style={{ alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
+            <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+              <div className="section-title" style={{ fontSize: '15px' }}>โพสต์ล่าสุด</div>
+              {activeListId && <div className="active-list-pills" style={{ fontSize: '12px', padding: '4px 10px' }}>กำลังกรองตาม: {currentActiveList?.name}</div>}
+              {isFiltered && <AiFilteredBadge onClear={onClearAiFilter} clearTitle="ล้าง" />}
             </div>
-            <div className="feed-section-filters" style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => onSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`}>
+            <div className="feed-section-filters" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              {originalFeedLength > 0 && (
+                <button onClick={onDeleteAll} className="icon-btn-large header-secondary-action" style={{ height: '34px', minHeight: '34px', width: '34px' }} title="เคลียร์ฟีด">
+                  <Eraser size={14} />
+                </button>
+              )}
+              {deletedFeedLength > 0 && (
+                <button onClick={onUndo} className="icon-btn-large header-secondary-action undo-reveal" style={{ height: '34px', minHeight: '34px', width: '34px' }} title="ฟื้นฟู">
+                  <Undo2 size={14} />
+                </button>
+              )}
+              <button onClick={() => onSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`} style={{ height: '34px', minHeight: '34px', padding: '0 12px', fontSize: '12px' }}>
                 ยอดวิว
               </button>
-              <button onClick={() => onSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`}>
+              <button onClick={() => onSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`} style={{ height: '34px', minHeight: '34px', padding: '0 12px', fontSize: '12px' }}>
                 เอนเกจเมนต์
               </button>
             </div>

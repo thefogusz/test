@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { Suspense, lazy, startTransition, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import React, { Suspense, lazy, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import AiFilterModal from './components/AiFilterModal';
 import ArticleReaderModal from './components/ArticleReaderModal';
@@ -44,11 +44,28 @@ const READ_ARCHIVE_RENDER_BATCH = 24;
 const shouldRemoveWhenFalsy = (value) => !value;
 const STORAGE_RESET_QUERY_PARAM = 'reset';
 const FORO_STORAGE_KEY_PREFIX = 'foro_';
+const PROFILE_SECTION_EVENT = 'foro:profile-section';
+
+const dispatchProfileSectionChange = (section: 'details' | 'pricing' | 'audience') => {
+  if (typeof window === 'undefined') return;
+
+  window.setTimeout(() => {
+    window.dispatchEvent(new CustomEvent(PROFILE_SECTION_EVENT, { detail: section }));
+  }, 0);
+};
 
 const App = () => {
   const [status, setStatus] = useState('');
   const [activeView, setActiveView] = usePersistentState(STORAGE_KEYS.activeView, 'home');
   const [contentTab, setContentTab] = usePersistentState(STORAGE_KEYS.contentTab, 'search');
+  const [, setMobileProfileSection] = useState<'details' | 'pricing' | 'audience'>('details');
+  const mainScrollRef = useRef<HTMLDivElement | null>(null);
+
+  const scrollMainToTop = () => {
+    window.setTimeout(() => {
+      mainScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
+    }, 0);
+  };
 
   // --- Billing & Pricing ---
   const {
@@ -473,6 +490,7 @@ const App = () => {
     setCreateContentSource(item);
     setContentTab('create');
     setActiveView('content');
+    scrollMainToTop();
   };
 
   const openArticleReader = (item) => {
@@ -497,7 +515,12 @@ const App = () => {
       <Sidebar
         activeView={activeView}
         onNavClick={(view) => {
-          startTransition(() => { setActiveView(view); });
+          startTransition(() => {
+            setActiveView(view);
+            if (view === 'pricing') {
+              setMobileProfileSection('details');
+            }
+          });
         }}
         backgroundTasks={{
           syncing: loading,
@@ -517,6 +540,37 @@ const App = () => {
         onOpenPricing={openPricingView}
         planNotice={planNotice}
         onClearPlanNotice={() => setPlanNotice(null)}
+        postLists={postLists}
+        currentActiveList={currentActiveList}
+        onOpenMobilePostList={() => setIsMobilePostListOpen(true)}
+        onOpenMobileFeed={async () => {
+          setIsMobilePostListOpen(false);
+          setActiveView('home');
+          await handlePlanSync();
+        }}
+        onOpenMobileFilter={() => setFilterModal({ show: true, prompt: '' })}
+        isHomeFilterActive={isFilterPrimed || isFiltering || isFiltered}
+        contentTab={contentTab}
+        onOpenMobileSearch={() => {
+          setActiveView('content');
+          setContentTab('search');
+          scrollMainToTop();
+        }}
+        onOpenMobileCreate={() => {
+          setActiveView('content');
+          setContentTab('create');
+          scrollMainToTop();
+        }}
+        onOpenMobileRead={() => setActiveView('read')}
+        onOpenMobileBookmarks={() => setActiveView('bookmarks')}
+        onOpenMobileProfileDetails={() => {
+          setMobileProfileSection('details');
+          setActiveView('pricing');
+          dispatchProfileSectionChange('details');
+        }}
+        onOpenMobileAudience={() => {
+          setActiveView('audience');
+        }}
       />
 
       {isMobilePostListOpen && (
@@ -524,7 +578,7 @@ const App = () => {
       )}
 
       <main className="foro-main">
-        <div className="foro-main-scroll">
+        <div className="foro-main-scroll" ref={mainScrollRef}>
 
           {activeView === 'home' && (
           <HomeView
@@ -641,9 +695,11 @@ const App = () => {
               activePlanId={activePlanId}
               dailyUsage={dailyUsage}
               remainingUsage={remainingUsage}
+              usageLimits={currentPlan.usage}
+              plusAccess={plusAccess}
               onSelectPlan={handlePlanSelection}
               isCheckoutLoading={isStartingCheckout}
-              onOpenContent={() => setActiveView('content')}
+              profileSectionEventName={PROFILE_SECTION_EVENT}
             />
           </Suspense>)}
 
@@ -762,6 +818,10 @@ const App = () => {
           onRemoveList={handleRemoveList} onAddMember={handleAddMember} onRemoveMember={handleRemoveMember}
           onUpdateList={handleUpdateList} onShareList={handleShareList} onRemoveAccount={handleRemoveAccountGlobal}
           isMobileOpen={isMobilePostListOpen} onCloseMobile={() => setIsMobilePostListOpen(false)}
+          onOpenAudience={() => {
+            setIsMobilePostListOpen(false);
+            setActiveView('audience');
+          }}
           activePlanId={activePlanId}
           onOpenPricing={openPricingFromPostList}
           planNotice={planNotice}
