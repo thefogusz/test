@@ -14,6 +14,7 @@ const AiFilterModal = ({
 
   const trimmedPrompt = filterModal.prompt.trim();
   const canSavePreset = trimmedPrompt && !quickFilterPresets.includes(trimmedPrompt);
+  const selectedPreset = quickFilterPresets.find((preset) => filterModal.prompt === preset) || '';
 
   return (
     <div className="modal-overlay" onClick={() => !filterModal.isFiltering && onClose()}>
@@ -33,9 +34,9 @@ const AiFilterModal = ({
           <div className="ai-filter-section">
             <div className="ai-filter-section-header">
               <div>
-                <div className="ai-filter-section-title">Preset</div>
+                <div className="ai-filter-section-title">เลือกโหมดเร็ว</div>
                 <div className="ai-filter-section-copy">
-                  แตะเพื่อใส่ prompt ได้ทันที แล้วค่อยกดกรอง
+                  แตะหนึ่งอันเพื่อใส่ prompt ทันที
                 </div>
               </div>
             </div>
@@ -45,30 +46,33 @@ const AiFilterModal = ({
                 const isSelected = filterModal.prompt === preset;
 
                 return (
-                  <div key={preset} className={`ai-filter-modal-preset-chip ${isSelected ? 'is-selected' : ''}`}>
-                    <button
-                      type="button"
-                      className={`ai-filter-preset-btn ${isSelected ? 'active' : ''}`}
-                      disabled={filterModal.isFiltering}
-                      onClick={() => onSelectPreset(preset)}
-                    >
-                      {preset}
-                    </button>
-
-                    <div className="ai-filter-preset-tools">
-                      <button
-                        type="button"
-                        className="ai-filter-preset-remove-btn"
-                        disabled={filterModal.isFiltering}
-                        onClick={() => onRemovePreset(preset)}
-                        title="ลบ preset"
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  </div>
+                  <button
+                    key={preset}
+                    type="button"
+                    className={`ai-filter-modal-preset-chip ${isSelected ? 'is-selected' : ''}`}
+                    disabled={filterModal.isFiltering}
+                    onClick={() => onSelectPreset(preset)}
+                  >
+                    <span className="ai-filter-preset-label">{preset}</span>
+                    {isSelected && <span className="ai-filter-preset-selected-mark">กำลังใช้</span>}
+                  </button>
                 );
               })}
+            </div>
+
+            <div className="ai-filter-preset-actions">
+              {selectedPreset ? (
+                <button
+                  type="button"
+                  className="ai-filter-preset-manage-btn"
+                  disabled={filterModal.isFiltering}
+                  onClick={() => onRemovePreset(selectedPreset)}
+                >
+                  <X size={12} /> ลบ preset นี้
+                </button>
+              ) : (
+                <div className="ai-filter-preset-helper">ยังไม่ได้เลือก preset</div>
+              )}
             </div>
           </div>
         )}

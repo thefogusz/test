@@ -3683,6 +3683,19 @@ h6,
   padding-left: 16px;
 }
 
+.dashboard-header-home-layout {
+  gap: 4px;
+  margin-bottom: 0;
+}
+
+.dashboard-header-home .hero-search-subtitle {
+  margin-bottom: 8px;
+}
+
+.dashboard-header-home .dashboard-header-top-layout {
+  margin-bottom: 0;
+}
+
 .home-ai-filter-cluster {
   display: flex;
   align-items: center;
@@ -6025,24 +6038,30 @@ h6,
 }
 
 .ai-filter-presets {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
 }
 
 .ai-filter-modal-preset-chip {
-  display: inline-flex;
-  align-items: stretch;
-  max-width: 100%;
-  min-height: 38px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 14px;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.028);
   transition:
     border-color 160ms ease,
     background 160ms ease,
     transform 160ms ease,
     box-shadow 160ms ease;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .ai-filter-modal-preset-chip:hover {
@@ -6057,96 +6076,71 @@ h6,
   box-shadow: 0 10px 24px rgba(8, 15, 28, 0.28);
 }
 
-.ai-filter-preset-btn {
-  background: transparent;
-  border: none;
-  color: rgba(227, 231, 239, 0.88);
-  padding: 0 14px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
+.ai-filter-modal-preset-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ai-filter-preset-label {
+  color: rgba(227, 231, 239, 0.94);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.ai-filter-preset-selected-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(81, 153, 255, 0.14);
+  color: #dbeafe;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.ai-filter-preset-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ai-filter-preset-helper {
+  font-size: 11px;
+  color: rgba(160, 167, 180, 0.72);
+}
+
+.ai-filter-preset-manage-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(221, 227, 238, 0.82);
+  font-size: 11px;
+  font-weight: 700;
   font-family: inherit;
-  text-align: left;
-  min-height: 38px;
-}
-
-.ai-filter-preset-btn:hover:not(:disabled) {
-  color: #fff;
-}
-
-.ai-filter-preset-btn.active {
-  color: #fff;
-}
-
-.ai-filter-preset-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.ai-filter-preset-tools {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding-right: 4px;
-}
-
-.ai-filter-preset-remove-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  color: rgba(161, 168, 181, 0.84);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
-  flex-shrink: 0;
-  border-radius: 8px;
-  margin: auto 0;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
-.ai-filter-preset-remove-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.08);
+.ai-filter-preset-manage-btn:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
   color: #fff;
-  transform: translateY(-1px);
 }
 
-.ai-filter-preset-remove-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.ai-filter-preset-visibility-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  color: rgba(161, 168, 181, 0.84);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
-  flex-shrink: 0;
-  border-radius: 8px;
-  margin: auto 0;
-}
-
-.ai-filter-preset-visibility-btn:hover:not(:disabled) {
-  background: rgba(41, 151, 255, 0.12);
-  color: #fff;
-  transform: translateY(-1px);
-}
-
-.ai-filter-preset-visibility-btn.active {
-  color: rgba(111, 185, 255, 0.96);
-  background: rgba(31, 95, 167, 0.18);
-}
-
-.ai-filter-preset-visibility-btn:disabled {
-  opacity: 0.4;
+.ai-filter-preset-manage-btn:disabled {
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
