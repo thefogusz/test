@@ -76,6 +76,12 @@ const formatExpertReasoningCard = (expert) => {
   return buildExpertFallbackLabel(expert);
 };
 
+const getExpertAvatarSrc = (expert) => {
+  const rawSrc = String(expert?.profile_image_url || '').trim();
+  if (rawSrc) return rawSrc.replace('_normal', '_200x200');
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(expert?.name || expert?.username || 'FORO')}&background=101826&color=bfdbfe&bold=true&size=128`;
+};
+
 const AudienceWorkspace = ({
   isVisible,
   audienceTab,
@@ -283,9 +289,10 @@ const AudienceWorkspace = ({
                 aria-busy={isRefreshingAiResults}
               >
                 <div className="expert-grid audience-results-grid" style={{ marginBottom: '24px' }}>
-                  {aiSearchResults.map((expert, i) => {
+                  {aiSearchResults.slice(0, 6).map((expert, i) => {
                     const isAdded = watchlist.find((w) => w.username.toLowerCase() === expert.username.toLowerCase());
                     const avatarFallback = getExpertAvatarFallback(expert);
+                    const reasoningText = formatExpertReasoningCard(expert);
                     return (
                       <div key={expert.username} className="expert-card animate-fade-in" style={{ animationDelay: `${i * 0.05}s` }}>
                         <div className="audience-expert-top">
@@ -335,7 +342,7 @@ const AudienceWorkspace = ({
                             >
                               <span>{getExpertInitial(expert)}</span>
                               <img
-                                src={expert.profile_image_url || `https://unavatar.io/twitter/${expert.username}?fallback=${encodeURIComponent(avatarFallback)}`}
+                                src={getExpertAvatarSrc(expert)}
                                 alt=""
                                 aria-hidden="true"
                                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
@@ -366,7 +373,7 @@ const AudienceWorkspace = ({
                           </div>
                         </div>
                         <div className="expert-reasoning audience-expert-reasoning" style={{ fontSize: '13px', marginBottom: '16px', flex: 1, color: 'rgba(255,255,255,0.7)', lineHeight: '1.5' }}>
-                          {formatExpertReasoningCard(expert)}
+                          {reasoningText || 'ติดตามความเคลื่อนไหวและมุมมองจากบัญชีนี้ได้ต่อเนื่อง'}
                         </div>
                         <button onClick={() => handleAddExpert(expert)} disabled={isAdded} className={`expert-follow-btn ${isAdded ? 'added' : ''}`} style={{ padding: '6px', fontSize: '11px' }}>
                           {isAdded ? '\u2713 \u0e40\u0e1e\u0e34\u0e48\u0e21\u0e41\u0e25\u0e49\u0e27' : '+ \u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e02\u0e49\u0e32 Watchlist'}

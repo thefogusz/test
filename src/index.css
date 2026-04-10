@@ -1,4 +1,5 @@
 :root {
+  --desktop-shell-top-inset: 20px;
   --bg-950: #000000;
   /* Pure Black for gaps */
   --bg-900: #121212;
@@ -116,7 +117,7 @@ h6,
 .foro-main {
   flex: 1;
   width: 100%;
-  padding: 24px 48px 24px;
+  padding: var(--desktop-shell-top-inset) 48px 24px;
   margin: 12px 0;
   height: calc(100vh - 24px);
   overflow-y: auto;
@@ -2022,8 +2023,8 @@ h6,
 .expert-card {
   background: rgba(13, 17, 23, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 14px;
+  border-radius: 16px;
+  padding: 16px;
   position: relative;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
@@ -2105,7 +2106,7 @@ h6,
 
 .audience-expert-profile {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   min-width: 0;
 }
@@ -2117,11 +2118,12 @@ h6,
 
 .audience-expert-link {
   min-width: 0;
+  flex: 1;
   margin-bottom: 0 !important;
 }
 
 .audience-expert-reasoning {
-  margin-top: 2px;
+  margin-top: 0;
 }
 
 .expert-card:hover {
@@ -2405,15 +2407,16 @@ h6,
 .expert-reasoning {
   font-size: 12px;
   color: var(--text-muted);
-  line-height: 1.5;
-  margin-bottom: 16px;
-  font-style: italic;
-  font-weight: 400;
+  line-height: 1.55;
+  margin-bottom: 14px;
+  font-style: normal;
+  font-weight: 500;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  min-height: calc(1.55em * 3);
 }
 
 .expert-follow-btn {
@@ -2421,8 +2424,8 @@ h6,
   background: var(--bg-700);
   border: 1px solid var(--glass-border);
   color: #fff;
-  padding: 8px;
-  border-radius: 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
   font-weight: 700;
   font-size: 11px;
   cursor: pointer;
@@ -4245,7 +4248,7 @@ h6,
 }
 
 .right-sidebar-header {
-  padding: 24px 16px 20px;
+  padding: var(--desktop-shell-top-inset) 16px 18px;
   border-bottom: 1px solid var(--glass-border);
 }
 
@@ -5148,13 +5151,13 @@ h6,
 }
 
 .dashboard-header {
-  margin: 0 0 28px 0;
+  margin: 0 0 20px 0;
   display: flex;
   flex-direction: column;
 }
 
 .right-sidebar-header {
-  padding: 24px 16px 20px;
+  padding: var(--desktop-shell-top-inset) 16px 18px;
   border-bottom: 1px solid var(--glass-border);
 }
 
@@ -6669,6 +6672,12 @@ h6,
   object-fit: contain;
   flex-shrink: 0;
   display: block;
+}
+
+.sidebar-logo {
+  padding-top: var(--desktop-shell-top-inset) !important;
+  padding-bottom: 18px !important;
+  min-height: 72px !important;
 }
 
 .search-minimal-loader {
