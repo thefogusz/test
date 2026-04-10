@@ -172,6 +172,45 @@ const splitSummarySegments = (value = '') =>
         .filter(Boolean),
     );
 
+const trimSummaryToBudget = (value = '', maxChars = 88) => {
+  const cleaned = cleanCardCopy(value);
+  if (!cleaned || cleaned.length <= maxChars) return cleaned;
+
+  const sentenceLikeSegments = splitSummarySegments(cleaned);
+  const selectedSegments: string[] = [];
+
+  for (const segment of sentenceLikeSegments) {
+    const nextValue = cleanCardCopy([...selectedSegments, segment].join(' '));
+    if (nextValue.length > maxChars) break;
+    selectedSegments.push(segment);
+  }
+
+  if (selectedSegments.length > 0) {
+    return cleanCardCopy(selectedSegments.join(' '));
+  }
+
+  const clauseMatches = cleaned
+    .split(/[,;:]\s+/)
+    .map((segment) => cleanCardCopy(segment))
+    .filter(Boolean);
+
+  const selectedClauses: string[] = [];
+  for (const clause of clauseMatches) {
+    const nextValue = cleanCardCopy([...selectedClauses, clause].join(', '));
+    if (nextValue.length > maxChars) break;
+    selectedClauses.push(clause);
+  }
+
+  if (selectedClauses.length > 0) {
+    return cleanCardCopy(selectedClauses.join(', '));
+  }
+
+  const hardTrimmed = cleaned.slice(0, maxChars + 1);
+  const lastWhitespace = hardTrimmed.lastIndexOf(' ');
+  const boundaryIndex = lastWhitespace >= Math.floor(maxChars * 0.65) ? lastWhitespace : maxChars;
+  return cleanCardCopy(hardTrimmed.slice(0, boundaryIndex));
+};
+
 const stripLeadingHeadlineCopy = (summary = '', title = '') => {
   const cleanedSummary = cleanCardCopy(summary);
   const rawCleanTitle = cleanCardCopy(title);
@@ -256,8 +295,9 @@ export const getPreferredPostSummary = (post) => {
 
 export const getRssCardPresentation = (
   post,
-  _options: { hasMediaPreview?: boolean } = {},
+  options: { hasMediaPreview?: boolean } = {},
 ) => {
+  const hasMediaPreview = Boolean(options?.hasMediaPreview);
   const rawTitle = cleanCardCopy(getPreferredPostTitle(post));
   const rawSummary = cleanCardCopy(getPreferredPostSummary(post));
   
@@ -272,12 +312,25 @@ export const getRssCardPresentation = (
     };
   }
 
+  const maxSummaryChars = hasMediaPreview
+    ? RSS_TITLE_ONLY_MAX_SUMMARY_WITH_MEDIA
+    : RSS_TITLE_ONLY_MAX_SUMMARY_NO_MEDIA;
+  const maxCombinedChars = hasMediaPreview
+    ? RSS_TITLE_ONLY_MAX_COMBINED_WITH_MEDIA
+    : RSS_TITLE_ONLY_MAX_COMBINED_NO_MEDIA;
+  const remainingSummaryBudget = Math.max(32, maxCombinedChars - rawTitle.length);
+  const normalizedSummaryBudget = Math.max(
+    32,
+    Math.min(maxSummaryChars, remainingSummaryBudget),
+  );
+  const condensedSummary = trimSummaryToBudget(rawSummary, normalizedSummaryBudget);
+
   return {
     title: rawTitle,
-    summary: rawSummary,
+    summary: condensedSummary,
     isTitleOnly: false,
     titleLineClamp: 2,
-    summaryLineClamp: 3,
+    summaryLineClamp: 4,
   };
 };
 

@@ -117,7 +117,7 @@ const FEED_CARD_BODY_COPY_STYLE: React.CSSProperties = {
   wordBreak: 'break-word',
   display: '-webkit-box',
   WebkitBoxOrient: 'vertical',
-  WebkitLineClamp: 5,
+  WebkitLineClamp: 4,
   overflow: 'hidden',
 };
 
@@ -1012,8 +1012,10 @@ const FeedCard = ({
                 height: '100%',
                 minHeight: 0,
               }}
+              onClick={() => setIsImageViewerOpen(false)}
             >
               <div
+                onClick={(event) => event.stopPropagation()}
                 style={{
                   position: 'relative',
                   width: '100%',

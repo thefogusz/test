@@ -3101,8 +3101,8 @@ h6,
   .feed-card-body-copy.has-media {
     font-size: 15px !important;
     line-height: 1.56 !important;
-    -webkit-line-clamp: 6 !important;
-    line-clamp: 6 !important;
+    -webkit-line-clamp: 4 !important;
+    line-clamp: 4 !important;
   }
 
   .dashboard-header h1 {
@@ -6815,8 +6815,8 @@ h6,
   .feed-card-body-copy.has-media {
     font-size: 14px !important;
     line-height: 1.52 !important;
-    -webkit-line-clamp: 6 !important;
-    line-clamp: 6 !important;
+    -webkit-line-clamp: 4 !important;
+    line-clamp: 4 !important;
   }
 
   .audience-category-grid {
