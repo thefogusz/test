@@ -86,7 +86,7 @@ export const useAudienceSearch = ({
       ];
       if (isMore && aiSearchOverflowResults.length > 0) {
         const nextResults = aiSearchOverflowResults.slice(0, 6);
-        setAiSearchResults(nextResults);
+        setAiSearchResults(prev => [...prev, ...nextResults]);
         setAiSearchOverflowResults(aiSearchOverflowResults.slice(6));
         setAiSearchSeenUsernames(prev => Array.from(new Set([...prev, ...nextResults.map(u => u.username).filter(Boolean)])));
         return;
@@ -133,6 +133,7 @@ export const useAudienceSearch = ({
     setAiQuery,
     aiSearchLoading: aiSearchMutation.isPending,
     aiSearchResults,
+    aiSearchHasMore: aiSearchOverflowResults.length > 0,
     setAiSearchResults: (nextResults) => {
       setAiSearchResults(nextResults);
       setAiSearchOverflowResults([]);

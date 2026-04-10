@@ -45,6 +45,7 @@ const AudienceWorkspace = ({
   handleAiSearchAudience,
   aiSearchLoading,
   aiSearchResults,
+  aiSearchHasMore,
   setAiSearchResults,
   hasSearchedAudience,
 
@@ -297,36 +298,7 @@ const AudienceWorkspace = ({
                       <div key={expert.username} className="expert-card animate-fade-in" style={{ animationDelay: `${i * 0.05}s` }}>
                         <div className="audience-expert-top">
                           <div className="audience-expert-meta-row">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <div className="ai-pick-pill">
-                                <Users size={10} /> FORO PICK
-                              </div>
-                              {expert.activityLabel && (
-                                <div
-                                  style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    padding: '3px 8px',
-                                    borderRadius: '999px',
-                                    fontSize: '9px',
-                                    fontWeight: '800',
-                                    letterSpacing: '0.04em',
-                                    color: '#bfdbfe',
-                                    background: 'rgba(41, 151, 255, 0.12)',
-                                    border: '1px solid rgba(41, 151, 255, 0.24)',
-                                  }}
-                                  title={
-                                    Number.isFinite(expert.lastSeenDays)
-                                      ? `Last seen about ${Math.round(expert.lastSeenDays)} days ago`
-                                      : 'Recently verified active'
-                                  }
-                                >
-                                  <Activity size={10} />
-                                  {expert.activityLabel}
-                                </div>
-                              )}
-                            </div>
+                            <div />
                             <div className="audience-expert-menu-wrap" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
 
                               <button
@@ -406,11 +378,13 @@ const AudienceWorkspace = ({
                     );
                   })}
                 </div>
-                <div style={{ textAlign: 'center' }}>
-                  <button onClick={() => handleAiSearchAudience(null, true)} disabled={aiSearchLoading} className="btn-pill">
-                    {aiSearchLoading ? <RefreshCw size={14} className="animate-spin" /> : '\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e15\u0e34\u0e21'}
-                  </button>
-                </div>
+                {aiSearchHasMore && (
+                  <div style={{ textAlign: 'center' }}>
+                    <button onClick={() => handleAiSearchAudience(null, true)} disabled={aiSearchLoading} className="btn-pill">
+                      {aiSearchLoading ? <RefreshCw size={14} className="animate-spin" /> : '\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e15\u0e34\u0e21'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

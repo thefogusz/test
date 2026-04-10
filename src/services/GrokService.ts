@@ -3540,8 +3540,8 @@ Rules:
       delete output._isSeed;
       return output;
     });
-    const visibleExperts = cleanedExperts.slice(0, 6);
-    visibleExperts.overflowExperts = cleanedExperts.slice(6);
+    const visibleExperts = cleanedExperts.slice(0, 12);
+    visibleExperts.overflowExperts = cleanedExperts.slice(12);
     return visibleExperts;
   } catch (error) {
     console.error('[GrokService] Strict expert discovery LLM error:', error);
