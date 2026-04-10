@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Copy, Eraser, FileText, List, RefreshCw, Undo2 } from 'lucide-react';
 import { cleanMarkdownForClipboard, normalizeSummaryMarkdown, renderMarkdownToHtml } from '../utils/markdown';
+import { getListTitleTextStyle } from '../utils/listTheme';
 import AiFilteredBadge from './AiFilteredBadge';
 import FeedCard from './FeedCard';
 import FeedCardSkeleton from './FeedCardSkeleton';
@@ -100,7 +101,8 @@ const HomeView = ({
   onReadArticle,
   onSummaryCopied,
 }) => {
-  const hasHomeSecondaryActions = originalFeedLength > 0 || deletedFeedLength > 0;
+  const canClearFeed = originalFeedLength > 0 || feed.length > 0;
+  const hasHomeSecondaryActions = canClearFeed || deletedFeedLength > 0;
   const showHomeFeedToolbar = feed.length > 0 || isFiltered;
   const normalizedAiFilterSummary = normalizeSummaryMarkdown(aiFilterSummary);
   const briefSections = normalizeBriefSections(aiFilterBrief);
@@ -125,6 +127,13 @@ const HomeView = ({
   const hasVisibleFeed = feed.length > 0;
   const shouldShowIncomingSkeletons = hasVisibleFeed && isLoadingMore;
   const incomingSkeletonCount = isCompactSkeletonLayout ? 2 : 4;
+  const listTitleStyle = useMemo(
+    () => ({
+      margin: 0,
+      ...getListTitleTextStyle(currentActiveList?.color),
+    }),
+    [currentActiveList?.color],
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -161,7 +170,7 @@ const HomeView = ({
             <img src="logo.png" alt="FO" className="home-mobile-logo-img" loading="eager" />
           </div>
           <div className="dashboard-header-title-block dashboard-header-title-stack">
-            <h1 className="hero-search-title" style={{ margin: 0, color: currentActiveList?.color || 'inherit' }}>
+            <h1 className="hero-search-title" style={listTitleStyle}>
               {currentActiveList?.name || 'หน้าหลัก'}
             </h1>
             <p className="hero-search-subtitle" style={{ margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>WATCHLIST FEED</p>
@@ -182,7 +191,7 @@ const HomeView = ({
               {isFiltered && <AiFilteredBadge onClear={onClearAiFilter} clearTitle="ล้าง" />}
             </div>
             <div className="feed-section-filters" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              {originalFeedLength > 0 && (
+              {canClearFeed && (
                 <button onClick={onDeleteAll} className="icon-btn-large header-secondary-action" style={{ height: '34px', minHeight: '34px', width: '34px' }} title="เคลียร์ฟีด">
                   <Eraser size={14} />
                 </button>
@@ -247,6 +256,16 @@ const HomeView = ({
             {isFiltered && <AiFilteredBadge onClear={onClearAiFilter} clearTitle="ล้างตัวกรอง" />}
           </div>
           <div className="feed-section-filters reader-toolbar-actions-group" style={{ display: 'flex', gap: '8px' }}>
+            {canClearFeed && (
+              <button onClick={onDeleteAll} className="icon-btn-large header-secondary-action" style={{ height: '34px', minHeight: '34px', width: '34px' }} title="เคลียร์ฟีด">
+                <Eraser size={14} />
+              </button>
+            )}
+            {deletedFeedLength > 0 && (
+              <button onClick={onUndo} className="icon-btn-large header-secondary-action undo-reveal" style={{ height: '34px', minHeight: '34px', width: '34px' }} title="ฟื้นฟู">
+                <Undo2 size={14} />
+              </button>
+            )}
             <button onClick={() => onSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`}>
               ยอดวิว
             </button>
