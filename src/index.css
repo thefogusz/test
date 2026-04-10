@@ -6251,16 +6251,13 @@ h6,
 
 .feed-card-menu-open {
   z-index: 40;
+  overflow: visible !important;
 }
 
 .feed-card-menu-open .feed-card-profile-menu {
-  position: relative !important;
-  left: auto !important;
-  top: auto !important;
   z-index: 100;
   width: min(260px, calc(100vw - 56px));
   max-height: 240px;
-  margin-top: 10px;
   overflow-y: auto;
 }
 
