@@ -128,6 +128,8 @@ const HomeView = ({
   const hasVisibleFeed = feed.length > 0;
   const shouldShowIncomingSkeletons = hasVisibleFeed && isLoadingMore;
   const incomingSkeletonCount = isCompactSkeletonLayout ? 2 : 4;
+  const showDesktopQuickPresets = feed.length > 0 && !isFiltered && visibleQuickPresets.length > 0;
+  const shouldCondenseHomeControlPanel = !showDesktopQuickPresets;
   const listTitleStyle = useMemo(
     () => ({
       margin: 0,
@@ -182,8 +184,8 @@ const HomeView = ({
         </div>
 
         <div
-          className={`dashboard-header-actions home-control-panel ${hasHomeSecondaryActions ? '' : 'home-control-panel-compact'}`}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '12px' }}
+          className={`dashboard-header-actions home-control-panel ${hasHomeSecondaryActions ? '' : 'home-control-panel-compact'} ${shouldCondenseHomeControlPanel ? 'home-control-panel-condensed' : ''}`}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: shouldCondenseHomeControlPanel ? 'flex-end' : 'space-between', width: '100%', gap: '12px' }}
         >
           <div className="mobile-only-flex home-mobile-feed-inline" style={{ alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
             <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
@@ -212,7 +214,7 @@ const HomeView = ({
           </div>
 
           <div className={`home-ai-filter-cluster ${isFilterUiActive ? 'is-filtering' : ''}`}>
-            {feed.length > 0 && !isFiltered && visibleQuickPresets.length > 0 && (
+            {showDesktopQuickPresets && (
               <div className="home-ai-quick-presets">
                 {visibleQuickPresets.map((preset) => (
                   <div
@@ -388,10 +390,6 @@ const HomeView = ({
           </div>
         )}
 
-        {shouldShowIncomingSkeletons && (
-          <FeedCardSkeleton count={incomingSkeletonCount} />
-        )}
-
         {hasVisibleFeed &&
           feed.map((item, index) => (
             <FeedCard
@@ -408,6 +406,10 @@ const HomeView = ({
               onReadArticle={onReadArticle}
             />
           ))}
+
+        {shouldShowIncomingSkeletons && (
+          <FeedCardSkeleton count={incomingSkeletonCount} />
+        )}
       </div>
 
       {hasVisibleFeed && (pendingFeed.length > 0 || nextCursor || isLoadingMore) && (
