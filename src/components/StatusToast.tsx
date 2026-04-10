@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CheckCircle2 } from 'lucide-react';
 
 const StatusToast = ({ status, message, hidden }) => {
@@ -20,9 +21,9 @@ const StatusToast = ({ status, message, hidden }) => {
     };
   }, [status, hidden]);
 
-  if (!status || hidden) return null;
+  if (!status || hidden || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div className={`status-toast ${isVisible ? 'visible' : ''}`} role="status" aria-live="polite">
       <div className="status-toast__icon" aria-hidden="true">
         <CheckCircle2 size={16} strokeWidth={2.3} />
@@ -31,7 +32,8 @@ const StatusToast = ({ status, message, hidden }) => {
         <div className="status-toast__label">FORO</div>
         <div className="status-toast__message">{displayMessage}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

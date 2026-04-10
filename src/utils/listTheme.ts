@@ -41,7 +41,7 @@ export const getListTitleTextStyle = (color?: string) => {
     : `linear-gradient(135deg, #ffffff 0%, ${baseColor} 100%)`;
 
   return {
-    background: gradient,
+    backgroundImage: gradient,
     WebkitBackgroundClip: 'text',
     backgroundClip: 'text',
     WebkitTextFillColor: 'transparent',

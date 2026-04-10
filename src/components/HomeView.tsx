@@ -102,6 +102,7 @@ const HomeView = ({
   onSummaryCopied,
 }) => {
   const canClearFeed = originalFeedLength > 0 || feed.length > 0;
+  const canUndoFeedClear = deletedFeedLength > 0;
   const hasHomeSecondaryActions = canClearFeed || deletedFeedLength > 0;
   const showHomeFeedToolbar = feed.length > 0 || isFiltered;
   const normalizedAiFilterSummary = normalizeSummaryMarkdown(aiFilterSummary);
@@ -191,12 +192,12 @@ const HomeView = ({
               {isFiltered && <AiFilteredBadge onClear={onClearAiFilter} clearTitle="ล้าง" />}
             </div>
             <div className="feed-section-filters" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              {canClearFeed && (
+              {!canUndoFeedClear && canClearFeed && (
                 <button onClick={onDeleteAll} className="icon-btn-large header-secondary-action" style={{ height: '34px', minHeight: '34px', width: '34px' }} title="เคลียร์ฟีด">
                   <Eraser size={14} />
                 </button>
               )}
-              {deletedFeedLength > 0 && (
+              {canUndoFeedClear && (
                 <button onClick={onUndo} className="icon-btn-large header-secondary-action undo-reveal" style={{ height: '34px', minHeight: '34px', width: '34px' }} title="ฟื้นฟู">
                   <Undo2 size={14} />
                 </button>
@@ -256,12 +257,12 @@ const HomeView = ({
             {isFiltered && <AiFilteredBadge onClear={onClearAiFilter} clearTitle="ล้างตัวกรอง" />}
           </div>
           <div className="feed-section-filters reader-toolbar-actions-group" style={{ display: 'flex', gap: '8px' }}>
-            {canClearFeed && (
+            {!canUndoFeedClear && canClearFeed && (
               <button onClick={onDeleteAll} className="icon-btn-large header-secondary-action" style={{ height: '34px', minHeight: '34px', width: '34px' }} title="เคลียร์ฟีด">
                 <Eraser size={14} />
               </button>
             )}
-            {deletedFeedLength > 0 && (
+            {canUndoFeedClear && (
               <button onClick={onUndo} className="icon-btn-large header-secondary-action undo-reveal" style={{ height: '34px', minHeight: '34px', width: '34px' }} title="ฟื้นฟู">
                 <Undo2 size={14} />
               </button>
