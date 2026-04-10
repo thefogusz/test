@@ -3475,9 +3475,17 @@ Hard rules:
       return hasUsefulEvidence;
     });
 
+    const relaxedUsernames = new Set(relaxedBackfillExperts.map((expert) => String(expert.username || '').toLowerCase()));
+    const fallbackExperts = rankedCandidates.filter((expert) => {
+      const username = String(expert.username || '').toLowerCase();
+      if (!isValidExpertUsername(username) || normalizedExcludedUsernames.has(username)) return false;
+      if (strictUsernames.has(username) || relaxedUsernames.has(username)) return false;
+      return !isLowQualityExpertAuthor(expert);
+    });
+
     const scoredExperts = strictExperts.length >= 6
-      ? [...strictExperts, ...rankedCandidates.filter((expert) => !strictUsernames.has(String(expert.username || '').toLowerCase()))]
-      : [...strictExperts, ...relaxedBackfillExperts];
+      ? [...strictExperts, ...fallbackExperts]
+      : [...strictExperts, ...relaxedBackfillExperts, ...fallbackExperts];
 
     const rerankCandidates = scoredExperts.slice(0, 18);
     let selectedUsernames = [];
