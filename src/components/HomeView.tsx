@@ -174,18 +174,28 @@ const HomeView = ({
           <div className="section-title" style={{ fontSize: '15px' }}>à¹‚à¸žà¸ªà¸•à¹Œà¸¥à¹ˆà¸²à¸ªà¸¸à¸”</div>
           {activeListId && <div className="active-list-pills" style={{ fontSize: '12px', padding: '4px 10px' }}>à¸à¸³à¸¥à¸±à¸‡à¸à¸£à¸­à¸‡à¸•à¸²à¸¡: {currentActiveList?.name}</div>}
           {isFiltered && <AiFilteredBadge onClear={onClearAiFilter} clearTitle="à¸¥à¹‰à¸²à¸‡" />}
-        </div>
-        <div className="feed-section-filters" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {!canUndoFeedClear && canClearFeed && (
-            <button onClick={onDeleteAll} className="icon-btn-large header-secondary-action" style={{ height: '34px', minHeight: '34px', width: '34px' }} title="à¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¸Ÿà¸µà¸”">
+            <button
+              onClick={onDeleteAll}
+              className="icon-btn-large header-secondary-action home-mobile-clear-action"
+              style={{ height: '34px', minHeight: '34px', width: '34px' }}
+              title="à¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¸Ÿà¸µà¸”"
+            >
               <Eraser size={14} />
             </button>
           )}
           {canUndoFeedClear && (
-            <button onClick={onUndo} className="icon-btn-large header-secondary-action undo-reveal" style={{ height: '34px', minHeight: '34px', width: '34px' }} title="à¸Ÿà¸·à¹‰à¸™à¸Ÿà¸¹">
+            <button
+              onClick={onUndo}
+              className="icon-btn-large header-secondary-action undo-reveal home-mobile-clear-action"
+              style={{ height: '34px', minHeight: '34px', width: '34px' }}
+              title="à¸Ÿà¸·à¹‰à¸™à¸Ÿà¸¹"
+            >
               <Undo2 size={14} />
             </button>
           )}
+        </div>
+        <div className="feed-section-filters" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           <button onClick={() => onSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`} style={{ height: '34px', minHeight: '34px', padding: '0 12px', fontSize: '12px' }}>
             à¸¢à¸­à¸”à¸§à¸´à¸§
           </button>

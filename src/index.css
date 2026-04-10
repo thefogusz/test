@@ -10245,6 +10245,11 @@ h6,
     gap: 8px !important;
   }
 
+  .home-mobile-feed-inline .home-mobile-clear-action {
+    margin-left: auto !important;
+    flex: 0 0 auto !important;
+  }
+
   .home-mobile-feed-inline .feed-section-filters {
     display: flex !important;
     align-items: center !important;
