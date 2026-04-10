@@ -3910,55 +3910,40 @@ h6,
 }
 
 .home-ai-filter-btn-signal {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 0 0 0 rgba(118, 189, 255, 0);
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-top-color: rgba(255, 255, 255, 0.18);
+  border-right-color: rgba(255, 255, 255, 0.18);
+  background: transparent;
   transition:
-    background 0.2s ease,
-    box-shadow 0.2s ease,
+    border-color 0.2s ease,
     transform 0.2s ease,
     opacity 0.2s ease;
-  opacity: 0.72;
+  opacity: 0.56;
+  flex: 0 0 auto;
 }
 
 .home-ai-filter-btn-signal.is-visible {
-  background: #86d0ff;
+  border-color: rgba(134, 208, 255, 0.3);
+  border-top-color: #86d0ff;
   opacity: 1;
-  animation: homeFilterSignalPulse 1.25s ease-in-out infinite;
+}
+
+.home-ai-filter-btn-signal.is-spinning {
+  animation: homeFilterSignalSpin 0.82s linear infinite;
 }
 
 .home-ai-filter-btn.is-filtering {
   border-color: rgba(87, 166, 255, 0.35);
-  background: rgba(41, 151, 255, 0.09);
+  background: rgba(41, 151, 255, 0.08);
   color: #fff;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.26), 0 0 0 1px rgba(87, 166, 255, 0.12);
-}
-
-.home-ai-filter-btn.is-filtering::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
-  background: linear-gradient(110deg, transparent 0%, rgba(154, 218, 255, 0.22) 46%, transparent 74%);
-  pointer-events: none;
-  animation: homeFilterButtonSweep 1.65s cubic-bezier(0.22, 1, 0.36, 1) infinite;
-}
-
-.feed-grid.is-filter-transitioning>.feed-card:not(.feed-card-skeleton),
-.feed-grid.is-filter-transitioning>.article-card {
-  animation: homeFeedFilterBreath 1.3s ease-in-out infinite;
-}
-
-@keyframes homeFilterClusterSweep {
-  100% {
-    transform: translateX(24%) skewX(-16deg);
-  }
+  box-shadow: 0 0 0 1px rgba(87, 166, 255, 0.12);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .home-ai-filter-cluster.is-filtering::after {
+  .home-ai-filter-btn-signal.is-spinning {
     animation: none !important;
   }
 }
@@ -3969,35 +3954,9 @@ h6,
   }
 }
 
-@keyframes homeFilterButtonSweep {
+@keyframes homeFilterSignalSpin {
   100% {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes homeFilterSignalPulse {
-  0%,
-  100% {
-    transform: scale(0.94);
-    box-shadow: 0 0 0 0 rgba(118, 189, 255, 0.32);
-  }
-
-  55% {
-    transform: scale(1.06);
-    box-shadow: 0 0 0 9px rgba(118, 189, 255, 0);
-  }
-}
-
-@keyframes homeFeedFilterBreath {
-  0%,
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
-  50% {
-    opacity: 0.82;
-    transform: translateY(-1px);
+    transform: rotate(360deg);
   }
 }
 

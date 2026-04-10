@@ -229,8 +229,8 @@ const HomeView = ({
               aria-busy={isFilterUiActive}
               className={`btn-pill home-ai-filter-btn ${feed.length > 0 ? 'home-ai-filter-ready' : ''} ${isFilterUiActive ? 'is-filtering' : ''}`}
             >
-              <span className={`home-ai-filter-btn-signal ${isFilterUiActive ? 'is-visible' : ''}`} aria-hidden="true" />
-              <span className="home-ai-filter-btn-label">FORO Filter</span>
+              <span className={`home-ai-filter-btn-signal ${isFilterUiActive ? 'is-visible is-spinning' : ''}`} aria-hidden="true" />
+              <span className="home-ai-filter-btn-label">{isFilterUiActive ? 'กำลังกรอง' : 'FORO Filter'}</span>
             </button>
             <button
               onClick={onSync}
@@ -355,7 +355,7 @@ const HomeView = ({
         </div>
       )}
 
-      <div className={`feed-grid ${isFilterUiActive ? 'is-filter-transitioning' : ''}`}>
+      <div className="feed-grid">
         {feed.length === 0 && (
           <div
             className="home-splash"
