@@ -151,47 +151,37 @@ const AudienceWorkspace = ({
       .replace(/\s+/g, ' ')
       .trim();
   const buildExpertIdentityReasoning = (expert) => {
-    const name = String(expert?.name || expert?.username || '\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e19\u0e35\u0e49').trim();
     const bio = cleanRecommendationText(expert?.description || '');
     if (!bio) return '';
 
     const shortBio = bio.split(/(?<=[.!?])\s+/)[0]?.trim() || bio;
     const cleanedBio = shortBio.replace(/[.]+$/g, '').trim();
     if (!cleanedBio) return '';
-    if (cleanedBio.toLowerCase().startsWith(name.toLowerCase())) return cleanedBio;
-    return `${name} : ${cleanedBio}`;
+    return cleanedBio;
   };
   const formatExpertReasoning = (expert) => {
-    const topic = String(aiQuery || '').trim();
     const identityReason = buildExpertIdentityReasoning(expert);
     const raw = cleanRecommendationText(expert?.reasoning || '');
     const rawLooksGeneric =
       !raw ||
       /(\u0e0a\u0e48\u0e27\u0e22\u0e43\u0e2b\u0e49\u0e40\u0e2b\u0e47\u0e19\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21|\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e19\u0e35\u0e49\u0e0a\u0e48\u0e27\u0e22\u0e44\u0e14\u0e49\u0e14\u0e35|\u0e16\u0e49\u0e32\u0e04\u0e38\u0e13\u0e2d\u0e22\u0e32\u0e01\u0e15\u0e32\u0e21|\u0e04\u0e38\u0e13\u0e2d\u0e22\u0e32\u0e01|\u0e40\u0e2b\u0e47\u0e19\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21\u0e0a\u0e31\u0e14\u0e02\u0e36\u0e49\u0e19|\u0e40\u0e2b\u0e21\u0e32\u0e30|\u0e43\u0e0a\u0e49\u0e40\u0e1b\u0e47\u0e19\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e2b\u0e25\u0e31\u0e01\u0e44\u0e27\u0e49\u0e15\u0e32\u0e21|\u0e0a\u0e48\u0e27\u0e22\u0e43\u0e2b\u0e49\u0e15\u0e32\u0e21|\u0e40\u0e01\u0e47\u0e1a\u0e43\u0e19\u0e25\u0e34\u0e2a\u0e15\u0e4c|\u0e42\u0e2d\u0e40\u0e04)/i.test(raw) ||
+      /(\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e42\u0e1f\u0e01\u0e31\u0e2a|\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\u0e1b\u0e23\u0e30\u0e40\u0e14\u0e47\u0e19|\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e21\u0e35\u0e21\u0e38\u0e21\u0e21\u0e2d\u0e07|\u0e04\u0e23\u0e35\u0e40\u0e2d\u0e40\u0e15\u0e2d\u0e23\u0e4c\u0e17\u0e35\u0e48\u0e40\u0e25\u0e48\u0e32\u0e21\u0e38\u0e21\u0e04\u0e34\u0e14)/i.test(raw) ||
       raw.length > 110;
 
-    if (identityReason && rawLooksGeneric) {
-      return identityReason;
-    }
+    if (identityReason && rawLooksGeneric) return identityReason;
+    if (raw && !rawLooksGeneric) return raw;
 
-    if (!raw) {
-      return topic
-        ? `\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\u0e1b\u0e23\u0e30\u0e40\u0e14\u0e47\u0e19${topic}\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e15\u0e48\u0e2d\u0e40\u0e19\u0e37\u0e48\u0e2d\u0e07`
-        : '\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e2b\u0e22\u0e34\u0e1a\u0e1b\u0e23\u0e30\u0e40\u0e14\u0e47\u0e19\u0e2a\u0e33\u0e04\u0e31\u0e0d\u0e21\u0e32\u0e40\u0e25\u0e48\u0e32\u0e44\u0e14\u0e49\u0e01\u0e23\u0e30\u0e0a\u0e31\u0e1a\u0e41\u0e25\u0e30\u0e15\u0e32\u0e21\u0e15\u0e48\u0e2d\u0e44\u0e14\u0e49\u0e07\u0e48\u0e32\u0e22';
-    }
+    const roleHints = [
+      expert?.name,
+      expert?.username,
+      expert?.category,
+      expert?.title,
+    ]
+      .map((value) => cleanRecommendationText(value || ''))
+      .filter(Boolean);
 
-    if (rawLooksGeneric) {
-      if (identityReason) return identityReason;
-      if (/followers|creator|writer|author|book|habit|mindset|lifestyle|self-improvement/i.test(`${expert?.name || ''} ${expert?.username || ''}`)) {
-        return '\u0e04\u0e23\u0e35\u0e40\u0e2d\u0e40\u0e15\u0e2d\u0e23\u0e4c\u0e17\u0e35\u0e48\u0e40\u0e25\u0e48\u0e32\u0e21\u0e38\u0e21\u0e04\u0e34\u0e14\u0e41\u0e25\u0e30\u0e01\u0e32\u0e23\u0e19\u0e33\u0e44\u0e1b\u0e43\u0e0a\u0e49\u0e08\u0e23\u0e34\u0e07\u0e41\u0e1a\u0e1a\u0e2d\u0e48\u0e32\u0e19\u0e41\u0e25\u0e49\u0e27\u0e40\u0e2b\u0e47\u0e19\u0e20\u0e32\u0e1e';
-      }
-      if (topic) {
-        return `\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e42\u0e1f\u0e01\u0e31\u0e2a\u0e04\u0e27\u0e32\u0e21\u0e40\u0e04\u0e25\u0e37\u0e48\u0e2d\u0e19\u0e44\u0e2b\u0e27\u0e02\u0e2d\u0e07${topic}\u0e40\u0e1b\u0e47\u0e19\u0e2b\u0e25\u0e31\u0e01`;
-      }
-      return '\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e21\u0e35\u0e21\u0e38\u0e21\u0e21\u0e2d\u0e07\u0e0a\u0e31\u0e14\u0e41\u0e25\u0e30\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\u0e1b\u0e23\u0e30\u0e40\u0e14\u0e47\u0e19\u0e43\u0e19\u0e2a\u0e32\u0e22\u0e19\u0e35\u0e49\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e2a\u0e21\u0e48\u0e33\u0e40\u0e2a\u0e21\u0e2d';
-    }
-
-    return raw;
+    if (roleHints.length > 0) return roleHints.join(' • ');
+    return '@' + String(expert?.username || 'account').trim();
   };
 
   return (

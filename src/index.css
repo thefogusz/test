@@ -9575,8 +9575,8 @@ h6,
   }
 
   .pricing-buy-modal-layer {
-    padding: 14px;
-    align-items: flex-end;
+    padding: max(14px, env(safe-area-inset-top, 0px)) 14px max(14px, env(safe-area-inset-bottom, 0px));
+    align-items: center;
   }
 
   .pricing-buy-modal {
@@ -10189,6 +10189,23 @@ h6,
     border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
   }
 
+  .dashboard-header-home {
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .dashboard-header-home-layout {
+    gap: 6px !important;
+  }
+
+  .dashboard-header-home .home-control-panel-desktop-shell {
+    display: none !important;
+  }
+
+  .dashboard-header-home + .home-control-panel {
+    margin: 0 0 10px !important;
+  }
+
   .dashboard-header-title-block {
     align-items: flex-start !important;
     text-align: left !important;
@@ -10202,13 +10219,13 @@ h6,
     display: flex !important;
     align-items: stretch !important;
     justify-content: flex-start !important;
-    gap: 10px !important;
+    gap: 8px !important;
     padding: 0 !important;
     background: transparent !important;
     border: 0 !important;
     box-shadow: none !important;
     border-radius: 0 !important;
-    margin: 0 0 8px !important;
+    margin: 0 !important;
   }
 
   .home-mobile-feed-inline {
@@ -10216,7 +10233,7 @@ h6,
     flex-direction: column !important;
     align-items: stretch !important;
     justify-content: flex-start !important;
-    gap: 10px !important;
+    gap: 8px !important;
     width: 100% !important;
     min-width: 0 !important;
   }

@@ -164,6 +164,74 @@ const HomeView = ({
       ...parseBriefItem(item),
     })),
   );
+  const homeControlPanel = (
+    <div
+      className={`dashboard-header-actions home-control-panel ${hasHomeSecondaryActions ? '' : 'home-control-panel-compact'} ${shouldCondenseHomeControlPanel ? 'home-control-panel-condensed' : ''}`}
+      style={{ display: 'flex', alignItems: 'center', justifyContent: shouldCondenseHomeControlPanel ? 'flex-end' : 'space-between', width: '100%', gap: '12px' }}
+    >
+      <div className="mobile-only-flex home-mobile-feed-inline" style={{ alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
+        <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <div className="section-title" style={{ fontSize: '15px' }}>à¹‚à¸žà¸ªà¸•à¹Œà¸¥à¹ˆà¸²à¸ªà¸¸à¸”</div>
+          {activeListId && <div className="active-list-pills" style={{ fontSize: '12px', padding: '4px 10px' }}>à¸à¸³à¸¥à¸±à¸‡à¸à¸£à¸­à¸‡à¸•à¸²à¸¡: {currentActiveList?.name}</div>}
+          {isFiltered && <AiFilteredBadge onClear={onClearAiFilter} clearTitle="à¸¥à¹‰à¸²à¸‡" />}
+        </div>
+        <div className="feed-section-filters" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {!canUndoFeedClear && canClearFeed && (
+            <button onClick={onDeleteAll} className="icon-btn-large header-secondary-action" style={{ height: '34px', minHeight: '34px', width: '34px' }} title="à¹€à¸„à¸¥à¸µà¸¢à¸£à¹Œà¸Ÿà¸µà¸”">
+              <Eraser size={14} />
+            </button>
+          )}
+          {canUndoFeedClear && (
+            <button onClick={onUndo} className="icon-btn-large header-secondary-action undo-reveal" style={{ height: '34px', minHeight: '34px', width: '34px' }} title="à¸Ÿà¸·à¹‰à¸™à¸Ÿà¸¹">
+              <Undo2 size={14} />
+            </button>
+          )}
+          <button onClick={() => onSort('view')} className={`btn-pill ${activeFilters.view ? 'active' : ''}`} style={{ height: '34px', minHeight: '34px', padding: '0 12px', fontSize: '12px' }}>
+            à¸¢à¸­à¸”à¸§à¸´à¸§
+          </button>
+          <button onClick={() => onSort('engagement')} className={`btn-pill ${activeFilters.engagement ? 'active' : ''}`} style={{ height: '34px', minHeight: '34px', padding: '0 12px', fontSize: '12px' }}>
+            à¹€à¸­à¸™à¹€à¸à¸ˆà¹€à¸¡à¸™à¸•à¹Œ
+          </button>
+        </div>
+      </div>
+
+      <div className={`home-ai-filter-cluster ${isFilterUiActive ? 'is-filtering' : ''}`}>
+        {showDesktopQuickPresets && (
+          <div className="home-ai-quick-presets">
+            {visibleQuickPresets.map((preset) => (
+              <div
+                key={preset}
+                className={`home-ai-quick-chip ${isFilterUiActive && normalizedActiveFilterPrompt === preset ? 'is-active' : ''}`}
+              >
+                <button
+                  onClick={() => onQuickFilter(preset)}
+                  disabled={isFiltering}
+                  className={`home-ai-quick-preset-btn ${isFilterUiActive && normalizedActiveFilterPrompt === preset ? 'is-active' : ''}`}
+                >
+                  {preset}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <button
+          onClick={onOpenFilterModal}
+          aria-busy={isFilterUiActive}
+          className={`btn-pill home-ai-filter-btn ${feed.length > 0 ? 'home-ai-filter-ready' : ''} ${isFilterUiActive ? 'is-filtering' : ''}`}
+        >
+          <span className={`home-ai-filter-btn-signal ${isFilterUiActive ? 'is-visible is-spinning' : ''}`} aria-hidden="true" />
+          <span className="home-ai-filter-btn-label">{isFilterUiActive ? 'à¸à¸³à¸¥à¸±à¸‡à¸à¸£à¸­à¸‡' : 'FORO Filter'}</span>
+        </button>
+        <button
+          onClick={onSync}
+          disabled={loading}
+          className="btn-pill primary"
+        >
+          {isSyncing ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} à¸Ÿà¸µà¸”à¸‚à¹‰à¸­à¸¡à¸¹à¸¥
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="animate-fade-in">
@@ -184,7 +252,7 @@ const HomeView = ({
         </div>
 
         <div
-          className={`dashboard-header-actions home-control-panel ${hasHomeSecondaryActions ? '' : 'home-control-panel-compact'} ${shouldCondenseHomeControlPanel ? 'home-control-panel-condensed' : ''}`}
+          className={`dashboard-header-actions home-control-panel home-control-panel-desktop-shell ${hasHomeSecondaryActions ? '' : 'home-control-panel-compact'} ${shouldCondenseHomeControlPanel ? 'home-control-panel-condensed' : ''}`}
           style={{ display: 'flex', alignItems: 'center', justifyContent: shouldCondenseHomeControlPanel ? 'flex-end' : 'space-between', width: '100%', gap: '12px' }}
         >
           <div className="mobile-only-flex home-mobile-feed-inline" style={{ alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
@@ -250,6 +318,8 @@ const HomeView = ({
           </div>
         </div>
       </header>
+
+      {isCompactSkeletonLayout && homeControlPanel}
 
       {showHomeFeedToolbar && (
         <div className="feed-section-header home-desktop-feed-header home-feed-toolbar reader-toolbar-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
