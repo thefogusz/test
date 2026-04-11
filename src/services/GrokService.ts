@@ -87,6 +87,15 @@ const cleanMarkdown = (text = '') =>
 const stripEmojiLikeSymbols = (text = '') =>
   text.replace(/[\p{Extended_Pictographic}\p{Regional_Indicator}\uFE0F\u200D]/gu, '');
 
+const stripDisallowedThaiOutputScripts = (text = '') =>
+  String(text || '')
+    .replace(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]+/gu, '')
+    .replace(/\(\s*\)/g, '')
+    .replace(/\[\s*\]/g, '')
+    .replace(/[ ]{2,}/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .trim();
+
 const cleanGeneratedContent = (text = '', { allowEmoji = false } = {}) =>
   cleanMarkdown(allowEmoji ? text : stripEmojiLikeSymbols(text))
     .replace(/—/g, ' ')
@@ -988,7 +997,7 @@ const shouldForceNaturalRewrite = (text = '', { format = '', tone = '' } = {}) =
 
 const polishThaiContent = (text = '', { format, allowEmoji = false } = {}) => {
   const profile = buildFormatProfile(format);
-  let nextText = cleanGeneratedContent(text, { allowEmoji });
+  let nextText = stripDisallowedThaiOutputScripts(cleanGeneratedContent(text, { allowEmoji }));
 
   if (!profile.allowHeadings) {
     nextText = normalizeDisallowedHeadings(nextText);
@@ -1483,8 +1492,8 @@ Rules:
     });
 
     const payload = {
-      titleTh: object.titleTh || '',
-      markdown: object.body,
+      titleTh: stripDisallowedThaiOutputScripts(object.titleTh || ''),
+      markdown: stripDisallowedThaiOutputScripts(object.body || ''),
     };
 
     return setCachedValue(responseCache, cacheKey, payload, CONTENT_BRIEF_CACHE_TTL_MS);
