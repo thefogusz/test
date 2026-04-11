@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
   const twitterApiKey = env.TWITTER_API_KEY
   const xaiApiKey = env.XAI_API_KEY
   const tavilyApiKey = env.TAVILY_API_KEY
+  const googleTranslateApiKey = env.GOOGLE_TRANSLATE_API_KEY
   const internalApiSecret = env.INTERNAL_API_SECRET
 
   return {
@@ -131,6 +132,79 @@ export default defineConfig(({ mode }) => {
               res.statusCode = 502
               res.setHeader('Content-Type', 'application/json')
               res.end(JSON.stringify({ error: 'Article extraction failed' }))
+            }
+          })
+
+          server.middlewares.use('/api/translate/google', async (req, res, next) => {
+            if (req.method !== 'POST') { next(); return }
+
+            if (!googleTranslateApiKey) {
+              res.statusCode = 500
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ error: 'Missing GOOGLE_TRANSLATE_API_KEY' }))
+              return
+            }
+
+            try {
+              const body = await new Promise((resolve, reject) => {
+                let raw = ''
+                req.on('data', (chunk) => {
+                  raw += chunk
+                })
+                req.on('end', () => resolve(raw))
+                req.on('error', reject)
+              })
+
+              const parsedBody = body ? JSON.parse(body) : {}
+              const title = typeof parsedBody.title === 'string' ? parsedBody.title : ''
+              const excerpt = typeof parsedBody.excerpt === 'string' ? parsedBody.excerpt : ''
+              const content = typeof parsedBody.content === 'string' ? parsedBody.content : ''
+
+              if (!title && !excerpt && !content) {
+                res.statusCode = 400
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify({ error: 'Missing text to translate' }))
+                return
+              }
+
+              const upstreamResponse = await fetch(
+                `https://translation.googleapis.com/language/translate/v2?key=${encodeURIComponent(googleTranslateApiKey)}`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  signal: AbortSignal.timeout(45000),
+                  body: JSON.stringify({
+                    q: [title, excerpt, content],
+                    target: 'th',
+                    format: 'text',
+                  }),
+                }
+              )
+
+              const payload = await upstreamResponse.json().catch(() => ({}))
+              if (!upstreamResponse.ok) {
+                res.statusCode = upstreamResponse.status
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify({ error: payload?.error?.message || `Google Translate failed (${upstreamResponse.status})` }))
+                return
+              }
+
+              const translations = Array.isArray(payload?.data?.translations)
+                ? payload.data.translations
+                : []
+
+              res.statusCode = 200
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({
+                ok: true,
+                titleTh: translations[0]?.translatedText || '',
+                excerptTh: translations[1]?.translatedText || '',
+                contentTh: translations[2]?.translatedText || '',
+              }))
+            } catch {
+              res.statusCode = 502
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ error: 'Failed to reach Google Translate' }))
             }
           })
 

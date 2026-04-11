@@ -351,6 +351,65 @@ const createServerApp = ({
   );
 
   app.post(
+    '/api/translate/google',
+    asyncRoute(async (req, res) => {
+      if (!config.googleTranslateApiKey) {
+        return res.status(500).json({ error: 'Missing GOOGLE_TRANSLATE_API_KEY' });
+      }
+
+      const title = typeof req.body?.title === 'string' ? req.body.title : '';
+      const excerpt = typeof req.body?.excerpt === 'string' ? req.body.excerpt : '';
+      const content = typeof req.body?.content === 'string' ? req.body.content : '';
+
+      if (!title && !excerpt && !content) {
+        return res.status(400).json({ error: 'Missing text to translate' });
+      }
+
+      const q = [title, excerpt, content];
+
+      try {
+        const upstreamResponse = await fetcher(
+          `https://translation.googleapis.com/language/translate/v2?key=${encodeURIComponent(config.googleTranslateApiKey)}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            signal: AbortSignal.timeout(config.upstreamTimeoutMs),
+            body: JSON.stringify({
+              q,
+              target: 'th',
+              format: 'text',
+            }),
+          },
+        );
+
+        const payload = await upstreamResponse.json().catch(() => ({}));
+        if (!upstreamResponse.ok) {
+          return res.status(upstreamResponse.status).json({
+            error:
+              payload?.error?.message || `Google Translate failed (${upstreamResponse.status})`,
+          });
+        }
+
+        const translations = Array.isArray(payload?.data?.translations)
+          ? payload.data.translations
+          : [];
+
+        return res.json({
+          ok: true,
+          titleTh: translations[0]?.translatedText || '',
+          excerptTh: translations[1]?.translatedText || '',
+          contentTh: translations[2]?.translatedText || '',
+        });
+      } catch (error) {
+        console.error('[server] Google Translate proxy error:', error);
+        return res.status(502).json({ error: 'Failed to reach Google Translate' });
+      }
+    }),
+  );
+
+  app.post(
     '/api/billing/checkout-session',
     asyncRoute(async (req, res) => {
       if (!config.stripePlusPriceId) {

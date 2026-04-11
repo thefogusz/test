@@ -1428,6 +1428,54 @@ export const generateArticleInsights = async ({
   }
 };
 
+const decodeHtmlEntities = (text = '') => {
+  const value = String(text || '');
+  if (!value) return '';
+
+  if (typeof document === 'undefined') {
+    return value
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = value;
+  return textarea.value;
+};
+
+const translateArticleWithGoogleDraft = async ({
+  normalizedTitle,
+  normalizedExcerpt,
+  sourceBody,
+}) => {
+  const response = await apiFetch('/api/translate/google', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      title: normalizedTitle,
+      excerpt: normalizedExcerpt,
+      content: sourceBody,
+    }),
+    timeout: 45000,
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload?.error || `Google Translate failed (${response.status})`);
+  }
+
+  return {
+    titleTh: decodeHtmlEntities(payload?.titleTh || ''),
+    excerptTh: decodeHtmlEntities(payload?.excerptTh || ''),
+    contentTh: decodeHtmlEntities(payload?.contentTh || ''),
+  };
+};
+
 export const translateArticleToThai = async ({
   title = '',
   excerpt = '',
@@ -1443,7 +1491,7 @@ export const translateArticleToThai = async ({
   const sourceBody = normalizedMarkdown || normalizedContent;
   if (!sourceBody) return null;
 
-  const cacheKey = buildCacheKey('article-translation-th-v2', {
+  const cacheKey = buildCacheKey('article-translation-th-v3', {
     normalizedTitle,
     normalizedExcerpt,
     normalizedSite,
@@ -1454,7 +1502,7 @@ export const translateArticleToThai = async ({
 
   try {
     const { object } = await generateObject({
-      model: grok(MODEL_REASONING_FAST),
+      model: grok(MODEL_NEWS_FAST),
       system: `You translate full articles and posts into polished, faithful Thai for an in-app reader UI.
 
 Rules:
