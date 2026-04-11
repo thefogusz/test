@@ -3926,12 +3926,21 @@ h6,
   overflow: hidden;
   gap: 10px;
   min-height: 40px;
+  min-width: 136px;
   justify-content: center;
   white-space: nowrap;
   box-sizing: border-box;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .home-ai-filter-btn-label {
+  display: inline-flex;
+  align-items: center;
   position: relative;
   z-index: 1;
 }

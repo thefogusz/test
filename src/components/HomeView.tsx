@@ -114,6 +114,7 @@ const HomeView = ({
     () => (typeof window !== 'undefined' ? window.matchMedia('(max-width: 768px)').matches : false),
   );
   const isFilterUiActive = isFiltering || isFilterPrimed;
+  const isFilterAnimationActive = isFiltering;
   const hasStructuredAiBrief = Boolean(
     aiFilterBrief?.headline &&
     (briefSections.length > 0 || aiFilterBrief?.whyNow),
@@ -216,7 +217,7 @@ const HomeView = ({
       className={`dashboard-header-actions home-control-panel home-control-panel-desktop-shell ${hasHomeSecondaryActions ? '' : 'home-control-panel-compact'} ${shouldCondenseHomeControlPanel ? 'home-control-panel-condensed' : ''}`}
       style={{ display: 'flex', alignItems: 'center', justifyContent: shouldCondenseHomeControlPanel ? 'flex-end' : 'space-between', width: '100%', gap: '12px' }}
     >
-      <div className={`home-ai-filter-cluster ${isFilterUiActive ? 'is-filtering' : ''}`}>
+      <div className={`home-ai-filter-cluster ${isFilterAnimationActive ? 'is-filtering' : ''}`}>
         {showDesktopQuickPresets && (
           <div className="home-ai-quick-presets">
             {visibleQuickPresets.map((preset) => (
@@ -237,10 +238,10 @@ const HomeView = ({
         )}
         <button
           onClick={onOpenFilterModal}
-          aria-busy={isFilterUiActive}
-          className={`btn-pill home-ai-filter-btn ${feed.length > 0 ? 'home-ai-filter-ready' : ''} ${isFilterUiActive ? 'is-filtering' : ''}`}
+          aria-busy={isFilterAnimationActive}
+          className={`btn-pill home-ai-filter-btn ${feed.length > 0 ? 'home-ai-filter-ready' : ''} ${isFilterAnimationActive ? 'is-filtering' : ''}`}
         >
-          <span className={`home-ai-filter-btn-signal ${isFilterUiActive ? 'is-visible is-spinning' : ''}`} aria-hidden="true" />
+          <span className={`home-ai-filter-btn-signal ${isFilterAnimationActive ? 'is-visible is-spinning' : ''}`} aria-hidden="true" />
           <span className="home-ai-filter-btn-label">{isFilterUiActive ? 'กำลังกรอง' : 'FORO Filter'}</span>
         </button>
         <button
