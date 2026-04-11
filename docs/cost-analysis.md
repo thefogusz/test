@@ -1,6 +1,6 @@
 # Cost Analysis for Billing Design
 
-> Updated: April 4, 2026
+> Updated: April 12, 2026
 > Scope: current codebase in this repository
 > Purpose: map product features to provider costs so the billing system can be designed correctly
 
@@ -217,6 +217,40 @@ Twitter/X-side calls:
 
 - `searchEverything`
 - `searchEverythingDeep`
+
+## 5. On-Demand Article Translation
+
+Main code path:
+
+- [`D:\TEST\src\components\ArticleReaderModal.tsx`](D:\TEST\src\components\ArticleReaderModal.tsx)
+- [`D:\TEST\src\services\GrokService.ts`](D:\TEST\src\services\GrokService.ts)
+
+Flow:
+
+1. User opens an RSS or web article in the reader
+2. Reader requests Thai translation on demand
+3. `translateArticleToThai` sends the article title and body through xAI
+4. Long article bodies are split into paragraph-based chunks before translation
+5. The translated chunks are merged and lightly cleaned up before display
+
+Direct external cost:
+
+- xAI input tokens for title, body chunks, and translation instructions
+- xAI output tokens for translated Thai title and body
+
+Cost formula:
+
+```text
+article_translation_cost
+  = xai_input_tokens_cost
+  + xai_output_tokens_cost
+```
+
+Important implementation detail:
+
+- This cost is incurred only when the user opens the article reader and requests or triggers Thai translation.
+- Long articles are chunked to improve quality, which can slightly increase total prompt overhead even though the provider remains the same.
+- The current runtime path uses `grok-4-1-fast-non-reasoning`, so billing for article translation should be grouped under normal xAI text-generation usage rather than a separate provider bucket.
 
 Tavily-side calls:
 

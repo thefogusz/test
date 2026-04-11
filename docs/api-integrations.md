@@ -1,6 +1,6 @@
 # API Integrations and Source Websites
 
-> Updated: April 4, 2026
+> Updated: April 12, 2026
 > Scope: APIs and upstream websites currently used by this repository
 
 ## Overview
@@ -186,6 +186,7 @@ Observed models:
 - AI feed filtering
 - Executive summary generation
 - Thai summary generation for posts
+- On-demand Thai article translation in `ArticleReaderModal`
 - Content intent normalization
 - Fact-sheet generation
 - Final content writing and review
@@ -205,8 +206,16 @@ Used through:
 App usage:
 
 - summaries
+- article translation for RSS and web articles opened in the reader
 - final article generation
 - rewrites
+
+Article translation implementation notes:
+
+- current runtime path uses `grok-4-1-fast-non-reasoning`
+- article `title` and `body` are translated separately
+- long article bodies are chunked before translation
+- translated output is cleaned up with a lightweight post-process pass
 
 Code reference:
 
