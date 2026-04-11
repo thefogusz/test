@@ -276,31 +276,12 @@ const ArticleReaderModal = ({
   }, [persistentTranslationStorageKey]);
 
   useEffect(() => {
-    if (!translationKey) {
-      setPersistedTranslationState({
-        key: '',
-        checked: true,
-        data: null,
-      });
-      return undefined;
-    }
+    if (!translationKey) return undefined;
 
     const inMemoryTranslation = ARTICLE_TRANSLATION_CACHE.get(translationKey);
-    if (inMemoryTranslation) {
-      setPersistedTranslationState({
-        key: translationKey,
-        checked: true,
-        data: inMemoryTranslation,
-      });
-      return undefined;
-    }
+    if (inMemoryTranslation) return undefined;
 
     let isActive = true;
-    setPersistedTranslationState({
-      key: translationKey,
-      checked: false,
-      data: null,
-    });
 
     readPersistedState({
       key: translationKey,

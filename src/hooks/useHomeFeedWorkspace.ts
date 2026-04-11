@@ -65,7 +65,6 @@ type UseHomeFeedWorkspaceParams = {
   activeView: string;
   originalFeed: any[];
   pendingFeed: any[];
-  readArchive: any[];
   postLists: any[];
   watchlist: any[];
   setOriginalFeed: SetState<any[]>;
@@ -100,7 +99,6 @@ export const useHomeFeedWorkspace = ({
   activeView,
   originalFeed,
   pendingFeed,
-  readArchive,
   postLists,
   watchlist,
   setOriginalFeed,

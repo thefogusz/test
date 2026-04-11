@@ -255,7 +255,6 @@ const App = () => {
     activeView,
     originalFeed,
     pendingFeed,
-    readArchive,
     postLists,
     watchlist,
     setOriginalFeed,

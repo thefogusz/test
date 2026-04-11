@@ -53,7 +53,7 @@ const buildExpertIdentityReasoning = (expert) => {
   return shortBio.replace(/[.]+$/g, '').trim();
 };
 
-const buildExpertFallbackLabel = (expert) => {
+const UNUSED_BUILD_EXPERT_FALLBACK_LABEL = (expert) => {
   const identityParts = [
     expert?.name,
     expert?.username,
