@@ -37,6 +37,7 @@ import { RSS_CATALOG, TOPIC_LABELS, type RssSource } from '../config/rssCatalog'
 const LOADED_CATEGORY_IMAGE_URLS = new Set();
 const GENERIC_EXPERT_REASONING_PATTERN =
   /(\u0e0a\u0e48\u0e27\u0e22\u0e43\u0e2b\u0e49\u0e40\u0e2b\u0e47\u0e19\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21|\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e19\u0e35\u0e49\u0e0a\u0e48\u0e27\u0e22\u0e44\u0e14\u0e49\u0e14\u0e35|\u0e16\u0e49\u0e32\u0e04\u0e38\u0e13\u0e2d\u0e22\u0e32\u0e01\u0e15\u0e32\u0e21|\u0e04\u0e38\u0e13\u0e2d\u0e22\u0e32\u0e01|\u0e40\u0e2b\u0e47\u0e19\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21\u0e0a\u0e31\u0e14\u0e02\u0e36\u0e49\u0e19|\u0e40\u0e2b\u0e21\u0e32\u0e30|\u0e43\u0e0a\u0e49\u0e40\u0e1b\u0e47\u0e19\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e2b\u0e25\u0e31\u0e01\u0e44\u0e27\u0e49\u0e15\u0e32\u0e21|\u0e0a\u0e48\u0e27\u0e22\u0e43\u0e2b\u0e49\u0e15\u0e32\u0e21|\u0e40\u0e01\u0e47\u0e1a\u0e43\u0e19\u0e25\u0e34\u0e2a\u0e15\u0e4c|\u0e42\u0e2d\u0e40\u0e04|\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e42\u0e1f\u0e01\u0e31\u0e2a|\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\u0e1b\u0e23\u0e30\u0e40\u0e14\u0e47\u0e19|\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e21\u0e35\u0e21\u0e38\u0e21\u0e21\u0e2d\u0e07|\u0e04\u0e23\u0e35\u0e40\u0e2d\u0e40\u0e15\u0e2d\u0e23\u0e4c\u0e17\u0e35\u0e48\u0e40\u0e25\u0e48\u0e32\u0e21\u0e38\u0e21\u0e04\u0e34\u0e14)/i;
+const THAI_TEXT_PATTERN = /[\u0E00-\u0E7F]/;
 
 const cleanRecommendationText = (value = '') =>
   String(value || '')
@@ -66,14 +67,26 @@ const buildExpertFallbackLabel = (expert) => {
   return `@${String(expert?.username || 'account').trim()}`;
 };
 
-const formatExpertReasoningCard = (expert) => {
+const buildTopicHintLabel = (value = '') => {
+  const normalized = cleanRecommendationText(value);
+  if (!normalized) return 'หัวข้อนี้';
+  return normalized;
+};
+
+const buildThaiReasoningFallback = (expert, topicHint = '') => {
+  const displayName = cleanRecommendationText(expert?.name || expert?.username || 'บัญชีนี้');
+  const topicLabel = buildTopicHintLabel(topicHint || expert?.category || expert?.title);
+  return `${displayName} เป็นบัญชีที่น่าติดตามในเรื่อง${topicLabel} ช่วยให้เห็นมุมมองและสัญญาณสำคัญจากคนในวงการได้ต่อเนื่อง`;
+};
+
+const formatExpertReasoningCard = (expert, topicHint = '') => {
   const identityReason = buildExpertIdentityReasoning(expert);
   const raw = cleanRecommendationText(expert?.reasoning || '');
   const rawLooksGeneric = !raw || GENERIC_EXPERT_REASONING_PATTERN.test(raw) || raw.length > 110;
 
-  if (raw && !rawLooksGeneric) return raw;
-  if (identityReason) return identityReason;
-  return buildExpertFallbackLabel(expert);
+  if (raw && !rawLooksGeneric && THAI_TEXT_PATTERN.test(raw)) return raw;
+  if (identityReason && THAI_TEXT_PATTERN.test(identityReason)) return identityReason;
+  return buildThaiReasoningFallback(expert, topicHint);
 };
 
 const getExpertAvatarSrc = (expert) => {
@@ -292,14 +305,17 @@ const AudienceWorkspace = ({
                   {aiSearchResults.slice(0, 6).map((expert, i) => {
                     const isAdded = watchlist.find((w) => w.username.toLowerCase() === expert.username.toLowerCase());
                     const avatarFallback = getExpertAvatarFallback(expert);
-                    const reasoningText = formatExpertReasoningCard(expert);
+                    const reasoningText = formatExpertReasoningCard(expert, aiQuery);
+                    const topicLabel = buildTopicHintLabel(aiQuery || expert.category || expert.title);
+                    const followerLabel = formatFollowerCount(expert.followers);
                     return (
                       <div key={expert.username} className="expert-card animate-fade-in" style={{ animationDelay: `${i * 0.05}s` }}>
                         <div className="audience-expert-top">
                           <div className="audience-expert-meta-row">
-                            <div />
+                            <div className="audience-expert-topic-chip">
+                              {'\u0e41\u0e19\u0e30\u0e19\u0e33\u0e43\u0e19\u0e2b\u0e31\u0e27\u0e02\u0e49\u0e2d'} {topicLabel}
+                            </div>
                             <div className="audience-expert-menu-wrap" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
-
                               <button
                                 onClick={(e) => {
                                   const btn = e.currentTarget;
@@ -338,7 +354,7 @@ const AudienceWorkspace = ({
                           <div className="audience-expert-profile">
                             <div
                               className="audience-expert-avatar"
-                              style={{ width: '42px', height: '42px', borderRadius: '50%', marginBottom: '10px', border: '2px solid var(--bg-700)', overflow: 'hidden', position: 'relative', display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg, rgba(41,151,255,0.18), rgba(157,117,255,0.16))', color: '#bfdbfe', fontSize: '13px', fontWeight: 900 }}
+                              style={{ width: '56px', height: '56px', borderRadius: '18px', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden', position: 'relative', display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg, rgba(41,151,255,0.22), rgba(157,117,255,0.18))', color: '#bfdbfe', fontSize: '18px', fontWeight: 900 }}
                             >
                               <span>{getExpertInitial(expert)}</span>
                               <img
@@ -355,27 +371,31 @@ const AudienceWorkspace = ({
                                 }}
                               />
                             </div>
-                            <a href={`https://x.com/${expert.username}`} target="_blank" rel="noopener noreferrer" className="audience-expert-link" style={{ textDecoration: 'none', display: 'inline-block', marginBottom: '8px', width: 'fit-content' }}>
-                              <div className="expert-name" style={{ fontSize: '14px', color: '#fff', fontWeight: '800' }}>{expert.name}</div>
-                              <div className="expert-username" style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '600' }}>@{expert.username}</div>
-                              {formatFollowerCount(expert.followers) && (
-                                <div className="audience-expert-followers">
-                                  {formatFollowerCount(expert.followers)} followers
-                                </div>
-                              )}
-                              {expert.activityLabel && (
-                                <div className="audience-expert-followers">
-                                  {expert.activityLabel}
-                                </div>
-                              )}
+                            <a href={`https://x.com/${expert.username}`} target="_blank" rel="noopener noreferrer" className="audience-expert-link" style={{ textDecoration: 'none', display: 'block' }}>
+                              <div className="expert-name audience-expert-name">{expert.name}</div>
+                              <div className="expert-username audience-expert-username">@{expert.username}</div>
+                              <div className="audience-expert-stat-row">
+                                {followerLabel && (
+                                  <div className="audience-expert-stat-chip">
+                                    {followerLabel} followers
+                                  </div>
+                                )}
+                                {expert.activityLabel && (
+                                  <div className="audience-expert-stat-chip audience-expert-stat-chip-muted">
+                                    {expert.activityLabel}
+                                  </div>
+                                )}
+                              </div>
                             </a>
-
                           </div>
                         </div>
-                        <div className="expert-reasoning audience-expert-reasoning" style={{ fontSize: '13px', marginBottom: '16px', flex: 1, color: 'rgba(255,255,255,0.7)', lineHeight: '1.5' }}>
-                          {reasoningText || 'ติดตามความเคลื่อนไหวและมุมมองจากบัญชีนี้ได้ต่อเนื่อง'}
+                        <div className="audience-expert-summary-panel">
+                          <div className="audience-expert-summary-label">{'\u0e17\u0e33\u0e44\u0e21\u0e04\u0e27\u0e23\u0e15\u0e34\u0e14\u0e15\u0e32\u0e21'}</div>
+                          <div className="expert-reasoning audience-expert-reasoning">
+                            {reasoningText || '\u0e0a\u0e48\u0e27\u0e22\u0e43\u0e2b\u0e49\u0e15\u0e32\u0e21\u0e1b\u0e23\u0e30\u0e40\u0e14\u0e47\u0e19\u0e2a\u0e33\u0e04\u0e31\u0e0d\u0e41\u0e25\u0e30\u0e21\u0e38\u0e21\u0e21\u0e2d\u0e07\u0e02\u0e2d\u0e07\u0e04\u0e19\u0e43\u0e19\u0e27\u0e07\u0e01\u0e32\u0e23\u0e44\u0e14\u0e49\u0e15\u0e48\u0e2d\u0e40\u0e19\u0e37\u0e48\u0e2d\u0e07'}
+                          </div>
                         </div>
-                        <button onClick={() => handleAddExpert(expert)} disabled={isAdded} className={`expert-follow-btn ${isAdded ? 'added' : ''}`} style={{ padding: '6px', fontSize: '11px' }}>
+                        <button onClick={() => handleAddExpert(expert)} disabled={isAdded} className={`expert-follow-btn audience-expert-follow-btn ${isAdded ? 'added' : ''}`}>
                           {isAdded ? '\u2713 \u0e40\u0e1e\u0e34\u0e48\u0e21\u0e41\u0e25\u0e49\u0e27' : '+ \u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e02\u0e49\u0e32 Watchlist'}
                         </button>
                       </div>

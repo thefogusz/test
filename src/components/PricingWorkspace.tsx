@@ -2,7 +2,9 @@ import { createElement, useEffect, useRef, useState } from 'react';
 import { Check, CreditCard, Shield, Sparkles, X } from 'lucide-react';
 import {
   FEATURE_LABELS,
+  HOME_FEED_CARD_LIMITS,
   PLAN_DEFINITIONS,
+  formatCardLimit,
   formatPlanLimit,
   type MeteredFeature,
   type PlanId,
@@ -49,6 +51,9 @@ const PLAN_FEATURES: Record<'free' | 'plus', string[]> = {
     'ขยายพื้นที่จัดการ Watchlist และ Post Lists',
   ],
 };
+
+PLAN_FEATURES.free.splice(2, 0, 'Home Feed + AI Filter สูงสุด 30 cards');
+PLAN_FEATURES.plus.splice(2, 0, 'Home Feed + AI Filter สูงสุด 100 cards');
 
 const ensureStripeBuyButtonScript = () => {
   if (typeof document === 'undefined') return;
@@ -275,6 +280,10 @@ const PricingWorkspace = ({
                         <strong>{formatPlanLimit(plan.objects[key])}</strong>
                       </div>
                     ))}
+                    <div className="pricing-plan-usage-row">
+                      <span>Home Feed + AI Filter</span>
+                      <strong>{formatCardLimit(HOME_FEED_CARD_LIMITS[planId])}</strong>
+                    </div>
                   </div>
 
                   <div className="pricing-plan-divider" />

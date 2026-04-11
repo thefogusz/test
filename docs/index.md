@@ -1,111 +1,45 @@
-# อ่านเริ่มจากตรงนี้
+# Start Here
 
-หน้านี้ออกแบบมาสำหรับ dev ที่เพิ่งเปิดโปรเจ็กต์ครั้งแรกและอยากเข้าใจระบบให้เร็วที่สุด
+This docs site is the fastest way to understand how Foro behaves right now.
 
-## ถ้าจะไล่ระบบแบบเร็ว
-
-อ่านตามลำดับนี้:
+If you are new to the repo, use this order:
 
 1. `src/main.tsx`
 2. `src/App.tsx`
-3. `src/services/TwitterService.ts`
-4. `src/services/GrokService.ts`
-5. `src/components/CreateContent.tsx`
-6. `server.cjs`
+3. [Feature Docs](/features/)
+4. [Feed and Search Architecture](/architecture/feed-search)
+5. [Cost Analysis](/cost-analysis)
 
-ถ้าอ่านตามนี้ จะเห็นทั้ง entry point, state กลาง, data flow, AI flow และ proxy integration ครบ
+## Current Product Snapshot
 
-## Mental Model ของระบบ
+The most important current product rules are:
 
-Foro คือแอป React ตัวเดียวที่ทำ 3 อย่างพร้อมกัน:
+- Home feed is plan-capped:
+  - `Free`: 30 cards
+  - `Plus`: 100 cards
+- AI filter runs on the same visible Home scope as the current plan allows.
+- RSS uses durable duplicate suppression during normal sync.
+- Clearing Home feed intentionally resets RSS history, so older RSS items may appear again after a clear.
+- X sync separates new-post discovery from visible-card stat refresh.
+- Reopening the same RSS article should reuse cached Thai translation.
+- Audience recommendation cards should present Thai recommendation reasoning clearly.
 
-- ดึงข่าวและโพสต์จาก X
-- ใช้ AI ช่วยคัดกรอง แปล และสรุป
-- ใช้ AI สร้างคอนเทนต์ภาษาไทยจากข้อมูลที่ค้นคว้าแล้ว
+## Where To Look By Topic
 
-พูดแบบง่ายที่สุด:
+- Home sync, RSS/X feed behavior:
+  - [Home Feed](/features/home-feed)
+  - [Feed and Search Architecture](/architecture/feed-search)
+- Content creation and reader behavior:
+  - [Content Workspace](/features/content-workspace)
+- Audience discovery behavior:
+  - [Audience Workspace](/features/audience-workspace)
+- Plan limits and upgrade surface:
+  - [Pricing Workspace](/features/pricing-workspace)
+- Billing and provider cost tradeoffs:
+  - [Cost Analysis](/cost-analysis)
 
-```text
-UI ใน App.tsx
-  -> เรียก service
-  -> service คุยกับ proxy
-  -> proxy คุยกับ external APIs
-  -> ผลลัพธ์กลับมาเก็บใน state + storage
-  -> UI render ต่อ
-```
+## Why These Docs Matter
 
-## ถ้าจะ debug feature หลัก
+Use docs pages as product truth, not just as onboarding notes.
 
-### Feed ไม่ขึ้น
-
-ดูไฟล์:
-
-- `src/App.tsx`
-- `src/hooks/useHomeFeedWorkspace.ts`
-- `src/services/TwitterService.ts`
-- `server.cjs`
-
-ดู flow:
-
-- `handleSync()`
-- `fetchWatchlistFeed()`
-
-### Search ผลไม่ตรง
-
-ดูไฟล์:
-
-- `src/App.tsx`
-- `src/hooks/useSearchWorkspace.ts`
-- `src/services/GrokService.ts`
-- `src/services/TwitterService.ts`
-
-ดู flow:
-
-- `handleSearch()`
-- `expandSearchQuery()`
-- `searchEverything()`
-- `agentFilterFeed()`
-- `generateExecutiveSummary()`
-
-### AI สร้างคอนเทนต์ไม่ตรง
-
-ดูไฟล์:
-
-- `src/components/CreateContent.tsx`
-- `src/services/GrokService.ts`
-
-ดู flow:
-
-- `handleGenerate()`
-- `researchAndPreventHallucination()`
-- `buildContentBrief()`
-- `generateStructuredContentV2()`
-
-### อยากเข้าใจต้นทุนระบบ
-
-ดูเอกสาร:
-
-- [Cost Analysis](/cost-analysis)
-- [API Integrations](/api-integrations)
-
-## หน้าที่ของไฟล์สำคัญ
-
-| ไฟล์ | หน้าที่ |
-| :--- | :--- |
-| `src/main.tsx` | boot app |
-| `src/App.tsx` | state กลาง + orchestration ของทุก feature |
-| `src/hooks/useHomeFeedWorkspace.ts` | flow ของ home feed และ sync |
-| `src/hooks/useSearchWorkspace.ts` | flow ของ search workspace |
-| `src/services/TwitterService.ts` | ดึงข้อมูลจาก X และจัดรูปข้อมูล |
-| `src/services/GrokService.ts` | AI logic ทั้งระบบ |
-| `src/components/CreateContent.tsx` | UI ของ content generation |
-| `server.cjs` | proxy ไป Twitter, xAI และ Tavily |
-
-## แผนการอ่านต่อ
-
-- เริ่มจาก [ภาพรวมระบบ](/architecture/overview)
-- ถ้าอยากเข้าใจ UI และ state ก่อน ไปที่ [Frontend](/architecture/frontend)
-- ถ้าสนใจ flow ข่าวและการค้นหา ไปที่ [Feed และ Search](/architecture/feed-search)
-- ถ้าสนใจ AI writer ไปที่ [AI Content Pipeline](/architecture/ai-pipeline)
-- ถ้ากำลังไล่ดูว่าใช้ provider ไหนบ้าง ไปที่ [API Integrations](/api-integrations)
-- ถ้ากำลังทำระบบเก็บเงินหรือวิเคราะห์ต้นทุน ไปที่ [Cost Analysis](/cost-analysis)
+When behavior changes in code, the matching docs page should change in the same commit or PR so the team can understand the system without reverse-engineering it from chat history.

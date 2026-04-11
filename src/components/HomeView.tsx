@@ -81,6 +81,8 @@ const HomeView = ({
   isFiltering,
   isLoadingMore,
   isSyncing,
+  hasReachedFeedCardLimit,
+  homeFeedCardLimit,
   loading,
   pendingFeed,
   nextCursor,
@@ -425,7 +427,13 @@ const HomeView = ({
         )}
       </div>
 
-      {hasVisibleFeed && (pendingFeed.length > 0 || nextCursor || isLoadingMore) && (
+      {hasVisibleFeed && hasReachedFeedCardLimit && (
+        <div className="home-load-more-shell" style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
+          แสดงครบ {homeFeedCardLimit} การ์ดตามแพ็กแล้ว
+        </div>
+      )}
+
+      {hasVisibleFeed && !hasReachedFeedCardLimit && (pendingFeed.length > 0 || nextCursor || isLoadingMore) && (
         <div className="home-load-more-shell">
           <button onClick={onLoadMore} className="btn-pill" disabled={loading}>
             {isLoadingMore ? <RefreshCw size={14} className="animate-spin" /> : 'โหลดเพิ่มเติม'}

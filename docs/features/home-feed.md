@@ -1,96 +1,119 @@
 # Home Feed
 
-## เป้าหมายของฟีเจอร์
+## Goal
 
-Home Feed คือ workspace หลักของแอปและเป็นหน้าที่ผู้ใช้ควรเห็นก่อนเป็นอันดับแรก จุดประสงค์คือให้ผู้ใช้เห็นโพสต์ล่าสุดจาก watchlist หรือ list context ที่เลือกไว้ได้เร็ว อ่านง่าย และใช้ FORO ช่วยคัดสัญญาณสำคัญจาก feed ชุดปัจจุบันได้ทันที
+Home Feed is the primary monitoring workspace in Foro. It should answer one question quickly:
 
-## พฤติกรรมปัจจุบัน
+`What changed across the sources I care about, and which items deserve attention right now?`
 
-- เปิดเป็นค่าเริ่มต้นผ่าน `activeView = "home"` ใน `src/App.tsx`
-- แสดง feed หลักผ่าน `src/components/HomeView.tsx` และ render รายการแต่ละชิ้นผ่าน `src/components/FeedCard.tsx`
-- ใช้ข้อมูลจาก watchlist, post lists และ subscribed sources ที่ถูก persist ไว้เพื่อกำหนดว่า feed ควรมีอะไรบ้าง
-- ผู้ใช้สามารถ sync feed, สลับ sort, bookmark โพสต์, เปิดอ่านบทความ และส่ง source ไปยัง flow สร้างคอนเทนต์ได้
-- `FORO Filter` ทำงานเป็น analysis layer บน feed ปัจจุบัน ไม่ได้เปลี่ยน source หลักของ feed แต่คัด subset ที่ตรง intent ของผู้ใช้แล้วสังเคราะห์ผลลัพธ์ใหม่จากชุดการ์ดที่ถูกเลือก
-- quick presets ของ `FORO Filter` ถูกใช้เป็น prompt ตั้งต้น แต่ผู้ใช้ยังพิมพ์ prompt เปิดเองได้ เช่น สรุปภาพรวม, ขอความเห็น, จัด shortlist, จัดอันดับ, หรือหา content angle จากชุดการ์ดนี้
-- `FORO Filter` ไม่ได้มี output เดียวแบบสรุปเสมอไป แต่เลือก output profile ตาม intent ของ prompt เช่น overview, opinion, ranking, shortlist, opportunities, risks, contradictions หรือ content angles
-- เมื่อกรองสำเร็จ ระบบจะเติม `citation_id`, `ai_reasoning` และ `temporalTag` ให้แต่ละรายการที่ถูกเลือกเพื่อใช้เป็นหลักฐานอ้างอิงในผล synthesis แม้หน้า card จะไม่แสดง `Why This Matched` แล้ว
-- result card ด้านบนของผลกรองเป็น structured analysis card ที่มี headline, บทสรุปสั้น 1-2 บรรทัด, output badge และหลาย section ย่อยที่เปลี่ยนตาม intent แต่ยังคงรูปแบบ formal และอ่านง่ายข้ามโดเมน
-- section titles ของ result card ต้องใช้ภาษากลางที่ใช้ได้กับทุกวงการ เช่น `ประเด็นสำคัญ`, `รายละเอียดสนับสนุน`, `นัยสำคัญ` หรือชุดหัวข้อที่ formal ในโหมดนั้น แทนคำแนวเร้าอารมณ์หรือคำที่ผูกกับวงการใดวงการหนึ่ง
-- ภาษาของ result card ต้องยึดที่หัวข้อ เนื้อหา และนัยสำคัญเป็นหลัก ไม่ควรใช้ชื่อคนโพสต์เป็นแกนของประโยค เว้นแต่คนนั้นเป็น subject ของข่าวจริง
-- ปุ่ม copy ของ result card ต้องคัดลอกเป็น plain text ที่แชร์ต่อได้ทันที ไม่มี markdown heading, confidence label, decision note, count meta หรือข้อความระบบติดไปด้วย
-- ระหว่างรอ synthesis ระบบจะแสดง skeleton card ก่อน เพื่อให้ผู้ใช้เห็นว่ากำลังประมวลผลผลลัพธ์จากชุดการ์ดนี้อยู่
-- state ของ read/archive ไม่ได้เป็นเจ้าของโดยหน้าจอนี้โดยตรง แต่ Home Feed สามารถส่งต่อรายการไปยัง flow ของ reader หรือ content creation ได้
+The Home experience is responsible for:
 
-## ลำดับการใช้งานหลัก
+- syncing X posts from the active watchlist or selected post list
+- syncing RSS items from subscribed sources
+- deduplicating items so the feed stays readable and cost-efficient
+- letting the user sort, filter, open, bookmark, or send a source into content creation
+- running AI filter across the visible feed set for the current plan
 
-1. ผู้ใช้เข้ามาที่หน้า Home
-2. ผู้ใช้กด sync หรือ refresh feed
-3. ผู้ใช้ไล่อ่าน card เปลี่ยน sort ตาม view/engagement หรือเปิด `FORO Filter`
-4. ผู้ใช้เลือก preset หรือใส่ prompt เพื่อคัดและวิเคราะห์ feed
-5. ระบบแสดง analysis result card ด้านบนของ feed โดยสังเคราะห์จากชุดการ์ดที่ถูกคัดมา ใช้ภาษาที่อ่านง่ายและแชร์ต่อได้ พร้อมแสดง bullet กับ citation badge
-6. ผู้ใช้เลือกอ่านบทความ เก็บ bookmark หรือส่งต่อไปยัง flow สร้างคอนเทนต์
+## Current Product Rules
 
-## กฎสำคัญที่ห้ามหลุด
+### Feed composition
 
-- Home Feed ต้องรู้ context ของ list ที่กำลัง active อยู่เสมอ ถ้ามี post list ถูกเลือก feed ต้องสะท้อน context นั้น
-- quick filter presets เป็นข้อมูลที่ persist และควรอยู่ต่อหลัง reload
-- presets ของ `FORO Filter` เป็นเพียงค่าเริ่มต้นที่ช่วยให้ใช้ฟีเจอร์ง่ายขึ้น แต่ผู้ใช้ยัง override ด้วย prompt เองได้
-- `FORO Filter` ต้องยึดชุดการ์ดที่ผู้ใช้กำลังดูอยู่เป็น source of truth เสมอ ไม่ว่าจะเป็น feed ที่ยังไม่กรองหรือ subset หลังกรองแล้ว
-- synthesis result ต้องครอบคลุมชุดการ์ดที่ถูกเลือกจริง ไม่ใช่ snapshot จากบางการ์ดแรกเท่านั้น
-- synthesis result ต้องปรับรูปแบบตาม intent ของ prompt โดยยังรักษาโครงที่ใช้งานได้จริงทั้งบนการ์ดและตอน copy ออกไป
-- section titles และภาษานำต้อง formal พอที่จะใช้ได้กับผู้ใช้ทั่วไปและหลายวงการ ไม่ควรหลุดเป็นโทน social, clickbait หรือ jargon เฉพาะทางโดยไม่จำเป็น
-- ถ้าชื่อคนในโพสต์ไม่ใช่ subject หลักของเรื่อง ไม่ควรถูกดึงมาเป็นแกนของ headline, lead หรือ bullet
-- การ sync และ filter ต้องมี feedback ให้ผู้ใช้ผ่าน loading state หรือ status message อย่างสม่ำเสมอ
-- เมื่อเริ่ม `FORO Filter` จาก quick preset หรือ modal submit ต้องมี visual feedback ทันทีบนหน้า home โดยไม่รอให้ผลกรองกลับมาก่อน เช่น summary skeleton ที่ขึ้นทันทีและ micro-interaction บน filter cluster
-- skeleton ของ feed ระหว่าง sync ต้องยึด layout เป็นหลัก ไม่ควรเปลี่ยนจำนวนกลางทางตามข้อมูลที่ไหลเข้ามา โดย current pattern คือ desktop 4 ใบและ mobile 2 ใบแบบคงที่ตลอด sync session
-- การลบ feed ชั่วคราวต้อง undo ได้ จนกว่าจะมีการแทนที่ session state ในเครื่อง
-- ถ้า behavior ใหม่ทำให้ feed ไม่สัมพันธ์กับ list context, preset หายหลัง refresh, หรือ analysis result ไม่ตรงกับรายการที่ถูกเลือก ให้ถือว่าเป็น regression
+- Home can contain both X cards and RSS cards.
+- The active post list changes which watchlist handles and RSS sources are in scope.
+- Card rendering is handled in the Home view, while orchestration lives in `src/hooks/useHomeFeedWorkspace.ts`.
 
-## UI States ที่ต้องนึกถึงเวลาแก้
+### Plan-based Home limits
 
-- Loading: กำลัง sync หรือกำลัง bootstrap feed ครั้งแรก
-- Success: มี card แสดงผลพร้อม toolbar สำหรับ sort/filter
-- Empty: ยังไม่มีรายการสำหรับ context ที่ผู้ใช้เลือก
-- Filtered: มี badge ว่ากำลังดูผลกรอง มี analysis result card ด้านบน และรายการ feed ถูกแทนด้วย subset ที่ผ่าน intent ปัจจุบัน
-- Synthesizing: ระบบกำลังสร้าง result card และแสดง skeleton animation แทน brief ชั่วคราว
-- No Match: ผู้ใช้กด filter แล้วไม่พบรายการที่ตรง intent ควรล้าง brief และแสดง status message ชัดเจน
-- Error: ปัญหาควรถูกสะท้อนผ่าน status message หรือ error boundary pattern ที่มีอยู่
+- Home now has a hard visible-card ceiling per plan:
+  - `Free`: 30 cards
+  - `Plus`: 100 cards
+- `Load more` stops once the plan ceiling is reached.
+- AI filter uses the same visible-card scope. It does not run on a hidden larger set.
 
-## ไฟล์หลักที่เกี่ยวข้อง
+### RSS duplicate policy
+
+- RSS items use a stable RSS fingerprint to identify repeats.
+- During normal sync, an item already seen from the same RSS source should not come back as a new card.
+- This protects the user from re-reading old articles and protects the system from repeated translation and AI work.
+
+### RSS clear behavior
+
+- `Clear feed` is an intentional reset for RSS history.
+- Clearing Home feed also clears the RSS seen registry.
+- After that reset, older RSS items are allowed to appear again on the next sync.
+
+### X sync policy
+
+- X feed is optimized for two separate jobs:
+  - discover newly published posts
+  - refresh stats for cards already visible on Home
+- New-candidate discovery uses checkpoint-based advanced search.
+- Engagement refresh for existing cards uses tweet-id lookups for visible cards only.
+- If an incoming X post already exists in the feed, the system should update the existing card rather than create a new one.
+
+### X clear behavior
+
+- Clearing Home feed does not reset X checkpoints or X seen state.
+- This is intentional so a post-clear sync focuses on newly discovered items instead of paying to reprocess old cards that are no longer visible.
+
+### Post list filtering
+
+- Post-list membership is normalized for both X handles and RSS source ids.
+- This prevents false empty states where a selected post list appears empty only because the stored key shape differs.
+
+## Main User Flow
+
+1. The user opens Home.
+2. The user syncs feed data for the active watchlist or post list.
+3. The system merges incoming X and RSS items into the current feed state.
+4. The user can sort, bookmark, open a reader, or attach a source to content creation.
+5. The user can run AI filter against the visible feed for the current plan.
+6. The user can clear the feed, with RSS and X using different reset semantics as described above.
+
+## AI Filter Contract
+
+- AI filter should feel like an analysis layer on top of Home, not a separate data source.
+- It must evaluate the exact visible feed set the user is currently allowed to work with.
+- If the visible feed is capped by plan, the AI filter must respect that same cap.
+- AI filter results should preserve citations, reasoning context, and card traceability.
+
+## Important Edge Cases
+
+### User clears feed
+
+- RSS history resets and old RSS items may reappear.
+- X history does not reset and the next X sync remains cost-aware.
+
+### User selects a post list
+
+- Feed scope must reflect the selected post list consistently for both X and RSS.
+- If the list has matching sources, Home must not show a false empty state caused by inconsistent normalization.
+
+### User keeps syncing without clearing
+
+- RSS should continue to suppress old items from the same source.
+- X should continue to discover new posts and refresh stats for visible cards without turning old posts into newly added cards.
+
+## File Ownership
 
 - `src/App.tsx`
 - `src/components/HomeView.tsx`
-- `src/components/FeedCard.tsx`
-- `src/components/AiFilterModal.tsx`
-- `src/components/ForoFilterSummarySkeleton.tsx`
 - `src/hooks/useHomeFeedWorkspace.ts`
-- `src/services/GrokService.ts`
+- `src/services/RssService.ts`
+- `src/services/TwitterService.ts`
+- `src/utils/appUtils.ts`
 
-## Dependency สำคัญ
+## When This Doc Must Be Updated
 
-- persistence ผ่าน `usePersistentState` และ `useIndexedDbState`
-- service สำหรับดึง feed และ normalize ข้อมูล
-- state ของ post list membership
-- modal และ flow ของ AI filter, brief generation และ summary generation
+Update this page whenever a change affects:
 
-## สิ่งที่ฟีเจอร์นี้ไม่ได้เป็นเจ้าของ
-
-- Pricing และ plan selection
-- Audience search
-- News source subscription management
-
-## สัญญาณว่าควรอัปเดตเอกสารหน้านี้
-
-- มีการเพิ่มหรือลด action บน toolbar
-- เปลี่ยน logic ของ sort, filter หรือ undo
-- เปลี่ยนความหมายของ quick presets หรือ prompt examples
-- เปลี่ยนรูปแบบ result card ที่แสดงหลังกรอง
-- เปลี่ยน loading, empty หรือ error behavior ที่ผู้ใช้เห็น
+- sync behavior
+- dedupe behavior
+- clear/reset behavior
+- plan-based card limits
+- AI filter scope
+- post-list feed membership semantics
 
 ## Change Log
 
-- 2026-04-09: สร้างเอกสาร baseline ภาษาไทยสำหรับ Home Feed
-- 2026-04-09: อัปเดต `FORO Filter` ให้ใช้ analysis modes, สร้าง structured brief หลังกลอง และแสดง `Why This Matched` บนการ์ดข่าว
-- 2026-04-10: เปลี่ยน `FORO Filter` เป็น flexible analysis mode ที่รองรับ prompt เปิด, synthesis จากทุกการ์ดในชุดที่ถูกเลือก, result card แบบ dynamic, skeleton ระหว่างประมวลผล, citation badge ใน bullet summary และ copy output แบบ plain text ที่แชร์ต่อได้ง่าย
-- 2026-04-10: เพิ่ม output profiles ตาม intent ของ prompt, เปลี่ยน result card ให้ใช้ section แบบ formal ข้ามโดเมน, ลดการยึดชื่อคนโพสต์ใน summary และทำให้ format ใช้งานได้ทั้งงานสรุป ความเห็น shortlist ranking และมุมต่อยอด
-- 2026-04-10: ทำให้ `FORO Filter` มี launch feedback ทันทีจาก quick preset และ modal submit, เพิ่ม micro-interaction บนแถบ filter ด้านบน และล็อกจำนวน sync skeleton ให้คงที่ตาม layout เพื่อไม่ให้เด้งเพิ่มกลางทาง
+- 2026-04-12: documented durable RSS dedupe, RSS reset-on-clear behavior, X checkpoint plus visible-card stat refresh flow, post-list normalization fixes, and Home plan caps (`Free 30 / Plus 100`)

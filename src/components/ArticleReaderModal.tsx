@@ -17,6 +17,8 @@ import {
 } from 'lucide-react';
 import { fetchReadableArticle } from '../services/ArticleService';
 import { generateArticleInsights, translateArticleToThai } from '../services/GrokService';
+import { STORAGE_KEYS } from '../constants/storageKeys';
+import { readPersistedState, writePersistedState } from '../lib/persistence/client';
 import { hasSubstantialThaiContent } from '../utils/appUtils';
 import { cleanMarkdownForClipboard, normalizeSummaryMarkdown, renderMarkdownToHtml } from '../utils/markdown';
 
@@ -25,6 +27,20 @@ const ARTICLE_INSIGHT_CACHE = new Map();
 const ARTICLE_TRANSLATION_CACHE = new Map();
 
 const buildArticleReaderQueryKey = (url) => ['article-reader', 'article', String(url || '').trim()];
+
+const buildStableCacheHash = (value) => {
+  let hash = 0;
+  const input = String(value || '');
+
+  for (let index = 0; index < input.length; index += 1) {
+    hash = (hash * 31 + input.charCodeAt(index)) >>> 0;
+  }
+
+  return hash.toString(36);
+};
+
+const buildPersistentTranslationStorageKey = (value) =>
+  `${STORAGE_KEYS.articleTranslationCache}:${buildStableCacheHash(value)}`;
 
 const formatArticleDate = (value) => {
   if (!value) return '';
@@ -142,6 +158,11 @@ const ArticleReaderModal = ({
     data: null,
     error: '',
   });
+  const [persistedTranslationState, setPersistedTranslationState] = useState({
+    key: '',
+    checked: false,
+    data: null,
+  });
   const [copyState, setCopyState] = useState('');
   const [openInsightArticleKey, setOpenInsightArticleKey] = useState('');
 
@@ -158,6 +179,24 @@ const ArticleReaderModal = ({
   const isRemoteArticle =
     Boolean(articleUrl) && ['rss', 'web_article'].includes(sourceType);
   const articleKey = articleUrl || String(article?.id || article?.title || '');
+  const articleTranslationIdentity = useMemo(
+    () =>
+      String(
+        article?.rssFingerprint ||
+        article?.id ||
+        articleUrl ||
+        article?.title ||
+        '',
+      ).trim(),
+    [article?.id, article?.rssFingerprint, article?.title, articleUrl],
+  );
+  const persistentTranslationStorageKey = useMemo(
+    () =>
+      articleTranslationIdentity
+        ? buildPersistentTranslationStorageKey(articleTranslationIdentity)
+        : '',
+    [articleTranslationIdentity],
+  );
   const insightsOpen = openInsightArticleKey === articleKey;
   const articleQuery = useQuery({
     queryKey: buildArticleReaderQueryKey(articleUrl),
@@ -232,21 +271,87 @@ const ArticleReaderModal = ({
   }, [article, effectiveArticleState.data, effectiveArticleState.status, isRemoteArticle]);
 
   const translationKey = useMemo(() => {
-    const articleData = effectiveArticleState.data;
-    if (!shouldTranslateArticle || !articleData) return '';
+    if (!persistentTranslationStorageKey) return '';
+    return persistentTranslationStorageKey;
+  }, [persistentTranslationStorageKey]);
 
-    const bodyKey = String(articleData?.textContent || '').slice(0, 800);
-    return `${articleKey}::th::${bodyKey}`;
-  }, [articleKey, effectiveArticleState.data, shouldTranslateArticle]);
+  useEffect(() => {
+    if (!translationKey) {
+      setPersistedTranslationState({
+        key: '',
+        checked: true,
+        data: null,
+      });
+      return undefined;
+    }
 
-  const cachedTranslation = translationKey ? ARTICLE_TRANSLATION_CACHE.get(translationKey) : null;
+    const inMemoryTranslation = ARTICLE_TRANSLATION_CACHE.get(translationKey);
+    if (inMemoryTranslation) {
+      setPersistedTranslationState({
+        key: translationKey,
+        checked: true,
+        data: inMemoryTranslation,
+      });
+      return undefined;
+    }
+
+    let isActive = true;
+    setPersistedTranslationState({
+      key: translationKey,
+      checked: false,
+      data: null,
+    });
+
+    readPersistedState({
+      key: translationKey,
+      scope: 'durable',
+      fallbackValue: null,
+    })
+      .then((result) => {
+        if (!isActive) return;
+
+        const nextData = result.exists && result.value?.markdown ? result.value : null;
+        if (nextData) {
+          ARTICLE_TRANSLATION_CACHE.set(translationKey, nextData);
+        }
+
+        setPersistedTranslationState({
+          key: translationKey,
+          checked: true,
+          data: nextData,
+        });
+      })
+      .catch((error) => {
+        if (!isActive) return;
+        console.warn('[ArticleReaderModal] Failed to hydrate translation cache', error);
+        setPersistedTranslationState({
+          key: translationKey,
+          checked: true,
+          data: null,
+        });
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [translationKey]);
+
+  const cachedTranslation =
+    (translationKey ? ARTICLE_TRANSLATION_CACHE.get(translationKey) : null) ||
+    (persistedTranslationState.key === translationKey ? persistedTranslationState.data : null);
+  const isTranslationCacheChecked =
+    !translationKey ||
+    Boolean(ARTICLE_TRANSLATION_CACHE.get(translationKey)) ||
+    (persistedTranslationState.key === translationKey && persistedTranslationState.checked);
 
   const effectiveTranslationState = !article || !isRemoteArticle
     ? { key: '', status: 'idle', data: null, error: '' }
-    : !shouldTranslateArticle
-      ? { key: '', status: 'skipped', data: null, error: '' }
-      : cachedTranslation
-        ? { key: translationKey, status: 'ready', data: cachedTranslation, error: '' }
+    : cachedTranslation
+      ? { key: translationKey, status: 'ready', data: cachedTranslation, error: '' }
+      : !shouldTranslateArticle
+        ? { key: '', status: 'skipped', data: null, error: '' }
+        : !isTranslationCacheChecked
+          ? { key: translationKey, status: 'idle', data: null, error: '' }
         : effectiveArticleState.status === 'ready'
           ? translationState.key === translationKey
             ? translationState
@@ -330,6 +435,7 @@ const ArticleReaderModal = ({
       !effectiveArticleState.data ||
       !shouldTranslateArticle ||
       !translationKey ||
+      !isTranslationCacheChecked ||
       cachedTranslation
     ) {
       return;
@@ -369,6 +475,18 @@ const ArticleReaderModal = ({
         }
 
         ARTICLE_TRANSLATION_CACHE.set(translationKey, payload);
+        void writePersistedState({
+          key: translationKey,
+          scope: 'durable',
+          value: payload,
+        }).catch((persistError) => {
+          console.warn('[ArticleReaderModal] Failed to persist translated article', persistError);
+        });
+        setPersistedTranslationState({
+          key: translationKey,
+          checked: true,
+          data: payload,
+        });
         setTranslationState({ key: translationKey, status: 'ready', data: payload, error: '' });
       })
       .catch((error) => {
@@ -390,6 +508,7 @@ const ArticleReaderModal = ({
     effectiveArticleState.data,
     effectiveArticleState.status,
     isRemoteArticle,
+    isTranslationCacheChecked,
     shouldTranslateArticle,
     translationKey,
   ]);

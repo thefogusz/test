@@ -37,6 +37,21 @@ The docs site also includes:
 
 These are generated automatically together with the docs site.
 
+## Recent Product Notes
+
+The current product behavior now includes several feed and workspace rules that should be treated as user-facing contract, not implementation detail:
+
+- Home feed is tier-capped for user-facing cards and AI filter scope:
+  - `Free`: 30 cards
+  - `Plus`: 100 cards
+- RSS sync now uses durable duplicate protection so old items from the same source are not reintroduced as new items during normal sync.
+- Clearing the feed resets RSS "seen" state so previously fetched RSS items can appear again after the user intentionally clears the feed.
+- X/Twitter sync now separates "discover new posts" from "refresh stats for visible cards":
+  - advanced search is used for new-candidate discovery
+  - stat refresh is limited to cards currently visible on Home
+- Opening the same RSS article again should reuse cached Thai translation instead of paying for repeated translation.
+- Content source attachments in the Create workflow are intentionally compact so the source context does not crowd out the writing surface.
+
 ### Serving docs with the app
 
 Production builds now include both the app and the docs site. The Express server serves the app at `/test` and Foro Docs at `/test/docs/`.

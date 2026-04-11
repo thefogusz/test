@@ -19,6 +19,12 @@ export type PlanDefinition = {
   };
 };
 
+export const HOME_FEED_CARD_LIMITS: Record<PlanId, number> = {
+  free: 30,
+  plus: 100,
+  admin: Number.POSITIVE_INFINITY,
+};
+
 export const PLAN_DEFINITIONS: Record<PlanId, PlanDefinition> = {
   free: {
     id: 'free',
@@ -121,3 +127,6 @@ export const getPlanDefinition = (planId: PlanId) =>
 
 export const formatPlanLimit = (value: number) =>
   Number.isFinite(value) ? String(value) : 'Unlimited';
+
+export const formatCardLimit = (value: number) =>
+  Number.isFinite(value) ? `${value} cards` : 'Unlimited';

@@ -440,21 +440,32 @@ export const deriveVisibleFeed = ({
   subscribedSources,
 }) => {
   let result = [];
+  const normalizeMemberHandle = (value = '') =>
+    String(value || '').trim().replace(/^@/, '').toLowerCase();
 
   if (activeListId) {
     const activeList = postLists.find((list) => list.id === activeListId);
     if (activeList) {
+      const activeMembers = new Set(
+        (Array.isArray(activeList.members) ? activeList.members : [])
+          .map((member) => normalizeMemberHandle(member))
+          .filter(Boolean),
+      );
+
       result = originalFeed.filter(
         (post) => {
           if (!post) return false;
           if (!isSupportedFreshRssPost(post, subscribedSources)) return false;
 
-          const authorUsername = (post.author?.username || '').toLowerCase();
-          const activeMembers = Array.isArray(activeList.members) ? activeList.members : [];
+          const authorUsername = normalizeMemberHandle(post.author?.username || '');
+          if (!authorUsername) return false;
 
-          return activeMembers.some(
-            (member) => (member || '').toLowerCase() === authorUsername,
-          );
+          if (authorUsername.startsWith('rss:')) {
+            const rssSourceId = normalizeMemberHandle(post.rssSourceId || authorUsername.slice(4));
+            return activeMembers.has(authorUsername) || (rssSourceId ? activeMembers.has(`rss:${rssSourceId}`) : false);
+          }
+
+          return activeMembers.has(authorUsername);
         },
       );
     }

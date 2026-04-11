@@ -11,6 +11,7 @@ interface RssItem {
   link: string;
   description: string;
   pubDate: string;
+  guid?: string;
   imageUrl?: string;
   author?: string;
 }
@@ -29,6 +30,40 @@ const buildStableRssId = (value: string) => {
   }
 
   return hash.toString(36);
+};
+
+const normalizeWhitespace = (value: string) =>
+  String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const normalizeComparableUrl = (value: string) => {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '';
+
+  try {
+    const parsed = new URL(normalized);
+    parsed.hash = '';
+    return parsed.toString().replace(/\/+$/, '');
+  } catch {
+    return normalized.replace(/\/+$/, '');
+  }
+};
+
+const buildRssFingerprint = (item: RssItem, source: RssSourceInfo) => {
+  const normalizedGuid = normalizeWhitespace(item.guid || '');
+  const normalizedLink = normalizeComparableUrl(item.link || '');
+  const normalizedTitle = normalizeWhitespace(item.title || '');
+  const normalizedPubDate = normalizeWhitespace(item.pubDate || '');
+  const normalizedDescription = normalizeWhitespace(item.description || '').slice(0, 240);
+
+  const baseIdentity =
+    normalizedGuid ||
+    normalizedLink ||
+    [normalizedTitle, normalizedPubDate].filter(Boolean).join('|') ||
+    [normalizedTitle, normalizedDescription].filter(Boolean).join('|');
+
+  return `rss-${source.id}-${buildStableRssId(baseIdentity || `${source.id}|untitled`)}`;
 };
 
 const extractImageFromContent = (content: string): string | null => {
@@ -131,6 +166,7 @@ const parseRssXml = (xml: string): RssItem[] => {
       const title = item.querySelector('title')?.textContent || '';
       const link = item.querySelector('link')?.textContent || '';
       const description = item.querySelector('description')?.textContent || '';
+      const guid = item.querySelector('guid')?.textContent || '';
       const pubDate =
         item.querySelector('pubDate')?.textContent ||
         item.querySelector('date')?.textContent ||
@@ -153,7 +189,7 @@ const parseRssXml = (xml: string): RssItem[] => {
         extractImageFromContent(description) ||
         null;
 
-      return { title, link, description: stripHtml(description), pubDate, imageUrl, author };
+      return { title, link, description: stripHtml(description), pubDate, guid, imageUrl, author };
     });
   }
 
@@ -164,6 +200,7 @@ const parseRssXml = (xml: string): RssItem[] => {
       const title = entry.querySelector('title')?.textContent || '';
       const linkEl = entry.querySelector('link[rel="alternate"]') || entry.querySelector('link');
       const link = linkEl?.getAttribute('href') || '';
+      const guid = entry.querySelector('id')?.textContent || '';
       const summary = entry.querySelector('summary')?.textContent || entry.querySelector('content')?.textContent || '';
       const published = entry.querySelector('published')?.textContent || entry.querySelector('updated')?.textContent || '';
       const authorName = entry.querySelector('author name')?.textContent || '';
@@ -175,7 +212,7 @@ const parseRssXml = (xml: string): RssItem[] => {
         extractImageFromContent(summary) ||
         null;
 
-      return { title, link, description: stripHtml(summary), pubDate: published, imageUrl, author: authorName };
+      return { title, link, description: stripHtml(summary), pubDate: published, guid, imageUrl, author: authorName };
     });
   }
 
@@ -196,7 +233,7 @@ const rssItemToPost = (item: RssItem, source: RssSourceInfo): Post => {
   const createdAt = Number.isFinite(itemTimestamp)
     ? new Date(itemTimestamp).toISOString()
     : new Date().toISOString();
-  const postId = `rss-${source.id}-${buildStableRssId(`${item.link || item.title}|${createdAt}`)}`;
+  const rssFingerprint = buildRssFingerprint(item, source);
   const normalizedDescription = String(item.description || '').trim();
   const normalizedTitle = String(item.title || '').trim();
   const fullText = [normalizedTitle, normalizedDescription]
@@ -206,9 +243,11 @@ const rssItemToPost = (item: RssItem, source: RssSourceInfo): Post => {
   const imageUrls = item.imageUrl ? [item.imageUrl] : [];
 
   return {
-    id: postId,
+    id: rssFingerprint,
     sourceType: 'rss',
     lang: source.lang,
+    rssFingerprint,
+    rssSourceId: source.id,
     text: normalizedDescription || normalizedTitle,
     full_text: fullText || normalizedTitle,
     title: item.title,

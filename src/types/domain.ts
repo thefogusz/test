@@ -76,6 +76,8 @@ export interface Post {
   videoDurationMs?: number;
   videoTranscript?: string;
   videoAnalysis?: string;
+  rssFingerprint?: string;
+  rssSourceId?: string;
   citation_id?: string;
   created_at?: string;
   createdAt?: string;

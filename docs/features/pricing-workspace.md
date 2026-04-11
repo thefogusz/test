@@ -1,64 +1,82 @@
 # Pricing Workspace
 
-## เป้าหมายของฟีเจอร์
+## Goal
 
-Pricing Workspace ใช้สื่อสารแพ็กเกจของ Foro, ปริมาณการใช้งานที่เหลือ, และทางเลือกในการอัปเกรดหรือเปลี่ยนแผน จุดสำคัญคือช่วยให้ผู้ใช้เข้าใจ limit ของ plan ปัจจุบันและตัดสินใจอัปเกรดได้จาก flow ในแอป
+Pricing Workspace explains plan differences in terms that matter to actual product behavior, not only marketing language.
 
-## พฤติกรรมปัจจุบัน
+It should let the user understand:
 
-- เปิดภายใต้ `activeView = "pricing"`
-- แสดง current plan, usage strip และ comparison card ของแผน `free` กับ `plus`
-- ถ้าเลือกแผน `plus` จะเปิด buy modal และ render Stripe buy button เมื่อมี `VITE_STRIPE_PUBLISHABLE_KEY`
-- ถ้าไม่มี publishable key จะขึ้น fallback message แทน
-- ถ้าเลือกแผนอื่นที่ไม่ต้อง checkout จะเรียก `onSelectPlan` ตรง
+- current plan
+- remaining daily quota
+- object limits
+- practical workflow limits that affect Home, AI filter, and watchlist usage
 
-## ลำดับการใช้งานหลัก
+## Current Product Rules
 
-1. ผู้ใช้เข้ามาที่หน้า Pricing
-2. ผู้ใช้ดู usage ปัจจุบันและ compare แผน
-3. ผู้ใช้เลือกแผนที่ต้องการ
-4. ถ้าเป็น plus ระบบเปิด modal สำหรับ checkout
+### Public plans
 
-## กฎสำคัญที่ห้ามหลุด
+- `Free`
+- `Plus`
 
-- current plan และ usage ต้องสะท้อน state จริงจาก billing
-- เส้นทางของ `plus` ต้องไป checkout modal ไม่ใช่สลับ plan ตรง
-- buy button ของ Stripe ต้องโหลดเฉพาะตอน modal เปิด
-- ถ้าไม่มี publishable key ต้องไม่พัง และต้องมี fallback ที่อธิบายได้
+### Home feed limits shown in plan details
 
-## UI States ที่ต้องนึกถึงเวลาแก้
+Pricing details now explicitly include the Home-feed and AI-filter ceiling for each plan:
 
-- Current Plan Visible: เห็น plan ปัจจุบันและ usage strip
-- Plan Compare: เห็นความต่างระหว่าง free และ plus
-- Checkout Loading: ปุ่ม plus ถูก disable ระหว่าง checkout loading
-- Buy Modal Open: modal เปิดและ body scroll ถูก lock
-- Missing Key Fallback: ไม่มี key สำหรับ buy button
+- `Free`: 30 cards
+- `Plus`: 100 cards
 
-## ไฟล์หลักที่เกี่ยวข้อง
+This is important because Home feed and AI filter are plan-limited user-facing workflows, not invisible internal implementation details.
 
-- `src/App.tsx`
+### Usage communication
+
+Pricing should still display the existing daily feature quotas such as feed, search, and generate.
+
+In addition, pricing must now communicate practical working-surface limits:
+
+- watchlist capacity
+- post-list capacity
+- Home feed plus AI filter card ceiling
+
+### Checkout path
+
+- Selecting `Plus` opens the purchase flow.
+- Non-checkout plan transitions still use the internal plan-selection path.
+
+## Main User Flow
+
+1. The user opens Pricing.
+2. The user compares current plan against the alternative plan.
+3. The user checks daily quotas and workspace limits.
+4. The user decides whether to upgrade.
+
+## Important Edge Cases
+
+### Docs drift
+
+- If product behavior changes but plan details do not mention it, users will infer the wrong contract.
+- Home feed limits are an example of behavior that must be present in pricing copy.
+
+### Hidden workflow limits
+
+- If a workflow is plan-limited in practice, Pricing should name it directly.
+- Users should not have to discover plan ceilings only by hitting the limit inside Home.
+
+## File Ownership
+
 - `src/components/PricingWorkspace.tsx`
 - `src/config/pricingPlans.ts`
+- `src/components/PlanPanel.tsx`
 
-## Dependency สำคัญ
+## When This Doc Must Be Updated
 
-- billing state
-- Stripe buy button script
-- env `VITE_STRIPE_PUBLISHABLE_KEY`
+Update this page whenever a change affects:
 
-## สิ่งที่ฟีเจอร์นี้ไม่ได้เป็นเจ้าของ
-
-- logic หลักของการ consume usage ในแต่ละ feature
-- feed, search หรือ generation UI
-- RSS source management
-
-## สัญญาณว่าควรอัปเดตเอกสารหน้านี้
-
-- เปลี่ยน plan ที่เปิดขาย
-- เปลี่ยน usage model หรือ object limits
-- เปลี่ยน checkout flow
-- เปลี่ยน fallback behavior เมื่อ Stripe ใช้งานไม่ได้
+- plan list
+- daily quotas
+- watchlist or post-list limits
+- Home feed or AI filter limits
+- checkout or upgrade flow
 
 ## Change Log
 
-- 2026-04-09: สร้างเอกสาร baseline ภาษาไทยสำหรับ Pricing Workspace
+- 2026-04-12: documented Home feed and AI filter plan ceilings and aligned plan details with `Free 30 / Plus 100`

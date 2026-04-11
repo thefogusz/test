@@ -1,36 +1,51 @@
-# เอกสารฟีเจอร์
+# Feature Docs
 
-หน้าในหมวดนี้คือ source of truth ของพฤติกรรมจริงใน Foro ณ ตอนนี้
+Feature pages are the product source of truth for user-visible behavior in Foro.
 
-เปิด feature docs เมื่อต้องการตอบคำถามพวกนี้:
+Use them to answer:
 
-- ฟีเจอร์นี้ตอนนี้ทำอะไรอยู่จริง
-- มี state หรือ business rule อะไรที่ห้ามทำพัง
-- ไฟล์หรือ hook ไหนน่าจะเกี่ยวมากที่สุด
-- คำขอใหม่เป็น bug fix, งาน polish หรือเป็น behavior change กันแน่
+- what the feature is supposed to do right now
+- which rules are intentional product rules
+- which files own the behavior
+- which edge cases must not regress
 
-## กติกาการใช้งาน
+## Recently Important Pages
 
-ถ้า PR เปลี่ยนพฤติกรรมที่ผู้ใช้เห็น เปลี่ยน business rule เปลี่ยน loading/empty/error state หรือเปลี่ยน expectation ของ integration ต้องอัปเดตหน้า feature doc ที่เกี่ยวข้องใน PR เดียวกัน
-
-ถ้ายังไม่มีหน้าของฟีเจอร์นั้น ให้สร้างหน้าใหม่จาก [Template เอกสารฟีเจอร์](/process/feature-template)
-
-## ฟีเจอร์ที่มีเอกสารแล้ว
-
-หมายเหตุ: หน้าที่มีอยู่ตอนนี้ผ่านการไล่เทียบกับโค้ดของ workspaces หลักในรอบนี้แล้ว แต่ยังไม่ครอบคลุมทุก view ของแอปทั้งหมด เช่น `read`, `bookmarks`, `pricing` และ flow ย่อยบางส่วนยังควรมีหน้าแยกเพิ่ม
+These pages are especially important for the current product behavior:
 
 - [Home Feed](/features/home-feed)
 - [Content Workspace](/features/content-workspace)
-- [App Shell](/features/app-shell)
+- [Audience Workspace](/features/audience-workspace)
+- [Pricing Workspace](/features/pricing-workspace)
 - [Read Workspace](/features/read-workspace)
 - [News Sources](/features/news-sources)
-- [Audience Workspace](/features/audience-workspace)
-- [Bookmarks Workspace](/features/bookmarks-workspace)
-- [Pricing Workspace](/features/pricing-workspace)
 
-## เอกสารที่เกี่ยวข้อง
+## Current Cross-Feature Themes
 
-- [กติกาการอัปเดต Docs](/process/docs-governance)
-- [สารบัญ Decision Log](/decisions/)
-- [สถานะ Docs และ Coverage](/status/)
+Several recent product changes now span multiple features:
+
+- Home feed plan caps:
+  - `Free`: 30 cards
+  - `Plus`: 100 cards
+- AI filter scope follows the same Home-feed cap as the visible feed.
+- RSS now uses durable duplicate suppression during normal sync, but clearing Home feed intentionally resets RSS history.
+- X feed now separates new-post discovery from visible-card stat refresh.
+- Article-reader translation is expected to reuse durable cached results when reopening the same RSS article.
+- Audience recommendation cards now require usable Thai recommendation copy.
+
+## Rule For Future PRs
+
+If a PR changes any of the following, update the matching feature doc in the same PR:
+
+- user-visible behavior
+- business rules
+- plan limits
+- loading, empty, or error states
+- integration expectations
+
+## Related Docs
+
+- [Docs Governance](/process/docs-governance)
 - [Architecture Overview](/architecture/overview)
+- [Feed and Search Architecture](/architecture/feed-search)
+- [Cost Analysis](/cost-analysis)

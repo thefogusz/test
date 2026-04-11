@@ -36,4 +36,8 @@ export const STORAGE_KEYS = {
   quickFilterPresets: 'foro_quick_filter_presets_v1',
   quickFilterVisiblePresets: 'foro_quick_filter_visible_presets_v1',
   subscribedSources: 'foro_subscribed_sources_v1',
+  rssSeenRegistry: 'foro_rss_seen_registry_v1',
+  articleTranslationCache: 'foro_article_translation_cache_v1',
+  xSeenRegistry: 'foro_x_seen_registry_v1',
+  xSyncCheckpoints: 'foro_x_sync_checkpoints_v1',
 } as const;

@@ -26,6 +26,8 @@ const AppWorkspaceRouter = ({
   isFiltering,
   isLoadingMore,
   isSyncing,
+  hasReachedFeedCardLimit,
+  homeFeedCardLimit,
   loading,
   pendingFeed,
   nextCursor,
@@ -189,6 +191,8 @@ const AppWorkspaceRouter = ({
           isFiltering={isFiltering}
           isLoadingMore={isLoadingMore}
           isSyncing={isSyncing}
+          hasReachedFeedCardLimit={hasReachedFeedCardLimit}
+          homeFeedCardLimit={homeFeedCardLimit}
           loading={loading}
           pendingFeed={pendingFeed}
           nextCursor={nextCursor}

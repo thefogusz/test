@@ -240,6 +240,8 @@ const App = () => {
     handleSort,
     handleSync,
     handleUndo,
+    hasReachedFeedCardLimit,
+    homeFeedCardLimit,
     isFiltered,
     isFilterPrimed,
     isFiltering,
@@ -248,10 +250,12 @@ const App = () => {
     loading,
     nextCursor,
   } = useHomeFeedWorkspace({
+    activePlanId,
     activeListId,
     activeView,
     originalFeed,
     pendingFeed,
+    readArchive,
     postLists,
     watchlist,
     setOriginalFeed,
@@ -568,6 +572,8 @@ const App = () => {
             isFiltering={isFiltering}
             isLoadingMore={isLoadingMore}
             isSyncing={isSyncing}
+            hasReachedFeedCardLimit={hasReachedFeedCardLimit}
+            homeFeedCardLimit={homeFeedCardLimit}
             loading={loading}
             pendingFeed={pendingFeed}
             nextCursor={nextCursor}

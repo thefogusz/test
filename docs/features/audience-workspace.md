@@ -1,72 +1,74 @@
 # Audience Workspace
 
-## เป้าหมายของฟีเจอร์
+## Goal
 
-Audience Workspace ช่วยให้ผู้ใช้ค้นหา account, expert หรือกลุ่ม audience ที่น่าสนใจ แล้วเพิ่มผลลัพธ์เหล่านั้นเข้าสู่ watchlist flow ของแอปได้อย่างต่อเนื่อง
+Audience Workspace helps the user discover who to watch next and move those targets into watchlist management with minimal friction.
 
-## พฤติกรรมปัจจุบัน
+It supports three discovery modes:
 
-- เปิดภายใต้ `activeView = "audience"`
-- ภายใน workspace นี้มี 3 tab หลัก คือ `ai`, `sources` และ `manual`
-- tab `ai` ใช้ AI-assisted audience search
-- tab `manual` ใช้ค้น account แบบ manual
-- tab `sources` ใช้ News Sources UI สำหรับ browse และ subscribe RSS sources
-- ผลลัพธ์ที่ได้สามารถถูกเพิ่มเข้า watchlist ได้ทันที ถ้า plan และความจุยังอนุญาต
-- ใช้กฎเรื่อง watchlist capacity ร่วมกับส่วนอื่นของแอป
+- AI-driven target discovery
+- manual account lookup
+- RSS/news-source browsing
 
-## ลำดับการใช้งานหลัก
+## Current Product Rules
 
-1. ผู้ใช้เข้ามาที่ Audience Workspace
-2. ผู้ใช้เลือกว่าจะใช้ tab แบบ AI, Sources หรือ Manual
-3. ถ้าอยู่ tab AI หรือ Manual ผู้ใช้ดูผลลัพธ์ account หรือ audience suggestions
-4. ถ้าอยู่ tab Sources ผู้ใช้ browse และ subscribe source ที่สนใจ
-5. ผู้ใช้เพิ่มรายการที่ต้องการเข้า watchlist หรือจัดการ source ต่อจากหน้าจอนี้
+### AI recommendation cards
 
-## กฎสำคัญที่ห้ามหลุด
+- AI recommendation cards should read like guided recommendations, not raw account dumps.
+- Each recommendation should include a meaningful explanation of why the person is relevant.
+- The explanation should be understandable to a Thai-speaking product user.
 
-- ทุก action ที่เพิ่ม account เข้า watchlist ต้องผ่านกฎเรื่อง plan และ capacity ก่อน
-- AI search กับ manual search ควรถูกแยก path ให้พอ debug และวัดผลได้
-- tab `sources` เป็นส่วนหนึ่งของ Audience Workspace ใน UI ปัจจุบัน ดังนั้นการแก้ News Sources ต้องเช็กผลกระทบกับหน้า audience ด้วย
-- ปุ่มหรือ action เพิ่มเข้า watchlist จากหน้าจอนี้ต้องทำงานด้วย semantics เดียวกับ entry point อื่นในแอป
-- ถ้ามีการเปลี่ยนผลลัพธ์ limit หรือ add-to-watchlist behavior ต้องอัปเดตเอกสารนี้
+### Thai recommendation fallback
 
-## UI States ที่ต้องนึกถึงเวลาแก้
+- If upstream reasoning is weak, generic, or not usable as Thai recommendation copy, the UI generates a Thai fallback explanation.
+- The fallback should still anchor the recommendation in the active search topic.
 
-- AI Tab Idle: ยังไม่ค้น
-- Loading: กำลังค้นแบบ AI หรือ manual
-- Results: มี audience cards พร้อม action
-- Sources Tab: แสดง News Sources UI พร้อมจำนวน subscribed sources ถ้ามี
-- Empty: ไม่พบผลลัพธ์
-- Error: ปัญหาถูกสะท้อนผ่าน status message หรือ UI state ที่กันพังไว้
+### Recommendation card layout
 
-## ไฟล์หลักที่เกี่ยวข้อง
+- Recommendation cards should prioritize clarity over density.
+- The recommendation reason should be visually prominent, not tiny text lost in the middle of the card.
+- The profile block, topic hint, credibility signals, and add-to-watchlist action should feel like one deliberate recommendation card.
 
-- `src/App.tsx`
+### Watchlist actions
+
+- Adding a recommended account to watchlist must still respect plan and capacity rules.
+- Audience discovery is not allowed to bypass shared watchlist limits.
+
+## Main User Flow
+
+1. The user opens Audience Workspace.
+2. The user chooses AI, manual, or source discovery.
+3. The system returns account or source candidates.
+4. The user reviews recommendation context.
+5. The user adds relevant accounts or sources to the next monitoring workflow.
+
+## Important Edge Cases
+
+### Weak AI reasoning
+
+- If the upstream reasoning is not presentable, the app must still show a clear Thai recommendation summary.
+- The card should never collapse into just account metadata without explaining why the person matters.
+
+### Mixed identity formats
+
+- Audience results can come from different lookup modes.
+- The add-to-watchlist action must preserve the same semantics regardless of whether the candidate came from AI search or manual search.
+
+## File Ownership
+
 - `src/components/AudienceWorkspace.tsx`
-- `src/components/NewsSourcesTab.tsx`
 - `src/hooks/useAudienceSearch.ts`
 - `src/hooks/useWatchlist.ts`
 
-## Dependency สำคัญ
+## When This Doc Must Be Updated
 
-- billing และ watchlist capacity checks
-- hooks สำหรับ audience search และ provider integrations
-- shared watchlist state
-- RSS catalog และ subscribed sources state สำหรับ tab `sources`
+Update this page whenever a change affects:
 
-## สิ่งที่ฟีเจอร์นี้ไม่ได้เป็นเจ้าของ
-
-- Home feed rendering
-- Content generation workflow
-- logic รายละเอียดภายในของ News Sources card และ source catalog
-
-## สัญญาณว่าควรอัปเดตเอกสารหน้านี้
-
-- เปลี่ยนประเภทการค้นหรือ provider ที่ใช้
-- เปลี่ยน logic การเพิ่มเข้า watchlist
-- เปลี่ยน limit หรือเงื่อนไขของ plan
-- เปลี่ยน loading, empty หรือ error behavior ของผลการค้น
+- AI recommendation-card copy
+- audience-card layout or hierarchy
+- add-to-watchlist gating
+- the relationship between AI/manual/source tabs
 
 ## Change Log
 
-- 2026-04-09: สร้างเอกสาร baseline ภาษาไทยสำหรับ Audience Workspace
+- 2026-04-12: documented Thai fallback reasoning and redesigned recommendation-card expectations for AI audience discovery

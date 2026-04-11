@@ -1,64 +1,69 @@
-# Feed และ Search
+# Feed and Search Architecture
 
-## Feed Flow
+## Feed Architecture
 
-feed ของระบบเริ่มจาก watchlist หรือ post list ที่ผู้ใช้เลือก
+Home feed now behaves as two related pipelines rather than one generic "fetch everything again" loop.
 
-```mermaid
-flowchart TD
-  A["Watchlist / Post List"] --> B["handleSync()"]
-  B --> C["fetchWatchlistFeed()"]
-  C --> D["Twitter API via Proxy"]
-  D --> E["Normalize + Sort"]
-  E --> F["generateGrokBatch()"]
-  F --> G["originalFeed"]
-  G --> H["feed สำหรับแสดงผล"]
-```
-
-## แนวคิดสำคัญ
-
-- ดึงข้อมูลจาก X ทีละ batch
-- แปล/สรุปเป็นภาษาไทยทีละ chunk
-- อัปเดต UI แบบ progressive ไม่รอครบทั้งหมด
-
-## Search Flow
-
-search ของระบบมี AI เข้ามาช่วยหลายจุด ไม่ใช่แค่ยิง query ตรงไปที่ X
+### RSS pipeline
 
 ```mermaid
 flowchart TD
-  A["User Query"] --> B["expandSearchQuery()"]
-  B --> C["searchEverything()"]
-  C --> D["agentFilterFeed()"]
-  D --> E["generateExecutiveSummary()"]
-  E --> F["translate summaries"]
-  F --> G["render search results"]
+  A["Subscribed RSS sources"] --> B["Fetch RSS items"]
+  B --> C["Build stable RSS fingerprint"]
+  C --> D["Check RSS seen registry"]
+  D --> E["Keep only unseen items"]
+  E --> F["Merge into Home feed"]
 ```
 
-## หน้าที่ของแต่ละส่วน
+Operational notes:
 
-### `expandSearchQuery()`
+- RSS uses durable duplicate suppression during normal sync.
+- The RSS seen registry is reset when the user intentionally clears Home feed.
+- That reset allows previously seen RSS items to surface again after clear.
 
-ช่วยขยายคำค้นให้ครอบคลุมขึ้น เช่น รองรับคำไทย/อังกฤษหรือคำใกล้เคียง
+### X pipeline
 
-### `searchEverything()`
+```mermaid
+flowchart TD
+  A["Watchlist / Post list scope"] --> B["Checkpoint-based advanced search"]
+  B --> C["New candidate posts"]
+  C --> D["Check X seen registry"]
+  D --> E["Merge new posts into feed"]
+  E --> F["Refresh visible-card stats by tweet id"]
+```
 
-ยิง query ไปยัง X search endpoint ผ่าน proxy แล้วคืนผลลัพธ์แบบ normalized
+Operational notes:
 
-### `agentFilterFeed()`
+- X discovery and X stat refresh are separate concerns.
+- Advanced search is used for new-post discovery.
+- Tweet-id lookup is used to refresh engagement metrics for cards already visible on Home.
+- If a tweet already exists, it should update the existing card rather than create a duplicate.
+- Clearing Home feed does not reset X checkpoints or X seen state.
 
-ใช้ AI กรองโพสต์คุณภาพต่ำหรือไม่เกี่ยวข้องออก
+## Search Relationship
 
-### `generateExecutiveSummary()`
+Search and Home are related but not identical:
 
-สรุปภาพรวมผลการค้นหาให้ผู้ใช้เข้าใจเร็ว
+- Search is an explicit research workflow.
+- Home is a monitoring workflow.
 
-## Debug Checklist
+That distinction matters for cost and UX:
 
-ถ้า search มีปัญหา ให้เช็กตามลำดับนี้:
+- Home should prioritize cheap incremental discovery and light stat refresh.
+- Search can justify broader and more expensive retrieval when the user is actively researching a topic.
 
-1. query ที่ส่งเข้า `expandSearchQuery()`
-2. query ที่ถูกยิงจริงใน `searchEverything()`
-3. จำนวนผลลัพธ์ก่อนและหลัง `agentFilterFeed()`
-4. สถานะ `searchCursor`
-5. การ merge summary กลับเข้า `searchResults`
+## Plan-Limited Feed Surface
+
+The Home surface is intentionally plan-limited:
+
+- `Free`: 30 visible cards
+- `Plus`: 100 visible cards
+
+AI filter must use the same capped visible set. This prevents a mismatch where the UI shows one scope but the model processes another.
+
+## Key Files
+
+- `src/hooks/useHomeFeedWorkspace.ts`
+- `src/services/RssService.ts`
+- `src/services/TwitterService.ts`
+- `src/utils/appUtils.ts`

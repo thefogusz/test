@@ -933,16 +933,15 @@ const CreateContent = ({
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
-                      marginTop: '12px',
-                      display: 'block',
+                      marginTop: '10px',
+                      display: 'inline-block',
                       position: 'relative',
-                      width: '100%',
-                      maxWidth: '240px',
-                      aspectRatio: '1 / 1',
-                      borderRadius: '18px',
+                      width: '132px',
+                      aspectRatio: '4 / 3',
+                      borderRadius: '16px',
                       overflow: 'hidden',
                       border: '1px solid rgba(255,255,255,0.08)',
-                      background: `linear-gradient(180deg, rgba(2,6,23,0.04) 0%, rgba(2,6,23,0.22) 100%), url(${attachedPreviewImageUrl}) center/cover`,
+                      background: `linear-gradient(180deg, rgba(2,6,23,0.04) 0%, rgba(2,6,23,0.18) 100%), url(${attachedPreviewImageUrl}) center/cover`,
                       textDecoration: 'none',
                       boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
                     }}

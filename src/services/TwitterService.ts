@@ -218,6 +218,14 @@ const normalizeSingleTweet = (tweet, depth = 0) => {
 const normalizeTweets = (tweets) =>
   (tweets || []).map((tweet) => normalizeSingleTweet(tweet));
 
+const formatSearchTimestamp = (value) => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  const iso = date.toISOString().replace(/\.\d{3}Z$/, 'Z');
+  return iso.replace('T', '_').replace(/:/g, ':').replace('Z', '_UTC');
+};
+
 const isWithinHours = (dateString, hours = RECENT_WINDOW_HOURS) => {
   const timestamp = new Date(dateString).getTime();
   if (!Number.isFinite(timestamp)) return false;
@@ -276,10 +284,47 @@ export const getUserInfo = async (username) => {
 /**
  * FEATURE 2: Optimized Feed Fetching with Batching & Pagination
  */
-export const fetchForoFeed = async (watchlistHandles, cursor = '', queryType = 'Latest') => {
+export const fetchTweetsByIds = async (tweetIds = []) => {
+  const normalizedIds = Array.from(
+    new Set(
+      (tweetIds || [])
+        .map((tweetId) => String(tweetId || '').trim())
+        .filter(Boolean),
+    ),
+  );
+
+  if (normalizedIds.length === 0) {
+    return [];
+  }
+
+  const response = await apiFetch(
+    `${BASE_URL}/tweets?tweet_ids=${encodeURIComponent(normalizedIds.join(','))}`,
+    { method: 'GET' },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Tweet refresh failed with status ${response.status}`);
+  }
+
+  const payload = await safeJson(response, { tweets: [] });
+  return normalizeTweets(payload.tweets || []);
+};
+
+export const fetchForoFeed = async (
+  watchlistHandles,
+  cursor = '',
+  queryType = 'Latest',
+  options = {},
+) => {
+  const {
+    sinceTime = null,
+    untilTime = null,
+  } = options;
   const date = new Date();
   date.setHours(date.getHours() - 24);
   const sinceDate = date.toISOString().split('T')[0];
+  const formattedSinceTime = sinceTime ? formatSearchTimestamp(sinceTime) : '';
+  const formattedUntilTime = untilTime ? formatSearchTimestamp(untilTime) : '';
 
   const validHandles = (watchlistHandles || [])
     .map((handle) => (typeof handle === 'string' ? handle : handle?.username))
@@ -303,7 +348,10 @@ export const fetchForoFeed = async (watchlistHandles, cursor = '', queryType = '
     const MAX_PAGES_PER_BATCH = 1;
 
     while (pagesFetched < MAX_PAGES_PER_BATCH) {
-      const query = `(${batch.map((username) => `from:${username}`).join(' OR ')}) since:${sinceDate}`;
+      const timeWindowQuery = formattedSinceTime
+        ? `since:${formattedSinceTime}${formattedUntilTime ? ` until:${formattedUntilTime}` : ''}`
+        : `since:${sinceDate}`;
+      const query = `(${batch.map((username) => `from:${username}`).join(' OR ')}) ${timeWindowQuery}`.trim();
       const url = `${BASE_URL}/tweet/advanced_search?query=${encodeURIComponent(query)}&queryType=${queryType}${
         currentCursor ? `&cursor=${currentCursor}` : ''
       }`;

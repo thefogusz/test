@@ -7,6 +7,7 @@ import {
   type SetStateAction,
 } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { STORAGE_KEYS } from '../constants/storageKeys';
 import {
   agentFilterFeed,
   buildForoFilterBriefMarkdown,
@@ -16,7 +17,8 @@ import {
   generateGrokSummary,
 } from '../services/GrokService';
 import { RSS_CATALOG } from '../config/rssCatalog';
-import { fetchWatchlistFeed } from '../services/TwitterService';
+import { useIndexedDbState } from './useIndexedDbState';
+import { fetchTweetsByIds, fetchWatchlistFeed } from '../services/TwitterService';
 import { fetchAllSubscribedFeeds, type RssSourceInfo } from '../services/RssService';
 import { fetchReadableArticle } from '../services/ArticleService';
 import {
@@ -28,28 +30,42 @@ import {
 } from '../utils/appUtils';
 
 type SetState<T> = Dispatch<SetStateAction<T>>;
+type RssSeenRegistry = Record<string, Record<string, string>>;
+type XSeenRegistry = Record<string, string>;
+type XSyncCheckpointRegistry = Record<string, string>;
+
+const MAX_RSS_SEEN_ITEMS_PER_SOURCE = 600;
+const MAX_X_SEEN_ITEMS = 2500;
+const X_SYNC_OVERLAP_MS = 2 * 60 * 1000;
+const FREE_HOME_FEED_CARD_LIMIT = 30;
+const PLUS_HOME_FEED_CARD_LIMIT = 100;
 
 const buildFeedSyncQueryKey = ({
   activeListId,
   twitterHandles,
   rssSourceIds,
+  xCheckpoint,
 }: {
   activeListId: string | null;
   twitterHandles: string[];
   rssSourceIds: string[];
+  xCheckpoint?: string;
 }) => [
   'home-feed-sync',
   'v1',
   activeListId || 'all',
   [...twitterHandles].map((handle) => String(handle || '').trim().toLowerCase()).filter(Boolean).sort(),
   [...rssSourceIds].map((id) => String(id || '').trim().toLowerCase()).filter(Boolean).sort(),
+  String(xCheckpoint || ''),
 ];
 
 type UseHomeFeedWorkspaceParams = {
+  activePlanId: string;
   activeListId: string | null;
   activeView: string;
   originalFeed: any[];
   pendingFeed: any[];
+  readArchive: any[];
   postLists: any[];
   watchlist: any[];
   setOriginalFeed: SetState<any[]>;
@@ -79,10 +95,12 @@ const shouldSummarizeWholeVisibleFeed = (prompt: string) => {
 };
 
 export const useHomeFeedWorkspace = ({
+  activePlanId,
   activeListId,
   activeView,
   originalFeed,
   pendingFeed,
+  readArchive,
   postLists,
   watchlist,
   setOriginalFeed,
@@ -93,6 +111,12 @@ export const useHomeFeedWorkspace = ({
 }: UseHomeFeedWorkspaceParams) => {
   const queryClient = useQueryClient();
   const [feed, setFeed] = useState<any[]>([]);
+  const [rssSeenRegistry, setRssSeenRegistry, isRssSeenRegistryHydrated] =
+    useIndexedDbState<RssSeenRegistry>(STORAGE_KEYS.rssSeenRegistry, {});
+  const [xSeenRegistry, setXSeenRegistry, isXSeenRegistryHydrated] =
+    useIndexedDbState<XSeenRegistry>(STORAGE_KEYS.xSeenRegistry, {});
+  const [xSyncCheckpoints, setXSyncCheckpoints, isXSyncCheckpointsHydrated] =
+    useIndexedDbState<XSyncCheckpointRegistry>(STORAGE_KEYS.xSyncCheckpoints, {});
   const deletedFeedRef = useRef<any[]>([]);
   const [deletedFeedCount, setDeletedFeedCount] = useState(0);
   const [activeFilters, setActiveFilters] = useState({ view: false, engagement: false });
@@ -103,14 +127,172 @@ export const useHomeFeedWorkspace = ({
   const [activeFilterPrompt, setActiveFilterPrompt] = useState('');
   const [isFilterPrimed, setIsFilterPrimed] = useState(false);
   const [freshFeedIds, setFreshFeedIds] = useState<string[]>([]);
+  const homeFeedCardLimit = activePlanId === 'plus' ? PLUS_HOME_FEED_CARD_LIMIT : FREE_HOME_FEED_CARD_LIMIT;
 
   const isSummarizingRef = useRef(false);
   const isBackfillingThaiRef = useRef(false);
   const isEnrichingImagesRef = useRef(false);
   const failedThaiSummaryIdsRef = useRef(new Set<string>());
   const enrichedImageIdsRef = useRef(new Set<string>());
+  const rssSeenRegistryRef = useRef<RssSeenRegistry>({});
+  const xSeenRegistryRef = useRef<XSeenRegistry>({});
+  const xSyncCheckpointsRef = useRef<XSyncCheckpointRegistry>({});
+
+  useEffect(() => {
+    rssSeenRegistryRef.current = rssSeenRegistry || {};
+  }, [rssSeenRegistry]);
+
+  useEffect(() => {
+    xSeenRegistryRef.current = xSeenRegistry || {};
+  }, [xSeenRegistry]);
+
+  useEffect(() => {
+    xSyncCheckpointsRef.current = xSyncCheckpoints || {};
+  }, [xSyncCheckpoints]);
 
   const getNormalizedPostId = (post: any) => String(post?.id || '').trim();
+  const isXFeedPost = (post: any) => {
+    const sourceType = String(post?.sourceType || '').trim().toLowerCase();
+    return Boolean(post?.id) && sourceType !== 'rss' && sourceType !== 'article';
+  };
+  const getNormalizedRssSeenKey = (post: any) => {
+    if (String(post?.sourceType || '').trim().toLowerCase() !== 'rss') return '';
+    return String(post?.rssFingerprint || post?.id || '').trim();
+  };
+  const getNormalizedRssSourceId = (post: any) => {
+    const explicitSourceId = String(post?.rssSourceId || '').trim().toLowerCase();
+    if (explicitSourceId) return explicitSourceId;
+
+    const username = String(post?.author?.username || '').trim().toLowerCase();
+    if (username.startsWith('rss:')) return username.slice(4);
+    return '';
+  };
+
+  const buildKnownRssSeenSet = (collections: any[][] = []) => {
+    const seen = new Set<string>();
+
+    Object.values(rssSeenRegistryRef.current || {}).forEach((entries) => {
+      Object.keys(entries || {}).forEach((key) => {
+        const normalizedKey = String(key || '').trim();
+        if (normalizedKey) seen.add(normalizedKey);
+      });
+    });
+
+    collections.flat().forEach((post) => {
+      const seenKey = getNormalizedRssSeenKey(post);
+      if (seenKey) seen.add(seenKey);
+    });
+
+    return seen;
+  };
+
+  const markRssPostsAsSeen = (posts: any[] = []) => {
+    const rssPosts = posts.filter(
+      (post) => getNormalizedRssSeenKey(post) && getNormalizedRssSourceId(post),
+    );
+    if (!rssPosts.length) return;
+
+    setRssSeenRegistry((prev) => {
+      const nextRegistry: RssSeenRegistry = { ...(prev || {}) };
+      let didChange = false;
+
+      rssPosts.forEach((post) => {
+        const sourceId = getNormalizedRssSourceId(post);
+        const seenKey = getNormalizedRssSeenKey(post);
+        if (!sourceId || !seenKey) return;
+
+        const sourceEntries = { ...(nextRegistry[sourceId] || {}) };
+        if (!sourceEntries[seenKey]) {
+          didChange = true;
+        }
+        sourceEntries[seenKey] = String(post?.created_at || new Date().toISOString());
+
+        nextRegistry[sourceId] = Object.fromEntries(
+          Object.entries(sourceEntries)
+            .sort(
+              (left, right) =>
+                new Date(right[1] || 0).getTime() - new Date(left[1] || 0).getTime(),
+            )
+            .slice(0, MAX_RSS_SEEN_ITEMS_PER_SOURCE),
+        );
+      });
+
+      return didChange ? nextRegistry : prev;
+    });
+  };
+
+  const buildKnownXSeenSet = (collections: any[][] = []) => {
+    const seen = new Set<string>();
+
+    Object.keys(xSeenRegistryRef.current || {}).forEach((key) => {
+      const normalizedKey = String(key || '').trim();
+      if (normalizedKey) seen.add(normalizedKey);
+    });
+
+    collections.flat().forEach((post) => {
+      if (!isXFeedPost(post)) return;
+      const postId = getNormalizedPostId(post);
+      if (postId) seen.add(postId);
+    });
+
+    return seen;
+  };
+
+  const markXPostsAsSeen = (posts: any[] = []) => {
+    const xPosts = posts.filter((post) => isXFeedPost(post) && getNormalizedPostId(post));
+    if (!xPosts.length) return;
+
+    setXSeenRegistry((prev) => {
+      const nextRegistry: XSeenRegistry = { ...(prev || {}) };
+      let didChange = false;
+
+      xPosts.forEach((post) => {
+        const postId = getNormalizedPostId(post);
+        if (!postId) return;
+        if (!nextRegistry[postId]) {
+          didChange = true;
+        }
+        nextRegistry[postId] = String(post?.created_at || new Date().toISOString());
+      });
+
+      if (!didChange) return prev;
+
+      return Object.fromEntries(
+        Object.entries(nextRegistry)
+          .sort(
+            (left, right) =>
+              new Date(right[1] || 0).getTime() - new Date(left[1] || 0).getTime(),
+          )
+          .slice(0, MAX_X_SEEN_ITEMS),
+      );
+    });
+  };
+
+  const updateXSyncCheckpoint = (nextCheckpoint: string) => {
+    if (!activeXSyncScope || !nextCheckpoint) return;
+
+    setXSyncCheckpoints((prev) => {
+      const previousValue = String(prev?.[activeXSyncScope] || '').trim();
+      if (previousValue === nextCheckpoint) return prev;
+      return {
+        ...(prev || {}),
+        [activeXSyncScope]: nextCheckpoint,
+      };
+    });
+  };
+
+  const visibleXCardIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (Array.isArray(feed) ? feed : [])
+            .filter((post) => isXFeedPost(post))
+            .map((post) => getNormalizedPostId(post))
+            .filter(Boolean),
+        ),
+      ),
+    [feed],
+  );
 
   const mergeIncomingPosts = (incomingPosts: any[] = []) => {
     if (!incomingPosts.length) return;
@@ -191,6 +373,25 @@ export const useHomeFeedWorkspace = ({
     );
   }, [activeListId, postLists, watchlist]);
 
+  const activeXSyncScope = useMemo(
+    () =>
+      [
+        activeListId || 'all',
+        ...activeListMembers.twitterHandles,
+      ].join('|'),
+    [activeListId, activeListMembers.twitterHandles],
+  );
+
+  const currentXSyncCheckpoint = useMemo(
+    () =>
+      String(
+        xSyncCheckpointsRef.current?.[activeXSyncScope] ||
+        xSyncCheckpoints?.[activeXSyncScope] ||
+        '',
+      ).trim(),
+    [activeXSyncScope, xSyncCheckpoints],
+  );
+
   const rssSourcesById = useMemo(() => {
     const allSources = [...Object.values(RSS_CATALOG).flat(), ...subscribedSources];
 
@@ -236,10 +437,8 @@ export const useHomeFeedWorkspace = ({
     });
   };
 
-  useEffect(() => {
-    if (activeView === 'search' || isFiltered) return;
-
-    setFeed(
+  const visibleFeedCandidates = useMemo(
+    () =>
       deriveVisibleFeed({
         activeFilters,
         activeListId,
@@ -248,8 +447,21 @@ export const useHomeFeedWorkspace = ({
         postLists,
         subscribedSources: effectiveRssSources,
       }),
-    );
-  }, [activeFilters, activeListId, activeView, effectiveRssSources, isFiltered, originalFeed, postLists]);
+    [activeFilters, activeListId, activeView, effectiveRssSources, originalFeed, postLists],
+  );
+
+  const limitedVisibleFeed = useMemo(
+    () => visibleFeedCandidates.slice(0, homeFeedCardLimit),
+    [homeFeedCardLimit, visibleFeedCandidates],
+  );
+
+  const hasReachedFeedCardLimit = visibleFeedCandidates.length >= homeFeedCardLimit;
+
+  useEffect(() => {
+    if (activeView === 'search' || isFiltered) return;
+
+    setFeed(limitedVisibleFeed);
+  }, [activeView, isFiltered, limitedVisibleFeed]);
 
   const translatePostsToThai = async (
     posts: any[] = [],
@@ -482,11 +694,18 @@ export const useHomeFeedWorkspace = ({
 
   const syncMutation = useMutation({
     mutationFn: async () => {
+      if (!isRssSeenRegistryHydrated || !isXSeenRegistryHydrated || !isXSyncCheckpointsHydrated) {
+        setStatus('กำลังโหลดประวัติฟีด...');
+        return;
+      }
+
       const existingIds = new Set(
         originalFeed
           .map((post) => String(post?.id || '').trim())
           .filter(Boolean),
       );
+      const knownRssSeenKeys = buildKnownRssSeenSet([originalFeed]);
+      const knownXSeenIds = buildKnownXSeenSet([originalFeed]);
       const hasWatchlist = activeListMembers.twitterHandles.length > 0;
       const hasRss = effectiveRssSources.length > 0;
 
@@ -497,71 +716,115 @@ export const useHomeFeedWorkspace = ({
 
       setStatus('กำลังเชื่อมต่อฐานข้อมูล... ดึงฟีดข่าวล่าสุด');
 
+      const checkpointTimestamp = Date.parse(currentXSyncCheckpoint);
+      const xSinceTime = Number.isFinite(checkpointTimestamp)
+        ? new Date(Math.max(0, checkpointTimestamp - X_SYNC_OVERLAP_MS)).toISOString()
+        : null;
+      const syncStartedAt = new Date().toISOString();
+
       const feedSyncCacheKey = buildFeedSyncQueryKey({
         activeListId,
         twitterHandles: activeListMembers.twitterHandles,
         rssSourceIds: effectiveRssSources.map((source) => source.id),
+        xCheckpoint: currentXSyncCheckpoint,
       });
-      const cachedFeedSync = queryClient.getQueryData<[any, any[]]>(feedSyncCacheKey);
-
-      // Fetch Twitter + RSS in parallel
-      const twitterPromise = cachedFeedSync ? Promise.resolve(cachedFeedSync[0]) : (async () => {
+      const twitterPromise = (async () => {
         if (!hasWatchlist) return { data: [], meta: { next_cursor: null } };
 
         const targetAccounts = activeListMembers.twitterHandles;
 
         if (targetAccounts.length === 0) return { data: [], meta: { next_cursor: null } };
 
-        return fetchWatchlistFeed(targetAccounts, '', 'Latest');
+        return fetchWatchlistFeed(targetAccounts, '', 'Latest', {
+          sinceTime: xSinceTime,
+          untilTime: syncStartedAt,
+        });
       })();
 
-      const rssPromise = cachedFeedSync ? Promise.resolve(cachedFeedSync[1]) : (async () => {
+      const rssPromise = (async () => {
         return fetchAllSubscribedFeeds(effectiveRssSources);
       })();
 
-      const [twitterResult, rssPosts] = cachedFeedSync || await queryClient.fetchQuery({
+      const statRefreshPromise = visibleXCardIds.length > 0
+        ? fetchTweetsByIds(visibleXCardIds).catch((error) => {
+          console.error('[Sync] Failed to refresh visible X cards', error);
+          return [];
+        })
+        : Promise.resolve([]);
+
+      const feedSyncPromise = queryClient.fetchQuery({
         queryKey: feedSyncCacheKey,
         queryFn: () => Promise.all([twitterPromise, rssPromise]),
-        staleTime: 2 * 60 * 1000,
+        staleTime: 0,
         gcTime: 15 * 60 * 1000,
         retry: 1,
       });
+
+      const [[twitterResult, rssPosts], refreshedVisibleXPosts] = await Promise.all([
+        feedSyncPromise,
+        statRefreshPromise,
+      ]);
       console.log(`[Sync] Twitter: ${twitterResult?.data?.length || 0}, RSS: ${rssPosts?.length || 0}`);
 
-      const { data: twitterData, meta } = twitterResult;
-      setNextCursor(meta.next_cursor);
+      const twitterData = Array.isArray(twitterResult?.data) ? twitterResult.data : [];
+      const meta = twitterResult?.meta || { next_cursor: null };
+      setNextCursor(meta?.next_cursor || null);
 
-      // Combine Twitter + RSS, sort by date
+      markRssPostsAsSeen(rssPosts);
+      markXPostsAsSeen(twitterData);
+      updateXSyncCheckpoint(syncStartedAt);
+
+      const newRssPosts = (rssPosts || []).filter((post) => {
+        const postId = getNormalizedPostId(post);
+        const seenKey = getNormalizedRssSeenKey(post);
+
+        if (postId && existingIds.has(postId)) return false;
+        if (seenKey && knownRssSeenKeys.has(seenKey)) return false;
+        return true;
+      });
+
       const MAX_TWITTER_SYNC = 20;
       const twitterDisplay = twitterData.slice(0, MAX_TWITTER_SYNC);
       const twitterRemaining = twitterData.slice(MAX_TWITTER_SYNC);
+      const isNewTwitterPost = (post: any) => {
+        const postId = getNormalizedPostId(post);
+        if (!postId) return false;
+        if (existingIds.has(postId)) return false;
+        if (knownXSeenIds.has(postId)) return false;
+        return true;
+      };
+      const isExistingTwitterPost = (post: any) => {
+        const postId = getNormalizedPostId(post);
+        return Boolean(postId && existingIds.has(postId));
+      };
 
-      // RSS is unlimited, Twitter is capped at 20 per sync
-      const displayData = [...twitterDisplay, ...rssPosts].sort(
+      const newTwitterDisplay = twitterDisplay.filter(isNewTwitterPost);
+      const existingTwitterDisplay = twitterDisplay.filter(isExistingTwitterPost);
+      const nextTwitterPending = twitterRemaining.filter(isNewTwitterPost);
+      const displayData = [...newTwitterDisplay, ...newRssPosts].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
-      const nextFreshFeedIds = displayData
-        .map((post) => getNormalizedPostId(post))
-        .filter((id) => id && !existingIds.has(id));
-      const newDisplayData = displayData.filter((post) => {
-        const postId = getNormalizedPostId(post);
-        return postId && !existingIds.has(postId);
-      });
-      const existingDisplayData = displayData.filter((post) => {
-        const postId = getNormalizedPostId(post);
-        return postId && existingIds.has(postId);
-      });
+      const nextFreshFeedIds = displayData.map((post) => getNormalizedPostId(post)).filter(Boolean);
+      const newDisplayData = displayData;
+      const postsToMerge = Array.from(
+        [...existingTwitterDisplay, ...(refreshedVisibleXPosts || [])].reduce((postMap, post) => {
+          const postId = getNormalizedPostId(post);
+          if (!postId) return postMap;
+          postMap.set(postId, post);
+          return postMap;
+        }, new Map<string, any>()).values(),
+      );
 
-      setPendingFeed(twitterRemaining);
+      setPendingFeed(nextTwitterPending);
 
-      const rssCount = rssPosts.length;
-      const twitterCount = twitterData.length;
+      const rssCount = newRssPosts.length;
+      const twitterCount = newTwitterDisplay.length;
       const statusParts = [];
       if (twitterCount > 0) statusParts.push(`${twitterCount} โพสต์จาก X`);
       if (rssCount > 0) statusParts.push(`${rssCount} ข่าวจาก RSS`);
 
-      if (existingDisplayData.length > 0) {
-        mergeIncomingPosts(existingDisplayData);
+      if (postsToMerge.length > 0) {
+        mergeIncomingPosts(postsToMerge);
       }
 
       if (newDisplayData.length > 0) {
@@ -593,6 +856,11 @@ export const useHomeFeedWorkspace = ({
   const loadMoreMutation = useMutation({
     mutationFn: async () => {
       if ((!nextCursor && pendingFeed.length === 0) || syncMutation.isPending || loadMoreMutation.isPending) {
+        return;
+      }
+
+      if (visibleFeedCandidates.length >= homeFeedCardLimit) {
+        setStatus(`ฟีดบนหน้า Home เต็มแล้ว (${homeFeedCardLimit} การ์ด) ลองใช้ AI Filter หรือ Clear เพื่อจัดชุดใหม่`);
         return;
       }
 
@@ -693,7 +961,7 @@ export const useHomeFeedWorkspace = ({
         originalFeed,
         postLists,
         subscribedSources: effectiveRssSources,
-      });
+      }).slice(0, homeFeedCardLimit);
 
       if (sourceFeed.length === 0) {
         setStatus('ยังไม่มีโพสต์ใน Watchlist Feed ให้ AI กรอง');
@@ -768,6 +1036,7 @@ export const useHomeFeedWorkspace = ({
 
     deletedFeedRef.current = originalFeed;
     setDeletedFeedCount(originalFeed.length);
+    setRssSeenRegistry({});
     setPendingFeed([]);
     setNextCursor(null);
     setIsFiltered(false);
@@ -824,6 +1093,8 @@ export const useHomeFeedWorkspace = ({
     isFiltering: aiFilterMutation.isPending,
     isLoadingMore: loadMoreMutation.isPending,
     isSyncing: syncMutation.isPending,
+    hasReachedFeedCardLimit,
+    homeFeedCardLimit,
     loading: syncMutation.isPending || loadMoreMutation.isPending,
     nextCursor,
   };
