@@ -1,5 +1,5 @@
 # Comprehensive RSS Feed Catalog
-**Compiled: April 5, 2026**
+**Compiled: April 12, 2026**
 
 ---
 
@@ -8,17 +8,17 @@
 | # | Category | English | Thai | Reddit/HN/Google/YT | Total |
 |---|----------|---------|------|---------------------|-------|
 | 1 | AI / Machine Learning | 15 | 1 | 6 | **22** |
-| 2 | Technology / Startups | 12 | 7 | 5 | **24** |
+| 2 | Technology / Startups | 13 | 7 | 5 | **25** |
 | 3 | Gaming | 10 | 3 | 5 | **18** |
 | 4 | Crypto / Blockchain | 10 | 0 | 4 | **14** |
-| 5 | Business / Entrepreneurship | 8 | 4 | 4 | **16** |
+| 5 | Business / Entrepreneurship | 9 | 4 | 4 | **17** |
 | 6 | Finance / Investing | 10 | 2 | 4 | **16** |
 | 7 | Marketing / Growth | 8 | 0 | 3 | **11** |
-| 8 | Science | 10 | 0 | 4 | **14** |
-| 9 | Economics / Geopolitics | 10 | 2 | 4 | **16** |
+| 8 | Science | 11 | 0 | 4 | **15** |
+| 9 | Economics / Geopolitics | 12 | 2 | 4 | **18** |
 | 10 | Design / UX | 8 | 0 | 3 | **11** |
 | - | Thai General News | 0 | 7 | 0 | **7** |
-| | **TOTALS** | **101** | **26** | **42** | **169** |
+| | **TOTALS** | **106** | **26** | **42** | **174** |
 
 ---
 
@@ -55,7 +55,7 @@
 
 ---
 
-### 2. Technology / Startups (24 sources)
+### 2. Technology / Startups (25 sources)
 
 | # | Name | RSS URL | Lang | Frequency |
 |---|------|---------|------|-----------|
@@ -63,26 +63,27 @@
 | 2 | The Verge | `https://www.theverge.com/rss/index.xml` | EN | Multiple/day |
 | 3 | Ars Technica | `https://feeds.arstechnica.com/arstechnica/index` | EN | Multiple/day |
 | 4 | Wired | `https://www.wired.com/feed/rss` | EN | Multiple/day |
-| 5 | Hacker News (front page) | `https://hnrss.org/frontpage` | EN | Continuous |
-| 6 | Stratechery (Ben Thompson) | `https://stratechery.com/feed/` | EN | 3-5x/week |
-| 7 | The Information | `https://www.theinformation.com/feed` | EN | Daily |
-| 8 | Protocol / Semafor Tech | `https://www.semafor.com/feed/tech` | EN | Daily |
-| 9 | Rest of World | `https://restofworld.org/feed/` | EN | Daily |
-| 10 | Benedict Evans | `https://www.ben-evans.com/benedictevans?format=rss` | EN | Weekly |
-| 11 | Paul Graham Essays | `https://www.paulgraham.com/rss.html` | EN | Monthly |
-| 12 | Y Combinator Blog | `https://www.ycombinator.com/blog/rss/` | EN | 1-2x/week |
-| 13 | r/technology | `https://www.reddit.com/r/technology/.rss` | EN | Continuous |
-| 14 | r/startups | `https://www.reddit.com/r/startups/.rss` | EN | Continuous |
-| 15 | HN - Best stories | `https://hnrss.org/best` | EN | Continuous |
-| 16 | Google News - Tech Startups | `https://news.google.com/rss/search?q=tech+startups&hl=en-US&gl=US&ceid=US:en` | EN | Continuous |
-| 17 | MKBHD (YT) | `https://www.youtube.com/feeds/videos.xml?channel_id=UCBJycsmduvYEL83R_U4JriQ` | EN | 2-3x/week |
-| 18 | Blognone | `https://www.blognone.com/atom.xml` | TH | Multiple/day |
-| 19 | Techsauce | `https://techsauce.co/feed` | TH | Daily |
-| 20 | Beartai | `https://www.beartai.com/feed` | TH | Multiple/day |
-| 21 | DroidSans | `https://droidsans.com/feed` | TH | Multiple/day |
-| 22 | Brand Inside | `https://brandinside.asia/feed` | TH | Daily |
-| 23 | Siamphone | `https://news.siamphone.com/feed` | TH | Daily |
-| 24 | Matichon Online | `https://www.matichon.co.th/feed` | TH | Multiple/day |
+| 5 | Reuters Technology | `https://feeds.reuters.com/reuters/technologyNews` | EN | Multiple/day |
+| 6 | Hacker News (front page) | `https://hnrss.org/frontpage` | EN | Continuous |
+| 7 | Stratechery (Ben Thompson) | `https://stratechery.com/feed/` | EN | 3-5x/week |
+| 8 | The Information | `https://www.theinformation.com/feed` | EN | Daily |
+| 9 | Protocol / Semafor Tech | `https://www.semafor.com/feed/tech` | EN | Daily |
+| 10 | Rest of World | `https://restofworld.org/feed/` | EN | Daily |
+| 11 | Benedict Evans | `https://www.ben-evans.com/benedictevans?format=rss` | EN | Weekly |
+| 12 | Paul Graham Essays | `https://www.paulgraham.com/rss.html` | EN | Monthly |
+| 13 | Y Combinator Blog | `https://www.ycombinator.com/blog/rss/` | EN | 1-2x/week |
+| 14 | r/technology | `https://www.reddit.com/r/technology/.rss` | EN | Continuous |
+| 15 | r/startups | `https://www.reddit.com/r/startups/.rss` | EN | Continuous |
+| 16 | HN - Best stories | `https://hnrss.org/best` | EN | Continuous |
+| 17 | Google News - Tech Startups | `https://news.google.com/rss/search?q=tech+startups&hl=en-US&gl=US&ceid=US:en` | EN | Continuous |
+| 18 | MKBHD (YT) | `https://www.youtube.com/feeds/videos.xml?channel_id=UCBJycsmduvYEL83R_U4JriQ` | EN | 2-3x/week |
+| 19 | Blognone | `https://www.blognone.com/atom.xml` | TH | Multiple/day |
+| 20 | Techsauce | `https://techsauce.co/feed` | TH | Daily |
+| 21 | Beartai | `https://www.beartai.com/feed` | TH | Multiple/day |
+| 22 | DroidSans | `https://droidsans.com/feed` | TH | Multiple/day |
+| 23 | Brand Inside | `https://brandinside.asia/feed` | TH | Daily |
+| 24 | Siamphone | `https://news.siamphone.com/feed` | TH | Daily |
+| 25 | Matichon Online | `https://www.matichon.co.th/feed` | TH | Multiple/day |
 
 ---
 
@@ -132,7 +133,7 @@
 
 ---
 
-### 5. Business / Entrepreneurship (16 sources)
+### 5. Business / Entrepreneurship (17 sources)
 
 | # | Name | RSS URL | Lang | Frequency |
 |---|------|---------|------|-----------|
@@ -140,18 +141,19 @@
 | 2 | Entrepreneur | `https://www.entrepreneur.com/latest.rss` | EN | Multiple/day |
 | 3 | Inc. | `https://www.inc.com/rss` | EN | Multiple/day |
 | 4 | Fast Company | `https://www.fastcompany.com/latest/rss` | EN | Multiple/day |
-| 5 | First Round Review | `https://review.firstround.com/feed.xml` | EN | 1-2x/month |
-| 6 | Steve Blank | `https://steveblank.com/feed/` | EN | Weekly |
-| 7 | SaaStr | `https://www.saastr.com/feed/` | EN | Daily |
-| 8 | Paul Graham Essays | `https://www.paulgraham.com/rss.html` | EN | Monthly |
-| 9 | r/Entrepreneur | `https://www.reddit.com/r/Entrepreneur/.rss` | EN | Continuous |
-| 10 | r/smallbusiness | `https://www.reddit.com/r/smallbusiness/.rss` | EN | Continuous |
-| 11 | HN - Show HN | `https://hnrss.org/show` | EN | Continuous |
-| 12 | Google News - Entrepreneurship | `https://news.google.com/rss/search?q=entrepreneurship+startups&hl=en-US&gl=US&ceid=US:en` | EN | Continuous |
-| 13 | Brand Inside | `https://brandinside.asia/feed` | TH | Daily |
-| 14 | Prachachat Business | `https://www.prachachat.net/feed` | TH | Multiple/day |
-| 15 | Techsauce | `https://techsauce.co/feed` | TH | Daily |
-| 16 | The Standard | `https://thestandard.co/feed` | TH | Multiple/day |
+| 5 | Reuters Business | `https://feeds.reuters.com/reuters/businessNews` | EN | Multiple/day |
+| 6 | First Round Review | `https://review.firstround.com/feed.xml` | EN | 1-2x/month |
+| 7 | Steve Blank | `https://steveblank.com/feed/` | EN | Weekly |
+| 8 | SaaStr | `https://www.saastr.com/feed/` | EN | Daily |
+| 9 | Paul Graham Essays | `https://www.paulgraham.com/rss.html` | EN | Monthly |
+| 10 | r/Entrepreneur | `https://www.reddit.com/r/Entrepreneur/.rss` | EN | Continuous |
+| 11 | r/smallbusiness | `https://www.reddit.com/r/smallbusiness/.rss` | EN | Continuous |
+| 12 | HN - Show HN | `https://hnrss.org/show` | EN | Continuous |
+| 13 | Google News - Entrepreneurship | `https://news.google.com/rss/search?q=entrepreneurship+startups&hl=en-US&gl=US&ceid=US:en` | EN | Continuous |
+| 14 | Brand Inside | `https://brandinside.asia/feed` | TH | Daily |
+| 15 | Prachachat Business | `https://www.prachachat.net/feed` | TH | Multiple/day |
+| 16 | Techsauce | `https://techsauce.co/feed` | TH | Daily |
+| 17 | The Standard | `https://thestandard.co/feed` | TH | Multiple/day |
 
 ---
 
@@ -196,7 +198,7 @@
 
 ---
 
-### 8. Science (14 sources)
+### 8. Science (15 sources)
 
 | # | Name | RSS URL | Lang | Frequency |
 |---|------|---------|------|-----------|
@@ -209,15 +211,16 @@
 | 7 | Ars Technica - Science | `https://feeds.arstechnica.com/arstechnica/science` | EN | Daily |
 | 8 | EurekAlert! | `https://www.eurekalert.org/rss/technology_engineering.xml` | EN | Daily |
 | 9 | Phys.org | `https://phys.org/rss-feed/` | EN | Multiple/day |
-| 10 | NASA - Breaking News | `https://www.nasa.gov/rss/dyn/breaking_news.rss` | EN | 2-3x/week |
-| 11 | r/science | `https://www.reddit.com/r/science/.rss` | EN | Continuous |
-| 12 | r/space | `https://www.reddit.com/r/space/.rss` | EN | Continuous |
-| 13 | HN - Science | `https://hnrss.org/newest?q=science+OR+research+OR+Nature+OR+arxiv` | EN | Continuous |
-| 14 | Google News - Science | `https://news.google.com/rss/search?q=science+research+discovery&hl=en-US&gl=US&ceid=US:en` | EN | Continuous |
+| 10 | Reuters Science | `https://feeds.reuters.com/reuters/scienceNews` | EN | Multiple/day |
+| 11 | NASA - Breaking News | `https://www.nasa.gov/rss/dyn/breaking_news.rss` | EN | 2-3x/week |
+| 12 | r/science | `https://www.reddit.com/r/science/.rss` | EN | Continuous |
+| 13 | r/space | `https://www.reddit.com/r/space/.rss` | EN | Continuous |
+| 14 | HN - Science | `https://hnrss.org/newest?q=science+OR+research+OR+Nature+OR+arxiv` | EN | Continuous |
+| 15 | Google News - Science | `https://news.google.com/rss/search?q=science+research+discovery&hl=en-US&gl=US&ceid=US:en` | EN | Continuous |
 
 ---
 
-### 9. Economics / Geopolitics (16 sources)
+### 9. Economics / Geopolitics (18 sources)
 
 | # | Name | RSS URL | Lang | Frequency |
 |---|------|---------|------|-----------|
@@ -231,12 +234,14 @@
 | 8 | Chatham House | `https://www.chathamhouse.org/rss.xml` | EN | 2-3x/week |
 | 9 | Council on Foreign Relations | `https://www.cfr.org/rss.xml` | EN | Daily |
 | 10 | Geopolitical Monitor | `https://www.geopoliticalmonitor.com/feed/` | EN | 2-3x/week |
-| 11 | r/economics | `https://www.reddit.com/r/economics/.rss` | EN | Continuous |
-| 12 | r/geopolitics | `https://www.reddit.com/r/geopolitics/.rss` | EN | Continuous |
-| 13 | HN - Economics | `https://hnrss.org/newest?q=economics+OR+geopolitics` | EN | Continuous |
-| 14 | Google News - Geopolitics | `https://news.google.com/rss/search?q=geopolitics+world+affairs&hl=en-US&gl=US&ceid=US:en` | EN | Continuous |
-| 15 | Prachachat Business | `https://www.prachachat.net/feed` | TH | Multiple/day |
-| 16 | Bangkok Post | `https://www.bangkokpost.com/rss/data/topstories.xml` | EN/TH | Multiple/day |
+| 11 | Reuters Top News | `https://feeds.reuters.com/reuters/topNews` | EN | Multiple/day |
+| 12 | Reuters Politics | `https://feeds.reuters.com/Reuters/PoliticsNews` | EN | Multiple/day |
+| 13 | r/economics | `https://www.reddit.com/r/economics/.rss` | EN | Continuous |
+| 14 | r/geopolitics | `https://www.reddit.com/r/geopolitics/.rss` | EN | Continuous |
+| 15 | HN - Economics | `https://hnrss.org/newest?q=economics+OR+geopolitics` | EN | Continuous |
+| 16 | Google News - Geopolitics | `https://news.google.com/rss/search?q=geopolitics+world+affairs&hl=en-US&gl=US&ceid=US:en` | EN | Continuous |
+| 17 | Prachachat Business | `https://www.prachachat.net/feed` | TH | Multiple/day |
+| 18 | Bangkok Post | `https://www.bangkokpost.com/rss/data/topstories.xml` | EN/TH | Multiple/day |
 
 ---
 
