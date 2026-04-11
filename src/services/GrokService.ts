@@ -1432,10 +1432,9 @@ export const translateArticleToThai = async ({
   const normalizedContent = sanitizeForPrompt(content, 12000);
   const normalizedSite = sanitizeForPrompt(siteName, 120);
   const sourceBody = normalizedMarkdown || normalizedContent;
-
   if (!sourceBody) return null;
 
-  const cacheKey = buildCacheKey('article-translation-th-v1', {
+  const cacheKey = buildCacheKey('article-translation-th-v2', {
     normalizedTitle,
     normalizedExcerpt,
     normalizedSite,
@@ -1446,18 +1445,21 @@ export const translateArticleToThai = async ({
 
   try {
     const { object } = await generateObject({
-      model: grok(MODEL_NEWS_FAST),
-      system: `You translate full articles and posts into natural Thai for a reader UI. You are a professional analyst and curator.
- 
- Rules:
- - Translate the content accurately without distorting facts.
- - Translate idioms and jargon into natural, correct Thai equivalents (e.g. 'Patchwork' -> 'ความลักลั่น/ทับซ้อน/กระจัดกระจาย', 'Booking' -> 'ว่าจ้าง/เชิญ'). Avoid literal translations.
- - body: markdown only. No preface, no explanation, no code fences.
- - titleTh: translate the headline/title into Thai.
- - Preserve all important facts, numbers, dates, currencies, percentages, and units exactly.
- - Keep the tone readable, clean, and professional in Thai.
- - Do NOT put a trailing period (.) at the end of Thai sentences.
- - Do not add extra commentary, disclaimers, or closing notes.`,
+      model: grok(MODEL_REASONING_FAST),
+      system: `You translate full articles and posts into polished, faithful Thai for an in-app reader UI.
+
+Rules:
+- Translate accurately without changing facts, chronology, emphasis, or attribution.
+- For long articles, preserve the original flow of ideas so the Thai version reads like one coherent article, not disconnected chunks.
+- Write natural Thai that a smart human editor would publish. Avoid literal translation, robotic phrasing, and awkward clause-by-clause wording.
+- Translate idioms and jargon into the most natural Thai equivalent. If a term is ambiguous or best kept in the original language, keep the original term in parentheses.
+- Preserve all names, organizations, product names, dates, times, numbers, currencies, percentages, and units exactly.
+- Do not add new facts, interpretation, warnings, summaries, or closing commentary.
+- titleTh: Thai translation of the headline/title.
+- body: markdown only. No preface, no explanation, no code fences.
+- Keep paragraphing clean and readable in Thai. Preserve lists and section structure when present.
+- If the source includes quotes, keep them as quotes and preserve who said them.
+- Do NOT put a trailing period (.) at the end of Thai sentences unless the sentence naturally requires other punctuation.`,
       prompt: [
         PROPER_NAME_PRESERVATION_RULES,
         normalizedSite ? `Source: ${normalizedSite}` : '',
@@ -1477,7 +1479,7 @@ export const translateArticleToThai = async ({
       topP: 0.4,
       frequencyPenalty: 0,
       presencePenalty: 0,
-      maxTokens: 3200,
+      maxTokens: 4800,
     });
 
     const payload = {
@@ -4222,6 +4224,3 @@ Do not fail a draft just because it chose a different but valid narrative stance
 
   return { content: polishThaiContent(contentDraft, { format, customInstructions, allowEmoji, tone }), titleIdea: brief.titleIdea };
 };
-
-
-
