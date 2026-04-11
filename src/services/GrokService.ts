@@ -1428,54 +1428,6 @@ export const generateArticleInsights = async ({
   }
 };
 
-const decodeHtmlEntities = (text = '') => {
-  const value = String(text || '');
-  if (!value) return '';
-
-  if (typeof document === 'undefined') {
-    return value
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'");
-  }
-
-  const textarea = document.createElement('textarea');
-  textarea.innerHTML = value;
-  return textarea.value;
-};
-
-const translateArticleWithGoogleDraft = async ({
-  normalizedTitle,
-  normalizedExcerpt,
-  sourceBody,
-}) => {
-  const response = await apiFetch('/api/translate/google', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      title: normalizedTitle,
-      excerpt: normalizedExcerpt,
-      content: sourceBody,
-    }),
-    timeout: 45000,
-  });
-
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(payload?.error || `Google Translate failed (${response.status})`);
-  }
-
-  return {
-    titleTh: decodeHtmlEntities(payload?.titleTh || ''),
-    excerptTh: decodeHtmlEntities(payload?.excerptTh || ''),
-    contentTh: decodeHtmlEntities(payload?.contentTh || ''),
-  };
-};
-
 export const translateArticleToThai = async ({
   title = '',
   excerpt = '',
@@ -1491,7 +1443,7 @@ export const translateArticleToThai = async ({
   const sourceBody = normalizedMarkdown || normalizedContent;
   if (!sourceBody) return null;
 
-  const cacheKey = buildCacheKey('article-translation-th-v3', {
+  const cacheKey = buildCacheKey('article-translation-th-v4', {
     normalizedTitle,
     normalizedExcerpt,
     normalizedSite,
@@ -1501,9 +1453,35 @@ export const translateArticleToThai = async ({
   if (cached) return cached;
 
   try {
+    let googleDraft = null;
+
+    try {
+      googleDraft = await translateArticleWithGoogleDraft({
+        normalizedTitle,
+        normalizedExcerpt,
+        sourceBody,
+      });
+    } catch (error) {
+      console.warn('[GrokService] Google Translate draft unavailable, falling back to direct Grok translation:', error);
+    }
+
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
-      system: `You translate full articles and posts into polished, faithful Thai for an in-app reader UI.
+      system: googleDraft?.contentTh
+        ? `You polish Thai machine-translated article drafts for an in-app reader UI.
+
+Rules:
+- Rewrite the Thai draft so it reads natural, clean, and coherent in Thai.
+- Keep all facts identical to the original source. Do not change chronology, emphasis, attribution, or quoted meaning.
+- Preserve names, organizations, product names, dates, times, numbers, currencies, percentages, and units exactly.
+- Fix awkward machine-translation phrasing, but do not add new facts, interpretation, warnings, summaries, or closing commentary.
+- titleTh: a polished Thai headline based on the original title and the Google draft title.
+- body: markdown only. No preface, no explanation, no code fences.
+- Keep paragraphing clean and readable in Thai. Preserve lists and section structure when useful.
+- If the Thai draft conflicts with the original source, follow the original source.
+- If the source includes quotes, keep them as quotes and preserve who said them.
+- Do NOT put a trailing period (.) at the end of Thai sentences unless the sentence naturally requires other punctuation.`
+        : `You translate full articles and posts into polished, faithful Thai for an in-app reader UI.
 
 Rules:
 - Translate accurately without changing facts, chronology, emphasis, or attribution.
@@ -1522,9 +1500,17 @@ Rules:
         normalizedSite ? `Source: ${normalizedSite}` : '',
         normalizedTitle ? `Original title: ${normalizedTitle}` : '',
         normalizedExcerpt ? `Original excerpt: ${normalizedExcerpt}` : '',
-        normalizedMarkdown
-          ? `Translate this article markdown to Thai and preserve its structure:\n${normalizedMarkdown}`
-          : `Translate this article text to Thai:\n${normalizedContent}`,
+        googleDraft?.titleTh ? `Google Thai title draft: ${googleDraft.titleTh}` : '',
+        googleDraft?.excerptTh ? `Google Thai excerpt draft: ${googleDraft.excerptTh}` : '',
+        googleDraft?.contentTh
+          ? [
+            `Original source text:\n${sourceBody}`,
+            `Google Thai body draft:\n${googleDraft.contentTh}`,
+            'Polish the Google Thai draft into fluent Thai while staying fully faithful to the original source.',
+          ].join('\n\n')
+          : normalizedMarkdown
+            ? `Translate this article markdown to Thai and preserve its structure:\n${normalizedMarkdown}`
+            : `Translate this article text to Thai:\n${normalizedContent}`,
       ]
         .filter(Boolean)
         .join('\n\n'),
