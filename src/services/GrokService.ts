@@ -104,6 +104,68 @@ const cleanGeneratedContent = (text = '', { allowEmoji = false } = {}) =>
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
+const ARTICLE_TRANSLATION_CHUNK_TARGET = 2200;
+const ARTICLE_TRANSLATION_CHUNK_MAX = 3200;
+
+const ARTICLE_TRANSLATION_CLEANUP_RULES = [
+  [/\bph[oó]ng\b/gi, 'ปล่อย'],
+  [/\bst(?:ring|ream) ข้อความทั้งหมดนี้\b/gi, 'ชุดข้อความทั้งหมดนี้'],
+  [/\bผลไม้ที่ต่ำที่สุด\b/g, 'งานที่ง่ายที่สุด'],
+  [/\bเข้าเป้าอะตรา[^\s]*/g, 'เข้าเป้าตามแผน'],
+  [/\bเข้าวงโคจรของภารกิจด้วยความแม่นยำมากกว่า\b/g, 'ทำผลงานได้แม่นยำมากกว่า'],
+  [/\bagent ของตัวเอง\b/g, 'เอเจนต์ของตัวเอง'],
+  [/\bthird-party harnesses\b/g, 'เครื่องมือภายนอก'],
+  [/\busage patterns\b/g, 'รูปแบบการใช้งาน'],
+];
+
+const cleanupTranslatedArticleText = (text = '') =>
+  ARTICLE_TRANSLATION_CLEANUP_RULES.reduce((current, [pattern, replacement]) => current.replace(pattern, replacement), String(text || ''))
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+const splitArticleIntoTranslationChunks = (text = '') => {
+  const normalized = String(text || '').replace(/\r/g, '').trim();
+  if (!normalized) return [];
+  if (normalized.length <= ARTICLE_TRANSLATION_CHUNK_MAX) return [normalized];
+
+  const paragraphs = normalized
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (!paragraphs.length) return [normalized];
+
+  const chunks = [];
+  let current = '';
+
+  const flush = () => {
+    if (current.trim()) chunks.push(current.trim());
+    current = '';
+  };
+
+  for (const paragraph of paragraphs) {
+    if (paragraph.length > ARTICLE_TRANSLATION_CHUNK_MAX) {
+      flush();
+      for (let index = 0; index < paragraph.length; index += ARTICLE_TRANSLATION_CHUNK_TARGET) {
+        chunks.push(paragraph.slice(index, index + ARTICLE_TRANSLATION_CHUNK_TARGET).trim());
+      }
+      continue;
+    }
+
+    const candidate = current ? `${current}\n\n${paragraph}` : paragraph;
+    if (candidate.length > ARTICLE_TRANSLATION_CHUNK_MAX || (current && candidate.length > ARTICLE_TRANSLATION_CHUNK_TARGET)) {
+      flush();
+      current = paragraph;
+    } else {
+      current = candidate;
+    }
+  }
+
+  flush();
+  return chunks.filter(Boolean);
+};
+
 const dedupeSources = (sources = []) => {
   const byUrl = new Map();
 
@@ -1443,7 +1505,9 @@ export const translateArticleToThai = async ({
   const sourceBody = normalizedMarkdown || normalizedContent;
   if (!sourceBody) return null;
 
-  const cacheKey = buildCacheKey('article-translation-th-v4', {
+  const translationChunks = splitArticleIntoTranslationChunks(sourceBody);
+
+  const cacheKey = buildCacheKey('article-translation-th-v6', {
     normalizedTitle,
     normalizedExcerpt,
     normalizedSite,
@@ -1453,81 +1517,79 @@ export const translateArticleToThai = async ({
   if (cached) return cached;
 
   try {
-    let googleDraft = null;
+    const titlePrompt = [
+      PROPER_NAME_PRESERVATION_RULES,
+      normalizedSite ? `Source: ${normalizedSite}` : '',
+      normalizedTitle ? `Original title: ${normalizedTitle}` : '',
+      normalizedExcerpt ? `Original excerpt: ${normalizedExcerpt}` : '',
+      'Translate the article title into natural Thai.',
+    ]
+      .filter(Boolean)
+      .join('\n\n');
 
-    try {
-      googleDraft = await translateArticleWithGoogleDraft({
-        normalizedTitle,
-        normalizedExcerpt,
-        sourceBody,
-      });
-    } catch (error) {
-      console.warn('[GrokService] Google Translate draft unavailable, falling back to direct Grok translation:', error);
-    }
-
-    const { object } = await generateObject({
+    const { object: titleObject } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
-      system: googleDraft?.contentTh
-        ? `You polish Thai machine-translated article drafts for an in-app reader UI.
+      system: `You translate article headlines into natural Thai for an in-app reader UI.
 
 Rules:
-- Rewrite the Thai draft so it reads natural, clean, and coherent in Thai.
-- Keep all facts identical to the original source. Do not change chronology, emphasis, attribution, or quoted meaning.
-- Preserve names, organizations, product names, dates, times, numbers, currencies, percentages, and units exactly.
-- Fix awkward machine-translation phrasing, but do not add new facts, interpretation, warnings, summaries, or closing commentary.
-- titleTh: a polished Thai headline based on the original title and the Google draft title.
-- body: markdown only. No preface, no explanation, no code fences.
-- Keep paragraphing clean and readable in Thai. Preserve lists and section structure when useful.
-- If the Thai draft conflicts with the original source, follow the original source.
-- If the source includes quotes, keep them as quotes and preserve who said them.
-- Do NOT put a trailing period (.) at the end of Thai sentences unless the sentence naturally requires other punctuation.`
-        : `You translate full articles and posts into polished, faithful Thai for an in-app reader UI.
+- Translate the title only. Do not summarize or add context.
+- Keep names, organizations, product names, dates, numbers, and quoted terms exactly.
+- If the title contains an ambiguous term, keep the original term in parentheses.
+- Output only the Thai title in the JSON field.
+- Do NOT put a trailing period (.) at the end of Thai sentences unless the sentence naturally requires other punctuation.`,
+      prompt: titlePrompt,
+      schema: z.object({
+        titleTh: z.string(),
+      }),
+      temperature: 0.1,
+      topP: 0.4,
+      maxTokens: 220,
+    });
+
+    const translatedChunks = [];
+    for (let index = 0; index < translationChunks.length; index += 1) {
+      const chunk = translationChunks[index];
+      const { object } = await generateObject({
+        model: grok(MODEL_NEWS_FAST),
+        system: `You translate article body text into polished, faithful Thai for an in-app reader UI.
 
 Rules:
 - Translate accurately without changing facts, chronology, emphasis, or attribution.
-- For long articles, preserve the original flow of ideas so the Thai version reads like one coherent article, not disconnected chunks.
+- Translate every paragraph in this chunk. Do not summarize, compress, skip, or merge away important details.
 - Write natural Thai that a smart human editor would publish. Avoid literal translation, robotic phrasing, and awkward clause-by-clause wording.
 - Translate idioms and jargon into the most natural Thai equivalent. If a term is ambiguous or best kept in the original language, keep the original term in parentheses.
 - Preserve all names, organizations, product names, dates, times, numbers, currencies, percentages, and units exactly.
 - Do not add new facts, interpretation, warnings, summaries, or closing commentary.
-- titleTh: Thai translation of the headline/title.
 - body: markdown only. No preface, no explanation, no code fences.
 - Keep paragraphing clean and readable in Thai. Preserve lists and section structure when present.
 - If the source includes quotes, keep them as quotes and preserve who said them.
 - Do NOT put a trailing period (.) at the end of Thai sentences unless the sentence naturally requires other punctuation.`,
-      prompt: [
-        PROPER_NAME_PRESERVATION_RULES,
-        normalizedSite ? `Source: ${normalizedSite}` : '',
-        normalizedTitle ? `Original title: ${normalizedTitle}` : '',
-        normalizedExcerpt ? `Original excerpt: ${normalizedExcerpt}` : '',
-        googleDraft?.titleTh ? `Google Thai title draft: ${googleDraft.titleTh}` : '',
-        googleDraft?.excerptTh ? `Google Thai excerpt draft: ${googleDraft.excerptTh}` : '',
-        googleDraft?.contentTh
-          ? [
-            `Original source text:\n${sourceBody}`,
-            `Google Thai body draft:\n${googleDraft.contentTh}`,
-            'Polish the Google Thai draft into fluent Thai while staying fully faithful to the original source.',
-          ].join('\n\n')
-          : normalizedMarkdown
-            ? `Translate this article markdown to Thai and preserve its structure:\n${normalizedMarkdown}`
-            : `Translate this article text to Thai:\n${normalizedContent}`,
-      ]
-        .filter(Boolean)
-        .join('\n\n'),
-      schema: z.object({
-        titleTh: z.string(),
-        body: z.string(),
-      }),
-      temperature: 0.1,
-      topP: 0.4,
-      frequencyPenalty: 0,
-      presencePenalty: 0,
-      maxTokens: 4800,
-    });
+        prompt: [
+          PROPER_NAME_PRESERVATION_RULES,
+          normalizedSite ? `Source: ${normalizedSite}` : '',
+          normalizedTitle ? `Original title: ${normalizedTitle}` : '',
+          normalizedExcerpt ? `Original excerpt: ${normalizedExcerpt}` : '',
+          translationChunks.length > 1 ? `Chunk ${index + 1} of ${translationChunks.length}` : '',
+          `Translate this article text chunk to Thai:\n${chunk}`,
+        ]
+          .filter(Boolean)
+          .join('\n\n'),
+        schema: z.object({
+          body: z.string(),
+        }),
+        temperature: 0.1,
+        topP: 0.4,
+        frequencyPenalty: 0,
+        presencePenalty: 0,
+        maxTokens: 2200,
+      });
+
+      translatedChunks.push(stripDisallowedThaiOutputScripts(object.body || ''));
+    }
 
     const payload = {
-      titleTh: stripDisallowedThaiOutputScripts(object.titleTh || ''),
-      markdown: stripDisallowedThaiOutputScripts(object.body || ''),
+      titleTh: cleanupTranslatedArticleText(stripDisallowedThaiOutputScripts(titleObject.titleTh || '')),
+      markdown: cleanupTranslatedArticleText(translatedChunks.join('\n\n')),
     };
 
     return setCachedValue(responseCache, cacheKey, payload, CONTENT_BRIEF_CACHE_TTL_MS);

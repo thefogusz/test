@@ -44,7 +44,6 @@ const loadServerConfig = (rootDir) => {
     twitterApiKey: process.env.TWITTER_API_KEY || '',
     xaiApiKey: process.env.XAI_API_KEY || '',
     tavilyApiKey: process.env.TAVILY_API_KEY || '',
-    googleTranslateApiKey: process.env.GOOGLE_TRANSLATE_API_KEY || '',
     internalApiSecret: process.env.INTERNAL_API_SECRET || '',
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
     stripePlusPriceId: process.env.STRIPE_PLUS_PRICE_ID || DEFAULT_STRIPE_PLUS_PRICE_ID,
