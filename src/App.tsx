@@ -1,14 +1,12 @@
 // @ts-nocheck
-import React, { Suspense, lazy, startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import React, { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import AiFilterModal from './components/AiFilterModal';
 import ArticleReaderModal from './components/ArticleReaderModal';
-import HomeView from './components/HomeView';
+import AppWorkspaceRouter from './components/AppWorkspaceRouter';
 import ListModal from './components/ListModal';
 import Sidebar from './components/Sidebar';
 import StatusToast from './components/StatusToast';
 import RightSidebar from './components/RightSidebar';
-import { getSummaryDateLabel } from './utils/summaryDates';
 import './index.css';
 import { STORAGE_KEYS } from './constants/storageKeys';
 import { RSS_CATALOG } from './config/rssCatalog';
@@ -31,12 +29,6 @@ import {
   deserializeAttachedSource,
   deserializeStoredCollection,
 } from './utils/appPersistence';
-
-const AudienceWorkspace = lazy(() => import('./components/AudienceWorkspace'));
-const BookmarksWorkspace = lazy(() => import('./components/BookmarksWorkspace'));
-const ContentWorkspace = lazy(() => import('./components/ContentWorkspace'));
-const PricingView = lazy(() => import('./components/PricingWorkspace'));
-const ReadWorkspace = lazy(() => import('./components/ReadWorkspace'));
 
 const READ_ARCHIVE_INITIAL_RENDER = 24;
 const READ_ARCHIVE_RENDER_BATCH = 24;
@@ -322,8 +314,6 @@ const App = () => {
     status,
   });
 
-  const aiFilterSummaryDateLabel = getSummaryDateLabel(feed, 8);
-
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -499,15 +489,6 @@ const App = () => {
 
   const closeFilterModal = () => setFilterModal((prev) => ({ ...prev, show: false }));
 
-  // --- Render ---
-  const workspaceLoadingFallback = (
-    <div className="animate-fade-in" style={{ padding: '56px 0', display: 'flex', justifyContent: 'center' }}>
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', color: 'var(--text-dim)', fontSize: '13px', fontWeight: '700' }}>
-        <Loader2 size={16} className="animate-spin" />
-        <span>Loading workspace...</span>
-      </div>
-    </div>
-  );
   const showRightSidebar = activeView !== 'pricing';
 
   return (
@@ -579,14 +560,12 @@ const App = () => {
 
       <main className="foro-main">
         <div className="foro-main-scroll" ref={mainScrollRef}>
-
-          {activeView === 'home' && (
-          <HomeView
-            isVisible
-            currentActiveList={currentActiveList}
+          <AppWorkspaceRouter
+            activeView={activeView}
             activeListId={activeListId}
-            originalFeedLength={originalFeed.length}
-            deletedFeedLength={deletedFeedCount}
+            currentActiveList={currentActiveList}
+            originalFeed={originalFeed}
+            deletedFeedCount={deletedFeedCount}
             feed={feed}
             freshFeedIds={freshFeedIds}
             activeFilterPrompt={activeFilterPrompt}
@@ -602,182 +581,121 @@ const App = () => {
             nextCursor={nextCursor}
             aiFilterBrief={aiFilterBrief}
             aiFilterSummary={aiFilterSummary}
-            aiFilterSummaryDateLabel={aiFilterSummaryDateLabel}
             bookmarkIdSet={bookmarkIdSet}
             watchlistHandleSet={watchlistHandleSet}
             postLists={postLists}
-            onOpenMobileList={() => setIsMobilePostListOpen(true)}
-            onDeleteAll={handleDeleteAll}
-            onUndo={handleUndo}
-            onSort={handleSort}
-            onQuickFilter={handleAiFilter}
-            onOpenFilterModal={() => setFilterModal({ show: true, prompt: '' })}
-            onSync={handlePlanSync}
-            onLoadMore={handlePlanLoadMore}
-            onClearAiFilter={clearAiFilter}
-            onBookmark={handleBookmark}
-            onArticleGen={openContentComposerFromPost}
-            onReadArticle={openArticleReader}
-            onSummaryCopied={() => setStatus('คัดลอกผลลัพธ์จาก FORO Filter แล้ว')}
-          />)}
-
-          {activeView === 'content' && (
-          <Suspense fallback={workspaceLoadingFallback}>
-            <ContentWorkspace
-              isVisible
-              contentTab={contentTab}
-              setContentTab={setContentTab}
-              createContentSource={createContentSource}
-              onRemoveSource={() => setCreateContentSource(null)}
-              onSaveGeneratedArticle={handleSaveGeneratedArticle}
-              onBeforeGenerate={handleBeforeGenerate}
-              onBeforeRegenerate={handleBeforeRegenerate}
-              isGeneratingContent={isGeneratingContent}
-              setIsGeneratingContent={setIsGeneratingContent}
-              genPhase={genPhase}
-              setGenPhase={setGenPhase}
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              searchMediaType={searchMediaType}
-              setSearchMediaType={setSearchMediaType}
-              activeSearchFocus={activeSearchFocus}
-              applySearchFocus={applySearchFocus}
-              dismissSearchChoices={dismissSearchChoices}
-              suggestions={suggestions}
-              showSuggestions={showSuggestions}
-              setShowSuggestions={setShowSuggestions}
-              activeSuggestionIndex={activeSuggestionIndex}
-              setActiveSuggestionIndex={setActiveSuggestionIndex}
-              handleSearch={handlePlanSearch}
-              isLatestMode={isLatestMode}
-              setIsLatestMode={setIsLatestMode}
-              isSearching={isSearching}
-              searchResults={searchResults}
-              searchChoiceOptions={searchChoiceOptions}
-              setSearchResults={setSearchResults}
-              setSearchOverflowResults={setSearchOverflowResults}
-              setSearchSummary={setSearchSummary}
-              setSearchWebSources={setSearchWebSources}
-              setSearchCursor={setSearchCursor}
-              setStatus={setStatus}
-              shouldInlineSearchStatus={shouldInlineSearchStatus}
-              searchStatusMessage={searchStatusMessage}
-              lastSubmittedSearchQuery={lastSubmittedSearchQuery}
-              searchPresets={searchPresets}
-              canSaveCurrentSearchAsPreset={canSaveCurrentSearchAsPreset}
-              maxSearchPresets={maxSearchPresets}
-              addSearchPreset={addSearchPreset}
-              isLiveSearching={isLiveSearching}
-              dynamicSearchTags={dynamicSearchTags}
-              watchlistHandleSet={watchlistHandleSet}
-              postLists={postLists}
-              onAddAuthorToWatchlist={handleAddSearchAuthorToWatchlist}
-              onToggleAuthorInPostList={handleToggleMemberInList}
-              searchHistory={searchHistory}
-              interestSeedLabels={interestSeedLabels}
-              removeSearchPreset={removeSearchPreset}
-              searchOverflowResults={searchOverflowResults}
-              searchCursor={searchCursor}
-              searchSummary={searchSummary}
-              searchWebSources={searchWebSources}
-              shouldShowSearchChoices={shouldShowSearchChoices}
-              isSourcesExpanded={isSourcesExpanded}
-              setIsSourcesExpanded={setIsSourcesExpanded}
-              onArticleGen={openContentComposerFromPost}
-              onReadArticle={openArticleReader}
-            />
-          </Suspense>)}
-
-          {activeView === 'pricing' && (
-          <Suspense fallback={workspaceLoadingFallback}>
-            <PricingView
-              isVisible
-              activePlanId={activePlanId}
-              dailyUsage={dailyUsage}
-              remainingUsage={remainingUsage}
-              usageLimits={currentPlan.usage}
-              plusAccess={plusAccess}
-              onSelectPlan={handlePlanSelection}
-              isCheckoutLoading={isStartingCheckout}
-              profileSectionEventName={PROFILE_SECTION_EVENT}
-            />
-          </Suspense>)}
-
-          {activeView === 'read' && (
-          <Suspense fallback={workspaceLoadingFallback}>
-            <ReadWorkspace
-              isVisible
-              activeListId={activeListId}
-              currentActiveList={currentActiveList}
-              setIsMobilePostListOpen={setIsMobilePostListOpen}
-              readArchive={readArchive}
-              readSearchQuery={readSearchQuery}
-              setReadSearchQuery={setReadSearchQuery}
-              readSearchSuggestions={readSearchSuggestions}
-              filteredReadArchive={filteredReadArchive}
-              readFilters={readFilters}
-              setReadFilters={setReadFilters}
-              visibleReadArchive={visibleReadArchive}
-              setVisibleReadCount={setVisibleReadCount}
-              readArchiveRenderBatch={READ_ARCHIVE_RENDER_BATCH}
-              bookmarkIds={bookmarkIds}
-              handleBookmark={handleBookmark}
-              onArticleGen={openContentComposerFromPost}
-              onReadArticle={openArticleReader}
-            />
-          </Suspense>)}
-
-          {activeView === 'audience' && (
-          <Suspense fallback={workspaceLoadingFallback}>
-            <AudienceWorkspace
-              isVisible
-              audienceTab={audienceTab}
-              setAudienceTab={setAudienceTab}
-              aiQuery={aiQuery}
-              setAiQuery={setAiQuery}
-              handleAiSearchAudience={handleAiSearchAudience}
-              aiSearchLoading={aiSearchLoading}
-              aiSearchResults={aiSearchResults}
-              aiSearchHasMore={aiSearchHasMore}
-              setAiSearchResults={setAiSearchResults}
-              hasSearchedAudience={hasSearchedAudience}
-              watchlist={watchlist}
-
-              postLists={postLists}
-              handleToggleMemberInList={handleToggleMemberInList}
-              handleAddExpert={handleAddExpert}
-              manualQuery={manualQuery}
-              setManualQuery={setManualQuery}
-              showSuggestions={showSuggestions}
-              setShowSuggestions={setShowSuggestions}
-              activeSuggestionIndex={activeSuggestionIndex}
-              setActiveSuggestionIndex={setActiveSuggestionIndex}
-              suggestions={suggestions}
-              handleManualSearch={handleManualSearch}
-              manualPreview={manualPreview}
-              handleAddUser={handleAddUser}
-              handleRemoveAccountGlobal={handleRemoveAccountGlobal}
-              subscribedSources={subscribedSources}
-              onToggleSource={handleToggleSource}
-            />
-          </Suspense>)}
-
-          {activeView === 'bookmarks' && (
-          <Suspense fallback={workspaceLoadingFallback}>
-            <BookmarksWorkspace
-              isVisible
-              currentActiveList={currentActiveList}
-              activeListId={activeListId}
-              setIsMobilePostListOpen={setIsMobilePostListOpen}
-              bookmarkTab={bookmarkTab}
-              setBookmarkTab={setBookmarkTab}
-              filteredBookmarks={filteredBookmarks}
-              handleBookmark={handleBookmark}
-              onArticleGen={openContentComposerFromPost}
-              onReadArticle={openArticleReader}
-              setBookmarks={setBookmarks}
-            />
-          </Suspense>)}
+            setIsMobilePostListOpen={setIsMobilePostListOpen}
+            handleDeleteAll={handleDeleteAll}
+            handleUndo={handleUndo}
+            handleSort={handleSort}
+            handleAiFilter={handleAiFilter}
+            setFilterModal={setFilterModal}
+            handlePlanSync={handlePlanSync}
+            handlePlanLoadMore={handlePlanLoadMore}
+            clearAiFilter={clearAiFilter}
+            handleBookmark={handleBookmark}
+            openContentComposerFromPost={openContentComposerFromPost}
+            openArticleReader={openArticleReader}
+            setStatus={setStatus}
+            contentTab={contentTab}
+            setContentTab={setContentTab}
+            createContentSource={createContentSource}
+            setCreateContentSource={setCreateContentSource}
+            handleSaveGeneratedArticle={handleSaveGeneratedArticle}
+            handleBeforeGenerate={handleBeforeGenerate}
+            handleBeforeRegenerate={handleBeforeRegenerate}
+            isGeneratingContent={isGeneratingContent}
+            setIsGeneratingContent={setIsGeneratingContent}
+            genPhase={genPhase}
+            setGenPhase={setGenPhase}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            searchMediaType={searchMediaType}
+            setSearchMediaType={setSearchMediaType}
+            activeSearchFocus={activeSearchFocus}
+            applySearchFocus={applySearchFocus}
+            dismissSearchChoices={dismissSearchChoices}
+            suggestions={suggestions}
+            showSuggestions={showSuggestions}
+            setShowSuggestions={setShowSuggestions}
+            activeSuggestionIndex={activeSuggestionIndex}
+            setActiveSuggestionIndex={setActiveSuggestionIndex}
+            handlePlanSearch={handlePlanSearch}
+            isLatestMode={isLatestMode}
+            setIsLatestMode={setIsLatestMode}
+            isSearching={isSearching}
+            searchResults={searchResults}
+            searchChoiceOptions={searchChoiceOptions}
+            setSearchResults={setSearchResults}
+            setSearchOverflowResults={setSearchOverflowResults}
+            setSearchSummary={setSearchSummary}
+            setSearchWebSources={setSearchWebSources}
+            setSearchCursor={setSearchCursor}
+            shouldInlineSearchStatus={shouldInlineSearchStatus}
+            searchStatusMessage={searchStatusMessage}
+            lastSubmittedSearchQuery={lastSubmittedSearchQuery}
+            searchPresets={searchPresets}
+            canSaveCurrentSearchAsPreset={canSaveCurrentSearchAsPreset}
+            maxSearchPresets={maxSearchPresets}
+            addSearchPreset={addSearchPreset}
+            isLiveSearching={isLiveSearching}
+            dynamicSearchTags={dynamicSearchTags}
+            handleAddSearchAuthorToWatchlist={handleAddSearchAuthorToWatchlist}
+            handleToggleMemberInList={handleToggleMemberInList}
+            searchHistory={searchHistory}
+            interestSeedLabels={interestSeedLabels}
+            removeSearchPreset={removeSearchPreset}
+            searchOverflowResults={searchOverflowResults}
+            searchCursor={searchCursor}
+            searchSummary={searchSummary}
+            searchWebSources={searchWebSources}
+            shouldShowSearchChoices={shouldShowSearchChoices}
+            isSourcesExpanded={isSourcesExpanded}
+            setIsSourcesExpanded={setIsSourcesExpanded}
+            activePlanId={activePlanId}
+            dailyUsage={dailyUsage}
+            remainingUsage={remainingUsage}
+            currentPlan={currentPlan}
+            plusAccess={plusAccess}
+            handlePlanSelection={handlePlanSelection}
+            isStartingCheckout={isStartingCheckout}
+            profileSectionEventName={PROFILE_SECTION_EVENT}
+            readArchive={readArchive}
+            readSearchQuery={readSearchQuery}
+            setReadSearchQuery={setReadSearchQuery}
+            readSearchSuggestions={readSearchSuggestions}
+            filteredReadArchive={filteredReadArchive}
+            readFilters={readFilters}
+            setReadFilters={setReadFilters}
+            visibleReadArchive={visibleReadArchive}
+            setVisibleReadCount={setVisibleReadCount}
+            readArchiveRenderBatch={READ_ARCHIVE_RENDER_BATCH}
+            bookmarkIds={bookmarkIds}
+            audienceTab={audienceTab}
+            setAudienceTab={setAudienceTab}
+            aiQuery={aiQuery}
+            setAiQuery={setAiQuery}
+            handleAiSearchAudience={handleAiSearchAudience}
+            aiSearchLoading={aiSearchLoading}
+            aiSearchResults={aiSearchResults}
+            aiSearchHasMore={aiSearchHasMore}
+            setAiSearchResults={setAiSearchResults}
+            hasSearchedAudience={hasSearchedAudience}
+            watchlist={watchlist}
+            handleAddExpert={handleAddExpert}
+            manualQuery={manualQuery}
+            setManualQuery={setManualQuery}
+            handleManualSearch={handleManualSearch}
+            manualPreview={manualPreview}
+            handleAddUser={handleAddUser}
+            handleRemoveAccountGlobal={handleRemoveAccountGlobal}
+            subscribedSources={subscribedSources}
+            handleToggleSource={handleToggleSource}
+            bookmarkTab={bookmarkTab}
+            setBookmarkTab={setBookmarkTab}
+            filteredBookmarks={filteredBookmarks}
+            setBookmarks={setBookmarks}
+          />
         </div>
       </main>
 
