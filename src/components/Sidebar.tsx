@@ -52,8 +52,6 @@ type SidebarProps = {
   onOpenMobileCreate: () => void;
   onOpenMobileRead: () => void;
   onOpenMobileBookmarks: () => void;
-  onOpenMobileProfileDetails: () => void;
-  onOpenMobileAudience: () => void;
 };
 
 type NavItemConfig = {
@@ -149,8 +147,6 @@ const Sidebar = ({
   onOpenMobileCreate,
   onOpenMobileRead,
   onOpenMobileBookmarks,
-  onOpenMobileProfileDetails,
-  onOpenMobileAudience,
 }: SidebarProps) => {
   const featuredPostList = currentActiveList || null;
   const featuredPostListColor = featuredPostList?.color || 'rgba(41, 151, 255, 0.76)';
@@ -267,31 +263,6 @@ const Sidebar = ({
             >
               <Bookmark size={13} />
               <span>บันทึก</span>
-            </button>
-          </div>
-        </div>
-      )}
-      {(activeView === 'pricing' || activeView === 'audience') && (
-        <div
-          className="mobile-context-switcher mobile-context-switcher-profile mobile-only-flex"
-          aria-label="Profile sections"
-        >
-          <div className="mobile-context-nav-group">
-            <button
-              type="button"
-              className={`mobile-context-btn ${activeView === 'pricing' ? 'active' : ''}`.trim()}
-              onClick={onOpenMobileProfileDetails}
-              aria-pressed={activeView === 'pricing'}
-            >
-              <span>โปรไฟล์</span>
-            </button>
-            <button
-              type="button"
-              className={`mobile-context-btn ${activeView === 'audience' ? 'active' : ''}`.trim()}
-              onClick={onOpenMobileAudience}
-              aria-pressed={activeView === 'audience'}
-            >
-              <span>การติดตาม</span>
             </button>
           </div>
         </div>

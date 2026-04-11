@@ -103,6 +103,7 @@ const AppWorkspaceRouter = ({
   isSourcesExpanded,
   setIsSourcesExpanded,
   activePlanId,
+  onOpenPricing,
   dailyUsage,
   remainingUsage,
   currentPlan,
@@ -110,6 +111,8 @@ const AppWorkspaceRouter = ({
   handlePlanSelection,
   isStartingCheckout,
   profileSectionEventName,
+  onOpenMobileProfileDetails,
+  onOpenMobileAudience,
   readArchive,
   readSearchQuery,
   setReadSearchQuery,
@@ -165,6 +168,7 @@ const AppWorkspaceRouter = ({
   );
 
   const aiFilterSummaryDateLabel = getSummaryDateLabel(feed, 8);
+  const showMobileProfileSwitcher = activeView === 'pricing' || activeView === 'audience';
 
   return (
     <>
@@ -274,8 +278,36 @@ const AppWorkspaceRouter = ({
             setIsSourcesExpanded={setIsSourcesExpanded}
             onArticleGen={openContentComposerFromPost}
             onReadArticle={openArticleReader}
+            activePlanId={activePlanId}
+            onOpenPricing={onOpenPricing}
           />
         </Suspense>
+      )}
+
+      {showMobileProfileSwitcher && (
+        <div
+          className="mobile-context-switcher mobile-context-switcher-inline mobile-context-switcher-profile mobile-only-flex"
+          aria-label="Profile sections"
+        >
+          <div className="mobile-context-nav-group">
+            <button
+              type="button"
+              className={`mobile-context-btn ${activeView === 'pricing' ? 'active' : ''}`.trim()}
+              onClick={onOpenMobileProfileDetails}
+              aria-pressed={activeView === 'pricing'}
+            >
+              <span>โปรไฟล์</span>
+            </button>
+            <button
+              type="button"
+              className={`mobile-context-btn ${activeView === 'audience' ? 'active' : ''}`.trim()}
+              onClick={onOpenMobileAudience}
+              aria-pressed={activeView === 'audience'}
+            >
+              <span>การติดตาม</span>
+            </button>
+          </div>
+        </div>
       )}
 
       {activeView === 'pricing' && (

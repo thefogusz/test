@@ -544,14 +544,6 @@ const App = () => {
         }}
         onOpenMobileRead={() => setActiveView('read')}
         onOpenMobileBookmarks={() => setActiveView('bookmarks')}
-        onOpenMobileProfileDetails={() => {
-          setMobileProfileSection('details');
-          setActiveView('pricing');
-          dispatchProfileSectionChange('details');
-        }}
-        onOpenMobileAudience={() => {
-          setActiveView('audience');
-        }}
       />
 
       {isMobilePostListOpen && (
@@ -653,6 +645,7 @@ const App = () => {
             isSourcesExpanded={isSourcesExpanded}
             setIsSourcesExpanded={setIsSourcesExpanded}
             activePlanId={activePlanId}
+            onOpenPricing={openPricingView}
             dailyUsage={dailyUsage}
             remainingUsage={remainingUsage}
             currentPlan={currentPlan}
@@ -660,6 +653,14 @@ const App = () => {
             handlePlanSelection={handlePlanSelection}
             isStartingCheckout={isStartingCheckout}
             profileSectionEventName={PROFILE_SECTION_EVENT}
+            onOpenMobileProfileDetails={() => {
+              setMobileProfileSection('details');
+              setActiveView('pricing');
+              dispatchProfileSectionChange('details');
+            }}
+            onOpenMobileAudience={() => {
+              setActiveView('audience');
+            }}
             readArchive={readArchive}
             readSearchQuery={readSearchQuery}
             setReadSearchQuery={setReadSearchQuery}
