@@ -358,6 +358,8 @@ const FeedCard = ({
   };
 
   const activeImageUrl = imageUrls[activeImageIndex] || previewImageUrl;
+  const closeImageViewer = () => setIsImageViewerOpen(false);
+  const stopImageViewerPropagation = (event) => event.stopPropagation();
 
   const profileMenuItems = fallbackPostLists.map((list) => {
     const isMember = Array.isArray(list.members) && list.members.some((member) => member?.toLowerCase() === authorUsername);
@@ -931,7 +933,7 @@ const FeedCard = ({
       {isImageViewerOpen && activeImageUrl && typeof document !== 'undefined' && createPortal(
         <div
           className="modal-overlay"
-          onClick={() => setIsImageViewerOpen(false)}
+          onClick={closeImageViewer}
           style={{
             background: 'rgba(2, 6, 23, 0.96)',
             backdropFilter: 'blur(4px)',
@@ -953,7 +955,6 @@ const FeedCard = ({
             }}
           >
             <div
-              onClick={(event) => event.stopPropagation()}
               style={{
                 position: 'absolute',
                 top: 'max(16px, env(safe-area-inset-top))',
@@ -966,7 +967,7 @@ const FeedCard = ({
                 zIndex: 2,
               }}
             >
-              <div style={{ minWidth: 0 }}>
+              <div onClick={stopImageViewerPropagation} style={{ minWidth: 0 }}>
                 <div className="modal-title" style={{ fontSize: '16px', marginBottom: '4px' }}>
                   {isRssPost
                     ? `รูปภาพจาก ${displayTweet.author?.name || 'แหล่งข่าว'}`
@@ -976,7 +977,7 @@ const FeedCard = ({
                   {imageUrls.length > 1 ? `รูป ${activeImageIndex + 1} จาก ${imageUrls.length}` : 'รูปภาพเต็มในโหมดอ่าน'}
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div onClick={stopImageViewerPropagation} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <a
                   href={postUrl}
                   target="_blank"
@@ -989,7 +990,7 @@ const FeedCard = ({
                 </a>
                 <button
                   className="modal-close-btn"
-                  onClick={() => setIsImageViewerOpen(false)}
+                  onClick={closeImageViewer}
                   style={{
                     position: 'static',
                     background: 'rgba(255,255,255,0.06)',
@@ -1012,14 +1013,15 @@ const FeedCard = ({
                 height: '100%',
                 minHeight: 0,
               }}
-              onClick={() => setIsImageViewerOpen(false)}
+              onClick={closeImageViewer}
             >
               <div
-                onClick={(event) => event.stopPropagation()}
+                onClick={stopImageViewerPropagation}
                 style={{
                   position: 'relative',
-                  width: '100%',
-                  height: '100%',
+                  width: 'fit-content',
+                  maxWidth: '100%',
+                  maxHeight: '100%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1027,13 +1029,13 @@ const FeedCard = ({
               >
                 <img
                   src={activeImageUrl}
-                  onClick={(event) => event.stopPropagation()}
+                  onClick={stopImageViewerPropagation}
                   alt={displayTweet.text || displayTweet.summary || 'tweet image'}
                   style={{
-                    width: '100%',
-                    height: '100%',
-                    maxWidth: 'min(100vw, 1200px)',
-                    maxHeight: 'min(86vh, 1200px)',
+                    width: 'auto',
+                    height: 'auto',
+                    maxWidth: 'min(calc(100vw - 40px), 1200px)',
+                    maxHeight: 'min(calc(100vh - 120px), 1200px)',
                     objectFit: 'contain',
                     display: 'block',
                     filter: 'drop-shadow(0 24px 64px rgba(0,0,0,0.45))',
