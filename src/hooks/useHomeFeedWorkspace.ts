@@ -700,6 +700,11 @@ export const useHomeFeedWorkspace = ({
           .map((post) => String(post?.id || '').trim())
           .filter(Boolean),
       );
+      const persistedRssSources = new Set(
+        originalFeed
+          .map((post) => getNormalizedRssSourceId(post))
+          .filter(Boolean),
+      );
       const knownRssSeenKeys = buildKnownRssSeenSet([originalFeed]);
       const knownXSeenIds = buildKnownXSeenSet([originalFeed]);
       const hasWatchlist = activeListMembers.twitterHandles.length > 0;
@@ -773,9 +778,13 @@ export const useHomeFeedWorkspace = ({
       const newRssPosts = (rssPosts || []).filter((post) => {
         const postId = getNormalizedPostId(post);
         const seenKey = getNormalizedRssSeenKey(post);
+        const sourceId = getNormalizedRssSourceId(post);
+        const sourceAlreadyPersisted = sourceId ? persistedRssSources.has(sourceId) : false;
 
         if (postId && existingIds.has(postId)) return false;
-        if (seenKey && knownRssSeenKeys.has(seenKey)) return false;
+        // If the source currently has no persisted feed items, allow a refill even when
+        // the seen registry was populated in an earlier sync/session.
+        if (seenKey && knownRssSeenKeys.has(seenKey) && sourceAlreadyPersisted) return false;
         return true;
       });
 

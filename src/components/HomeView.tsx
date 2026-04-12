@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Copy, Eraser, FileText, List, RefreshCw, Undo2 } from 'lucide-react';
 import { cleanMarkdownForClipboard, normalizeSummaryMarkdown, renderMarkdownToHtml } from '../utils/markdown';
 import AiFilteredBadge from './AiFilteredBadge';
@@ -114,6 +114,8 @@ const HomeView = ({
   const [isCompactSkeletonLayout, setIsCompactSkeletonLayout] = useState(
     () => (typeof window !== 'undefined' ? window.matchMedia('(max-width: 768px)').matches : false),
   );
+  const hadVisibleFeedBeforeSyncRef = useRef(false);
+  const wasSyncingRef = useRef(false);
   const isFilterUiActive = isFiltering || isFilterPrimed;
   const isFilterAnimationActive = isFiltering;
   const hasStructuredAiBrief = Boolean(
@@ -132,7 +134,7 @@ const HomeView = ({
   const freshFeedIdSet = useMemo(() => new Set((freshFeedIds ?? []).map((id) => String(id))), [freshFeedIds]);
   const hasVisibleFeed = feed.length > 0;
   const incomingSkeletonCount = isCompactSkeletonLayout ? 2 : 4;
-  const shouldShowPrependedSkeletons = hasVisibleFeed && isSyncing;
+  const shouldShowPrependedSkeletons = hadVisibleFeedBeforeSyncRef.current && isSyncing;
   const shouldShowAppendedSkeletons = hasVisibleFeed && isLoadingMore;
   const showDesktopQuickPresets = feed.length > 0 && !isFiltered && visibleQuickPresets.length > 0;
   const shouldCondenseHomeControlPanel =
@@ -163,6 +165,18 @@ const HomeView = ({
     mediaQuery.addListener(updateLayout);
     return () => mediaQuery.removeListener(updateLayout);
   }, []);
+
+  useEffect(() => {
+    if (isSyncing && !wasSyncingRef.current) {
+      hadVisibleFeedBeforeSyncRef.current = feed.length > 0;
+    }
+
+    if (!isSyncing) {
+      hadVisibleFeedBeforeSyncRef.current = false;
+    }
+
+    wasSyncingRef.current = isSyncing;
+  }, [feed.length, isSyncing]);
 
   if (!isVisible) return null;
 
