@@ -624,6 +624,59 @@ export const useSearchWorkspace = ({
     });
   };
 
+  const generateSearchSummary = async ({
+    summaryCandidates,
+    requestedQuery,
+    webContext,
+    preferXSummary,
+    focusMode,
+    summaryMode,
+    cacheKey = null,
+    cachedWebSources = [],
+  }: {
+    summaryCandidates: any[];
+    requestedQuery: string;
+    webContext: string;
+    preferXSummary: boolean;
+    focusMode: SearchFocusMode | null;
+    summaryMode: SearchSummaryMode;
+    cacheKey?: ReturnType<typeof getSearchCacheKey> | null;
+    cachedWebSources?: any[];
+  }) => {
+    const summaryText = await generateExecutiveSummary(
+      summaryCandidates,
+      requestedQuery,
+      (_, fullText) => {
+        setSearchSummary(fullText);
+      },
+      webContext,
+      {
+        preferXSummary,
+        allowWebLead: !preferXSummary,
+        focusMode,
+        summaryMode,
+      },
+    );
+
+    if (summaryText) {
+      setSearchSummary(summaryText);
+
+      if (cacheKey) {
+        queryClient.setQueryData<SearchCacheSnapshot>(cacheKey, (prev) =>
+          prev
+            ? {
+              ...prev,
+              searchSummary: summaryText,
+              searchWebSources: cachedWebSources,
+            }
+            : prev,
+        );
+      }
+    }
+
+    return summaryText;
+  };
+
   const searchMutation = useMutation({
     mutationFn: async ({
       isMore = false,
@@ -989,38 +1042,20 @@ export const useSearchWorkspace = ({
 
           setStatus('[Agent 3/3] กำลังสังเคราะห์ข้อมูลและเขียน Executive Summary...');
           setSearchSummary('');
-          generateExecutiveSummary(
-            buildSummaryCandidates(
+          void generateSearchSummary({
+            summaryCandidates: buildSummaryCandidates(
               mergedResults,
               effectiveSummaryMode,
               effectiveLatestMode,
             ),
             requestedQuery,
-            (_, fullText) => {
-              setSearchSummary(fullText);
-            },
             webContext,
-            {
-              preferXSummary: false,
-              allowWebLead: true,
-              focusMode: effectiveFocus,
-              summaryMode: effectiveSummaryMode,
-            },
-          )
-            .then((summaryText) => {
-              if (summaryText) {
-                setSearchSummary(summaryText);
-                queryClient.setQueryData<SearchCacheSnapshot>(cacheKey, (prev) =>
-                  prev
-                    ? {
-                      ...prev,
-                      searchSummary: summaryText,
-                      searchWebSources: resolvedSearchWebSources,
-                    }
-                    : prev,
-                );
-              }
-            })
+            preferXSummary: false,
+            focusMode: effectiveFocus,
+            summaryMode: effectiveSummaryMode,
+            cacheKey,
+            cachedWebSources: resolvedSearchWebSources,
+          })
             .catch((summaryError) => {
               console.warn('[Search] Executive summary failed:', summaryError);
             });
@@ -1161,34 +1196,16 @@ export const useSearchWorkspace = ({
               effectiveLatestMode,
             );
 
-            generateExecutiveSummary(
+            void generateSearchSummary({
               summaryCandidates,
               requestedQuery,
-              (_, fullText) => {
-                setSearchSummary(fullText);
-              },
               webContext,
-              {
-                preferXSummary: shouldPreferXSummary,
-                allowWebLead: !shouldPreferXSummary,
-                focusMode: effectiveFocus,
-                summaryMode: effectiveSummaryMode,
-              },
-            )
-              .then((summaryText) => {
-                if (summaryText) {
-                  setSearchSummary(summaryText);
-                  queryClient.setQueryData<SearchCacheSnapshot>(cacheKey, (prev) =>
-                    prev
-                      ? {
-                        ...prev,
-                        searchSummary: summaryText,
-                        searchWebSources: resolvedSearchWebSources,
-                      }
-                      : prev,
-                  );
-                }
-              })
+              preferXSummary: shouldPreferXSummary,
+              focusMode: effectiveFocus,
+              summaryMode: effectiveSummaryMode,
+              cacheKey,
+              cachedWebSources: resolvedSearchWebSources,
+            })
               .catch((summaryError) => {
                 console.warn('[Search] Executive summary failed:', summaryError);
               });
@@ -1333,19 +1350,14 @@ export const useSearchWorkspace = ({
       );
 
       try {
-        const summary = await generateExecutiveSummary(
+        await generateSearchSummary({
           summaryCandidates,
-          normalizedLabel || searchQuery,
-          (_, fullText) => setSearchSummary(fullText),
+          requestedQuery: normalizedLabel || searchQuery,
           webContext,
-          {
-            preferXSummary: shouldPreferXSummary,
-            allowWebLead: !shouldPreferXSummary,
-            focusMode: focus,
-            summaryMode: effectiveSummaryMode,
-          },
-        );
-        if (summary) setSearchSummary(summary);
+          preferXSummary: shouldPreferXSummary,
+          focusMode: focus,
+          summaryMode: effectiveSummaryMode,
+        });
       } catch (error) {
         console.warn('[Search] Focus summary refresh failed:', error);
       }

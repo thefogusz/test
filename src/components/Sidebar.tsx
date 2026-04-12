@@ -151,7 +151,7 @@ const Sidebar = ({
   const featuredPostList = currentActiveList || null;
   const featuredPostListColor = featuredPostList?.color || 'rgba(41, 151, 255, 0.76)';
   const featuredPostListAccentStyle = featuredPostList
-    ? { '--active-list-accent': featuredPostListColor }
+    ? ({ '--active-list-accent': featuredPostListColor } as React.CSSProperties)
     : undefined;
 
   return (
