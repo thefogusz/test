@@ -763,23 +763,37 @@ const ArticleReaderModal = ({
         )}
 
         {effectiveArticleState.status === 'ready' && effectiveTranslationState.status === 'loading' && shouldTranslateArticle && (
-          <div className="article-reader-loading">
-            <Loader2 size={18} className="animate-spin" />
-            <span>Translating article to Thai...</span>
+          <div className="article-translation-skeleton animate-fade-in">
+            <div className="article-translation-skeleton-badge">
+              <Loader2 size={13} className="animate-spin" />
+              <span>กำลังแปลบทความเป็นภาษาไทย...</span>
+            </div>
+            {[
+              [100, 94, 87, 100, 71],
+              [100, 91, 96, 82],
+              [100, 88, 95, 100, 64],
+              [100, 93, 78],
+            ].map((lines, pIdx) => (
+              <div key={pIdx} className="article-translation-skeleton-para">
+                {lines.map((width, lIdx) => (
+                  <div
+                    key={lIdx}
+                    className="article-translation-skeleton-line feed-card-skeleton-shimmer"
+                    style={{ width: `${width}%` }}
+                  />
+                ))}
+              </div>
+            ))}
           </div>
         )}
 
-
-
-        <div
-          key={effectiveTranslationState.status}
-          className="markdown-body article-reader-markdown article-reader-body animate-fade-in"
-          style={{
-            transition: 'opacity 0.5s ease',
-            opacity: effectiveTranslationState.status === 'loading' && shouldTranslateArticle ? 0.35 : 1,
-          }}
-          dangerouslySetInnerHTML={{ __html: articleBodyHtml }}
-        />
+        {!(effectiveTranslationState.status === 'loading' && shouldTranslateArticle) && (
+          <div
+            key={effectiveTranslationState.status}
+            className="markdown-body article-reader-markdown article-reader-body animate-fade-in"
+            dangerouslySetInnerHTML={{ __html: articleBodyHtml }}
+          />
+        )}
 
         <div className="article-reader-footer">
           <div className="article-reader-footer-note">

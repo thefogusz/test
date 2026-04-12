@@ -104,8 +104,8 @@ const cleanGeneratedContent = (text = '', { allowEmoji = false } = {}) =>
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
-const ARTICLE_TRANSLATION_CHUNK_TARGET = 2200;
-const ARTICLE_TRANSLATION_CHUNK_MAX = 3200;
+const ARTICLE_TRANSLATION_CHUNK_TARGET = 2800;
+const ARTICLE_TRANSLATION_CHUNK_MAX = 4000;
 
 const ARTICLE_TRANSLATION_CLEANUP_RULES = [
   [/\bph[oó]ng\b/gi, 'ปล่อย'],
@@ -147,8 +147,22 @@ const splitArticleIntoTranslationChunks = (text = '') => {
   for (const paragraph of paragraphs) {
     if (paragraph.length > ARTICLE_TRANSLATION_CHUNK_MAX) {
       flush();
-      for (let index = 0; index < paragraph.length; index += ARTICLE_TRANSLATION_CHUNK_TARGET) {
-        chunks.push(paragraph.slice(index, index + ARTICLE_TRANSLATION_CHUNK_TARGET).trim());
+      let pos = 0;
+      while (pos < paragraph.length) {
+        const remaining = paragraph.length - pos;
+        if (remaining <= ARTICLE_TRANSLATION_CHUNK_MAX) {
+          chunks.push(paragraph.slice(pos).trim());
+          break;
+        }
+        const window = paragraph.slice(pos, pos + ARTICLE_TRANSLATION_CHUNK_TARGET);
+        let cutAt = -1;
+        for (const marker of ['. ', '? ', '! ', '.\n', '?\n', '!\n']) {
+          const idx = window.lastIndexOf(marker);
+          if (idx > cutAt) cutAt = idx + marker.length;
+        }
+        if (cutAt < ARTICLE_TRANSLATION_CHUNK_TARGET * 0.4) cutAt = ARTICLE_TRANSLATION_CHUNK_TARGET;
+        chunks.push(paragraph.slice(pos, pos + cutAt).trim());
+        pos += cutAt;
       }
       continue;
     }
@@ -1387,7 +1401,7 @@ export const generateGrokSummary = async (fullStoryText) => {
 };
 
 const shortenInsightText = (value = '', _maxLength = 400) => {
-  const cleaned = normalizeCacheText(cleanGeneratedContent(value));
+  const cleaned = normalizeCacheText(stripDisallowedThaiOutputScripts(cleanGeneratedContent(value)));
   if (!cleaned) return '';
   return cleaned; // Do not truncate, let the UI layout handle text length naturally to avoid lost information
 };
@@ -1490,6 +1504,88 @@ export const generateArticleInsights = async ({
   }
 };
 
+const TRANSLATION_BODY_SYSTEM = `You are a senior Thai newspaper editor translating foreign-language articles into publication-quality Thai for an in-app news reader.
+
+Translation philosophy — apply in order:
+1. Understand the full meaning and intent of each passage before writing Thai.
+2. Express that meaning as a skilled Thai journalist would write it natively — never map clause-by-clause from the source language.
+3. Adapt idioms, metaphors, and culturally-specific phrases into natural Thai equivalents. If no clean equivalent exists, rephrase to convey the underlying meaning clearly.
+4. Break long compound sentences into 2–3 shorter Thai sentences for readability and natural rhythm.
+
+Output rules:
+- Return markdown only. No preamble, no closing notes, no code fences, no explanations.
+- Translate every paragraph completely. Do not summarize, skip, or compress any content.
+- Preserve all numbers, currencies, percentages, dates, times, and units exactly as they appear.
+- Keep all quotes verbatim and preserve who said them.
+- Preserve markdown structure (headings, lists, bold, italic, links) from the source.
+- Do NOT add a trailing period (.) to Thai sentences.
+- Do NOT add new facts, interpretation, or editorial commentary.
+
+Common pitfalls — never do these:
+- Never write literal calque translations of English idioms (e.g., never "ผลไม้แขวนต่ำ" for "low-hanging fruit" — write "งานที่ทำได้ง่ายที่สุด" instead)
+- Do not rigidly copy English SVO sentence structure into Thai
+- Avoid overusing "และ"; vary naturally with รวมถึง, ทั้งนี้, นอกจากนี้, ในขณะที่, โดย, ซึ่ง, พร้อมกันนี้
+- Avoid robotic passive-voice constructions; prefer active Thai phrasing where natural
+- Never mix Japanese, Chinese, or Korean characters into Thai output
+
+Style example (match this quality level):
+English: "The CEO called it a 'no-brainer' that gives them a first-mover advantage in the emerging market, though analysts warned the deal still carries significant execution risk."
+Thai: "ซีอีโอระบุว่านี่คือการตัดสินใจที่ 'ชัดเจนในตัวเอง' และจะทำให้บริษัทได้เปรียบในฐานะผู้บุกเบิกตลาดที่กำลังเติบโต ทว่านักวิเคราะห์เตือนว่าดีลนี้ยังคงมีความเสี่ยงด้านการปฏิบัติที่มีนัยสำคัญ"
+Note: "no-brainer" → "ชัดเจนในตัวเอง" (not "ไม่ต้องใช้สมอง"), "first-mover advantage" → "ได้เปรียบในฐานะผู้บุกเบิก", one long English sentence split into two natural Thai sentences.`;
+
+const DOMAIN_STYLE_HINTS: Record<string, string> = {
+  tech: 'Tech-journalism Thai: keep English technical terms (API, SDK, AI, LLM, GPU, cloud) as-is; translate surrounding descriptions naturally.',
+  finance: 'Financial-journalism Thai: use formal register; preserve all figures, percentages, tickers, and financial instrument names exactly.',
+  politics: 'Formal news Thai: be precise with government titles, ministry names, and policy terms; use ภาษาข่าวทางการ.',
+  science: 'Accessible science Thai: translate concept descriptions naturally; keep scientific/Latin names in parentheses where helpful.',
+  health: 'Health-journalism Thai: keep medical terms with a brief Thai explanation in parentheses when the term is obscure to general readers.',
+  sports: 'Sports-journalism Thai: keep team names, player names, and league names in English; use lively, present-tense style.',
+  business: 'Business-journalism Thai: keep company names, product names, and KPIs as-is; formal but readable register.',
+  general: 'Standard news Thai with a neutral, accessible register suitable for a broad audience.',
+};
+
+const extractTranslationGlossary = async ({
+  title,
+  excerpt,
+  content,
+}: {
+  title: string;
+  excerpt: string;
+  content: string;
+}) => {
+  const sample = [
+    title ? `Title: ${title}` : '',
+    excerpt ? `Excerpt: ${excerpt}` : '',
+    content ? `Article opening:\n${content.slice(0, 1500)}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+
+  if (!sample.trim()) return null;
+
+  try {
+    const { object } = await generateObject({
+      model: grok(MODEL_NEWS_FAST),
+      system: 'You analyze a news article and extract translation metadata for a Thai localization pipeline. Return JSON only.',
+      prompt: `${sample}\n\nExtract:\n1. The article domain\n2. Appropriate Thai register\n3. Up to 10 key terms that need consistent Thai translation — focus on idioms, jargon, metaphors, or domain-specific phrases commonly mistranslated literally. For each provide the correct Thai equivalent, or an empty string to keep the English term as-is.`,
+      schema: z.object({
+        domain: z.enum(['tech', 'finance', 'politics', 'science', 'health', 'sports', 'business', 'general']),
+        register: z.enum(['formal', 'neutral', 'conversational']),
+        terms: z.array(z.object({
+          en: z.string().describe('Original English term or phrase'),
+          th: z.string().describe('Correct Thai equivalent, or empty string to keep as English'),
+        })).max(10),
+      }),
+      temperature: 0.1,
+      topP: 0.5,
+      maxTokens: 500,
+    });
+    return object;
+  } catch {
+    return null;
+  }
+};
+
 export const translateArticleToThai = async ({
   title = '',
   excerpt = '',
@@ -1507,7 +1603,7 @@ export const translateArticleToThai = async ({
 
   const translationChunks = splitArticleIntoTranslationChunks(sourceBody);
 
-  const cacheKey = buildCacheKey('article-translation-th-v6', {
+  const cacheKey = buildCacheKey('article-translation-th-v7', {
     normalizedTitle,
     normalizedExcerpt,
     normalizedSite,
@@ -1516,75 +1612,84 @@ export const translateArticleToThai = async ({
   const cached = getCachedValue(responseCache, cacheKey);
   if (cached) return cached;
 
-  try {
-    const titlePrompt = [
-      PROPER_NAME_PRESERVATION_RULES,
-      normalizedSite ? `Source: ${normalizedSite}` : '',
-      normalizedTitle ? `Original title: ${normalizedTitle}` : '',
-      normalizedExcerpt ? `Original excerpt: ${normalizedExcerpt}` : '',
-      'Translate the article title into natural Thai.',
-    ]
-      .filter(Boolean)
-      .join('\n\n');
+  // Pre-extract glossary and domain in parallel with title translation setup
+  const glossaryPromise = extractTranslationGlossary({
+    title: normalizedTitle,
+    excerpt: normalizedExcerpt,
+    content: sourceBody,
+  });
 
-    const { object: titleObject } = await generateObject({
-      model: grok(MODEL_NEWS_FAST),
-      system: `You translate article headlines into natural Thai for an in-app reader UI.
+  try {
+    const [glossary, { object: titleObject }] = await Promise.all([
+      glossaryPromise,
+      generateObject({
+        model: grok(MODEL_REASONING_FAST),
+      system: `You translate article headlines into natural, publication-quality Thai for an in-app news reader.
 
 Rules:
-- Translate the title only. Do not summarize or add context.
-- Keep names, organizations, product names, dates, numbers, and quoted terms exactly.
-- If the title contains an ambiguous term, keep the original term in parentheses.
+- Translate the title only. Do not summarize, expand, or add context.
+- Keep names, organizations, product names, dates, numbers, and quoted terms exactly as they appear.
+- Write Thai that sounds like a real Thai newspaper headline — concise, punchy, and natural.
+- If a term has no clean Thai equivalent, keep the original term in parentheses after the Thai phrase.
 - Output only the Thai title in the JSON field.
-- Do NOT put a trailing period (.) at the end of Thai sentences unless the sentence naturally requires other punctuation.`,
-      prompt: titlePrompt,
+- Do NOT put a trailing period (.) at the end.`,
+      prompt: [
+        PROPER_NAME_PRESERVATION_RULES,
+        normalizedSite ? `Source: ${normalizedSite}` : '',
+        normalizedTitle ? `Original title: ${normalizedTitle}` : '',
+        normalizedExcerpt ? `Original excerpt: ${normalizedExcerpt}` : '',
+        'Translate the article title into natural Thai.',
+      ]
+        .filter(Boolean)
+        .join('\n\n'),
       schema: z.object({
         titleTh: z.string(),
       }),
       temperature: 0.1,
-      topP: 0.4,
-      maxTokens: 220,
-    });
+      topP: 0.75,
+      maxTokens: 300,
+    }),
+  ]);
+
+    const domainHint = glossary?.domain ? (DOMAIN_STYLE_HINTS[glossary.domain] || '') : '';
+    const glossaryLines = (glossary?.terms || [])
+      .filter((t) => t.en && t.th !== undefined)
+      .map((t) => `- "${t.en}" → ${t.th || '(keep English as-is)'}`)
+      .join('\n');
+    const glossaryBlock = glossaryLines
+      ? `Translation glossary — use these consistently throughout:\n${glossaryLines}`
+      : '';
 
     const translatedChunks = [];
     for (let index = 0; index < translationChunks.length; index += 1) {
       const chunk = translationChunks[index];
-      const { object } = await generateObject({
-        model: grok(MODEL_NEWS_FAST),
-        system: `You translate article body text into polished, faithful Thai for an in-app reader UI.
+      const prevTranslationTail = index > 0
+        ? translatedChunks[index - 1].slice(-300).trim()
+        : '';
 
-Rules:
-- Translate accurately without changing facts, chronology, emphasis, or attribution.
-- Translate every paragraph in this chunk. Do not summarize, compress, skip, or merge away important details.
-- Write natural Thai that a smart human editor would publish. Avoid literal translation, robotic phrasing, and awkward clause-by-clause wording.
-- Translate idioms and jargon into the most natural Thai equivalent. If a term is ambiguous or best kept in the original language, keep the original term in parentheses.
-- Preserve all names, organizations, product names, dates, times, numbers, currencies, percentages, and units exactly.
-- Do not add new facts, interpretation, warnings, summaries, or closing commentary.
-- body: markdown only. No preface, no explanation, no code fences.
-- Keep paragraphing clean and readable in Thai. Preserve lists and section structure when present.
-- If the source includes quotes, keep them as quotes and preserve who said them.
-- Do NOT put a trailing period (.) at the end of Thai sentences unless the sentence naturally requires other punctuation.`,
+      const { text } = await generateText({
+        model: grok(MODEL_NEWS_FAST),
+        system: TRANSLATION_BODY_SYSTEM,
         prompt: [
           PROPER_NAME_PRESERVATION_RULES,
+          domainHint ? `Style guide for this article: ${domainHint}` : '',
+          glossaryBlock,
           normalizedSite ? `Source: ${normalizedSite}` : '',
-          normalizedTitle ? `Original title: ${normalizedTitle}` : '',
-          normalizedExcerpt ? `Original excerpt: ${normalizedExcerpt}` : '',
-          translationChunks.length > 1 ? `Chunk ${index + 1} of ${translationChunks.length}` : '',
-          `Translate this article text chunk to Thai:\n${chunk}`,
+          normalizedTitle ? `Article title: ${normalizedTitle}` : '',
+          prevTranslationTail
+            ? `Previous passage ending (for context continuity — do NOT retranslate this):\n"…${prevTranslationTail}"`
+            : '',
+          translationChunks.length > 1 ? `Passage ${index + 1} of ${translationChunks.length}` : '',
+          `Translate this article passage to Thai:\n\n${chunk}`,
         ]
           .filter(Boolean)
           .join('\n\n'),
-        schema: z.object({
-          body: z.string(),
-        }),
-        temperature: 0.1,
-        topP: 0.4,
-        frequencyPenalty: 0,
-        presencePenalty: 0,
-        maxTokens: 2200,
+        temperature: 0.15,
+        topP: 0.75,
+        maxTokens: 4000,
       });
 
-      translatedChunks.push(stripDisallowedThaiOutputScripts(object.body || ''));
+      translatedChunks.push(stripDisallowedThaiOutputScripts(text || ''));
     }
 
     const payload = {
