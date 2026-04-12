@@ -248,6 +248,10 @@ const App = () => {
   const [filterModal, setFilterModal] = useState({ show: false, prompt: '' });
   const DEFAULT_QUICK_PRESETS = ['สรุป', 'หาโพสต์เด่น', 'โพสต์ไหนน่าทำคอนเทนต์'];
   const [quickFilterPresets, setQuickFilterPresets] = usePersistentState(STORAGE_KEYS.quickFilterPresets, DEFAULT_QUICK_PRESETS);
+  const [quickFilterVisiblePresets, setQuickFilterVisiblePresets] = usePersistentState(
+    STORAGE_KEYS.quickFilterVisiblePresets,
+    DEFAULT_QUICK_PRESETS.slice(0, 3),
+  );
   const [readFilters, setReadFilters] = useState({ view: false, engagement: false });
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [genPhase, setGenPhase] = useState('idle');
@@ -553,30 +557,66 @@ const App = () => {
   }, [setBookmarks, setCreateContentSource, setOriginalFeed, setPendingFeed, setReadArchive]);
 
   // --- Quick Filter Presets ---
-  const promoteQuickPreset = (preset) => {
-    const trimmed = String(preset || '').trim();
-    if (!trimmed) return;
-
-    setQuickFilterPresets((prev) => {
-      const next = Array.isArray(prev) ? prev.filter((item) => item !== trimmed) : [];
-      return [trimmed, ...next];
-    });
-  };
-
   const removeQuickPreset = (preset) => {
     setQuickFilterPresets(prev => prev.filter(p => p !== preset));
+    setQuickFilterVisiblePresets(prev => prev.filter(p => p !== preset));
   };
 
   const addQuickPreset = (preset) => {
-    const trimmed = preset.trim();
+    const trimmed = String(preset || '').trim();
     if (!trimmed) return;
-    promoteQuickPreset(trimmed);
+
+    setQuickFilterPresets(prev => {
+      if (prev.includes(trimmed)) return prev;
+      return [...prev, trimmed];
+    });
   };
 
-  const visibleQuickPresets = useMemo(
-    () => quickFilterPresets.slice(0, 3),
-    [quickFilterPresets],
-  );
+  const toggleQuickPresetVisibility = (preset) => {
+    const trimmed = String(preset || '').trim();
+    if (!trimmed) return;
+
+    setQuickFilterVisiblePresets((prev) => {
+      const next = Array.isArray(prev) ? [...prev] : [];
+      if (next.includes(trimmed)) {
+        return next.filter((item) => item !== trimmed);
+      }
+      if (next.length >= 3) return next;
+      return [...next, trimmed];
+    });
+  };
+
+  useEffect(() => {
+    setQuickFilterVisiblePresets((prev) => {
+      const availablePresets = new Set(quickFilterPresets);
+      const normalized = (Array.isArray(prev) ? prev : []).filter((preset) => availablePresets.has(preset)).slice(0, 3);
+      const fallback = quickFilterPresets.slice(0, 3);
+
+      if (normalized.length > 0) {
+        if (
+          normalized.length === (Array.isArray(prev) ? prev : []).length &&
+          normalized.every((preset, index) => preset === prev[index])
+        ) {
+          return prev;
+        }
+        return normalized;
+      }
+
+      if (
+        fallback.length === (Array.isArray(prev) ? prev : []).length &&
+        fallback.every((preset, index) => preset === prev[index])
+      ) {
+        return prev;
+      }
+
+      return fallback;
+    });
+  }, [quickFilterPresets, setQuickFilterVisiblePresets]);
+
+  const visibleQuickPresets = useMemo(() => {
+    const visibleSet = new Set(quickFilterVisiblePresets);
+    return quickFilterPresets.filter((preset) => visibleSet.has(preset)).slice(0, 3);
+  }, [quickFilterPresets, quickFilterVisiblePresets]);
 
   // --- Handlers ---
   const handleBookmark = (tweet, isSaving) => {
@@ -867,12 +907,13 @@ const App = () => {
       <AiFilterModal
         filterModal={{ ...filterModal, isFiltering }}
         quickFilterPresets={quickFilterPresets}
+        visibleQuickPresets={quickFilterVisiblePresets}
         onClose={closeFilterModal}
         onPromptChange={(value) => setFilterModal((prev) => ({ ...prev, prompt: value }))}
         onSelectPreset={(preset) => {
           setFilterModal((prev) => ({ ...prev, prompt: preset }));
-          promoteQuickPreset(preset);
         }}
+        onTogglePresetVisibility={toggleQuickPresetVisibility}
         onRemovePreset={removeQuickPreset}
         onAddPreset={addQuickPreset}
         onSubmit={() => handleAiFilter()}

@@ -5,9 +5,11 @@ const HOME_PRESET_LIMIT = 3;
 const AiFilterModal = ({
   filterModal,
   quickFilterPresets,
+  visibleQuickPresets,
   onClose,
   onPromptChange,
   onSelectPreset,
+  onTogglePresetVisibility,
   onRemovePreset,
   onAddPreset,
   onSubmit,
@@ -17,6 +19,8 @@ const AiFilterModal = ({
   const trimmedPrompt = filterModal.prompt.trim();
   const canSavePreset = trimmedPrompt && !quickFilterPresets.includes(trimmedPrompt);
   const selectedPreset = quickFilterPresets.find((preset) => filterModal.prompt === preset) || '';
+  const visiblePresetSet = new Set(visibleQuickPresets || []);
+  const visiblePresetCount = visiblePresetSet.size;
 
   return (
     <div className="modal-overlay" onClick={() => !filterModal.isFiltering && onClose()}>
@@ -38,32 +42,42 @@ const AiFilterModal = ({
               <div>
                 <div className="ai-filter-section-title">เลือกโหมดเร็ว</div>
                 <div className="ai-filter-section-copy">
-                  แตะครั้งเดียวเพื่อใช้ได้ทันที และ preset ที่เพิ่งเลือกจะถูกดันขึ้นไปอยู่บนหน้า Home ให้เอง
+                  แตะเพื่อใช้ prompt ทันที แล้วเลือกตรง ๆ ได้เลยว่าอันไหนจะโชว์บนหน้า Home
                 </div>
               </div>
             </div>
 
             <div className="ai-filter-presets">
-              {quickFilterPresets.map((preset, index) => {
+              {quickFilterPresets.map((preset) => {
                 const isSelected = filterModal.prompt === preset;
-                const isVisibleOnHome = index < HOME_PRESET_LIMIT;
+                const isVisibleOnHome = visiblePresetSet.has(preset);
+                const canShowOnHome = isVisibleOnHome || visiblePresetCount < HOME_PRESET_LIMIT;
 
                 return (
-                  <button
+                  <div
                     key={preset}
-                    type="button"
                     className={`ai-filter-modal-preset-chip ${isSelected ? 'is-selected' : ''} ${isVisibleOnHome ? 'is-home-visible' : ''}`.trim()}
-                    disabled={filterModal.isFiltering}
-                    onClick={() => onSelectPreset(preset)}
                   >
-                    <span className="ai-filter-preset-copy">
-                      <span className="ai-filter-preset-label">{preset}</span>
-                      {isVisibleOnHome && (
-                        <span className="ai-filter-preset-home-hint">ขึ้นหน้า Home</span>
-                      )}
-                    </span>
-                    {isSelected && <span className="ai-filter-preset-selected-mark">กำลังใช้</span>}
-                  </button>
+                    <button
+                      type="button"
+                      className="ai-filter-preset-main"
+                      disabled={filterModal.isFiltering}
+                      onClick={() => onSelectPreset(preset)}
+                    >
+                      <span className="ai-filter-preset-copy">
+                        <span className="ai-filter-preset-label">{preset}</span>
+                        {isSelected && <span className="ai-filter-preset-selected-mark">กำลังใช้</span>}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`ai-filter-preset-visibility-btn ${isVisibleOnHome ? 'is-active' : ''}`.trim()}
+                      disabled={filterModal.isFiltering || !canShowOnHome}
+                      onClick={() => onTogglePresetVisibility(preset)}
+                    >
+                      {isVisibleOnHome ? 'ซ่อนจาก Home' : 'โชว์บน Home'}
+                    </button>
+                  </div>
                 );
               })}
             </div>
@@ -79,7 +93,7 @@ const AiFilterModal = ({
                   <X size={12} /> ลบ preset นี้
                 </button>
               ) : (
-                <div className="ai-filter-preset-helper">3 อันแรกจะโชว์บนหน้า Home อัตโนมัติ</div>
+                <div className="ai-filter-preset-helper">เลือกให้โชว์บนหน้า Home ได้สูงสุด {HOME_PRESET_LIMIT} อัน</div>
               )}
             </div>
           </div>
@@ -104,7 +118,7 @@ const AiFilterModal = ({
 
           <div className="ai-filter-compose-footer">
             <div className="ai-filter-visible-hint">
-              ถ้าบันทึก preset ใหม่ ระบบจะเอาอันนี้ขึ้นไปอยู่กลุ่มบนสุดให้เลย
+              บันทึก preset แล้วค่อยกดปุ่ม "โชว์บน Home" ที่การ์ดนั้นได้เลย
             </div>
             {canSavePreset && (
               <button type="button" className="ai-filter-save-preset-btn" onClick={() => onAddPreset(trimmedPrompt)}>
