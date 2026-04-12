@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Copy, Eraser, FileText, List, RefreshCw, Undo2 } from 'lucide-react';
 import { cleanMarkdownForClipboard, normalizeSummaryMarkdown, renderMarkdownToHtml } from '../utils/markdown';
-import { getListTitleTextStyle } from '../utils/listTheme';
 import AiFilteredBadge from './AiFilteredBadge';
 import FeedCard from './FeedCard';
 import FeedCardSkeleton from './FeedCardSkeleton';
@@ -138,15 +137,9 @@ const HomeView = ({
   const showDesktopQuickPresets = feed.length > 0 && !isFiltered && visibleQuickPresets.length > 0;
   const shouldCondenseHomeControlPanel =
     hasVisibleFeed &&
+    !isFiltered &&
     !showDesktopQuickPresets &&
     !isFilterUiActive;
-  const listTitleStyle = useMemo(
-    () => ({
-      margin: 0,
-      ...getListTitleTextStyle(currentActiveList?.color),
-    }),
-    [currentActiveList?.color],
-  );
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -269,10 +262,12 @@ const HomeView = ({
             <img src="logo.png" alt="FO" className="home-mobile-logo-img" loading="eager" />
           </div>
           <div className="dashboard-header-title-block dashboard-header-title-stack">
-            <h1 className="hero-search-title" style={listTitleStyle}>
-              {currentActiveList?.name || 'หน้าหลัก'}
+            <h1 className="hero-search-title" style={{ margin: 0 }}>
+              {'หน้าหลัก'}
             </h1>
-            <p className="hero-search-subtitle" style={{ margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>WATCHLIST FEED</p>
+            <p className="hero-search-subtitle" style={{ margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {currentActiveList?.name || 'WATCHLIST FEED'}
+            </p>
           </div>
           <button className="mobile-only-flex icon-btn-large" onClick={onOpenMobileList}>
             <List size={20} />
@@ -288,7 +283,6 @@ const HomeView = ({
         <div className="feed-section-header home-desktop-feed-header home-feed-toolbar reader-toolbar-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div className="section-title">โพสต์ล่าสุด</div>
-            {activeListId && <div className="active-list-pills">กำลังกรองตาม: {currentActiveList?.name}</div>}
             {isFiltered && <AiFilteredBadge onClear={onClearAiFilter} clearTitle="ล้างตัวกรอง" />}
           </div>
           <div className="feed-section-filters reader-toolbar-actions-group" style={{ display: 'flex', gap: '8px' }}>
