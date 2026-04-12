@@ -29,5 +29,5 @@ Accepted
 
 ## Related Features
 
-- [Feature Name](/features/example)
+- [Feature Name](/features/home-feed)
 ```
