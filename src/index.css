@@ -3812,6 +3812,77 @@ h6,
   overflow: visible;
 }
 
+.home-selected-list-bar {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 18px;
+  min-height: 52px;
+  padding: 0 16px;
+  position: relative;
+  overflow: hidden;
+  background: transparent;
+  box-shadow: none;
+  isolation: isolate;
+}
+
+.home-selected-list-bar.is-active-list {
+  background: transparent;
+}
+
+.home-selected-list-bar:not(.is-active-list)::before,
+.home-selected-list-bar:not(.is-active-list)::after {
+  content: none !important;
+}
+
+.home-selected-list-bar-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-block: 4px;
+  position: relative;
+  z-index: 2;
+}
+
+.home-selected-list-bar-text {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: rgba(241, 246, 255, 0.96);
+  text-rendering: geometricPrecision;
+  padding-bottom: 1px;
+  -webkit-text-fill-color: currentColor;
+  background: none;
+}
+
+.home-selected-list-bar.is-active-list .home-selected-list-bar-text {
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--active-list-accent) 14%, white) 0%,
+    color-mix(in srgb, var(--active-list-accent) 42%, white) 38%,
+    color-mix(in srgb, var(--active-list-accent) 78%, #ffd7a8) 100%
+  );
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  filter: drop-shadow(0 1px 10px color-mix(in srgb, var(--active-list-accent) 10%, transparent));
+}
+
 .home-ai-filter-cluster>* {
   position: relative;
   z-index: 1;
@@ -10346,6 +10417,33 @@ h6,
     border-radius: 50%;
     background: rgba(0, 0, 0, 0.15);
   }
+
+  .home-active-list-accent .active-list-pills {
+    border-color: color-mix(in srgb, var(--active-list-accent) 40%, rgba(255, 255, 255, 0.14)) !important;
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--active-list-accent) 20%, transparent), rgba(255, 255, 255, 0.04)) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 10px 22px color-mix(in srgb, var(--active-list-accent) 18%, transparent);
+    color: color-mix(in srgb, var(--active-list-accent) 76%, white) !important;
+  }
+
+  .mobile-postlist-main.home-active-list-accent {
+    border-color: color-mix(in srgb, var(--active-list-accent) 36%, rgba(255, 255, 255, 0.08));
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--active-list-accent) 16%, transparent), rgba(255, 255, 255, 0.04));
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 12px 24px color-mix(in srgb, var(--active-list-accent) 14%, transparent);
+  }
+
+.mobile-postlist-main.home-active-list-accent .mobile-postlist-title {
+  color: color-mix(in srgb, var(--active-list-accent) 80%, white);
+}
+
+.home-desktop-feed-header .active-list-pills {
+  display: none !important;
+}
 
   .mobile-postlist-copy {
     min-width: 0;

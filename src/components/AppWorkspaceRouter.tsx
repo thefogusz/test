@@ -290,7 +290,7 @@ const AppWorkspaceRouter = ({
 
       {showMobileProfileSwitcher && (
         <div
-          className="mobile-context-switcher mobile-context-switcher-inline mobile-context-switcher-profile mobile-only-flex"
+          className="mobile-context-switcher mobile-context-switcher-profile mobile-only-flex"
           aria-label="Profile sections"
         >
           <div className="mobile-context-nav-group">

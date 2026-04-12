@@ -140,6 +140,14 @@ const HomeView = ({
     !isFiltered &&
     !showDesktopQuickPresets &&
     !isFilterUiActive;
+  const resolvedActiveList = useMemo(() => {
+    if (!activeListId) return null;
+    if (currentActiveList?.id === activeListId) return currentActiveList;
+    return postLists.find((list) => list?.id === activeListId) || null;
+  }, [activeListId, currentActiveList, postLists]);
+  const activeListAccentStyle = activeListId
+    ? { '--active-list-accent': resolvedActiveList?.color || '#2997ff' }
+    : undefined;
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
@@ -216,6 +224,16 @@ const HomeView = ({
       className={`dashboard-header-actions home-control-panel home-control-panel-desktop-shell ${hasHomeSecondaryActions ? '' : 'home-control-panel-compact'} ${shouldCondenseHomeControlPanel ? 'home-control-panel-condensed' : ''}`}
       style={{ display: 'flex', alignItems: 'center', justifyContent: shouldCondenseHomeControlPanel ? 'flex-end' : 'space-between', width: '100%', gap: '12px' }}
     >
+      <div
+        className={`home-selected-list-bar ${activeListId ? 'is-active-list home-active-list-accent' : ''}`.trim()}
+        style={activeListAccentStyle}
+      >
+        <div className="home-selected-list-bar-copy">
+          <span className="home-selected-list-bar-text">
+            {resolvedActiveList?.name || '\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14'}
+          </span>
+        </div>
+      </div>
       <div className={`home-ai-filter-cluster ${isFilterAnimationActive ? 'is-filtering' : ''}`}>
         {showDesktopQuickPresets && (
           <div className="home-ai-quick-presets">
@@ -266,7 +284,7 @@ const HomeView = ({
               {'หน้าหลัก'}
             </h1>
             <p className="hero-search-subtitle" style={{ margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {currentActiveList?.name || 'WATCHLIST FEED'}
+              {'WATCHLIST FEED'}
             </p>
           </div>
           <button className="mobile-only-flex icon-btn-large" onClick={onOpenMobileList}>

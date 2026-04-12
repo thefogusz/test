@@ -150,6 +150,9 @@ const Sidebar = ({
 }: SidebarProps) => {
   const featuredPostList = currentActiveList || null;
   const featuredPostListColor = featuredPostList?.color || 'rgba(41, 151, 255, 0.76)';
+  const featuredPostListAccentStyle = featuredPostList
+    ? { '--active-list-accent': featuredPostListColor }
+    : undefined;
 
   return (
     <aside className="sidebar">
@@ -157,7 +160,8 @@ const Sidebar = ({
         <div className="mobile-postlist-launch-shell mobile-only-flex">
           <button
             type="button"
-            className="mobile-postlist-main"
+            className={`mobile-postlist-main ${featuredPostList ? 'home-active-list-accent' : ''}`.trim()}
+            style={featuredPostListAccentStyle}
             onClick={onOpenMobilePostList}
             aria-label={featuredPostList ? `Open post list ${featuredPostList.name}` : 'Open post list'}
           >

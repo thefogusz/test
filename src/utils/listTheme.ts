@@ -19,6 +19,9 @@ const hexToRgb = (color: string) => {
 const rgbToHex = ({ r, g, b }: { r: number; g: number; b: number }) =>
   `#${[r, g, b].map((channel) => clampChannel(channel).toString(16).padStart(2, '0')).join('')}`;
 
+const toRgbString = ({ r, g, b }: { r: number; g: number; b: number }) =>
+  `${clampChannel(r)}, ${clampChannel(g)}, ${clampChannel(b)}`;
+
 const mixWithWhite = (color: string, amount: number) => {
   const rgb = hexToRgb(color);
 
@@ -45,5 +48,21 @@ export const getListTitleTextStyle = (color?: string) => {
     WebkitBackgroundClip: 'text',
     backgroundClip: 'text',
     WebkitTextFillColor: 'transparent',
+  };
+};
+
+export const getListChipStyle = (color?: string) => {
+  const baseColor = String(color || '').trim();
+  const rgb = hexToRgb(baseColor);
+
+  if (!baseColor || !rgb) return undefined;
+
+  const rgbString = toRgbString(rgb);
+
+  return {
+    borderColor: `rgba(${rgbString}, 0.42)`,
+    background: `linear-gradient(135deg, rgba(${rgbString}, 0.2), rgba(${rgbString}, 0.08))`,
+    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 20px rgba(${rgbString}, 0.16)`,
+    color: mixWithWhite(baseColor, 0.82),
   };
 };
