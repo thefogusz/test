@@ -3,7 +3,6 @@ import React from 'react';
 import {
   Activity,
   Copy,
-  Crown,
   ExternalLink,
   FileText,
   Link,
@@ -88,13 +87,11 @@ const ContentWorkspace = ({
   onArticleGen,
   onReadArticle,
   activePlanId,
-  onOpenPricing,
 }) => {
-  const createLocked = activePlanId === 'free';
   const summaryDateLabel = getSummaryDateLabel(searchResults, 10);
   const summaryTrustLabel = isLatestMode
-    ? 'สรุปโดย FORO อ้างอิงจากข้อมูลล่าสุดใน 24-48 ชั่วโมงที่ผ่านมา'
-    : 'สรุปโดย FORO อ้างอิงจากผลการค้นหาและสัญญาณสำคัญที่เกี่ยวข้อง';
+    ? 'Ã Â¸ÂªÃ Â¸Â£Ã Â¸Â¸Ã Â¸â€ºÃ Â¹â€šÃ Â¸â€Ã Â¸Â¢ FORO Ã Â¸Â­Ã Â¹â€°Ã Â¸Â²Ã Â¸â€¡Ã Â¸Â­Ã Â¸Â´Ã Â¸â€¡Ã Â¸Ë†Ã Â¸Â²Ã Â¸ÂÃ Â¸â€šÃ Â¹â€°Ã Â¸Â­Ã Â¸Â¡Ã Â¸Â¹Ã Â¸Â¥Ã Â¸Â¥Ã Â¹Ë†Ã Â¸Â²Ã Â¸ÂªÃ Â¸Â¸Ã Â¸â€Ã Â¹Æ’Ã Â¸â„¢ 24-48 Ã Â¸Å Ã Â¸Â±Ã Â¹Ë†Ã Â¸Â§Ã Â¹â€šÃ Â¸Â¡Ã Â¸â€¡Ã Â¸â€”Ã Â¸ÂµÃ Â¹Ë†Ã Â¸Å“Ã Â¹Ë†Ã Â¸Â²Ã Â¸â„¢Ã Â¸Â¡Ã Â¸Â²'
+    : 'Ã Â¸ÂªÃ Â¸Â£Ã Â¸Â¸Ã Â¸â€ºÃ Â¹â€šÃ Â¸â€Ã Â¸Â¢ FORO Ã Â¸Â­Ã Â¹â€°Ã Â¸Â²Ã Â¸â€¡Ã Â¸Â­Ã Â¸Â´Ã Â¸â€¡Ã Â¸Ë†Ã Â¸Â²Ã Â¸ÂÃ Â¸Å“Ã Â¸Â¥Ã Â¸ÂÃ Â¸Â²Ã Â¸Â£Ã Â¸â€žÃ Â¹â€°Ã Â¸â„¢Ã Â¸Â«Ã Â¸Â²Ã Â¹ÂÃ Â¸Â¥Ã Â¸Â°Ã Â¸ÂªÃ Â¸Â±Ã Â¸ÂÃ Â¸ÂÃ Â¸Â²Ã Â¸â€œÃ Â¸ÂªÃ Â¸Â³Ã Â¸â€žÃ Â¸Â±Ã Â¸ÂÃ Â¸â€”Ã Â¸ÂµÃ Â¹Ë†Ã Â¹â‚¬Ã Â¸ÂÃ Â¸ÂµÃ Â¹Ë†Ã Â¸Â¢Ã Â¸Â§Ã Â¸â€šÃ Â¹â€°Ã Â¸Â­Ã Â¸â€¡';
   const normalizedCurrentSearchQuery = (searchQuery || '').trim().replace(/\s+/g, ' ');
   const shouldShowEmptySearchState =
     Boolean(normalizedCurrentSearchQuery) &&
@@ -119,80 +116,31 @@ const ContentWorkspace = ({
     !searchOverflowResults.length &&
     !lastSubmittedSearchQuery &&
     !(searchQuery || '').trim();
-  const handleLockedCreateClick = () => {
-    setContentTab('create');
-  };
 
   return (
     <div className="unified-content-view animate-fade-in" style={{ display: isVisible ? 'block' : 'none' }}>
       <ContentTabSwitcher
         contentTab={contentTab}
         setContentTab={setContentTab}
-        disableCreate={createLocked}
-        onLockedCreateClick={handleLockedCreateClick}
       />
 
       {contentTab === 'create' && (
         <div className="animate-fade-in">
-          {createLocked ? (
-            <section className="create-content-premium-gate">
-              <div className="create-content-premium-shell">
-                <div className="create-content-premium-copy">
-                  <div className="create-content-eyebrow">
-                    <Crown size={14} />
-                    Plus only
-                  </div>
-                  <h2 className="create-content-premium-title">Generate Studio</h2>
-                  <p className="create-content-premium-subtitle">
-                    โหมดนี้ไม่ใช่แค่เขียนโพสต์ แต่เป็น workflow สร้างคอนเทนต์แบบเต็มระบบของ Foro
-                    ที่ตีความโจทย์, หาข้อมูล, เช็ก fact, สร้าง brief, เขียน draft และตรวจงานให้อีกชั้น
-                  </p>
-                </div>
-
-                <div className="create-content-premium-grid">
-                  <div className="create-content-premium-card">
-                    <div className="create-content-premium-card-label">What happens inside</div>
-                    <ul className="create-content-premium-list">
-                      <li>ตีความโจทย์และเลือก angle ที่ควรเล่า</li>
-                      <li>ดึง source เพิ่มจาก X และเว็บเมื่อจำเป็น</li>
-                      <li>ประกอบ fact sheet เพื่อลด hallucination</li>
-                      <li>สร้าง content brief ก่อนส่งเข้า writer</li>
-                      <li>เขียน draft และมี review pass ในงานที่ต้องละเอียด</li>
-                    </ul>
-                  </div>
-
-                  <div className="create-content-premium-card accent">
-                    <div className="create-content-premium-card-label">Why it feels premium</div>
-                    <ul className="create-content-premium-list">
-                      <li>ใช้ Generate ได้ 3 ครั้งต่อวันในแพ็ก Plus</li>
-                      <li>รองรับโจทย์ที่มี URL ข่าว, X post, ภาพ และวิดีโอ</li>
-                      <li>เหมาะกับงานที่ต้องการทั้งความเร็วและความน่าเชื่อถือ</li>
-                    </ul>
-                    <button className="btn-pill primary create-content-premium-cta" onClick={handleLockedCreateClick}>
-                      <Crown size={16} />
-                      อัปเกรดเป็น Plus
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </section>
-          ) : (
-            <ContentErrorBoundary key={createContentSource?.id ?? 'no-source'}>
-              <CreateContent
-                sourceNode={createContentSource}
-                onRemoveSource={onRemoveSource}
-                onSaveArticle={onSaveGeneratedArticle}
-                onBeforeGenerate={onBeforeGenerate}
-                onBeforeRegenerate={onBeforeRegenerate}
-                isGenerating={isGeneratingContent}
-                setIsGenerating={setIsGeneratingContent}
-                phase={genPhase}
-                setPhase={setGenPhase}
-                contentTab={contentTab}
-                setContentTab={setContentTab}
-              />
-            </ContentErrorBoundary>
-          )}
+          <ContentErrorBoundary key={createContentSource?.id ?? 'no-source'}>
+            <CreateContent
+              sourceNode={createContentSource}
+              onRemoveSource={onRemoveSource}
+              onSaveArticle={onSaveGeneratedArticle}
+              onBeforeGenerate={onBeforeGenerate}
+              onBeforeRegenerate={onBeforeRegenerate}
+              isGenerating={isGeneratingContent}
+              setIsGenerating={setIsGeneratingContent}
+              phase={genPhase}
+              setPhase={setGenPhase}
+              contentTab={contentTab}
+              setContentTab={setContentTab}
+            />
+          </ContentErrorBoundary>
         </div>
       )}
 
@@ -213,8 +161,6 @@ const ContentWorkspace = ({
               contentTab={contentTab}
               setContentTab={setContentTab}
               className="content-view-tabs-mobile-inline"
-              disableCreate={createLocked}
-              onLockedCreateClick={handleLockedCreateClick}
             />
             <ContentErrorBoundary key="search-form-boundary">
               <div className="hero-search-wrapper">
@@ -297,8 +243,8 @@ const ContentWorkspace = ({
                 >
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     {[
-                      { id: 'all', label: 'ทั้งหมด' },
-                      { id: 'videos', label: 'วิดีโอ' },
+                      { id: 'all', label: '\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14' },
+                      { id: 'videos', label: '\u0e27\u0e34\u0e14\u0e35\u0e42\u0e2d' },
                     ].map((option) => {
                       const isActive = searchMediaType === option.id;
                       return (
@@ -490,10 +436,10 @@ const ContentWorkspace = ({
                 >
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontSize: '12px', fontWeight: '800', color: '#fff', marginBottom: '4px' }}>
-                      อยากให้โฟกัสแบบไหนมากกว่า
+                      Ã Â¸Â­Ã Â¸Â¢Ã Â¸Â²Ã Â¸ÂÃ Â¹Æ’Ã Â¸Â«Ã Â¹â€°Ã Â¹â€šÃ Â¸Å¸Ã Â¸ÂÃ Â¸Â±Ã Â¸ÂªÃ Â¹ÂÃ Â¸Å¡Ã Â¸Å¡Ã Â¹â€žÃ Â¸Â«Ã Â¸â„¢Ã Â¸Â¡Ã Â¸Â²Ã Â¸ÂÃ Â¸ÂÃ Â¸Â§Ã Â¹Ë†Ã Â¸Â²
                     </div>
                     <div style={{ fontSize: '11px', color: 'var(--text-dim)' }}>
-                      ไม่กดก็ได้ ระบบจะใช้มุมมองเริ่มต้นให้เอง
+                      Ã Â¹â€žÃ Â¸Â¡Ã Â¹Ë†Ã Â¸ÂÃ Â¸â€Ã Â¸ÂÃ Â¹â€¡Ã Â¹â€žÃ Â¸â€Ã Â¹â€° Ã Â¸Â£Ã Â¸Â°Ã Â¸Å¡Ã Â¸Å¡Ã Â¸Ë†Ã Â¸Â°Ã Â¹Æ’Ã Â¸Å Ã Â¹â€°Ã Â¸Â¡Ã Â¸Â¸Ã Â¸Â¡Ã Â¸Â¡Ã Â¸Â­Ã Â¸â€¡Ã Â¹â‚¬Ã Â¸Â£Ã Â¸Â´Ã Â¹Ë†Ã Â¸Â¡Ã Â¸â€¢Ã Â¹â€°Ã Â¸â„¢Ã Â¹Æ’Ã Â¸Â«Ã Â¹â€°Ã Â¹â‚¬Ã Â¸Â­Ã Â¸â€¡
                     </div>
                   </div>
 
@@ -522,7 +468,7 @@ const ContentWorkspace = ({
                       className="btn-mini-ghost"
                       style={{ color: 'var(--text-dim)' }}
                     >
-                      ไว้ก่อน
+                      Ã Â¹â€žÃ Â¸Â§Ã Â¹â€°Ã Â¸ÂÃ Â¹Ë†Ã Â¸Â­Ã Â¸â„¢
                     </button>
                   </div>
                 </div>
@@ -593,7 +539,7 @@ const ContentWorkspace = ({
                       }}
                       className="icon-btn-large"
                       style={{ width: '32px', height: '32px' }}
-                      title="ก๊อปปี้สรุป"
+                      title="Ã Â¸ÂÃ Â¹Å Ã Â¸Â­Ã Â¸â€ºÃ Â¸â€ºÃ Â¸ÂµÃ Â¹â€°Ã Â¸ÂªÃ Â¸Â£Ã Â¸Â¸Ã Â¸â€º"
                     >
                       <Copy size={14} />
                     </button>
