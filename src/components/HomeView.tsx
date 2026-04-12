@@ -136,7 +136,10 @@ const HomeView = ({
   const shouldShowPrependedSkeletons = hasVisibleFeed && isSyncing;
   const shouldShowAppendedSkeletons = hasVisibleFeed && isLoadingMore;
   const showDesktopQuickPresets = feed.length > 0 && !isFiltered && visibleQuickPresets.length > 0;
-  const shouldCondenseHomeControlPanel = hasVisibleFeed && !showDesktopQuickPresets;
+  const shouldCondenseHomeControlPanel =
+    hasVisibleFeed &&
+    !showDesktopQuickPresets &&
+    !isFilterUiActive;
   const listTitleStyle = useMemo(
     () => ({
       margin: 0,
