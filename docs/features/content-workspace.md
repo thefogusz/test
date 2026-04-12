@@ -1,80 +1,80 @@
-# Content Workspace
+# พื้นที่ทำคอนเทนต์
 
-## Goal
+## เป้าหมาย
 
-Content Workspace connects source discovery to content creation without forcing the user to rebuild context manually.
+Content Workspace เชื่อมการค้นหา source เข้ากับการสร้างคอนเทนต์ โดยไม่บังคับให้ผู้ใช้ต้องประกอบ context ใหม่ทุกครั้ง
 
-The ideal flow is:
+flow ที่ตั้งใจไว้คือ:
 
-`find signal -> inspect source -> keep the right source attached -> generate Thai content`
+`เจอสัญญาณ -> เปิดดูต้นทาง -> แนบ source ที่ใช่ไว้ -> สร้างคอนเทนต์ภาษาไทย`
 
-## Current Product Rules
+## กติกาของโปรดักต์ตอนนี้
 
-### Two-mode workspace
+### Workspace แบบสองโหมด
 
-- The workspace has search and create modes.
-- Search is used to find candidate sources and inspect them.
-- Create is used to generate or regenerate content from the selected context.
+- workspace นี้มีทั้งโหมด search และ create
+- โหมด search ใช้สำหรับหา source candidate และ inspect ข้อมูล
+- โหมด create ใช้สำหรับสร้างหรือ regenerate คอนเทนต์จาก context ที่เลือกไว้
 
-### Source attachment behavior
+### พฤติกรรมการแนบ source
 
-- A selected source can be attached and carried into the create flow.
-- Attached source state should survive normal navigation and workspace switching.
-- The attached source panel is intentionally compact so it does not consume the writing surface.
-- Compact layout matters because the textarea is the primary work area once the user is ready to draft.
+- source ที่เลือกสามารถ attach แล้วพกต่อเข้าไปใน flow สร้างคอนเทนต์ได้
+- state ของ attached source ควรอยู่ต่อได้ระหว่างการ navigate ปกติและการสลับ workspace
+- แผง attached source ถูกตั้งใจให้อยู่ในรูปแบบ compact เพื่อไม่กินพื้นที่เขียนหลัก
+- ความ compact สำคัญ เพราะเมื่อผู้ใช้พร้อมเขียน textarea ควรเป็นพื้นที่ทำงานหลัก
 
-### Article reader translation behavior
+### พฤติกรรมการแปลใน article reader
 
-- RSS and article-reader flows reuse the same reader modal.
-- Article translation is on-demand and uses the current xAI translation path.
-- When the user reopens the same RSS article, the app should reuse durable translation cache instead of paying to translate the same article again.
+- flow ของ RSS และ article reader ใช้ reader modal ร่วมกัน
+- การแปลบทความเป็นแบบ on-demand และใช้เส้นทางแปลปัจจุบันของ xAI
+- ถ้าผู้ใช้เปิดบทความ RSS เดิมซ้ำ แอปควร reuse translation cache ที่คงอยู่ แทนการจ่ายต้นทุนแปลซ้ำ
 
-### Translation cache contract
+### สัญญาของ translation cache
 
-- Translation cache should be keyed by stable article identity such as RSS fingerprint, article id, or canonical URL.
-- Reopening the same source should prefer cached Thai output first.
-- Translation should only be requested again if no stable cached result is available.
+- translation cache ควรถูก key ด้วยตัวตนที่เสถียรของบทความ เช่น RSS fingerprint, article id หรือ canonical URL
+- เมื่อเปิด source เดิมซ้ำ ระบบควรพยายามใช้ผลลัพธ์ภาษาไทยที่ cache ไว้ก่อน
+- ควรขอแปลใหม่ก็ต่อเมื่อยังไม่มีผลลัพธ์ cache ที่เสถียรเท่านั้น
 
-## Main User Flow
+## ลำดับการใช้งานหลัก
 
-1. The user opens Content Workspace.
-2. The user searches or reviews candidate source material.
-3. The user opens a source in the reader when deeper context is needed.
-4. The user attaches the right source to the create flow.
-5. The user writes a prompt or idea.
-6. The system generates a draft using the attached context.
-7. The user can regenerate from the same context without rebuilding the setup.
+1. ผู้ใช้เปิด Content Workspace
+2. ผู้ใช้ค้นหาหรือดู source candidate
+3. ผู้ใช้เปิด source ใน reader เมื่ออยากดูบริบทเพิ่ม
+4. ผู้ใช้ attach source ที่ต้องการเข้า flow สร้างคอนเทนต์
+5. ผู้ใช้เขียน prompt หรือไอเดีย
+6. ระบบสร้าง draft โดยอิงจาก context ที่ attach ไว้
+7. ผู้ใช้สามารถ regenerate จาก context เดิมได้โดยไม่ต้องตั้งค่าใหม่
 
-## Create-Mode Attachment UX
+## UX ของ attachment ในโหมด create
 
-The attached-source card should behave like a compact reference block, not like a second full-size content panel.
+การ์ด attached source ควรทำหน้าที่เป็น reference block ขนาดกะทัดรัด ไม่ใช่ content panel เต็มขนาดอีกชิ้นหนึ่ง
 
-The current layout expectations are:
+layout ที่คาดหวังตอนนี้คือ:
 
-- source identity remains visible
-- headline remains visible in short form
-- summary is present but clamped
-- preview image stays small
-- the remove action stays easy to reach
-- the attachment must not push the editor too far down the page
+- ยังเห็นตัวตนของ source ชัด
+- ยังเห็น headline ในรูปแบบสั้น
+- มี summary แต่ต้องถูก clamp
+- preview image ต้องคงขนาดเล็ก
+- ปุ่ม remove ต้องเข้าถึงง่าย
+- attachment ต้องไม่ดัน editor ลงไปลึกเกินไป
 
-## Important Edge Cases
+## Edge Cases สำคัญ
 
-### Reopening the same RSS article
+### เปิดบทความ RSS เดิมซ้ำ
 
-- The reader should use cached Thai translation if already available.
-- The user should not feel a second translation delay for the same article.
+- reader ควรใช้คำแปลภาษาไทยที่ cache ไว้แล้วถ้ามี
+- ผู้ใช้ไม่ควรรู้สึกว่าต้องรอแปลรอบที่สองสำหรับบทความเดิม
 
-### Very long attached summaries
+### summary ที่แนบมายาวมาก
 
-- Attachment summaries must be visually clamped so the editor remains dominant.
+- summary ใน attachment ต้องถูก clamp ทางภาพ เพื่อให้ editor ยังเด่นที่สุด
 
-### X video source
+### source ที่เป็นวิดีโอจาก X
 
-- X video sources may need extra context hints because the generation flow can analyze video content.
-- Even in this case, the attached block must remain compact.
+- source ประเภทวิดีโอจาก X อาจต้องมี hint ด้าน context เพิ่ม เพราะ flow สร้างคอนเทนต์วิเคราะห์วิดีโอได้
+- แต่แม้ในกรณีนี้ attached block ก็ยังต้องคงความ compact
 
-## File Ownership
+## ไฟล์หลักที่เกี่ยวข้อง
 
 - `src/components/ContentWorkspace.tsx`
 - `src/components/CreateContent.tsx`
@@ -82,15 +82,15 @@ The current layout expectations are:
 - `src/services/GrokService.ts`
 - `src/services/ArticleService.ts`
 
-## When This Doc Must Be Updated
+## เมื่อไรต้องอัปเดตหน้านี้
 
-Update this page whenever a change affects:
+อัปเดตหน้านี้เมื่อมีการเปลี่ยน:
 
-- attached source persistence
-- article-reader translation behavior
-- translation cache behavior
-- create-mode gating or premium access
-- attached source layout or information density
+- การ persist ของ attached source
+- พฤติกรรมการแปลใน article reader
+- พฤติกรรมของ translation cache
+- gating ของ create mode หรือสิทธิ์ premium
+- layout หรือความหนาแน่นของข้อมูลใน attached source
 
 ## Change Log
 

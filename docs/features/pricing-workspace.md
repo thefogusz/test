@@ -1,81 +1,81 @@
-# Pricing Workspace
+# หน้าแพ็กเกจ
 
-## Goal
+## เป้าหมาย
 
-Pricing Workspace explains plan differences in terms that matter to actual product behavior, not only marketing language.
+Pricing Workspace ต้องอธิบายความต่างของแพ็กเกจในแบบที่เชื่อมกับพฤติกรรมของโปรดักต์จริง ไม่ใช่มีแค่ภาษาการตลาด
 
-It should let the user understand:
+ผู้ใช้ควรเข้าใจได้ว่า:
 
-- current plan
-- remaining daily quota
-- object limits
-- practical workflow limits that affect Home, AI filter, and watchlist usage
+- ตอนนี้ตัวเองอยู่แพ็กเกจไหน
+- เหลือ quota รายวันอีกเท่าไร
+- มี object limits อะไรบ้าง
+- มีข้อจำกัดเชิง workflow อะไรที่กระทบ Home, AI filter และการใช้งาน watchlist
 
-## Current Product Rules
+## กติกาของโปรดักต์ตอนนี้
 
-### Public plans
+### แพ็กเกจที่เปิดสาธารณะ
 
 - `Free`
 - `Plus`
 
-### Home feed limits shown in plan details
+### การบอกเพดานของ Home feed ในรายละเอียดแพ็กเกจ
 
-Pricing details now explicitly include the Home-feed and AI-filter ceiling for each plan:
+รายละเอียดแพ็กเกจตอนนี้ต้องแสดงเพดานของ Home feed และ AI filter อย่างชัดเจน:
 
 - `Free`: 30 cards
 - `Plus`: 100 cards
 
-This is important because Home feed and AI filter are plan-limited user-facing workflows, not invisible internal implementation details.
+เรื่องนี้สำคัญ เพราะ Home feed และ AI filter เป็น workflow ที่ผู้ใช้สัมผัสได้จริง ไม่ใช่ implementation detail ภายในที่ซ่อนอยู่
 
-### Usage communication
+### การสื่อสารเรื่องการใช้งาน
 
-Pricing should still display the existing daily feature quotas such as feed, search, and generate.
+Pricing ยังต้องแสดง quota รายวันของฟีเจอร์เดิม เช่น feed, search และ generate
 
-In addition, pricing must now communicate practical working-surface limits:
+นอกจากนี้ต้องสื่อสารข้อจำกัดของพื้นที่ทำงานจริงด้วย เช่น:
 
-- watchlist capacity
-- post-list capacity
-- Home feed plus AI filter card ceiling
+- ความจุของ watchlist
+- ความจุของ post list
+- เพดานการ์ดของ Home feed และ AI filter
 
-### Checkout path
+### เส้นทาง checkout
 
-- Selecting `Plus` opens the purchase flow.
-- Non-checkout plan transitions still use the internal plan-selection path.
+- เมื่อเลือก `Plus` ระบบจะเปิด purchase flow
+- การเปลี่ยนแพ็กเกจที่ไม่ใช่ checkout ยังคงใช้ internal plan-selection path เดิม
 
-## Main User Flow
+## ลำดับการใช้งานหลัก
 
-1. The user opens Pricing.
-2. The user compares current plan against the alternative plan.
-3. The user checks daily quotas and workspace limits.
-4. The user decides whether to upgrade.
+1. ผู้ใช้เปิดหน้า Pricing
+2. ผู้ใช้เปรียบเทียบแพ็กเกจปัจจุบันกับอีกแพ็กเกจหนึ่ง
+3. ผู้ใช้ตรวจดู quota รายวันและ limits ของแต่ละ workspace
+4. ผู้ใช้ตัดสินใจว่าจะอัปเกรดหรือไม่
 
-## Important Edge Cases
+## Edge Cases สำคัญ
 
-### Docs drift
+### เอกสารหรือข้อความหน้า Pricing ตามไม่ทันของจริง
 
-- If product behavior changes but plan details do not mention it, users will infer the wrong contract.
-- Home feed limits are an example of behavior that must be present in pricing copy.
+- ถ้าพฤติกรรมของโปรดักต์เปลี่ยน แต่รายละเอียดแพ็กเกจไม่พูดถึง ผู้ใช้จะเข้าใจ contract ผิด
+- เพดานของ Home feed เป็นตัวอย่างชัดเจนของ behavior ที่ต้องบอกบนหน้า Pricing
 
-### Hidden workflow limits
+### เพดาน workflow ที่ถูกซ่อนไว้
 
-- If a workflow is plan-limited in practice, Pricing should name it directly.
-- Users should not have to discover plan ceilings only by hitting the limit inside Home.
+- ถ้า workflow ใดถูกจำกัดตามแพ็กเกจในทางปฏิบัติ Pricing ควรบอกตรงๆ
+- ผู้ใช้ไม่ควรต้องไปชนลิมิตใน Home ก่อนถึงจะเพิ่งรู้ว่ามีเพดาน
 
-## File Ownership
+## ไฟล์หลักที่เกี่ยวข้อง
 
 - `src/components/PricingWorkspace.tsx`
 - `src/config/pricingPlans.ts`
 - `src/components/PlanPanel.tsx`
 
-## When This Doc Must Be Updated
+## เมื่อไรต้องอัปเดตหน้านี้
 
-Update this page whenever a change affects:
+อัปเดตหน้านี้เมื่อมีการเปลี่ยน:
 
-- plan list
-- daily quotas
-- watchlist or post-list limits
-- Home feed or AI filter limits
-- checkout or upgrade flow
+- รายการแพ็กเกจ
+- quota รายวัน
+- limit ของ watchlist หรือ post list
+- limit ของ Home feed หรือ AI filter
+- checkout หรือ upgrade flow
 
 ## Change Log
 

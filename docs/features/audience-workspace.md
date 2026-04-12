@@ -1,73 +1,73 @@
-# Audience Workspace
+# พื้นที่ค้นหา Audience
 
-## Goal
+## เป้าหมาย
 
-Audience Workspace helps the user discover who to watch next and move those targets into watchlist management with minimal friction.
+Audience Workspace ช่วยให้ผู้ใช้หาได้ว่าควรติดตามใครต่อ แล้วส่ง target เหล่านั้นเข้าไปจัดการใน watchlist ได้อย่างลื่นที่สุด
 
-It supports three discovery modes:
+ตอนนี้รองรับการค้นหา 3 แบบ:
 
-- AI-driven target discovery
-- manual account lookup
-- RSS/news-source browsing
+- การค้นหา target ด้วย AI
+- การค้นหาบัญชีแบบ manual
+- การไล่ดู RSS หรือแหล่งข่าว
 
-## Current Product Rules
+## กติกาของโปรดักต์ตอนนี้
 
-### AI recommendation cards
+### การ์ดคำแนะนำจาก AI
 
-- AI recommendation cards should read like guided recommendations, not raw account dumps.
-- Each recommendation should include a meaningful explanation of why the person is relevant.
-- The explanation should be understandable to a Thai-speaking product user.
+- การ์ดคำแนะนำจาก AI ควรอ่านเหมือนคำแนะนำที่มีคนช่วยคิด ไม่ใช่การ dump metadata ของบัญชีแบบดิบๆ
+- คำแนะนำแต่ละใบต้องอธิบายอย่างมีความหมายว่าทำไมคนนี้ถึงเกี่ยวข้อง
+- คำอธิบายนั้นต้องเข้าใจได้สำหรับผู้ใช้โปรดักต์ที่อ่านภาษาไทย
 
-### Thai recommendation fallback
+### fallback ภาษาไทยของคำแนะนำ
 
-- If upstream reasoning is weak, generic, or not usable as Thai recommendation copy, the UI generates a Thai fallback explanation.
-- The fallback should still anchor the recommendation in the active search topic.
+- ถ้า reasoning จากต้นทางอ่อนเกินไป, generic เกินไป หรือยังใช้เป็นคำแนะนำภาษาไทยไม่ได้ UI ต้องสร้างคำอธิบาย fallback ภาษาไทยขึ้นมา
+- fallback นี้ยังต้องยึดกับหัวข้อค้นหาปัจจุบันอยู่ ไม่ควรลอยหรือกว้างเกินจริง
 
-### Recommendation card layout
+### layout ของ recommendation card
 
-- Recommendation cards should prioritize clarity over density.
-- The recommendation reason should be visually prominent, not tiny text lost in the middle of the card.
-- The profile block, topic hint, credibility signals, and add-to-watchlist action should feel like one deliberate recommendation card.
+- การ์ดคำแนะนำต้องเน้นความชัดเจนมากกว่าความแน่นของข้อมูล
+- เหตุผลที่แนะนำควรเด่นทางสายตา ไม่ใช่ตัวหนังสือเล็กที่หายอยู่กลางการ์ด
+- profile block, topic hint, credibility signals และ action เพิ่มเข้า watchlist ควรรู้สึกเป็น recommendation card เดียวกันที่ตั้งใจออกแบบมา
 
-### Watchlist actions
+### action ของ watchlist
 
-- Adding a recommended account to watchlist must still respect plan and capacity rules.
-- Audience discovery is not allowed to bypass shared watchlist limits.
+- การเพิ่มบัญชีที่แนะนำเข้า watchlist ต้องยังเคารพกติกาเรื่องแพ็กเกจและ capacity
+- Audience discovery ไม่มีสิทธิ์ bypass shared watchlist limits
 
-## Main User Flow
+## ลำดับการใช้งานหลัก
 
-1. The user opens Audience Workspace.
-2. The user chooses AI, manual, or source discovery.
-3. The system returns account or source candidates.
-4. The user reviews recommendation context.
-5. The user adds relevant accounts or sources to the next monitoring workflow.
+1. ผู้ใช้เปิด Audience Workspace
+2. ผู้ใช้เลือกโหมด AI, manual หรือ source discovery
+3. ระบบคืน candidate ของบัญชีหรือ source กลับมา
+4. ผู้ใช้ตรวจดูบริบทของคำแนะนำ
+5. ผู้ใช้เพิ่มบัญชีหรือแหล่งที่เกี่ยวข้องเข้า workflow การมอนิเตอร์ถัดไป
 
-## Important Edge Cases
+## Edge Cases สำคัญ
 
-### Weak AI reasoning
+### เหตุผลจาก AI อ่อนหรือใช้ไม่ได้
 
-- If the upstream reasoning is not presentable, the app must still show a clear Thai recommendation summary.
-- The card should never collapse into just account metadata without explaining why the person matters.
+- ถ้า reasoning จากต้นทางยังไม่นำเสนอได้ แอปก็ยังต้องแสดงสรุปคำแนะนำภาษาไทยที่ชัดเจน
+- การ์ดต้องไม่ยุบเหลือแค่ metadata ของบัญชีโดยไม่อธิบายว่าทำไมคนนี้จึงสำคัญ
 
-### Mixed identity formats
+### รูปแบบตัวตนของผลลัพธ์ไม่เหมือนกัน
 
-- Audience results can come from different lookup modes.
-- The add-to-watchlist action must preserve the same semantics regardless of whether the candidate came from AI search or manual search.
+- ผลลัพธ์ของ Audience อาจมาจากหลายโหมดการค้นหา
+- action เพิ่มเข้า watchlist ต้องรักษา semantics เดียวกัน ไม่ว่า candidate จะมาจาก AI search หรือ manual search
 
-## File Ownership
+## ไฟล์หลักที่เกี่ยวข้อง
 
 - `src/components/AudienceWorkspace.tsx`
 - `src/hooks/useAudienceSearch.ts`
 - `src/hooks/useWatchlist.ts`
 
-## When This Doc Must Be Updated
+## เมื่อไรต้องอัปเดตหน้านี้
 
-Update this page whenever a change affects:
+อัปเดตหน้านี้เมื่อมีการเปลี่ยน:
 
-- AI recommendation-card copy
-- audience-card layout or hierarchy
-- add-to-watchlist gating
-- the relationship between AI/manual/source tabs
+- copy ของการ์ดคำแนะนำจาก AI
+- layout หรือ visual hierarchy ของ audience card
+- gating ของการเพิ่มเข้า watchlist
+- ความสัมพันธ์ระหว่างแท็บ AI, manual และ source
 
 ## Change Log
 

@@ -1,100 +1,100 @@
-# Home Feed
+# หน้าโฮมฟีด
 
-## Goal
+## เป้าหมาย
 
-Home Feed is the primary monitoring workspace in Foro. It should answer one question quickly:
+Home Feed คือ workspace หลักสำหรับการมอนิเตอร์ใน Foro และควรตอบคำถามนี้ให้เร็วที่สุด:
 
-`What changed across the sources I care about, and which items deserve attention right now?`
+`มีอะไรเปลี่ยนในแหล่งที่เราสนใจบ้าง และชิ้นไหนควรได้รับความสนใจตอนนี้`
 
-The Home experience is responsible for:
+ประสบการณ์ของ Home มีหน้าที่:
 
-- syncing X posts from the active watchlist or selected post list
-- syncing RSS items from subscribed sources
-- deduplicating items so the feed stays readable and cost-efficient
-- letting the user sort, filter, open, bookmark, or send a source into content creation
-- running AI filter across the visible feed set for the current plan
+- sync โพสต์จาก X ตาม watchlist หรือ post list ที่เลือกอยู่
+- sync รายการ RSS จากแหล่งข่าวที่ subscribe ไว้
+- dedupe รายการเพื่อให้ฟีดยังอ่านง่ายและควบคุมต้นทุนได้
+- ให้ผู้ใช้ sort, filter, เปิดอ่าน, bookmark หรือส่ง source ไปต่อใน flow สร้างคอนเทนต์
+- รัน AI filter บนชุดข้อมูลที่ผู้ใช้มองเห็นได้ตามแพ็กเกจปัจจุบัน
 
-## Current Product Rules
+## กติกาของโปรดักต์ตอนนี้
 
-### Feed composition
+### องค์ประกอบของฟีด
 
-- Home can contain both X cards and RSS cards.
-- The active post list changes which watchlist handles and RSS sources are in scope.
-- Card rendering is handled in the Home view, while orchestration lives in `src/hooks/useHomeFeedWorkspace.ts`.
+- Home สามารถมีทั้งการ์ดจาก X และการ์ดจาก RSS
+- post list ที่ active อยู่จะเปลี่ยนขอบเขตของทั้ง handle จาก X และแหล่ง RSS ที่นำมารวม
+- การ render การ์ดอยู่ใน Home view ส่วน orchestration หลักอยู่ใน `src/hooks/useHomeFeedWorkspace.ts`
 
-### Plan-based Home limits
+### เพดานจำนวนการ์ดตามแพ็กเกจ
 
-- Home now has a hard visible-card ceiling per plan:
+- Home มีเพดานจำนวนการ์ดที่มองเห็นได้ตามแพ็กเกจ:
   - `Free`: 30 cards
   - `Plus`: 100 cards
-- `Load more` stops once the plan ceiling is reached.
-- AI filter uses the same visible-card scope. It does not run on a hidden larger set.
+- `Load more` จะหยุดเมื่อถึงเพดานของแพ็กเกจนั้น
+- AI filter ใช้ขอบเขตเดียวกับการ์ดที่มองเห็นอยู่ และจะไม่ไปรันบนชุดข้อมูลที่ซ่อนไว้ใหญ่กว่า
 
-### RSS duplicate policy
+### นโยบาย dedupe ของ RSS
 
-- RSS items use a stable RSS fingerprint to identify repeats.
-- During normal sync, an item already seen from the same RSS source should not come back as a new card.
-- This protects the user from re-reading old articles and protects the system from repeated translation and AI work.
+- RSS ใช้ stable RSS fingerprint เพื่อระบุว่ารายการไหนซ้ำ
+- ระหว่าง sync ปกติ ถ้ารายการเดิมจาก RSS source เดิมเคยเห็นแล้ว ต้องไม่กลับมาเป็นการ์ดใหม่อีก
+- พฤติกรรมนี้ช่วยทั้งลดการอ่านซ้ำของผู้ใช้ และลดงานแปลหรือ AI ซ้ำที่ไม่จำเป็น
 
-### RSS clear behavior
+### พฤติกรรมเมื่อกดล้างฟีด RSS
 
-- `Clear feed` is an intentional reset for RSS history.
-- Clearing Home feed also clears the RSS seen registry.
-- After that reset, older RSS items are allowed to appear again on the next sync.
+- `Clear feed` เป็นการ reset ประวัติ RSS แบบตั้งใจ
+- การล้าง Home feed จะล้าง RSS seen registry ด้วย
+- หลังจาก reset แล้ว บทความเก่าจาก RSS อาจกลับมาแสดงใหม่ได้ในการ sync รอบถัดไป
 
-### X sync policy
+### นโยบาย sync ของ X
 
-- X feed is optimized for two separate jobs:
-  - discover newly published posts
-  - refresh stats for cards already visible on Home
-- New-candidate discovery uses checkpoint-based advanced search.
-- Engagement refresh for existing cards uses tweet-id lookups for visible cards only.
-- If an incoming X post already exists in the feed, the system should update the existing card rather than create a new one.
+- X feed ถูกออกแบบให้แยก 2 งานจากกัน:
+  - หาโพสต์ใหม่ที่เพิ่งถูกเผยแพร่
+  - refresh สถิติของการ์ดที่กำลังแสดงอยู่บน Home
+- การหา candidate ใหม่ใช้ checkpoint-based advanced search
+- การ refresh engagement ของการ์ดที่มีอยู่แล้ว ใช้ tweet-id lookup เฉพาะการ์ดที่กำลังมองเห็น
+- ถ้าโพสต์จาก X ที่เข้ามามีอยู่แล้วในฟีด ระบบควรอัปเดตการ์ดเดิมแทนการสร้างซ้ำ
 
-### X clear behavior
+### พฤติกรรมเมื่อกดล้างฟีด X
 
-- Clearing Home feed does not reset X checkpoints or X seen state.
-- This is intentional so a post-clear sync focuses on newly discovered items instead of paying to reprocess old cards that are no longer visible.
+- การล้าง Home feed จะไม่ reset X checkpoints หรือ X seen state
+- พฤติกรรมนี้ตั้งใจไว้เพื่อให้หลังล้างฟีดแล้ว การ sync รอบถัดไปยังเน้นโพสต์ใหม่ และไม่เสียต้นทุนไปกับการประมวลผลโพสต์เก่าที่ผู้ใช้ไม่ได้เห็นแล้ว
 
-### Post list filtering
+### การกรองตาม post list
 
-- Post-list membership is normalized for both X handles and RSS source ids.
-- This prevents false empty states where a selected post list appears empty only because the stored key shape differs.
+- membership ของ post list ต้องถูก normalize ให้สอดคล้องกันทั้งฝั่ง X handles และ RSS source ids
+- เพื่อป้องกัน false empty state ที่ list มี source จริง แต่ดูเหมือนว่างเพราะรูปแบบ key ที่เก็บไม่ตรงกัน
 
-## Main User Flow
+## ลำดับการใช้งานหลัก
 
-1. The user opens Home.
-2. The user syncs feed data for the active watchlist or post list.
-3. The system merges incoming X and RSS items into the current feed state.
-4. The user can sort, bookmark, open a reader, or attach a source to content creation.
-5. The user can run AI filter against the visible feed for the current plan.
-6. The user can clear the feed, with RSS and X using different reset semantics as described above.
+1. ผู้ใช้เปิดหน้า Home
+2. ผู้ใช้ sync ข้อมูลฟีดตาม watchlist หรือ post list ที่ใช้งานอยู่
+3. ระบบรวมรายการจาก X และ RSS เข้ากับ state ของฟีดปัจจุบัน
+4. ผู้ใช้สามารถ sort, bookmark, เปิด reader หรือ attach source ไปยัง flow สร้างคอนเทนต์ได้
+5. ผู้ใช้สามารถรัน AI filter บนฟีดที่มองเห็นได้ตามแพ็กเกจปัจจุบัน
+6. ผู้ใช้สามารถล้างฟีดได้ โดย RSS กับ X จะมี semantics การ reset ต่างกันตามที่อธิบายไว้ด้านบน
 
-## AI Filter Contract
+## สัญญาของ AI Filter
 
-- AI filter should feel like an analysis layer on top of Home, not a separate data source.
-- It must evaluate the exact visible feed set the user is currently allowed to work with.
-- If the visible feed is capped by plan, the AI filter must respect that same cap.
-- AI filter results should preserve citations, reasoning context, and card traceability.
+- AI filter ควรเป็นชั้นวิเคราะห์บน Home ไม่ใช่แหล่งข้อมูลอีกก้อนหนึ่ง
+- มันต้องประเมินจากชุดการ์ดที่ผู้ใช้มองเห็นและใช้งานได้จริงในขณะนั้น
+- ถ้าฟีดถูกจำกัดด้วยแพ็กเกจ AI filter ก็ต้องเคารพเพดานเดียวกัน
+- ผลลัพธ์ของ AI filter ต้องยังรักษา citations, reasoning context และการ trace กลับไปยังการ์ดต้นทางได้
 
-## Important Edge Cases
+## Edge Cases สำคัญ
 
-### User clears feed
+### ผู้ใช้ล้างฟีด
 
-- RSS history resets and old RSS items may reappear.
-- X history does not reset and the next X sync remains cost-aware.
+- ประวัติ RSS จะถูก reset และบทความเก่าอาจกลับมาได้
+- ประวัติ X จะไม่ถูก reset และการ sync รอบถัดไปยังคงคุมต้นทุนเหมือนเดิม
 
-### User selects a post list
+### ผู้ใช้เลือก post list
 
-- Feed scope must reflect the selected post list consistently for both X and RSS.
-- If the list has matching sources, Home must not show a false empty state caused by inconsistent normalization.
+- ขอบเขตของฟีดต้องสะท้อน post list ที่เลือกอย่างสม่ำเสมอทั้ง X และ RSS
+- ถ้า list มี source ตรงกัน Home ต้องไม่แสดง empty state ปลอมเพราะ normalization ไม่ตรงกัน
 
-### User keeps syncing without clearing
+### ผู้ใช้ sync ซ้ำโดยไม่ล้างฟีด
 
-- RSS should continue to suppress old items from the same source.
-- X should continue to discover new posts and refresh stats for visible cards without turning old posts into newly added cards.
+- RSS ควร suppress บทความเก่าจาก source เดิมต่อไป
+- X ควรหาโพสต์ใหม่และ refresh สถิติของการ์ดที่มองเห็น โดยไม่ทำให้โพสต์เก่ากลายเป็นรายการใหม่
 
-## File Ownership
+## ไฟล์หลักที่เกี่ยวข้อง
 
 - `src/App.tsx`
 - `src/components/HomeView.tsx`
@@ -103,16 +103,16 @@ The Home experience is responsible for:
 - `src/services/TwitterService.ts`
 - `src/utils/appUtils.ts`
 
-## When This Doc Must Be Updated
+## เมื่อไรต้องอัปเดตหน้านี้
 
-Update this page whenever a change affects:
+อัปเดตหน้านี้ทันทีเมื่อมีการเปลี่ยน:
 
-- sync behavior
-- dedupe behavior
-- clear/reset behavior
-- plan-based card limits
-- AI filter scope
-- post-list feed membership semantics
+- พฤติกรรมการ sync
+- พฤติกรรม dedupe
+- พฤติกรรม clear หรือ reset
+- เพดานการ์ดตามแพ็กเกจ
+- ขอบเขตของ AI filter
+- semantics ของ membership ใน post list
 
 ## Change Log
 
