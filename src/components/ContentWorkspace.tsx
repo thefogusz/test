@@ -120,7 +120,7 @@ const ContentWorkspace = ({
     !lastSubmittedSearchQuery &&
     !(searchQuery || '').trim();
   const handleLockedCreateClick = () => {
-    onOpenPricing?.();
+    setContentTab('create');
   };
 
   return (
