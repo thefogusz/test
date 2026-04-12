@@ -17,6 +17,7 @@ import {
   generateGrokSummary,
 } from '../services/GrokService';
 import { RSS_CATALOG } from '../config/rssCatalog';
+import { HOME_FEED_CARD_LIMITS, type PlanId } from '../config/pricingPlans';
 import { useIndexedDbState } from './useIndexedDbState';
 import { fetchTweetsByIds, fetchWatchlistFeed } from '../services/TwitterService';
 import { fetchAllSubscribedFeeds, type RssSourceInfo } from '../services/RssService';
@@ -37,9 +38,6 @@ type XSyncCheckpointRegistry = Record<string, string>;
 const MAX_RSS_SEEN_ITEMS_PER_SOURCE = 600;
 const MAX_X_SEEN_ITEMS = 2500;
 const X_SYNC_OVERLAP_MS = 2 * 60 * 1000;
-const FREE_HOME_FEED_CARD_LIMIT = 30;
-const PLUS_HOME_FEED_CARD_LIMIT = 100;
-
 const buildFeedSyncQueryKey = ({
   activeListId,
   twitterHandles,
@@ -60,7 +58,7 @@ const buildFeedSyncQueryKey = ({
 ];
 
 type UseHomeFeedWorkspaceParams = {
-  activePlanId: string;
+  activePlanId: PlanId;
   activeListId: string | null;
   activeView: string;
   originalFeed: any[];
@@ -125,7 +123,7 @@ export const useHomeFeedWorkspace = ({
   const [activeFilterPrompt, setActiveFilterPrompt] = useState('');
   const [isFilterPrimed, setIsFilterPrimed] = useState(false);
   const [freshFeedIds, setFreshFeedIds] = useState<string[]>([]);
-  const homeFeedCardLimit = activePlanId === 'plus' ? PLUS_HOME_FEED_CARD_LIMIT : FREE_HOME_FEED_CARD_LIMIT;
+  const homeFeedCardLimit = HOME_FEED_CARD_LIMITS[activePlanId] ?? HOME_FEED_CARD_LIMITS.free;
 
   const isSummarizingRef = useRef(false);
   const isBackfillingThaiRef = useRef(false);

@@ -132,8 +132,9 @@ const HomeView = ({
   );
   const freshFeedIdSet = useMemo(() => new Set((freshFeedIds ?? []).map((id) => String(id))), [freshFeedIds]);
   const hasVisibleFeed = feed.length > 0;
-  const shouldShowIncomingSkeletons = hasVisibleFeed && isLoadingMore;
   const incomingSkeletonCount = isCompactSkeletonLayout ? 2 : 4;
+  const shouldShowPrependedSkeletons = hasVisibleFeed && isSyncing;
+  const shouldShowAppendedSkeletons = hasVisibleFeed && isLoadingMore;
   const showDesktopQuickPresets = feed.length > 0 && !isFiltered && visibleQuickPresets.length > 0;
   const shouldCondenseHomeControlPanel = hasVisibleFeed && !showDesktopQuickPresets;
   const listTitleStyle = useMemo(
@@ -405,6 +406,10 @@ const HomeView = ({
           </div>
         )}
 
+        {shouldShowPrependedSkeletons && (
+          <FeedCardSkeleton count={incomingSkeletonCount} compact={isCompactSkeletonLayout} />
+        )}
+
         {hasVisibleFeed &&
           feed.map((item, index) => (
             <FeedCard
@@ -422,8 +427,8 @@ const HomeView = ({
             />
           ))}
 
-        {shouldShowIncomingSkeletons && (
-          <FeedCardSkeleton count={incomingSkeletonCount} />
+        {shouldShowAppendedSkeletons && (
+          <FeedCardSkeleton count={incomingSkeletonCount} compact={isCompactSkeletonLayout} />
         )}
       </div>
 
