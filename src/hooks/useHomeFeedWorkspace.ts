@@ -147,6 +147,8 @@ export const useHomeFeedWorkspace = ({
   }, [xSyncCheckpoints]);
 
   const getNormalizedPostId = (post: any) => String(post?.id || '').trim();
+  const getNormalizedHandle = (value: any) =>
+    String(value || '').trim().replace(/^@/, '').toLowerCase();
   const isXFeedPost = (post: any) => {
     const sourceType = String(post?.sourceType || '').trim().toLowerCase();
     return Boolean(post?.id) && sourceType !== 'rss' && sourceType !== 'article';
@@ -377,6 +379,19 @@ export const useHomeFeedWorkspace = ({
       ].join('|'),
     [activeListId, activeListMembers.twitterHandles],
   );
+
+  const activeTwitterHandleSet = useMemo(
+    () => new Set(activeListMembers.twitterHandles.map((handle) => getNormalizedHandle(handle)).filter(Boolean)),
+    [activeListMembers.twitterHandles],
+  );
+
+  const isXPostInActiveScope = (post: any) => {
+    if (!isXFeedPost(post)) return false;
+    if (!activeListId) return true;
+
+    const authorHandle = getNormalizedHandle(post?.author?.username || post?.author?.userName || '');
+    return Boolean(authorHandle) && activeTwitterHandleSet.has(authorHandle);
+  };
 
   const currentXSyncCheckpoint = useMemo(
     () =>
@@ -706,7 +721,15 @@ export const useHomeFeedWorkspace = ({
           .filter(Boolean),
       );
       const knownRssSeenKeys = buildKnownRssSeenSet([originalFeed]);
-      const knownXSeenIds = buildKnownXSeenSet([originalFeed]);
+      const persistedXPostsInScope = originalFeed.filter((post) => isXPostInActiveScope(post));
+      const hasPersistedXFeedForScope = persistedXPostsInScope.length > 0;
+      const knownXSeenIds = hasPersistedXFeedForScope
+        ? buildKnownXSeenSet([originalFeed])
+        : new Set(
+          persistedXPostsInScope
+            .map((post) => getNormalizedPostId(post))
+            .filter(Boolean),
+        );
       const hasWatchlist = activeListMembers.twitterHandles.length > 0;
       const hasRss = effectiveRssSources.length > 0;
 
@@ -718,7 +741,7 @@ export const useHomeFeedWorkspace = ({
       setStatus('กำลังเชื่อมต่อฐานข้อมูล... ดึงฟีดข่าวล่าสุด');
 
       const checkpointTimestamp = Date.parse(currentXSyncCheckpoint);
-      const xSinceTime = Number.isFinite(checkpointTimestamp)
+      const xSinceTime = hasPersistedXFeedForScope && Number.isFinite(checkpointTimestamp)
         ? new Date(Math.max(0, checkpointTimestamp - X_SYNC_OVERLAP_MS)).toISOString()
         : null;
       const syncStartedAt = new Date().toISOString();
@@ -806,11 +829,26 @@ export const useHomeFeedWorkspace = ({
       const newTwitterDisplay = twitterDisplay.filter(isNewTwitterPost);
       const existingTwitterDisplay = twitterDisplay.filter(isExistingTwitterPost);
       const nextTwitterPending = twitterRemaining.filter(isNewTwitterPost);
+      const refillTwitterDisplay =
+        !hasPersistedXFeedForScope && newTwitterDisplay.length === 0
+          ? twitterDisplay.filter((post) => {
+            const postId = getNormalizedPostId(post);
+            return Boolean(postId) && !existingIds.has(postId);
+          })
+          : [];
       const displayData = [...newTwitterDisplay, ...newRssPosts].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
-      const nextFreshFeedIds = displayData.map((post) => getNormalizedPostId(post)).filter(Boolean);
-      const newDisplayData = displayData;
+      const newDisplayData =
+        displayData.length > 0
+          ? displayData
+          : [...refillTwitterDisplay].sort(
+            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+          );
+      const nextFreshFeedIds =
+        displayData.length > 0
+          ? displayData.map((post) => getNormalizedPostId(post)).filter(Boolean)
+          : [];
       const postsToMerge = Array.from(
         [...existingTwitterDisplay, ...(refreshedVisibleXPosts || [])].reduce((postMap, post) => {
           const postId = getNormalizedPostId(post);
@@ -845,6 +883,9 @@ export const useHomeFeedWorkspace = ({
         setStatus('อัปเดตข้อมูลเรียบร้อย - ไม่มีโพสต์ใหม่ให้ประมวลผล');
       } else {
         setStatus('อัปเดตข้อมูลเรียบร้อย');
+      }
+      if (displayData.length === 0 && newDisplayData.length > 0) {
+        setStatus('รีเฟรชฟีดเรียบร้อย - แสดงโพสต์ล่าสุดเดิมพร้อมสถิติล่าสุด');
       }
       setFreshFeedIds(nextFreshFeedIds);
     },
@@ -1042,6 +1083,8 @@ export const useHomeFeedWorkspace = ({
     deletedFeedRef.current = originalFeed;
     setDeletedFeedCount(originalFeed.length);
     setRssSeenRegistry({});
+    setXSeenRegistry({});
+    setXSyncCheckpoints({});
     setPendingFeed([]);
     setNextCursor(null);
     setIsFiltered(false);

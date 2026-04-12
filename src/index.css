@@ -6310,9 +6310,21 @@ h6,
   box-shadow: 0 10px 24px rgba(8, 15, 28, 0.28);
 }
 
+.ai-filter-modal-preset-chip.is-home-visible {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
 .ai-filter-modal-preset-chip:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.ai-filter-preset-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .ai-filter-preset-label {
@@ -6320,6 +6332,20 @@ h6,
   font-size: 13px;
   font-weight: 700;
   line-height: 1.35;
+}
+
+.ai-filter-preset-home-hint {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(195, 205, 221, 0.9);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .ai-filter-preset-selected-mark {

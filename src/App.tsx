@@ -553,6 +553,16 @@ const App = () => {
   }, [setBookmarks, setCreateContentSource, setOriginalFeed, setPendingFeed, setReadArchive]);
 
   // --- Quick Filter Presets ---
+  const promoteQuickPreset = (preset) => {
+    const trimmed = String(preset || '').trim();
+    if (!trimmed) return;
+
+    setQuickFilterPresets((prev) => {
+      const next = Array.isArray(prev) ? prev.filter((item) => item !== trimmed) : [];
+      return [trimmed, ...next];
+    });
+  };
+
   const removeQuickPreset = (preset) => {
     setQuickFilterPresets(prev => prev.filter(p => p !== preset));
   };
@@ -560,7 +570,7 @@ const App = () => {
   const addQuickPreset = (preset) => {
     const trimmed = preset.trim();
     if (!trimmed) return;
-    setQuickFilterPresets(prev => prev.includes(trimmed) ? prev : [...prev, trimmed]);
+    promoteQuickPreset(trimmed);
   };
 
   const visibleQuickPresets = useMemo(
@@ -859,7 +869,10 @@ const App = () => {
         quickFilterPresets={quickFilterPresets}
         onClose={closeFilterModal}
         onPromptChange={(value) => setFilterModal((prev) => ({ ...prev, prompt: value }))}
-        onSelectPreset={(preset) => setFilterModal((prev) => ({ ...prev, prompt: preset }))}
+        onSelectPreset={(preset) => {
+          setFilterModal((prev) => ({ ...prev, prompt: preset }));
+          promoteQuickPreset(preset);
+        }}
         onRemovePreset={removeQuickPreset}
         onAddPreset={addQuickPreset}
         onSubmit={() => handleAiFilter()}

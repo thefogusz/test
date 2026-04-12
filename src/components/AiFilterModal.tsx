@@ -1,5 +1,7 @@
 import { Filter as FilterIcon, Plus, RefreshCw, X } from 'lucide-react';
 
+const HOME_PRESET_LIMIT = 3;
+
 const AiFilterModal = ({
   filterModal,
   quickFilterPresets,
@@ -36,24 +38,30 @@ const AiFilterModal = ({
               <div>
                 <div className="ai-filter-section-title">เลือกโหมดเร็ว</div>
                 <div className="ai-filter-section-copy">
-                  แตะหนึ่งอันเพื่อใส่ prompt ทันที
+                  แตะครั้งเดียวเพื่อใช้ได้ทันที และ preset ที่เพิ่งเลือกจะถูกดันขึ้นไปอยู่บนหน้า Home ให้เอง
                 </div>
               </div>
             </div>
 
             <div className="ai-filter-presets">
-              {quickFilterPresets.map((preset) => {
+              {quickFilterPresets.map((preset, index) => {
                 const isSelected = filterModal.prompt === preset;
+                const isVisibleOnHome = index < HOME_PRESET_LIMIT;
 
                 return (
                   <button
                     key={preset}
                     type="button"
-                    className={`ai-filter-modal-preset-chip ${isSelected ? 'is-selected' : ''}`}
+                    className={`ai-filter-modal-preset-chip ${isSelected ? 'is-selected' : ''} ${isVisibleOnHome ? 'is-home-visible' : ''}`.trim()}
                     disabled={filterModal.isFiltering}
                     onClick={() => onSelectPreset(preset)}
                   >
-                    <span className="ai-filter-preset-label">{preset}</span>
+                    <span className="ai-filter-preset-copy">
+                      <span className="ai-filter-preset-label">{preset}</span>
+                      {isVisibleOnHome && (
+                        <span className="ai-filter-preset-home-hint">ขึ้นหน้า Home</span>
+                      )}
+                    </span>
                     {isSelected && <span className="ai-filter-preset-selected-mark">กำลังใช้</span>}
                   </button>
                 );
@@ -71,7 +79,7 @@ const AiFilterModal = ({
                   <X size={12} /> ลบ preset นี้
                 </button>
               ) : (
-                <div className="ai-filter-preset-helper">ยังไม่ได้เลือก preset</div>
+                <div className="ai-filter-preset-helper">3 อันแรกจะโชว์บนหน้า Home อัตโนมัติ</div>
               )}
             </div>
           </div>
@@ -81,7 +89,7 @@ const AiFilterModal = ({
           <div className="ai-filter-section-header ai-filter-section-header-tight">
             <div>
               <div className="ai-filter-section-title">Prompt</div>
-              <div className="ai-filter-section-copy">จะให้สรุป ขอความเห็น จัดอันดับ หา angle หรือคิดต่อจากข่าวที่คัดมาก็ได้</div>
+              <div className="ai-filter-section-copy">จะให้สรุป จับมุม จัดอันดับ หรือหา angle จากข่าวที่คัดมาก็ได้</div>
             </div>
           </div>
 
@@ -89,13 +97,15 @@ const AiFilterModal = ({
             className="modal-input ai-filter-input"
             autoFocus
             disabled={filterModal.isFiltering}
-            placeholder="เช่น ช่วยดูว่ากระแส AI ตอนนี้ไปทางไหน หรือคัดประเด็นที่น่าทำวิดีโอ"
+            placeholder="เช่น สรุปข่าวที่น่าเอาไปเล่าต่อ หรือหาโพสต์ไหนน่าทำคอนเทนต์"
             value={filterModal.prompt}
             onChange={(event) => onPromptChange(event.target.value)}
           />
 
           <div className="ai-filter-compose-footer">
-            <div className="ai-filter-visible-hint">preset ด้านบนจะแสดงบนหน้า home อัตโนมัติ 3 อันแรก</div>
+            <div className="ai-filter-visible-hint">
+              ถ้าบันทึก preset ใหม่ ระบบจะเอาอันนี้ขึ้นไปอยู่กลุ่มบนสุดให้เลย
+            </div>
             {canSavePreset && (
               <button type="button" className="ai-filter-save-preset-btn" onClick={() => onAddPreset(trimmedPrompt)}>
                 <Plus size={12} /> บันทึกเป็น Preset
