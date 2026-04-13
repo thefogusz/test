@@ -4,6 +4,46 @@
 
 News Sources ช่วยให้ผู้ใช้เลือกแหล่งข่าว RSS ที่ระบบรองรับ คัดดูตาม topic หรือ language context และ subscribe source เหล่านั้นเข้ามาอยู่ในชุดข้อมูลที่ใช้งานจริงของตัวเอง
 
+## Data Flow Diagram
+
+```mermaid
+flowchart LR
+    subgraph Config["Config Layer"]
+        CATALOG["rssCatalog.ts\ncanonical source registry\n(topic + language grouped)"]
+    end
+
+    subgraph UI["NewsSourcesTab.tsx"]
+        FEATURED["Featured Sources\n(EN / TH แยก ordering)"]
+        TOPIC["Topic Filter"]
+        TOGGLE["Toggle Subscribe / Unsubscribe"]
+        LISTASSIGN["Add to Post List\n(ถ้า flow ถูกเปิด)"]
+    end
+
+    subgraph Persist["Persistence"]
+        STATE["subscription state\npersist ข้าม reload"]
+        CLIENT["persistence/client.ts"]
+    end
+
+    subgraph Feed["Feed Layer"]
+        RSS["RssService.ts\nfetchAll() — picks up subscribed sources"]
+        HOME["Home Feed\nuseHomeFeedWorkspace.ts"]
+    end
+
+    CATALOG --> FEATURED & TOPIC
+    TOPIC --> TOGGLE
+    FEATURED --> TOGGLE
+    TOGGLE --> STATE
+    STATE --> CLIENT
+    TOGGLE --> LISTASSIGN
+    CLIENT --> RSS
+    RSS --> HOME
+
+    style Config fill:#1e293b,stroke:#334155
+    style UI fill:#1e1b4b,stroke:#3730a3
+    style Persist fill:#052e16,stroke:#166534
+    style Feed fill:#1c1917,stroke:#78350f
+```
+
 ## พฤติกรรมปัจจุบัน
 
 - ฟีเจอร์นี้ implement หลักอยู่ใน `NewsSourcesTab`

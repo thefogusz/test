@@ -4,6 +4,50 @@
 
 Read Workspace เป็นคลังสำหรับบทความหรือโพสต์ที่ผู้ใช้บันทึกไว้อ่านต่อ จุดสำคัญคือช่วยให้ย้อนกลับมาทบทวนรายการเดิมได้ง่าย เปิดอ่านแบบเต็มได้ และต่อยอดไปยังการสร้างคอนเทนต์ได้โดยไม่หลุดบริบท
 
+## Data Flow Diagram
+
+```mermaid
+flowchart TD
+    subgraph Entry["Read Workspace (activeView = read)"]
+        ARCHIVE["readArchive\n(persisted list)"]
+        SEARCH_IN["Search / Filter\n(กรองภายใน archive)"]
+        VISIBLE["visibleReadCount\nbatch loading"]
+    end
+
+    subgraph Card["FeedCard.tsx"]
+        ACTIONS["bookmark / attach to content\n/ open reader"]
+    end
+
+    subgraph Reader["ArticleReaderModal.tsx"]
+        EXTRACT["ArticleService.ts\nextract(url)"]
+        SERVER["server/app.cjs\nPOST /api/extract\n→ Mozilla Readability"]
+        RENDER["render clean article"]
+    end
+
+    subgraph Translation["Translation (on-demand)"]
+        TRANSLATE["GrokService.ts\ngrok-4-1-fast-non-reasoning"]
+        CHUNK["chunk by paragraph\n(title แยกจาก body)"]
+        CLEANUP["post-process cleanup\n(คำแปลเพี้ยนที่เจอบ่อย)"]
+        CACHE["Translation Cache\nkey: RSS fingerprint / URL"]
+    end
+
+    ARCHIVE --> SEARCH_IN
+    SEARCH_IN --> VISIBLE
+    VISIBLE --> Card
+    Card -- "เปิดบทความ" --> Reader
+    EXTRACT --> SERVER
+    SERVER --> RENDER
+    RENDER -- "ไม่ใช่ภาษาไทย" --> TRANSLATE
+    TRANSLATE --> CHUNK --> CLEANUP
+    CLEANUP --> CACHE
+    CACHE -- "เปิดซ้ำ = reuse" --> RENDER
+
+    style Entry fill:#1e293b,stroke:#334155
+    style Card fill:#052e16,stroke:#166534
+    style Reader fill:#1e1b4b,stroke:#3730a3
+    style Translation fill:#1c1917,stroke:#78350f
+```
+
 ## พฤติกรรมปัจจุบัน
 
 - เปิดภายใต้ `activeView = "read"`

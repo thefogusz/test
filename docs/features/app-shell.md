@@ -4,6 +4,51 @@
 
 App Shell คือโครง UI รอบนอกของแอปที่ทำให้ผู้ใช้สลับไปมาระหว่าง workspace ต่างๆ ได้ เห็นสถานะงานพื้นฐาน และเข้าถึง panel เรื่องแผนการใช้งานหรือ docs ได้จากทุกหน้าหลัก
 
+## Component Diagram
+
+```mermaid
+flowchart TD
+    subgraph Shell["App.tsx — Root Orchestrator"]
+        STATE["Central State\n(activeView, feed, lists, plan)"]
+    end
+
+    subgraph Nav["Navigation"]
+        SIDEBAR["Sidebar.tsx\nสลับ activeView"]
+    end
+
+    subgraph Workspaces["AppWorkspaceRouter.tsx"]
+        HOME["Home\nHomeView.tsx"]
+        CONTENT["Content\nContentWorkspace.tsx"]
+        READ["Read\nReadWorkspace.tsx"]
+        AUDIENCE["Audience\nAudienceWorkspace.tsx"]
+        BOOKMARKS["Bookmarks\nBookmarksWorkspace.tsx"]
+        PRICING["Pricing\nPricingWorkspace.tsx"]
+    end
+
+    subgraph RightPanel["Right Panel"]
+        RSIDEBAR["RightSidebar.tsx\n(ซ่อนใน pricing)"]
+    end
+
+    subgraph Status["Background Tasks"]
+        INDICATOR["Task Indicator\nsync / search / generate / filter"]
+        PLAN["PlanPanel\nusage + quota + Foro Docs link"]
+    end
+
+    SIDEBAR -- "set activeView" --> STATE
+    STATE --> AppWorkspaceRouter
+    AppWorkspaceRouter --> HOME & CONTENT & READ & AUDIENCE & BOOKMARKS & PRICING
+    STATE --> RSIDEBAR
+    PRICING -- "hide" --> RSIDEBAR
+    STATE --> INDICATOR
+    STATE --> PLAN
+
+    style Shell fill:#1e293b,stroke:#334155
+    style Nav fill:#1e1b4b,stroke:#3730a3
+    style Workspaces fill:#052e16,stroke:#166534
+    style RightPanel fill:#1c1917,stroke:#78350f
+    style Status fill:#27272a,stroke:#52525b
+```
+
 ## พฤติกรรมปัจจุบัน
 
 - แกนหลักของ shell ถูกประกอบใน `App.tsx`

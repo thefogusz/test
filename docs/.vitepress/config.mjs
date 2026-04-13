@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress';
+import { withMermaid } from 'vitepress-plugin-mermaid';
 
-export default defineConfig({
+export default withMermaid(defineConfig({
   base: '/test/docs/',
   lang: 'th-TH',
   title: 'Foro Docs',
@@ -79,4 +80,7 @@ export default defineConfig({
       copyright: 'Foro Platform',
     },
   },
-});
+  mermaid: {
+    theme: 'dark',
+  },
+}));

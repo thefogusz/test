@@ -4,6 +4,36 @@
 
 Bookmarks Workspace เป็นคลังของสิ่งที่ผู้ใช้บันทึกไว้ โดยแยกการดูออกเป็นมุมข่าวและมุมบทความ เพื่อให้จัดการสิ่งที่เซฟไว้ได้ง่ายขึ้นโดยไม่ต้องย้อนกลับไปหาใน feed เดิม
 
+## Data Flow Diagram
+
+```mermaid
+flowchart TD
+    subgraph Entry["BookmarksWorkspace.tsx\n(activeView = bookmarks)"]
+        TAB_NEWS["แท็บ News\nFeedCard list"]
+        TAB_ARTICLE["แท็บ Article\narticle card + ลบ"]
+        LIST_PILL["Active List Pill\n(context ของ list ปัจจุบัน)"]
+    end
+
+    subgraph DataSource["Data Source"]
+        BMSTATE["bookmarks state\n(App.tsx)"]
+    end
+
+    subgraph Actions["User Actions"]
+        OPEN["เปิดอ่าน\n→ ArticleReaderModal"]
+        ATTACH["ส่งไปสร้างคอนเทนต์\n→ ContentWorkspace"]
+        REMOVE["ลบ bookmark\n(article tab)"]
+    end
+
+    BMSTATE --> TAB_NEWS & TAB_ARTICLE
+    TAB_NEWS --> OPEN & ATTACH
+    TAB_ARTICLE --> REMOVE
+    TAB_NEWS -- "FeedCard.tsx" --> Actions
+
+    style Entry fill:#1e293b,stroke:#334155
+    style DataSource fill:#1e1b4b,stroke:#3730a3
+    style Actions fill:#052e16,stroke:#166534
+```
+
 ## พฤติกรรมปัจจุบัน
 
 - เปิดภายใต้ `activeView = "bookmarks"`
