@@ -1746,7 +1746,7 @@ export const generateGrokBatch = async (stories) => {
   // 3. Process uncached in batch with STRICT mapping
   try {
     const { object } = await generateObject({
-      model: grok(MODEL_REASONING_FAST),
+      model: grok(MODEL_NEWS_FAST),
       _legacySystem: `คุณคือบรรณาธิการข่าวผู้เชี่ยวชาญ หน้าที่คือสรุปข่าวภาษาไทยสั้นๆ 1-2 ประโยคต่อเรื่อง
 กฎเหล็ก:
 - ห้ามระบุชื่อ X หรือ Twitter

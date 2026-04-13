@@ -578,7 +578,12 @@ export const useHomeFeedWorkspace = ({
       )
       .slice(0, 8);
 
-    if (!candidates.length || isEnrichingImagesRef.current) {
+    if (
+      !candidates.length ||
+      isEnrichingImagesRef.current ||
+      isSummarizingRef.current ||
+      isBackfillingThaiRef.current
+    ) {
       return undefined;
     }
 
@@ -621,7 +626,7 @@ export const useHomeFeedWorkspace = ({
       } finally {
         isEnrichingImagesRef.current = false;
       }
-    }, 1200);
+    }, 12000);
 
     return () => clearTimeout(timer);
   }, [originalFeed, setOriginalFeed]);
@@ -631,56 +636,66 @@ export const useHomeFeedWorkspace = ({
     if (newBatch.length === 0 || isSummarizingRef.current) return;
     isSummarizingRef.current = true;
 
-    const CHUNK_SIZE = 10;
+    const CHUNK_SIZE = 20;
     const totalChunks = Math.ceil(newBatch.length / CHUNK_SIZE);
     let runningFeed = [...originalFeed];
 
     try {
       for (let index = 0; index < newBatch.length; index += CHUNK_SIZE) {
         const chunkIndex = Math.floor(index / CHUNK_SIZE) + 1;
-        setStatus(`${statusPrefix} ${newBatch.length} โพสต์ — กำลังสรุป ${chunkIndex}/${totalChunks}...`);
+        setStatus(`${statusPrefix} ${newBatch.length} โพสต์ — กำลังสรุป ${chunkIndex} / ${totalChunks}...`);
 
         const chunk = newBatch.slice(index, index + CHUNK_SIZE);
         const toSummarize = chunk.filter((tweet) => {
-          const existing = runningFeed.find((post) => post.id === tweet.id);
-          if (isThaiNativeRssPost(existing || tweet)) return false;
+          if (isThaiNativeRssPost(tweet)) return false;
           return !hasUsefulThaiSummary(
-            existing?.summary || tweet.summary,
-            getPostSummarySourceText(existing || tweet),
+            tweet.summary,
+            getPostSummarySourceText(tweet),
           );
         });
+
+        const preSummarizedMap = new Map(
+          chunk
+            .filter((post) => !toSummarize.some((item) => item.id === post.id))
+            .map((post) => [post.id, sanitizeStoredPost(post)]),
+        );
+
+        let summaryMap = new Map<string, string>();
 
         if (toSummarize.length > 0) {
           const translatedPosts = await translatePostsToThai(toSummarize, {
             retrySingles: chunkIndex === 1,
             maxRetryCount: 2,
           });
-          const translatedSummaryMap = new Map(
+          summaryMap = new Map(
             translatedPosts
               .filter((post) => hasUsefulThaiSummary(post.summary, getPostSummarySourceText(post)))
               .map((post) => [post.id, post.summary]),
           );
-
-          toSummarize.forEach((post) => {
-            if (translatedSummaryMap.has(post.id)) {
-              post.summary = translatedSummaryMap.get(post.id);
-            }
-          });
         }
+
+        const summarizedChunk = chunk.map((post) => {
+          const normalized = sanitizeStoredPost(post);
+          if (summaryMap.has(post.id)) {
+            return { ...normalized, summary: summaryMap.get(post.id) };
+          }
+          if (preSummarizedMap.has(post.id)) {
+            return preSummarizedMap.get(post.id);
+          }
+          return normalized;
+        });
 
         setOriginalFeed((prev) => {
           const postMap = new Map(prev.map((post) => [post.id, post]));
 
-          chunk.forEach((newPost) => {
-            const normalizedNewPost = sanitizeStoredPost(newPost);
-
+          summarizedChunk.forEach((newPost) => {
             if (postMap.has(newPost.id)) {
               postMap.set(newPost.id, {
                 ...sanitizeStoredPost(postMap.get(newPost.id)),
-                ...normalizedNewPost,
+                ...newPost,
               });
             } else {
-              postMap.set(newPost.id, normalizedNewPost);
+              postMap.set(newPost.id, newPost);
             }
           });
 
@@ -693,7 +708,7 @@ export const useHomeFeedWorkspace = ({
 
         setReadArchive((prev) => {
           const existingIds = new Set(prev.map((post) => post.id));
-          const newItems = chunk.filter((post) => !existingIds.has(post.id));
+          const newItems = summarizedChunk.filter((post) => !existingIds.has(post.id));
           if (newItems.length > 0) return [...newItems, ...prev];
           return prev;
         });
@@ -811,9 +826,9 @@ export const useHomeFeedWorkspace = ({
         return true;
       });
 
-      const MAX_TWITTER_SYNC = 20;
-      const twitterDisplay = twitterData.slice(0, MAX_TWITTER_SYNC);
-      const twitterRemaining = twitterData.slice(MAX_TWITTER_SYNC);
+      const MAX_INITIAL_DISPLAY = 20;
+      const twitterDisplay = twitterData.slice(0, MAX_INITIAL_DISPLAY);
+      const twitterRemaining = twitterData.slice(MAX_INITIAL_DISPLAY);
       const isNewTwitterPost = (post: any) => {
         const postId = getNormalizedPostId(post);
         if (!postId) return false;
@@ -836,9 +851,11 @@ export const useHomeFeedWorkspace = ({
             return Boolean(postId) && !existingIds.has(postId);
           })
           : [];
-      const displayData = [...newTwitterDisplay, ...newRssPosts].sort(
+      const combinedNewPosts = [...newTwitterDisplay, ...newRssPosts].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
+      const displayData = combinedNewPosts.slice(0, MAX_INITIAL_DISPLAY);
+      const overflowDisplayData = combinedNewPosts.slice(MAX_INITIAL_DISPLAY);
       const newDisplayData =
         displayData.length > 0
           ? displayData
@@ -858,7 +875,11 @@ export const useHomeFeedWorkspace = ({
         }, new Map<string, any>()).values(),
       );
 
-      setPendingFeed(nextTwitterPending);
+      setPendingFeed(
+        [...overflowDisplayData, ...nextTwitterPending].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        ),
+      );
 
       const rssCount = newRssPosts.length;
       const twitterCount = newTwitterDisplay.length;
