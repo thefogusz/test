@@ -79,14 +79,34 @@ const buildThaiReasoningFallback = (expert, topicHint = '') => {
   return `${displayName} เป็นบัญชีที่น่าติดตามในเรื่อง${topicLabel} ช่วยให้เห็นมุมมองและสัญญาณสำคัญจากคนในวงการได้ต่อเนื่อง`;
 };
 
+const buildReadableExpertReasoning = (expert, topicHint = '') => {
+  const topicLabel = cleanRecommendationText(topicHint || expert?.category || expert?.title) || 'หัวข้อนี้';
+  const displayName = cleanRecommendationText(expert?.name || '');
+  const username = cleanRecommendationText(expert?.username || '');
+  const reference = displayName || (username ? `@${username.replace(/^@/, '')}` : 'คนนี้');
+  const identityReason = buildExpertIdentityReasoning(expert);
+
+  if (identityReason && identityReason.length <= 110) {
+    return `${reference}: ${identityReason}`;
+  }
+
+  const variants = [
+    `เหมาะกับการตามเรื่อง${topicLabel} เพราะเล่าประเด็นได้ตรงและหยิบไปใช้ต่อได้จริง`,
+    `ถ้าอยากตาม${topicLabel}แบบเข้าใจเร็ว คนนี้สรุปประเด็นสำคัญได้อ่านง่าย`,
+    `ช่วยให้เรื่อง${topicLabel}เข้าใจง่ายขึ้น ไม่ต้องแปลภาษาวงในเยอะ`,
+    `เหมาะไว้ติดตามเวลาต้องการมุมมองเรื่อง${topicLabel}ที่กระชับและเข้าใจง่าย`,
+  ];
+  return `${reference}: ${variants[(reference.length + topicLabel.length) % variants.length]}`;
+};
+
 const formatExpertReasoningCard = (expert, topicHint = '') => {
   const identityReason = buildExpertIdentityReasoning(expert);
   const raw = cleanRecommendationText(expert?.reasoning || '');
   const rawLooksGeneric = !raw || GENERIC_EXPERT_REASONING_PATTERN.test(raw) || raw.length > 110;
 
   if (raw && !rawLooksGeneric && THAI_TEXT_PATTERN.test(raw)) return raw;
-  if (identityReason && THAI_TEXT_PATTERN.test(identityReason)) return identityReason;
-  return buildThaiReasoningFallback(expert, topicHint);
+  if (identityReason && THAI_TEXT_PATTERN.test(identityReason)) return buildReadableExpertReasoning(expert, topicHint);
+  return buildReadableExpertReasoning(expert, topicHint);
 };
 
 const getExpertAvatarSrc = (expert) => {
@@ -127,6 +147,8 @@ const AudienceWorkspace = ({
   onToggleSource = () => { },
 }) => {
   const aiSearchBarRef = React.useRef<HTMLDivElement | null>(null);
+  const menuContainerRef = React.useRef<HTMLDivElement | null>(null);
+  const [openExpertMenu, setOpenExpertMenu] = React.useState<string | null>(null);
   const CATEGORIES = React.useMemo(() => [
     { label: 'เทคโนโลยี', image: 'Tech.jpg_202604080519.jpeg' },
     { label: 'AI', image: 'AI.jpg_202604080519.jpeg' },
@@ -188,6 +210,30 @@ const AudienceWorkspace = ({
       });
     };
   }, [categoryImageUrls]);
+
+  React.useEffect(() => {
+    if (!openExpertMenu) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (!menuContainerRef.current?.contains(event.target)) {
+        setOpenExpertMenu(null);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setOpenExpertMenu(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [openExpertMenu]);
 
   const handleCategorySelect = React.useCallback((label) => {
     setAiQuery(label);
@@ -328,19 +374,30 @@ const AudienceWorkspace = ({
                             <div className="audience-expert-topic-chip">
                               {'\u0e41\u0e19\u0e30\u0e19\u0e33\u0e43\u0e19\u0e2b\u0e31\u0e27\u0e02\u0e49\u0e2d'} {topicLabel}
                             </div>
-                            <div className="audience-expert-menu-wrap" style={{ position: 'relative' }} onClick={(e) => e.stopPropagation()}>
+                            <div
+                              ref={openExpertMenu === expert.username ? menuContainerRef : null}
+                              className="audience-expert-menu-wrap"
+                              style={{ position: 'relative' }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <button
+                                type="button"
                                 onClick={(e) => {
-                                  const btn = e.currentTarget;
-                                  const menu = btn.nextElementSibling;
-                                  menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+                                  e.stopPropagation();
+                                  setOpenExpertMenu((current) => (
+                                    current === expert.username ? null : expert.username
+                                  ));
                                 }}
                                 className="audience-expert-menu-trigger"
+                                aria-expanded={openExpertMenu === expert.username}
                                 style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--glass-border)', color: 'var(--text-dim)', cursor: 'pointer', padding: '4px 8px', borderRadius: '6px' }}
                               >
                                 <Plus size={12} />
                               </button>
-                              <div className="discovery-menu" style={{ display: 'none', position: 'absolute', right: 0, top: '100%', marginTop: '8px', zIndex: 100, width: '180px' }}>
+                              <div
+                                className="discovery-menu"
+                                style={{ display: openExpertMenu === expert.username ? 'block' : 'none', position: 'absolute', right: 0, top: '100%', marginTop: '8px', zIndex: 100, width: '180px' }}
+                              >
                                 <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--glass-border)', fontSize: '10px', fontWeight: '800', color: 'var(--accent-secondary)' }}>
                                   ADD TO LIST
                                 </div>
@@ -348,10 +405,12 @@ const AudienceWorkspace = ({
                                   const isMember = list.members.some((m) => m.toLowerCase() === expert.username.toLowerCase());
                                   return (
                                     <button
+                                      type="button"
                                       key={list.id}
                                       onClick={(e) => {
+                                        e.stopPropagation();
                                         handleToggleMemberInList(list.id, expert.username);
-                                        e.currentTarget.closest('.discovery-menu').style.display = 'none';
+                                        setOpenExpertMenu(null);
                                       }}
                                       className={`discovery-menu-item ${isMember ? 'active' : ''}`}
                                     >

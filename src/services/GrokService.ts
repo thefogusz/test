@@ -3615,6 +3615,14 @@ Hard rules:
       });
     });
 
+    const sanitizeExpertReasoningForDisplay = (reasoning, categoryQuery, expert) => {
+      const sanitized = sanitizeExpertReasoning(reasoning, categoryQuery, expert);
+      if (/เป็นบัญชีที่น่าติดตาม|ช่วยให้เห็นภาพรวม|สัญญาณ|บัญชีนี้ช่วยได้ดี|ถ้าคุณอยากตาม|อ่านง่ายกว่าแหล่งทั่วไป/i.test(String(sanitized || ''))) {
+        return buildNaturalExpertReasoning(categoryQuery, expert);
+      }
+      return sanitized;
+    };
+
     const rankedCandidates = Array.from(candidateMap.values())
       .map((candidate) => {
         const username = String(candidate.username || '').toLowerCase();
@@ -3635,7 +3643,7 @@ Hard rules:
           username: normalizeExpertUsername(candidate.username),
           name: candidateForScoring.name,
           description: candidateForScoring.description || candidate.description || '',
-          reasoning: sanitizeExpertReasoning(candidate.reasoning, topicLabel, candidateForScoring),
+          reasoning: sanitizeExpertReasoningForDisplay(candidate.reasoning, topicLabel, candidateForScoring),
           lastSeenDays: activity?.lastSeenDays,
           activityLabel,
           recentTweetCount: activity?.tweetCount || 0,
@@ -3653,7 +3661,7 @@ Hard rules:
         username: expert.username,
         name: expert.name,
         description: expert.description || '',
-        reasoning: sanitizeExpertReasoning(expert.reasoning, topicLabel, expert),
+        reasoning: sanitizeExpertReasoningForDisplay(expert.reasoning, topicLabel, expert),
         lastSeenDays: expert.lastSeenDays,
         activityLabel: expert.activityLabel,
         recentTweetCount: expert.recentTweetCount,
