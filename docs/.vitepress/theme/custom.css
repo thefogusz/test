@@ -60,12 +60,26 @@
 }
 
 .VPDoc .container {
-  max-width: 1400px;
+  max-width: 1500px;
 }
 
-.VPDoc.has-sidebar .content-container,
-.VPDoc.has-aside .content-container {
-  max-width: min(100%, 1200px);
+.VPContent,
+.VPDoc,
+.VPDoc .container,
+.VPDoc .content,
+.VPDoc .content-container,
+.VPDoc .main {
+  width: 100%;
+  max-width: none;
+}
+
+.VPDoc .content-container {
+  margin: 0 auto;
+}
+
+.vp-doc {
+  max-width: 1280px;
+  margin: 0 auto;
 }
 
 .vp-doc p,
@@ -77,6 +91,10 @@
 .vp-doc h2,
 .vp-doc h3 {
   text-wrap: balance;
+}
+
+.VPDoc.has-aside .content-container {
+  max-width: none;
 }
 
 .vp-doc .mermaid {
@@ -95,9 +113,9 @@
 .vp-doc .mermaid svg {
   display: block;
   width: max-content;
-  min-width: 100%;
+  min-width: 1440px;
   height: auto;
-  margin-inline: auto;
+  margin-inline: 0;
 }
 
 .vp-doc .mermaid .label,
@@ -115,6 +133,11 @@
 }
 
 @media (min-width: 961px) {
+  .VPNavBar.has-sidebar .content,
+  .VPNavBar .content {
+    padding-right: 24px;
+  }
+
   .VPHome .VPHero .container {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -145,10 +168,18 @@
     max-width: 100%;
   }
 
+  .vp-doc {
+    max-width: 100%;
+  }
+
   .vp-doc .mermaid {
     margin: 1.25rem -12px 1.75rem;
     border-radius: 14px;
     padding: 0.875rem;
+  }
+
+  .vp-doc .mermaid svg {
+    min-width: 980px;
   }
 
   .vp-doc .mermaid .label,
