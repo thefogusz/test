@@ -1,433 +1,228 @@
-# API Integrations and Source Websites
+# API Integrations และเว็บไซต์ต้นทาง
 
-> Updated: April 12, 2026
-> Scope: APIs and upstream websites currently used by this repository
+> อัปเดต: 12 เมษายน 2026
+> ขอบเขต: APIs และเว็บไซต์ภายนอกที่ใช้งานจริงในโปรเจ็กต์นี้
 
-## Overview
+## ภาพรวม
 
-This document lists:
+เอกสารนี้รวมข้อมูล:
 
-1. the APIs used by the system
-2. the local proxy routes exposed by the app
-3. the upstream provider endpoints
-4. which features use each API
-5. the source website and docs for each provider
+1. APIs ที่ระบบใช้งาน
+2. proxy routes ที่แอปเปิดไว้
+3. endpoint ของ provider ต้นทาง
+4. ฟีเจอร์ไหนใช้ API ไหน
+5. เว็บไซต์และ docs ของแต่ละ provider
 
-Core proxy reference:
+ไฟล์ proxy หลัก:
 
-- [`D:\TEST\server.cjs`](D:\TEST\server.cjs)
+- `server.cjs`
 
-Core service references:
+ไฟล์ service หลัก:
 
-- [`D:\TEST\src\services\TwitterService.ts`](D:\TEST\src\services\TwitterService.ts)
-- [`D:\TEST\src\services\GrokService.ts`](D:\TEST\src\services\GrokService.ts)
-- [`D:\TEST\src\hooks\useSearchWorkspace.ts`](D:\TEST\src\hooks\useSearchWorkspace.ts)
-- [`D:\TEST\src\hooks\useHomeFeedWorkspace.ts`](D:\TEST\src\hooks\useHomeFeedWorkspace.ts)
-- [`D:\TEST\src\components\CreateContent.tsx`](D:\TEST\src\components\CreateContent.tsx)
+- `src/services/TwitterService.ts`
+- `src/services/GrokService.ts`
+- `src/hooks/useSearchWorkspace.ts`
+- `src/hooks/useHomeFeedWorkspace.ts`
+- `src/components/CreateContent.tsx`
 
-## Integration Map
+## แผนที่ Integration
 
-| Local Route / SDK | Upstream | Provider | Main Usage |
+| Local Route / SDK | Upstream | Provider | การใช้งานหลัก |
 |---|---|---|---|
 | `/api/twitter/*` | `https://api.twitterapi.io/twitter/*` | twitterapi.io | X search, tweet lookup, profile lookup, feed sync |
 | `/api/xai/*` | `https://api.x.ai/*` | xAI | text generation, reasoning, summaries, tool use |
-| `/api/tavily/search` | `https://api.tavily.com/search` | Tavily | web search and external source grounding |
+| `/api/tavily/search` | `https://api.tavily.com/search` | Tavily | web search และ source grounding |
+
+---
 
 ## 1. twitterapi.io
 
-## Local Proxy
+### Local Proxy
 
-The app uses this local base path:
+แอปใช้ base path นี้:
 
-- `/api/twitter`
+```text
+/api/twitter
+```
 
-Defined in:
+กำหนดใน `src/services/TwitterService.ts` — proxy ใน `server.cjs`
 
-- [`D:\TEST\src\services\TwitterService.ts`](D:\TEST\src\services\TwitterService.ts)
-
-Proxy implementation:
-
-- [`D:\TEST\server.cjs`](D:\TEST\server.cjs)
-
-## Upstream Base URL
+### Upstream Base URL
 
 ```text
 https://api.twitterapi.io/twitter
 ```
 
-## App Features That Use It
+### ฟีเจอร์ที่ใช้
 
 - Home feed sync
 - Load more feed
-- Search content
+- ค้นหาคอนเทนต์
 - Audience discovery
-- Manual username/profile lookup
-- Fetch tweet by ID for content generation
-- Recent activity verification for experts
+- ค้นหา username / profile แบบ manual
+- ดึง tweet ด้วย ID สำหรับสร้างคอนเทนต์
+- ตรวจสอบ activity ล่าสุดของ expert
 
-## Observed Endpoint Patterns in the Code
+### Endpoint ที่พบในโค้ด
 
-### 1. Advanced Search
+**1. Advanced Search** — `/api/twitter/tweet/advanced_search`
 
-Used via:
+ใช้ใน: watchlist feed, content search, broad search, latest search, expert discovery
 
-```text
-/api/twitter/tweet/advanced_search
-```
+**2. Tweet Detail** — `/api/twitter/tweet/detail?tweet_id=...`
 
-App usage:
+ใช้ใน: ดึง tweet ต้นทางเมื่อผู้ใช้วาง X URL, สร้าง source context สำหรับ content generation
 
-- watchlist feed
-- content search
-- broad search
-- latest search
-- expert discovery
+**3. Thread Context** — `/api/twitter/tweet/thread_context?tweetId=...`
 
-Code references:
+ใช้ใน: reconstruction ของ thread
 
-- [`D:\TEST\src\services\TwitterService.ts`](D:\TEST\src\services\TwitterService.ts)
-- [`D:\TEST\src\hooks\useSearchWorkspace.ts`](D:\TEST\src\hooks\useSearchWorkspace.ts)
-- [`D:\TEST\src\hooks\useHomeFeedWorkspace.ts`](D:\TEST\src\hooks\useHomeFeedWorkspace.ts)
+**4. Profile Lookup** — ผ่าน `getUserInfo`
 
-### 2. Tweet Detail
+ใช้ใน: manual audience search, เพิ่มผู้เขียนเข้า watchlist, hydrate placeholder users
 
-Used via:
+### เว็บไซต์และ Docs
 
-```text
-/api/twitter/tweet/detail?tweet_id=...
-```
+- เว็บหลัก: [twitterapi.io](https://twitterapi.io/)
 
-App usage:
-
-- fetch original tweet when the user pastes an X URL
-- build source context for content generation
-
-Code references:
-
-- [`D:\TEST\src\services\TwitterService.ts`](D:\TEST\src\services\TwitterService.ts)
-- [`D:\TEST\src\components\CreateContent.tsx`](D:\TEST\src\components\CreateContent.tsx)
-
-### 3. Thread Context
-
-Used via:
-
-```text
-/api/twitter/tweet/thread_context?tweetId=...
-```
-
-App usage:
-
-- thread reconstruction support
-
-Code reference:
-
-- [`D:\TEST\src\services\TwitterService.ts`](D:\TEST\src\services\TwitterService.ts)
-
-### 4. Profile Lookup
-
-Used through `getUserInfo`
-
-App usage:
-
-- manual audience search
-- add author to watchlist
-- hydrate placeholder users
-
-Code references:
-
-- [`D:\TEST\src\services\TwitterService.ts`](D:\TEST\src\services\TwitterService.ts)
-- [`D:\TEST\src\App.tsx`](D:\TEST\src\App.tsx)
-
-## Source Website and Docs
-
-- Main website: [twitterapi.io](https://twitterapi.io/)
-- Pricing: [twitterapi.io pricing](https://twitterapi.io/)
-- Product docs / dashboard entrypoint: [twitterapi.io](https://twitterapi.io/)
+---
 
 ## 2. xAI
 
-## Local SDK / Proxy
+### Local SDK / Proxy
 
-The app configures the xAI SDK with:
+แอปตั้งค่า xAI SDK ด้วย:
 
 ```text
 baseURL: /api/xai/v1
 ```
 
-Defined in:
+กำหนดใน `src/services/GrokService.ts` — proxy ใน `server.cjs`
 
-- [`D:\TEST\src\services\GrokService.ts`](D:\TEST\src\services\GrokService.ts)
-
-Proxy implementation:
-
-- [`D:\TEST\server.cjs`](D:\TEST\server.cjs)
-
-## Upstream Base URL
+### Upstream Base URL
 
 ```text
 https://api.x.ai
 ```
 
-## Models Used in the Code
+### โมเดลที่ใช้
 
-Configured in:
-
-- [`D:\TEST\src\config\aiModels.ts`](D:\TEST\src\config\aiModels.ts)
-
-Observed models:
+กำหนดใน `src/config/aiModels.ts`:
 
 - `grok-4-1-fast-non-reasoning`
 - `grok-4-1-fast-reasoning`
 
-## App Features That Use It
+### ฟีเจอร์ที่ใช้
 
-- Search query expansion
-- Search planning
+- ขยาย search query
+- วางแผนการค้นหา
 - AI feed filtering
-- Executive summary generation
-- Thai summary generation for posts
-- On-demand Thai article translation in `ArticleReaderModal`
-- Content intent normalization
-- Fact-sheet generation
-- Final content writing and review
-- X video analysis
-- X image analysis
-- Expert discovery and ranking
+- สร้าง executive summary
+- สร้างสรุปภาษาไทยของโพสต์
+- แปลบทความเป็นไทย on-demand ใน `ArticleReaderModal`
+- normalize content intent
+- สร้าง fact-sheet
+- เขียนและตรวจสอบคอนเทนต์ขั้นสุดท้าย
+- วิเคราะห์วิดีโอและรูปภาพจาก X
+- ค้นหาและจัดลำดับ expert
 
-## Main xAI Workflows in the Code
+### Workflow หลักของ xAI
 
-### 1. Text Generation
+**1. Text Generation** — ใช้ `generateText` / `streamText`
 
-Used through:
+ใช้ใน: สรุปบทความ, แปลบทความ, เขียนบทความ, rewrite
 
-- `generateText`
-- `streamText`
+หมายเหตุการแปลบทความ:
+- ใช้ `grok-4-1-fast-non-reasoning`
+- แปล `title` และ `body` แยกกัน
+- body ยาวถูก chunk ก่อนแปล
+- ผลลัพธ์ผ่าน post-process cleanup
 
-App usage:
+**2. Structured JSON Generation** — ใช้ `generateObject`
 
-- summaries
-- article translation for RSS and web articles opened in the reader
-- final article generation
-- rewrites
+ใช้ใน: filter selection, intent normalization, content brief, search plan, fact-sheet, expert recommendation
 
-Article translation implementation notes:
+**3. xAI Tool Use**
 
-- current runtime path uses `grok-4-1-fast-non-reasoning`
-- article `title` and `body` are translated separately
-- long article bodies are chunked before translation
-- translated output is cleaned up with a lightweight post-process pass
+Tools: `x_search`, `view_x_video`
 
-Code reference:
+ใช้ใน: วิเคราะห์ X video/image posts, ดึง hooks + key points สำหรับ content generation
 
-- [`D:\TEST\src\services\GrokService.ts`](D:\TEST\src\services\GrokService.ts)
+### เว็บไซต์และ Docs
 
-### 2. Structured JSON Generation
+- เว็บหลัก: [x.ai](https://x.ai/)
+- ราคา API: [x.ai/api](https://x.ai/api)
+- Developer docs: [docs.x.ai](https://docs.x.ai/)
+- Models: [docs.x.ai/developers/models](https://docs.x.ai/developers/models)
 
-Used through:
-
-- `generateObject`
-
-App usage:
-
-- filter selection
-- intent normalization
-- content brief generation
-- search plan generation
-- fact-sheet generation
-- expert recommendation generation
-
-Code reference:
-
-- [`D:\TEST\src\services\GrokService.ts`](D:\TEST\src\services\GrokService.ts)
-
-### 3. xAI Tool Use
-
-Observed tools:
-
-- `x_search`
-- `view_x_video`
-
-Used in:
-
-- `analyzeXVideoPost`
-- `analyzeXImagePost`
-
-App usage:
-
-- inspect X video posts
-- inspect X image posts
-- extract hooks, key points, and visual context for content generation
-
-Code reference:
-
-- [`D:\TEST\src\services\GrokService.ts`](D:\TEST\src\services\GrokService.ts)
-
-## Source Website and Docs
-
-- Main website: [xAI](https://x.ai/)
-- API pricing: [xAI API pricing](https://x.ai/api)
-- Developer docs: [xAI docs](https://docs.x.ai/)
-- Tool usage docs: [xAI tool usage details](https://docs.x.ai/developers/tools/tool-usage-details)
-- Models docs: [xAI models](https://docs.x.ai/developers/models)
+---
 
 ## 3. Tavily
 
-## Local Proxy
+### Local Proxy
 
-The app calls:
+แอปเรียก:
 
 ```text
 /api/tavily/search
 ```
 
-Defined in:
+กำหนดใน `src/services/GrokService.ts` — proxy ใน `server.cjs`
 
-- [`D:\TEST\src\services\GrokService.ts`](D:\TEST\src\services\GrokService.ts)
-
-Proxy implementation:
-
-- [`D:\TEST\server.cjs`](D:\TEST\server.cjs)
-
-## Upstream Endpoint
+### Upstream Endpoint
 
 ```text
 https://api.tavily.com/search
 ```
 
-## App Features That Use It
+### ฟีเจอร์ที่ใช้
 
-- web context for search
-- research grounding for content generation
-- URL resolution for pasted article links
-- expert discovery support
-- attached source verification
+- web context สำหรับ search
+- research grounding สำหรับ content generation
+- resolve URL จากบทความที่วางลิงก์
+- สนับสนุน expert discovery
+- ตรวจสอบ attached source
 
-## Search Modes Observed in the Code
+### Search Mode ที่พบในโค้ด
 
-### 1. Basic Search
+**Basic Search** (`search_depth: "basic"`) — ใช้ใน expert discovery, URL resolution
 
-Typical usage:
+**Advanced Search** (`search_depth: "advanced"`, `include_answer: true`) — ใช้ใน search grounding, fact gathering, content research
 
-- expert discovery
-- URL resolution
+### เว็บไซต์และ Docs
 
-Observed options:
+- เว็บหลัก: [tavily.com](https://tavily.com/)
+- Developer docs: [docs.tavily.com](https://docs.tavily.com/)
 
-- `search_depth: "basic"`
+---
 
-Code references:
+## 4. เว็บไซต์ภายนอกอื่นที่ Frontend ใช้
 
-- [`D:\TEST\src\services\GrokService.ts`](D:\TEST\src\services\GrokService.ts)
-- [`D:\TEST\src\components\CreateContent.tsx`](D:\TEST\src\components\CreateContent.tsx)
+ไม่ใช่ backend API หลัก แต่เป็นบริการภายนอกที่แอปเรียกใช้จริง
 
-### 2. Advanced Search
+**Unavatar** — render avatar ของ social account ใน audience discovery
+- URL pattern: `https://unavatar.io/twitter/{username}`
 
-Typical usage:
+**UI Avatars** — สร้าง avatar แบบ fallback
+- URL pattern: `https://ui-avatars.com/api/...`
 
-- search grounding
-- fact gathering
-- content research
-- source verification
+**Google Favicon Service** — fallback favicon/avatar
+- URL pattern: `https://www.google.com/s2/favicons?...`
 
-Observed options:
+---
 
-- `search_depth: "advanced"`
-- `include_answer: true`
-- `include_raw_content: true` in some source-validation paths
+## Environment Variables สำหรับ Integration
 
-Code reference:
+```text
+TWITTER_API_KEY
+XAI_API_KEY
+TAVILY_API_KEY
+INTERNAL_API_SECRET
+VITE_INTERNAL_API_SECRET
+```
 
-- [`D:\TEST\src\services\GrokService.ts`](D:\TEST\src\services\GrokService.ts)
+อ้างอิงจาก `server.cjs` และ `src/utils/apiFetch.ts`
 
-## Source Website and Docs
+## หมายเหตุด้านความปลอดภัย
 
-- Main website: [Tavily](https://tavily.com/)
-- Developer docs: [Tavily docs](https://docs.tavily.com/)
-- FAQ / credits info: [Tavily FAQ](https://docs.tavily.com/faq/faq)
-
-## 4. Other External Websites Used by the Frontend
-
-These are not core backend APIs, but they are still external websites used by the app.
-
-### 1. Unavatar
-
-Usage:
-
-- render social avatars for audience discovery cards
-
-Observed URL patterns:
-
-- `https://unavatar.io/twitter/{username}`
-- `https://unavatar.io/github/{username}`
-
-Code reference:
-
-- [`D:\TEST\src\components\AudienceWorkspace.tsx`](D:\TEST\src\components\AudienceWorkspace.tsx)
-
-Website:
-
-- [unavatar.io](https://unavatar.io/)
-
-### 2. UI Avatars
-
-Usage:
-
-- fallback avatar generation
-
-Observed URL pattern:
-
-- `https://ui-avatars.com/api/...`
-
-Code references:
-
-- [`D:\TEST\src\components\AudienceWorkspace.tsx`](D:\TEST\src\components\AudienceWorkspace.tsx)
-- [`D:\TEST\src\App.tsx`](D:\TEST\src\App.tsx)
-
-Website:
-
-- [ui-avatars.com](https://ui-avatars.com/)
-
-### 3. Google Favicon Service
-
-Usage:
-
-- fallback favicon/avatar source
-
-Observed URL pattern:
-
-- `https://www.google.com/s2/favicons?...`
-
-Code reference:
-
-- [`D:\TEST\src\components\AudienceWorkspace.tsx`](D:\TEST\src\components\AudienceWorkspace.tsx)
-
-Website:
-
-- [Google favicon service](https://www.google.com/s2/favicons)
-
-## Environment Variables Used for Integrations
-
-Defined by current backend behavior:
-
-- `TWITTER_API_KEY`
-- `XAI_API_KEY`
-- `TAVILY_API_KEY`
-- `INTERNAL_API_SECRET`
-- `VITE_INTERNAL_API_SECRET`
-
-Reference:
-
-- [`D:\TEST\server.cjs`](D:\TEST\server.cjs)
-- [`D:\TEST\src\utils\apiFetch.ts`](D:\TEST\src\utils\apiFetch.ts)
-
-## Security Note
-
-The repository currently contains real provider keys in [`D:\TEST\.env`](D:\TEST\.env). Those keys should be rotated and removed from versioned or shared environments as soon as possible.
-
-## Recommended Next Step
-
-If this document will be used by engineering and product together, the next useful companion docs are:
-
-1. `billing-schema.md`
-2. `usage-events.md`
-3. `provider-metering.md`
+ตรวจสอบให้แน่ใจว่าไม่มี API key จริงอยู่ใน `.env` ที่ commit เข้า version control หรือแชร์ในสภาพแวดล้อมที่ไม่ปลอดภัย

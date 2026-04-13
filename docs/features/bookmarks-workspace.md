@@ -1,4 +1,4 @@
-# Bookmarks Workspace
+# พื้นที่บุ๊กมาร์ก (Bookmarks)
 
 ## เป้าหมายของฟีเจอร์
 
@@ -8,29 +8,24 @@ Bookmarks Workspace เป็นคลังของสิ่งที่ผู
 
 ```mermaid
 flowchart TD
-    subgraph Entry["BookmarksWorkspace.tsx\n(activeView = bookmarks)"]
-        TAB_NEWS["แท็บ News\nFeedCard list"]
-        TAB_ARTICLE["แท็บ Article\narticle card + ลบ"]
-        LIST_PILL["Active List Pill\n(context ของ list ปัจจุบัน)"]
+    BMSTATE[bookmarks state — App.tsx]
+
+    subgraph WS["BookmarksWorkspace.tsx"]
+        NEWS[แท็บ News — FeedCard]
+        ARTICLE[แท็บ Article]
     end
 
-    subgraph DataSource["Data Source"]
-        BMSTATE["bookmarks state\n(App.tsx)"]
+    subgraph Actions["Actions"]
+        OPEN[เปิดอ่าน]
+        ATTACH[ส่งสร้างคอนเทนต์]
+        REMOVE[ลบ bookmark]
     end
 
-    subgraph Actions["User Actions"]
-        OPEN["เปิดอ่าน\n→ ArticleReaderModal"]
-        ATTACH["ส่งไปสร้างคอนเทนต์\n→ ContentWorkspace"]
-        REMOVE["ลบ bookmark\n(article tab)"]
-    end
+    BMSTATE --> NEWS & ARTICLE
+    NEWS --> OPEN & ATTACH
+    ARTICLE --> REMOVE
 
-    BMSTATE --> TAB_NEWS & TAB_ARTICLE
-    TAB_NEWS --> OPEN & ATTACH
-    TAB_ARTICLE --> REMOVE
-    TAB_NEWS -- "FeedCard.tsx" --> Actions
-
-    style Entry fill:#1e293b,stroke:#334155
-    style DataSource fill:#1e1b4b,stroke:#3730a3
+    style WS fill:#1e293b,stroke:#334155
     style Actions fill:#052e16,stroke:#166534
 ```
 

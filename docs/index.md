@@ -1,45 +1,45 @@
-# Start Here
+# เริ่มจากตรงนี้
 
-This docs site is the fastest way to understand how Foro behaves right now.
+หน้านี้คือทางเร็วที่สุดในการทำความเข้าใจว่า Foro ทำงานอย่างไรตอนนี้
 
-If you are new to the repo, use this order:
+ถ้าเพิ่งเปิดโปรเจ็กต์ครั้งแรก อ่านตามลำดับนี้:
 
 1. `src/main.tsx`
 2. `src/App.tsx`
-3. [Feature Docs](/features/)
-4. [Feed and Search Architecture](/architecture/feed-search)
-5. [Cost Analysis](/cost-analysis)
+3. [เอกสารฟีเจอร์](/features/)
+4. [สถาปัตยกรรมฟีดและการค้นหา](/architecture/feed-search)
+5. [วิเคราะห์ต้นทุน API](/cost-analysis)
 
-## Current Product Snapshot
+## สถานะโปรดักต์ตอนนี้
 
-The most important current product rules are:
+กติกาหลักที่สำคัญที่สุดในตอนนี้:
 
-- Home feed is plan-capped:
+- Home feed มีเพดานการ์ดตามแพ็กเกจ:
   - `Free`: 30 cards
   - `Plus`: 100 cards
-- AI filter runs on the same visible Home scope as the current plan allows.
-- RSS uses durable duplicate suppression during normal sync.
-- Clearing Home feed intentionally resets RSS history, so older RSS items may appear again after a clear.
-- X sync separates new-post discovery from visible-card stat refresh.
-- Reopening the same RSS article should reuse cached Thai translation.
-- Audience recommendation cards should present Thai recommendation reasoning clearly.
+- AI filter ใช้ขอบเขตเดียวกับการ์ดที่มองเห็นได้ตามแพ็กเกจปัจจุบัน
+- RSS ใช้ระบบ dedup แบบถาวรระหว่าง sync ปกติ
+- การล้าง Home feed จะ reset ประวัติ RSS โดยตั้งใจ ทำให้บทความเก่าอาจกลับมาหลังล้าง
+- X sync แยกการหาโพสต์ใหม่ออกจากการ refresh สถิติของการ์ดที่มองเห็นอยู่
+- การเปิดบทความ RSS ซ้ำควร reuse คำแปลภาษาไทยที่ cache ไว้แล้ว
+- การ์ดคำแนะนำ Audience ต้องแสดงเหตุผลภาษาไทยที่อ่านเข้าใจได้ชัดเจน
 
-## Where To Look By Topic
+## ค้นหาตามหัวข้อ
 
-- Home sync, RSS/X feed behavior:
-  - [Home Feed](/features/home-feed)
-  - [Feed and Search Architecture](/architecture/feed-search)
-- Content creation and reader behavior:
-  - [Content Workspace](/features/content-workspace)
-- Audience discovery behavior:
-  - [Audience Workspace](/features/audience-workspace)
-- Plan limits and upgrade surface:
-  - [Pricing Workspace](/features/pricing-workspace)
-- Billing and provider cost tradeoffs:
-  - [Cost Analysis](/cost-analysis)
+- พฤติกรรม sync ของ Home, RSS และ X:
+  - [หน้าโฮมฟีด](/features/home-feed)
+  - [สถาปัตยกรรมฟีดและการค้นหา](/architecture/feed-search)
+- การสร้างคอนเทนต์และ article reader:
+  - [พื้นที่ทำคอนเทนต์](/features/content-workspace)
+- การค้นหา Audience:
+  - [พื้นที่ค้นหา Audience](/features/audience-workspace)
+- ขีดจำกัดของแพ็กเกจและการ upgrade:
+  - [หน้าแพ็กเกจ](/features/pricing-workspace)
+- ต้นทุน API และ provider:
+  - [วิเคราะห์ต้นทุน API](/cost-analysis)
 
-## Why These Docs Matter
+## ทำไม Docs ถึงสำคัญ
 
-Use docs pages as product truth, not just as onboarding notes.
+ใช้หน้า docs เป็น product truth ไม่ใช่แค่เอกสาร onboarding
 
-When behavior changes in code, the matching docs page should change in the same commit or PR so the team can understand the system without reverse-engineering it from chat history.
+เมื่อพฤติกรรมในโค้ดเปลี่ยน หน้า docs ที่เกี่ยวข้องต้องอัปเดตในคอมมิตหรือ PR เดียวกัน เพื่อให้ทีมเข้าใจระบบโดยไม่ต้องไล่ย้อนจาก chat history

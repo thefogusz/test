@@ -11,49 +11,39 @@ flow ที่ตั้งใจไว้คือ:
 ## Data Flow Diagram
 
 ```mermaid
-flowchart LR
-    subgraph Entry["ContentWorkspace.tsx"]
-        SEARCH_MODE["โหมด Search\nหา source candidates"]
-        CREATE_MODE["โหมด Create\nสร้างคอนเทนต์"]
-        ATTACH["Attached Sources\n(persist ข้าม workspace)"]
+flowchart TD
+    subgraph WS["ContentWorkspace.tsx"]
+        SEARCH[โหมด Search]
+        ATTACH[Attached Sources]
+        CREATE[โหมด Create]
     end
 
     subgraph Pipeline["CreateContent.tsx — AI Pipeline"]
-        direction TB
-        P1["1 Research\nGrokService + Tavily + X search"]
-        P2["2 Fact Sheet\nสรุปข้อมูลจาก sources"]
-        P3["3 Content Brief\nโครงร่างคอนเทนต์"]
-        P4["4 Draft (streaming)\nGrokService.generateContent()"]
-        P5["5 Evaluation\nตรวจสอบ facts + quality"]
-        P6["6 Polish\nปรับภาษาไทย"]
+        P1[1. Research]
+        P2[2. Fact Sheet]
+        P3[3. Content Brief]
+        P4[4. Draft — streaming]
+        P5[5. Evaluation]
+        P6[6. Polish]
         P1 --> P2 --> P3 --> P4 --> P5 --> P6
     end
 
-    subgraph External["External APIs"]
-        TAVILY["Tavily API\nweb search"]
-        XAPI["Twitter API\nsearchPosts()"]
-        GROK["GrokService.ts\nxAI Grok"]
+    subgraph APIs["External APIs"]
+        TAVILY[Tavily]
+        GROK[GrokService]
+        XAPI[TwitterService]
     end
 
-    subgraph Output["Output"]
-        MD["Final Markdown\n(ภาษาไทย)"]
-        CACHE["Translation Cache\nkey: RSS fingerprint / URL"]
-    end
+    OUT[Final Markdown]
 
-    SEARCH_MODE --> ATTACH
-    ATTACH --> CREATE_MODE
-    CREATE_MODE --> P1
-    P1 --> TAVILY
-    P1 --> XAPI
-    P1 --> GROK
+    SEARCH --> ATTACH --> CREATE --> P1
+    P1 --> TAVILY & GROK & XAPI
     P4 --> GROK
-    P6 --> MD
-    MD --> CACHE
+    P6 --> OUT
 
-    style Entry fill:#1e293b,stroke:#334155
+    style WS fill:#1e293b,stroke:#334155
     style Pipeline fill:#1e1b4b,stroke:#3730a3
-    style External fill:#1c1917,stroke:#78350f
-    style Output fill:#052e16,stroke:#166534
+    style APIs fill:#1c1917,stroke:#78350f
 ```
 
 ## กติกาของโปรดักต์ตอนนี้
