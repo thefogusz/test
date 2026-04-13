@@ -1982,6 +1982,46 @@ const polishForoBriefTone = (value = '') =>
 const stripForoBriefCitations = (value = '') =>
   polishForoBriefTone(value).replace(/\[(?:F|W)\d+\]/gi, '').replace(/\s{2,}/g, ' ').trim();
 
+const FORO_BRIEF_CITATION_PATTERN = /\[(?:F|W)\d+\]/gi;
+
+const extractForoBriefCitations = (value = '') =>
+  Array.from(new Set(String(value || '').match(FORO_BRIEF_CITATION_PATTERN) || []));
+
+const normalizeForoBriefItemKey = (value = '') =>
+  stripForoBriefCitations(value)
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const mergeForoBriefItems = (items = []) => {
+  const merged = [];
+
+  (Array.isArray(items) ? items : []).forEach((rawItem) => {
+    const polished = polishForoBriefTone(rawItem || '');
+    const text = stripForoBriefCitations(polished);
+    const citations = extractForoBriefCitations(polished);
+    const key = normalizeForoBriefItemKey(polished);
+
+    if (!text || !key) return;
+
+    const existing = merged.find((entry) =>
+      entry.key === key ||
+      (entry.key.includes(key) && key.length >= Math.floor(entry.key.length * 0.72)) ||
+      (key.includes(entry.key) && entry.key.length >= Math.floor(key.length * 0.72)));
+
+    if (existing) {
+      if (text.length > existing.text.length) existing.text = text;
+      existing.citations = Array.from(new Set([...existing.citations, ...citations]));
+      return;
+    }
+
+    merged.push({ key, text, citations });
+  });
+
+  return merged.map((entry) => `${entry.text}${entry.citations.length ? ` ${entry.citations.join('')}` : ''}`.trim());
+};
+
 const getForoOutputProfile = (outputMode = '') => {
   const normalizedMode = cleanGeneratedContent(outputMode).toLowerCase();
   return FORO_OUTPUT_PROFILES[normalizedMode] || FORO_OUTPUT_PROFILES.overview;
@@ -2027,7 +2067,10 @@ export const buildForoFilterBriefMarkdown = (brief) => {
 
   const safeHeadline = stripForoBriefCitations(brief.headline || '');
   const safeWhyNow = stripForoBriefCitations(brief.whyNow || '');
-  const sections = normalizeForoFilterSections(brief);
+  const sections = normalizeForoFilterSections(brief).map((section) => ({
+    ...section,
+    items: mergeForoBriefItems(section.items || []),
+  }));
 
   return [
     safeHeadline,
@@ -2086,7 +2129,7 @@ export const generateForoFilterBrief = async (validTweets, userQuery, options = 
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
-      system: `You create a compact "FORO Filter" synthesis brief for a news feed UI.
+      system: `You create a compact "FORO Filter" result brief for a feed UI.
 
 Rules:
 - Return Thai only.
@@ -2098,10 +2141,11 @@ Rules:
 - Preferred output label: ${preferredProfile.outputLabel}
 - Preferred section titles: ${preferredProfile.sectionTitles.join(' | ')}
 - Preferred mode guidance: ${preferredProfile.sectionHint}
-- Write like a sharp human editor summarizing this for a friend or teammate in chat or email.
-- The result should feel like a compact newspaper front page: one clear lead, then 2-3 varied sub-sections that together cover the main heat, the supporting signals, and any interesting angle worth noticing when present.
-- headline: 1 short sentence that instantly tells the reader what is going on across the whole set. It must describe the theme or change itself, not praise the people involved, and must avoid dramatic phrasing.
-- whyNow: 1-2 short lines in plain Thai that help the reader understand the big picture immediately. This must feel natural, neutral, and easy to read in under 2 lines.
+- This is not a generic news-summary widget. FORO Filter is an AI card-management layer that helps the user understand why these cards were selected for their instruction.
+- Write like a sharp human teammate explaining what this filter command surfaced and why the chosen cards are useful.
+- The result should feel like a compact selection note: one clear lead, then 1-2 tight groups that explain the strongest reasons or patterns behind the selected cards.
+- headline: 1 short sentence that tells the user what kind of cards this command surfaced. It should match the instruction intent such as summary, standout posts, content ideas, funny posts, contradictions, or other useful slices.
+- whyNow: 1-2 short lines in plain Thai that explain why this selection is useful or how the user should read the chosen cards.
 - headline and whyNow must never include citations like [F1].
 - If the selected posts are heterogeneous, keep headline and whyNow at umbrella level. Do not let one company, product, or post dominate the lead unless it clearly represents most of the set.
 - Do not mention the names or handles of the people who posted these items unless that person is genuinely the subject of the news itself. Prefer describing the topic, shift, product, or implication directly.
@@ -2109,7 +2153,7 @@ Rules:
 - Every bullet must explain an important theme, pattern, standout item, or takeaway from the selected posts in plain Thai and end with one or more citations like [F1] or [F2][F4].
 - Every bullet must be understandable on its own even if the reader only skims that one line. Start with the topic, product, company, policy, or issue first, then explain what changed or why it matters.
 - Avoid vague floating bullets that begin with verbs or fragments such as "แก้ปัญหา...", "ขยาย...", "เปิดตัว...", "ทดสอบ..." unless the subject is already named at the start of that same bullet.
-- Total bullets across all sections should usually be 5-9 unless the filtered set is extremely small.
+- Total bullets across all sections should usually be 4-7 unless the filtered set is extremely small.
 - When the set is larger than 8 posts, the brief should usually cite at least 4 different posts across the full output and should cover more than one topic cluster when multiple clusters exist.
 - Avoid repeating the same company, product, or event in most bullets unless the evidence truly shows that it dominates the selected set.
 - outputMode: one short lowercase English token for the inferred mode, such as "overview", "opinion", "ranking", "shortlist", "themes", "opportunities", "risks", "content_angles", or another close fit
@@ -2137,16 +2181,21 @@ ${focusMode ? `- Treat this as the preferred analysis mode: ${focusMode}` : ''}`
             title: z.string().min(4).max(40),
             items: z.array(z.string().min(10).max(260)).min(2).max(4),
           }),
-        ).min(2).max(3),
+        ).min(1).max(2),
         outputMode: z.string().min(3).max(40),
         outputLabel: z.string().min(4).max(80),
       }),
       temperature: 0.05,
     });
 
-    const sections = (object.sections || [])
+    const outputMode = cleanGeneratedContent(object.outputMode || preferredOutputMode);
+    const outputLabel = normalizeForoOutputLabel(outputMode, object.outputLabel);
+    const sections = [{
+      title: outputLabel,
+      items: mergeForoBriefItems((object.sections || []).flatMap((section) => section.items || [])),
+    }]
       .map((section, index, allSections) => ({
-        title: normalizeForoSectionTitle(object.outputMode || preferredOutputMode, index, allSections.length),
+        title: normalizeForoSectionTitle(outputMode, index, allSections.length),
         items: (section.items || []).map((item) => polishForoBriefTone(item)).filter(Boolean),
       }))
       .filter((section) => section.title && section.items.length > 0);
@@ -2156,8 +2205,8 @@ ${focusMode ? `- Treat this as the preferred analysis mode: ${focusMode}` : ''}`
       whyNow: polishForoBriefTone(object.whyNow),
       sections,
       matchedSignals: sections.flatMap((section) => section.items),
-      outputMode: cleanGeneratedContent(object.outputMode || preferredOutputMode),
-      outputLabel: normalizeForoOutputLabel(object.outputMode || preferredOutputMode, object.outputLabel),
+      outputMode,
+      outputLabel,
       sectionLabel: sections[0]?.title || 'ประเด็นสำคัญ',
     };
 

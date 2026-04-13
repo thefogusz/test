@@ -18,6 +18,44 @@ const parseBriefItem = (value = '') => {
   return { text, citations };
 };
 
+const normalizeBriefItemKey = (value = '') =>
+  String(value || '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const mergeBriefItems = (sections = []) => {
+  const merged = [];
+
+  (Array.isArray(sections) ? sections : []).forEach((section) => {
+    (Array.isArray(section?.items) ? section.items : []).forEach((item) => {
+      const parsed = parseBriefItem(item);
+      const key = normalizeBriefItemKey(parsed.text);
+      if (!parsed.text || !key) return;
+
+      const existing = merged.find((entry) =>
+        entry.key === key ||
+        (entry.key.includes(key) && key.length >= Math.floor(entry.key.length * 0.72)) ||
+        (key.includes(entry.key) && entry.key.length >= Math.floor(key.length * 0.72)));
+
+      if (existing) {
+        if (parsed.text.length > existing.text.length) existing.text = parsed.text;
+        existing.citations = Array.from(new Set([...existing.citations, ...parsed.citations]));
+        return;
+      }
+
+      merged.push({
+        key,
+        text: parsed.text,
+        citations: parsed.citations,
+      });
+    });
+  });
+
+  return merged;
+};
+
 const normalizeBriefSections = (brief) => {
   if (!brief) return [];
 
@@ -117,7 +155,8 @@ const HomeView = ({
   const [hadVisibleFeedBeforeSync, setHadVisibleFeedBeforeSync] = useState(false);
   const hadVisibleFeedBeforeSyncRef = useRef(false);
   const wasSyncingRef = useRef(false);
-  const isFilterUiActive = isFiltering || isFilterPrimed;
+  const isFilterProcessing = isFiltering || (isFilterPrimed && !aiFilterSummary);
+  const isFilterUiActive = isFilterProcessing || isFiltered;
   const isFilterAnimationActive = isFiltering;
   const hasStructuredAiBrief = Boolean(
     aiFilterBrief?.headline &&
@@ -186,12 +225,9 @@ const HomeView = ({
 
   const normalizedActiveFilterPrompt = String(activeFilterPrompt || '').trim();
   const briefHeadline = parseBriefItem(aiFilterBrief?.headline || '').text;
-  const compactBriefItems = briefSections.flatMap((section) =>
-    section.items.map((item) => ({
-      key: `${section.title}-${item}`,
-      ...parseBriefItem(item),
-    })),
-  );
+  const briefWhyNow = parseBriefItem(aiFilterBrief?.whyNow || '').text;
+  const briefOutputLabel = String(aiFilterBrief?.outputLabel || '').trim();
+  const compactBriefItems = mergeBriefItems(briefSections);
   const renderFeedMaintenanceAction = (extraClassName = '') => {
     const className = `icon-btn-large header-secondary-action${canUndoFeedClear ? ' undo-reveal' : ''}${extraClassName ? ` ${extraClassName}` : ''}`;
     const title = canUndoFeedClear ? 'ฟื้นฟู' : 'เคลียร์ฟีด';
@@ -258,12 +294,12 @@ const HomeView = ({
             {visibleQuickPresets.map((preset) => (
               <div
                 key={preset}
-                className={`home-ai-quick-chip ${isFilterUiActive && normalizedActiveFilterPrompt === preset ? 'is-active' : ''}`}
+                className={`home-ai-quick-chip ${normalizedActiveFilterPrompt === preset && isFilterUiActive ? 'is-active' : ''}`}
               >
                 <button
                   onClick={() => onQuickFilter(preset)}
                   disabled={isFiltering}
-                  className={`home-ai-quick-preset-btn ${isFilterUiActive && normalizedActiveFilterPrompt === preset ? 'is-active' : ''}`}
+                  className={`home-ai-quick-preset-btn ${normalizedActiveFilterPrompt === preset && isFilterUiActive ? 'is-active' : ''}`}
                 >
                   {preset}
                 </button>
@@ -273,11 +309,11 @@ const HomeView = ({
         )}
         <button
           onClick={onOpenFilterModal}
-          aria-busy={isFilterAnimationActive}
-          className={`btn-pill home-ai-filter-btn ${feed.length > 0 ? 'home-ai-filter-ready' : ''} ${isFilterAnimationActive ? 'is-filtering' : ''}`}
+          aria-busy={isFilterProcessing}
+          className={`btn-pill home-ai-filter-btn ${feed.length > 0 ? 'home-ai-filter-ready' : ''} ${isFilterAnimationActive ? 'is-filtering' : ''} ${isFiltered ? 'has-active-result' : ''}`.trim()}
         >
-          <span className={`home-ai-filter-btn-signal ${isFilterAnimationActive ? 'is-visible is-spinning' : ''}`} aria-hidden="true" />
-          <span className="home-ai-filter-btn-label">{isFilterUiActive ? 'กำลังกรอง' : 'FORO Filter'}</span>
+          <span className={`home-ai-filter-btn-signal ${isFilterUiActive ? 'is-visible' : ''} ${isFilterAnimationActive ? 'is-spinning' : ''} ${isFiltered ? 'is-active' : ''}`.trim()} aria-hidden="true" />
+          <span className="home-ai-filter-btn-label">{isFilterProcessing ? 'กำลังคัดการ์ด' : 'FORO Filter'}</span>
         </button>
         <button
           onClick={onSync}
@@ -392,6 +428,12 @@ const HomeView = ({
               className="foro-filter-brief"
               style={{ position: 'relative', zIndex: 1, display: 'grid', gap: '14px' }}
             >
+              {(briefOutputLabel || briefWhyNow) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  {briefOutputLabel && <span className="foro-filter-meta-pill foro-filter-output-pill">{briefOutputLabel}</span>}
+                  {briefWhyNow && <span className="foro-filter-meta-pill">{briefWhyNow}</span>}
+                </div>
+              )}
               {briefHeadline && <div className="foro-filter-compact-headline">{briefHeadline}</div>}
               {compactBriefItems.length > 0 && (
                 <div className="foro-filter-compact-list">
