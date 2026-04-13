@@ -126,6 +126,7 @@ const AudienceWorkspace = ({
   subscribedSources = [],
   onToggleSource = () => { },
 }) => {
+  const aiSearchBarRef = React.useRef<HTMLDivElement | null>(null);
   const CATEGORIES = React.useMemo(() => [
     { label: 'เทคโนโลยี', image: 'Tech.jpg_202604080519.jpeg' },
     { label: 'AI', image: 'AI.jpg_202604080519.jpeg' },
@@ -188,6 +189,14 @@ const AudienceWorkspace = ({
     };
   }, [categoryImageUrls]);
 
+  const handleCategorySelect = React.useCallback((label) => {
+    setAiQuery(label);
+    window.requestAnimationFrame(() => {
+      aiSearchBarRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    void handleAiSearchAudience(label);
+  }, [handleAiSearchAudience, setAiQuery]);
+
   const handleClearAiSearch = () => {
     setAiQuery('');
     setAiSearchResults([]);
@@ -249,7 +258,11 @@ const AudienceWorkspace = ({
 
         {audienceTab === 'ai' && (
           <div className="animate-fade-in">
-            <div className="audience-ai-searchbar audience-command-row" style={{ display: 'flex', gap: '12px', marginBottom: '20px', maxWidth: '680px', flexWrap: 'wrap' }}>
+            <div
+              ref={aiSearchBarRef}
+              className="audience-ai-searchbar audience-command-row"
+              style={{ display: 'flex', gap: '12px', marginBottom: '20px', maxWidth: '680px', flexWrap: 'wrap' }}
+            >
               <div className="audience-ai-search-input">
 
                 <input
@@ -499,12 +512,15 @@ const AudienceWorkspace = ({
                 {CATEGORIES.map((cat) => {
                   const imageUrl = `${import.meta.env.BASE_URL}categories/${cat.image}`;
                   const isImageLoaded = loadedCategoryImages.has(imageUrl);
+                  const isActiveCategory = cleanRecommendationText(aiQuery).toLowerCase() === cleanRecommendationText(cat.label).toLowerCase();
 
                   return (
                     <button
                       key={cat.label}
-                      onClick={() => { setAiQuery(cat.label); handleAiSearchAudience(cat.label); }}
-                      className="category-image-card"
+                      type="button"
+                      onClick={() => handleCategorySelect(cat.label)}
+                      className={`category-image-card ${isActiveCategory ? 'is-active' : ''}`}
+                      aria-pressed={isActiveCategory}
                     >
                       <img
                         src={imageUrl}

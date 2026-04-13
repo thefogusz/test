@@ -10177,6 +10177,25 @@ h6,
   z-index: 2;
 }
 
+.category-image-card.is-active {
+  transform: translateY(-3px);
+  border-color: rgba(125, 190, 255, 0.55);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 0 1px rgba(41, 151, 255, 0.16),
+    0 18px 36px rgba(0, 0, 0, 0.62);
+}
+
+.category-image-card.is-active .category-image-gradient {
+  opacity: 0.72;
+}
+
+.category-image-card.is-active .category-image-label {
+  text-shadow:
+    0 0 14px rgba(72, 163, 255, 0.45),
+    0 1px 10px rgba(0, 0, 0, 0.82);
+}
+
 .category-image-card img {
   position: absolute;
   top: 0;
