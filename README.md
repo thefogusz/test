@@ -6,15 +6,18 @@ React + Vite application with an Express edge server for API proxying, AI integr
 
 Use `DESIGN.md` as the UI source of truth before changing FORO screens, components, or styling. It captures the current dark command-center direction, color tokens, typography, component rules, responsive behavior, and agent prompts for keeping future UI work on-brand.
 
+Use [`docs/ux-ui-readme.md`](docs/ux-ui-readme.md) as the UX/UI handoff guide for developers and LLMs. It explains the interaction design, workspace intent, responsive behavior, and animation rules that should survive when this test repo is copied forward into the real Foro product repo.
+
 ## Product Docs
 
 Use the VitePress docs in `docs/` as the living source of truth for product behavior and architecture.
 
 - Feature behavior lives in `docs/features/`
 - Product tradeoffs live in `docs/decisions/`
+- UX/UI handoff lives in `docs/ux-ui-readme.md`
 - Docs workflow lives in `docs/process/docs-governance.md`
 
-When a PR changes user-facing behavior, business rules, workflow steps, or UI states, update the matching docs page in the same PR.
+When a PR changes user-facing behavior, business rules, workflow steps, UI states, interaction behavior, responsive behavior, or animation intent, update the matching docs page in the same PR. If the change touches the UI/UX contract, also update `docs/ux-ui-readme.md`.
 
 แนวคิดนี้มีไว้เพื่อให้ทีม dev เปิด docs แล้วเข้าใจ "ของที่ระบบทำจริงตอนนี้" ได้โดยไม่ต้องไล่หา context จากแชตหรือ PR เก่า
 

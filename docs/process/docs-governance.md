@@ -1,90 +1,114 @@
 # กติกาการอัปเดต Docs
 
-repo นี้ใช้ docs เป็น living source of truth ของพฤติกรรม product ไม่ใช่แค่เอกสาร architecture
+repo นี้ใช้ docs เป็น living source of truth ของ product, frontend behavior, และ UX/UI ไม่ใช่แค่เอกสารประกอบ
 
 ## กติกาหลัก
 
-ให้อัปเดต docs ใน PR เดียวกันทันที ถ้าการเปลี่ยนแปลงนั้นมีอย่างใดอย่างหนึ่งต่อไปนี้
+ทุกครั้งที่โค้ดถูกเปลี่ยน ต้องพิจารณา docs ใน PR เดียวกันเสมอ
+
+กติกาที่ใช้กับ repo นี้คือ:
+
+- ถ้า code change กระทบ behavior ของฟีเจอร์ ต้องอัปเดต feature doc ที่เกี่ยวข้อง
+- ถ้า code change กระทบ layout, interaction, responsive behavior, state บนหน้าจอ, animation, หรือ visual hierarchy ต้องอัปเดต UX/UI doc ด้วย
+- ถ้า code change กระทบทั้ง behavior และ UI ต้องอัปเดตทั้ง 2 ฝั่งพร้อมกัน
+- ห้ามปล่อยให้โค้ดเปลี่ยนไป แต่ `.md` ยังอธิบายของเก่าอยู่
+
+สรุปสั้น ๆ:
+
+- `code เปลี่ยน -> docs ต้องถูกเช็ก`
+- `feature เปลี่ยน -> feature docs ต้องอัปเดต`
+- `ui/ux เปลี่ยน -> ux-ui-readme.md ต้องอัปเดต`
+- `ทั้งคู่เปลี่ยน -> อัปเดตทั้งคู่`
+
+## จุดที่ถือว่า "ต้องอัปเดต docs"
+
+### Feature docs
+
+ให้อัปเดตเมื่อมีอย่างใดอย่างหนึ่ง:
 
 - เปลี่ยนพฤติกรรมที่ผู้ใช้เห็น
 - เปลี่ยน business rule หรือ limit
 - เพิ่มหรือลดขั้นตอนใน workflow
-- เปลี่ยน loading, empty, success หรือ error state
-- เปลี่ยน expectation ของ external integration
+- เปลี่ยน loading, empty, success, error state
+- เปลี่ยน expectation ของ integration
 - เพิ่มฟีเจอร์ใหม่
 
-โดยปกติไม่จำเป็นต้องอัปเดต docs ถ้าเป็นแค่:
+### UX/UI docs
 
-- refactor ภายในที่ไม่เปลี่ยน behavior
-- rename หรือ cleanup โค้ดอย่างเดียว
-- styling-only change ที่ไม่เปลี่ยน UX behavior
-- test-only change
+ให้อัปเดตเมื่อมีอย่างใดอย่างหนึ่ง:
 
-## แยกหน้าที่ของเอกสารให้ชัด
+- เปลี่ยน layout ของ app shell หรือ workspace
+- เปลี่ยน navigation behavior
+- เปลี่ยน interaction ของปุ่ม, modal, sheet, switcher, filter, search, card
+- เปลี่ยน responsive behavior desktop / tablet / mobile
+- เปลี่ยน animation intent หรือ state transition ที่มีความหมายต่อ UX
+- เปลี่ยน hierarchy ของข้อมูลบนหน้าจอ
+- เปลี่ยนภาษากลางที่ทีมใช้คุยกับ LLM เรื่องหน้าจอ
 
-ให้แยก 3 ชั้นนี้ออกจากกันเสมอ:
+## ไฟล์ docs ที่ต้องนึกถึงก่อน merge
 
-- Feature docs: ตอนนี้ product ทำอะไรอยู่จริง
-- Decision logs: ทำไมทีมถึงเลือก behavior หรือ tradeoff แบบนี้
-- Architecture docs: ระบบเชื่อมกันยังไง
+- `docs/features/*.md`
+- `docs/architecture/*.md`
+- `docs/ux-ui-readme.md`
+- `README.md`
 
-ถ้าเอา 3 ชั้นนี้มาปนกัน docs จะ drift เร็วมาก เพราะข้อมูลคนละแบบอัปเดตไม่พร้อมกัน
+## กรณีที่ "ไม่ควรข้าม" UX/UI doc
 
-## Workflow ที่ควรทำทุกครั้ง
+ถึงจะดูเหมือนเป็น styling change ก็ห้ามข้าม `docs/ux-ui-readme.md` ถ้ามันกระทบ:
 
-1. หาเอกสารเดิมใน `docs/features/` ให้เจอก่อน
-2. อัปเดตหัวข้อ `พฤติกรรมปัจจุบัน`, `กฎสำคัญ`, `UI States` และ `Change Log` ถ้ามีผลกระทบ
-3. ถ้าการเปลี่ยนนี้มาจากการตัดสินใจเชิง product หรือ tradeoff ให้เพิ่มหรืออัปเดต decision log ด้วย
-4. ส่ง code และ docs ไปใน PR เดียวกัน
+- ความรู้สึกของ interaction
+- animation ที่สื่อ state
+- ความสามารถในการใช้งานบน mobile
+- ลำดับความเด่นของข้อมูล
+- การรับรู้ว่าอะไรคือ primary action
 
-## ระบบติดตามการอัปเดต
+พูดง่าย ๆ คือ ถ้า dev หรือ LLM อ่าน doc เดิมแล้วจะเผลอทำของใหม่ผิด intention ให้ถือว่าต้องอัปเดต
 
-เว็บ docs ชุดนี้มีหน้า [สถานะ Docs และ Coverage](/status/) ซึ่ง build จากไฟล์ registry และข้อมูล Git ใน repo โดยตรง เพื่อช่วยตอบคำถามเหล่านี้:
+## Workflow ที่ต้องทำทุกครั้ง
 
-- หน้าไหนเพิ่งอัปเดตล่าสุด
-- ฟีเจอร์ไหน code ใหม่กว่า docs
-- มีไฟล์ source ไหนที่แก้ค้างแต่ docs ยังไม่ถูกแตะ
-- `activeView` ไหนยังไม่มี coverage
+1. ระบุให้ชัดว่า code change นี้กระทบ feature ไหนบ้าง
+2. เช็กหน้าใน `docs/features/` ที่เกี่ยวข้อง
+3. ถ้ามีผลกับหน้าจอ ให้เช็ก `docs/ux-ui-readme.md` ด้วยเสมอ
+4. ถ้ามีผลกับโครงรวมของ frontend หรือ shell ให้เช็ก `docs/architecture/frontend.md` หรือ `docs/features/app-shell.md`
+5. อัปเดต `Change Log` ของหน้าที่แก้ ถ้ามี section นี้อยู่
+6. ส่ง code และ docs ใน PR เดียวกัน
 
-หน้ารายงานที่เป็น generated dashboard เช่น [สถานะ Docs และ Coverage](/status/), [Changelog](/changelog/) และ [Draft Docs Suggestions](/drafts/) ใช้ snapshot data ที่ generate ตอน `docs:dev` และ `docs:build` โดยตรง ไม่ได้พึ่ง runtime fetch จาก path พิเศษระหว่างเปิดหน้า
+## Checklist ก่อนปิดงาน
 
-ผลที่คาดหวังคือ:
+- behavior ใหม่ถูกสะท้อนใน docs แล้วหรือยัง
+- UI state ใหม่ถูกสะท้อนใน docs แล้วหรือยัง
+- animation / interaction ที่เปลี่ยน ถูกอธิบายใน UX/UI doc แล้วหรือยัง
+- ถ้ามี workspace ใหม่หรือ flow ใหม่ หน้า index / nav ของ docs ต้องลิงก์ถึงหรือยัง
+- ถ้า dev ใหม่มาเปิด docs วันนี้ เขาจะเข้าใจของจริงโดยไม่ต้องอ่าน PR หรือแชตเก่าหรือยัง
 
-- ถ้า build ผ่าน หน้า dashboard ควรเปิดได้แม้รันจาก static output
-- ถ้าข้อมูลบนหน้าแปลก ให้เช็ก `npm run docs:data` หรือ `npm run docs:build` ก่อนว่ารายงานล่าสุดถูก regenerate แล้วหรือยัง
-- ถ้าในโค้ดมี `ActiveView` ใหม่ แต่หน้า status ยังไม่ track ระบบควรเตือนบนหน้า status เอง เพื่อให้เพิ่ม coverage ใน registry หรือปรับ type ให้ตรงกับของจริง
-
-สถานะหลักที่ใช้ตอนนี้:
-
-- `ok`: docs ยังตาม source ทัน
-- `needs-review`: source ใหม่กว่า docs
-- `source-dirty`: source มีการแก้ค้าง ควรเช็ก docs
-- `docs-dirty`: docs มีการแก้ค้างยังไม่ commit
-- `missing`: ยังไม่มี metadata หรือ coverage ที่ระบบตามได้
-
-อีกสัญญาณที่ควรดูคือ `ActiveView ที่ประกาศในโค้ดแต่ยังไม่ถูก track`
-
-- ถ้าค่านี้มากกว่า 0 แปลว่า source of truth ระหว่าง type กับ docs tracker ยังไม่ตรงกัน
-- ก่อน merge ควรตัดสินใจให้ชัดว่าจะเพิ่ม coverage ให้ view นั้น หรือเอาค่าที่ไม่ใช้แล้วออกจาก type/registry
-
-## Automation ที่เพิ่มเข้ามา
-
-ตอนนี้ repo นี้มี automation 2 ชั้น:
-
-- หน้า [Changelog](/changelog/) สำหรับสรุปว่า commit ล่าสุดกระทบฟีเจอร์ไหน
-- หน้า [Draft Docs Suggestions](/drafts/) สำหรับดูว่าการเปลี่ยนใน branch ปัจจุบันควรกลับไปอัปเดต docs หน้าไหน
-
-ใน GitHub Actions ยังมี workflow ที่สามารถคอมเมนต์ draft docs summary กลับเข้า pull request อัตโนมัติได้ด้วย เพื่อให้ reviewer เห็นเลยว่ามีฟีเจอร์ไหนได้รับผลกระทบและ docs ถูกแตะแล้วหรือยัง
-
-## คำถามที่ reviewer ควรถามก่อน merge
+## Reviewer rule
 
 ก่อน merge ให้ถามประโยคนี้:
 
-`ถ้าพรุ่งนี้มี dev อีกคนมาเปิด docs เขาจะเข้าใจ behavior ปัจจุบันของระบบโดยไม่ต้องไล่อ่าน PR นี้ไหม`
+`ถ้าวันพรุ่งนี้มี dev อีกคนมาเปิด docs เขาจะเข้าใจ behavior และ UX/UI ปัจจุบันของระบบโดยไม่ต้องไล่อ่าน PR นี้ไหม`
 
-## คำสั่งที่ใช้
+ถ้าคำตอบคือไม่ ให้ถือว่างาน docs ยังไม่ครบ
+
+## Automation และ dashboard
+
+ใช้หน้าเหล่านี้ช่วยเช็กว่ามี docs ไหนตามไม่ทัน:
+
+- [สถานะ Docs และ Coverage](/status/)
+- [Changelog](/changelog/)
+- [Draft Docs Suggestions](/drafts/)
+
+และใช้คำสั่งนี้ก่อนส่งงาน:
 
 ```bash
-npm run docs:dev
 npm run docs:build
 ```
+
+## เอกสารแม่แบบที่ต้องใช้
+
+- ฟีเจอร์ใหม่หรือ behavior ใหม่: ใช้ `docs/process/feature-template.md`
+- งาน UX/UI: อัปเดต `docs/ux-ui-readme.md`
+- งาน architecture ระดับระบบ: อัปเดต `docs/architecture/*.md`
+
+## Change Log
+
+- 2026-04-13: เพิ่มกติกาชัดเจนว่า every code change must review docs, และถ้ากระทบ UI/UX ต้องอัปเดต `docs/ux-ui-readme.md` ทุกครั้ง

@@ -2,56 +2,91 @@
 
 ## หน้าที่ของ Frontend
 
-frontend ของระบบนี้ไม่ได้เป็นแค่ layer แสดงผล แต่ทำหน้าที่เป็น orchestration layer ของ business flow เกือบทั้งหมด
+frontend ของ Foro ไม่ได้เป็นแค่ layer แสดงผล แต่เป็น orchestration layer ของ workflow หลักเกือบทั้งหมด ทั้งการสลับ workspace, การจัด state, การประสาน service, และการแปล system state ให้ผู้ใช้เข้าใจผ่าน UI
 
-ศูนย์กลางคือ `src/App.jsx`
+ศูนย์กลางปัจจุบันคือ `src/App.tsx`
 
 หน้าที่หลัก:
 
 - ถือ state หลักของระบบ
-- เปลี่ยน view ตาม navigation
-- เรียก service layer
-- merge ผลลัพธ์กลับเข้า state
-- sync state บางส่วนลง `localStorage`
+- คุม `activeView` และ `contentTab`
+- ประกอบ hook ระดับ feature เข้าด้วยกัน
+- ส่ง props ลง workspace ที่เกี่ยวข้อง
+- sync state ลง persistence layer
+- รักษา history continuity ระหว่างการกลับหน้าและ modal state
 
 ## โครง UI หลัก
 
 ```mermaid
 flowchart TD
-  A["App.jsx"]
+  A["App.tsx"]
   A --> B["Sidebar"]
-  A --> C["Main Content Area"]
+  A --> C["Main Workspace"]
   A --> D["RightSidebar"]
-  C --> E["FeedCard"]
-  C --> F["CreateContent"]
+  C --> E["HomeView"]
+  C --> F["ContentWorkspace"]
+  C --> G["ReadWorkspace"]
+  C --> H["AudienceWorkspace"]
+  C --> I["PricingWorkspace"]
 ```
+
+## Frontend เป็น 3 ชั้นในทาง UX
+
+### 1. Shell layer
+
+รับผิดชอบ:
+
+- left rail
+- main workspace frame
+- right rail
+- mobile bottom nav / mobile context switcher
+- busy state ระดับแอป
+
+### 2. Workspace layer
+
+รับผิดชอบ:
+
+- งานหลักของแต่ละหน้าจอ เช่น home, search, read, audience, pricing
+- header, toolbar, empty state, loading state, result state
+
+### 3. Artifact layer
+
+รับผิดชอบ:
+
+- object ที่นำกลับมาใช้ซ้ำข้าม workspace เช่น `FeedCard`, summary card, pills, list chip, modal
 
 ## View หลักในระบบ
 
-`activeView` เป็นตัวคุมว่า UI ตอนนี้อยู่หน้าไหน เช่น:
+`activeView` เป็นตัวคุมว่า UI ตอนนี้อยู่หน้าไหน:
 
 - `home`
 - `content`
 - `read`
 - `audience`
 - `bookmarks`
-- `search`
+- `pricing`
 
-แนวคิดคือใช้หน้าเดียว แต่สลับ panel ตาม state แทนการใช้ router เต็มรูปแบบ
+ภายใน `content` ยังมี `contentTab` สำหรับสลับ:
+
+- `search`
+- `create`
+
+แนวคิดคือใช้ app shell เดียว แล้วสลับ workspace ตาม state แทนการใช้ page router แบบเต็มรูป
 
 ## แนวทาง state
 
-state ถูกแบ่งคร่าว ๆ ได้ 3 กลุ่ม:
+state ถูกแบ่งได้ 3 กลุ่ม:
 
 ### 1. Domain state
 
 - `watchlist`
-- `feed`
 - `originalFeed`
+- `pendingFeed`
 - `searchResults`
 - `bookmarks`
 - `readArchive`
 - `postLists`
+- `subscribedSources`
 
 ### 2. UI state
 
@@ -59,32 +94,56 @@ state ถูกแบ่งคร่าว ๆ ได้ 3 กลุ่ม:
 - `contentTab`
 - `listModal`
 - `filterModal`
-- `loading`
+- `selectedArticle`
 - `status`
+- `bookmarkTab`
+- `readSearchQuery`
 
 ### 3. Derived state
 
-- feed ที่กรองตาม list
-- search result ที่ sort ตาม view/engagement
-- bookmark view ที่แยก news/article
+- `feed` ที่ derive จาก source + list + filter + plan limit
+- bookmark / read views ที่ filtered แล้ว
+- search suggestions และ search choice states
+- UI history snapshot สำหรับ back/forward continuity
 
-## จุดที่ dev ควรรู้
+## UX contract ที่ผูกกับ architecture นี้
 
-- `originalFeed` เป็น source of truth ของ feed
-- `feed` เป็นค่าที่ derive เพื่อแสดงผล
-- search มี state แยกจาก home feed
-- บาง feature share component เดียวกัน เช่น `FeedCard`
+- `originalFeed` เป็น source of truth ส่วน `feed` คือ presentation state
+- `FeedCard` ต้อง reuse ข้ามหลาย workspace เพื่อให้ mental model ต่อเนื่อง
+- right rail เป็น supporting context ไม่ใช่ main content
+- pricing เป็น workspace เดียวที่ intentionally ซ่อน right rail
+- mobile ต้องเปลี่ยน interaction model แต่ยังคงชื่อ state และ object เดิม
+
+## Animation และ interaction ไม่ใช่เรื่องตกแต่ง
+
+ใน frontend นี้ animation ถูกใช้เพื่อแปล state:
+
+- hover ยืนยันว่า element กดได้
+- skeleton บอกว่ากำลังเติมข้อมูล
+- summary reveal บอกว่าระบบประมวลผลเสร็จแล้ว
+- expand panel บอกความสัมพันธ์ parent-child ของ post list
+
+ดังนั้นเวลาปรับ frontend architecture ห้ามมอง motion เป็นของประดับอย่างเดียว เพราะมันเป็นส่วนหนึ่งของ usability contract
+
+รายละเอียดระดับ screen และ animation contract อยู่ใน [UX/UI README](/ux-ui-readme)
+
+## จุดที่ dev ควรรู้ก่อนแก้
+
+- `src/App.tsx` ยังเป็น integration point หลัก
+- `useHomeFeedWorkspace`, `useSearchWorkspace`, `useLibraryViews`, `useAudienceSearch` เป็น hook หลักที่ shape behavior ของ UX
+- `src/index.css` ไม่ได้เก็บแค่ style แต่เก็บ layout contract และ motion contract จำนวนมาก
+- การแก้ชื่อ state หรือ interaction ควรอัปเดต docs ไปพร้อมกัน
 
 ## ข้อดีและข้อควรระวัง
 
 ข้อดี:
 
-- อ่าน flow ง่าย
 - data flow ตรง
-- แก้ feature เร็ว
+- trace behavior กลับหา source ได้ง่าย
+- workspace มี boundary ค่อนข้างชัด
 
 ข้อควรระวัง:
 
-- `App.jsx` โตเร็ว
-- state coupling สูง
-- การ refactor ควรแยกเป็น custom hooks หรือ feature modules ในอนาคต
+- `App.tsx` โตง่ายและ coupling สูง
+- style contract กระจุกอยู่ใน `src/index.css`
+- ถ้า refactor ต้องระวังไม่ให้ shell contract, mobile behavior, และ shared component semantics หลุด

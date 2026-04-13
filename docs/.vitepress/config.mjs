@@ -13,8 +13,9 @@ export default withMermaid(defineConfig({
       provider: 'local',
     },
     nav: [
-      { text: 'หน้าหลัก', link: '/' },
+      { text: 'หน้าแรก', link: '/' },
       { text: 'เริ่มต้นใช้งาน', link: '/getting-started' },
+      { text: 'UX/UI README', link: '/ux-ui-readme' },
       { text: 'ฟีเจอร์', link: '/features/' },
       { text: 'บันทึกการเปลี่ยนแปลง', link: '/changelog/' },
       { text: 'สถานะ Docs', link: '/status/' },
@@ -25,12 +26,19 @@ export default withMermaid(defineConfig({
       {
         text: 'เริ่มจากตรงนี้',
         items: [
-          { text: 'หน้าหลัก', link: '/' },
+          { text: 'หน้าแรก', link: '/' },
           { text: 'เริ่มต้นใช้งาน', link: '/getting-started' },
+          { text: 'UX/UI README', link: '/ux-ui-readme' },
           { text: 'บันทึกการเปลี่ยนแปลง', link: '/changelog/' },
           { text: 'ข้อเสนอร่างเอกสาร', link: '/drafts/' },
           { text: 'สถานะ Docs', link: '/status/' },
           { text: 'กติกาการอัปเดต Docs', link: '/process/docs-governance' },
+        ],
+      },
+      {
+        text: 'UX/UI',
+        items: [
+          { text: 'UX/UI README', link: '/ux-ui-readme' },
         ],
       },
       {
