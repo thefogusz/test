@@ -13,8 +13,9 @@ Foro เป็นระบบข่าวและสร้างคอนเท
 ## ภาพรวมระบบ
 
 ```mermaid
-flowchart LR
-  U["User"] --> FE["React Frontend"]
+flowchart TD
+  U["User"]
+  U --> FE["React Frontend"]
   FE --> LS["localStorage"]
   FE --> BE["Express Proxy"]
   BE --> TW["Twitter API"]

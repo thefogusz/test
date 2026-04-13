@@ -60,26 +60,7 @@
 }
 
 .VPDoc .container {
-  max-width: 1500px;
-}
-
-.VPContent,
-.VPDoc,
-.VPDoc .container,
-.VPDoc .content,
-.VPDoc .content-container,
-.VPDoc .main {
-  width: 100%;
-  max-width: none;
-}
-
-.VPDoc .content-container {
-  margin: 0 auto;
-}
-
-.vp-doc {
-  max-width: 1280px;
-  margin: 0 auto;
+  max-width: 1400px;
 }
 
 .vp-doc p,
@@ -93,8 +74,9 @@
   text-wrap: balance;
 }
 
+.VPDoc.has-sidebar .content-container,
 .VPDoc.has-aside .content-container {
-  max-width: none;
+  max-width: min(100%, 1200px);
 }
 
 .vp-doc .mermaid {
@@ -112,10 +94,11 @@
 
 .vp-doc .mermaid svg {
   display: block;
-  width: max-content;
-  min-width: 1440px;
+  width: 100% !important;
+  min-width: 0;
+  max-width: 100%;
   height: auto;
-  margin-inline: 0;
+  margin-inline: auto;
 }
 
 .vp-doc .mermaid .label,
@@ -133,11 +116,6 @@
 }
 
 @media (min-width: 961px) {
-  .VPNavBar.has-sidebar .content,
-  .VPNavBar .content {
-    padding-right: 24px;
-  }
-
   .VPHome .VPHero .container {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -168,10 +146,6 @@
     max-width: 100%;
   }
 
-  .vp-doc {
-    max-width: 100%;
-  }
-
   .vp-doc .mermaid {
     margin: 1.25rem -12px 1.75rem;
     border-radius: 14px;
@@ -179,7 +153,8 @@
   }
 
   .vp-doc .mermaid svg {
-    min-width: 980px;
+    width: 100% !important;
+    min-width: 0;
   }
 
   .vp-doc .mermaid .label,

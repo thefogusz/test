@@ -13,8 +13,9 @@
 ## ภาพรวมระบบ
 
 ```mermaid
-flowchart LR
-  U["User"] --> FE["React Frontend"]
+flowchart TD
+  U["User"]
+  U --> FE["React Frontend"]
   FE --> LS["localStorage"]
   FE --> BE["Express Proxy Server"]
   BE --> TW["Twitter API"]

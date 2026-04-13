@@ -17,8 +17,9 @@ frontend ของระบบนี้ไม่ได้เป็นแค่ l
 ## โครง UI หลัก
 
 ```mermaid
-flowchart LR
-  A["App.jsx"] --> B["Sidebar"]
+flowchart TD
+  A["App.jsx"]
+  A --> B["Sidebar"]
   A --> C["Main Content Area"]
   A --> D["RightSidebar"]
   C --> E["FeedCard"]
