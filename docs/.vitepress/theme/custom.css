@@ -63,6 +63,11 @@
   max-width: 1400px;
 }
 
+.VPDoc.has-sidebar .content-container,
+.VPDoc.has-aside .content-container {
+  max-width: min(100%, 1200px);
+}
+
 .vp-doc p,
 .vp-doc li {
   line-height: 1.8;
@@ -72,6 +77,41 @@
 .vp-doc h2,
 .vp-doc h3 {
   text-wrap: balance;
+}
+
+.vp-doc .mermaid {
+  display: block;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 1.75rem 0 2.25rem;
+  padding: 1rem 1rem 1.25rem;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--vp-c-bg-soft) 82%, transparent), transparent),
+    var(--vp-c-bg-soft);
+}
+
+.vp-doc .mermaid svg {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+  height: auto;
+  margin-inline: auto;
+}
+
+.vp-doc .mermaid .label,
+.vp-doc .mermaid .nodeLabel,
+.vp-doc .mermaid .edgeLabel {
+  font-size: 16px !important;
+}
+
+.vp-doc .mermaid .node rect,
+.vp-doc .mermaid .node circle,
+.vp-doc .mermaid .node ellipse,
+.vp-doc .mermaid .node polygon,
+.vp-doc .mermaid .node path {
+  stroke-width: 1.5px;
 }
 
 @media (min-width: 961px) {
@@ -99,5 +139,21 @@
     max-width: 100%;
     font-size: 1rem;
     line-height: 1.65;
+  }
+
+  .VPDoc .container {
+    max-width: 100%;
+  }
+
+  .vp-doc .mermaid {
+    margin: 1.25rem -12px 1.75rem;
+    border-radius: 14px;
+    padding: 0.875rem;
+  }
+
+  .vp-doc .mermaid .label,
+  .vp-doc .mermaid .nodeLabel,
+  .vp-doc .mermaid .edgeLabel {
+    font-size: 14px !important;
   }
 }

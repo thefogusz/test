@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Foro — Architecture Diagrams</title>
+<style>
+  :root {
+    --bg: #0a0f1a;
+    --bg2: #111827;
+    --bg3: #1a2236;
+    --border: #1f2d45;
+    --text: #e2e8f0;
+    --text-dim: #64748b;
+    --text-mid: #94a3b8;
+
+    --blue: #3b82f6;
+    --blue-dim: #1d4ed8;
+    --blue-bg: rgba(59,130,246,0.12);
+    --green: #22c55e;
+    --green-dim: #15803d;
+    --green-bg: rgba(34,197,94,0.12);
+    --purple: #a855f7;
+    --purple-dim: #7e22ce;
+    --purple-bg: rgba(168,85,247,0.12);
+    --yellow: #f59e0b;
+    --yellow-dim: #b45309;
+    --yellow-bg: rgba(245,158,11,0.12);
+    --red: #ef4444;
+    --red-dim: #b91c1c;
+    --red-bg: rgba(239,68,68,0.12);
+    --gray: #6b7280;
+    --gray-bg: rgba(107,114,128,0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+    font-size: 13px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+  .logo { font-size: 16px; font-weight: 700; color: var(--blue); letter-spacing: -0.5px; }
+  .logo span { color: var(--text-mid); font-weight: 400; }
+  .header-badge {
+    background: var(--blue-bg);
+    color: var(--blue);
+    border: 1px solid rgba(59,130,246,0.3);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+  }
+
+  /* ── Tabs ── */
+  .tabs-bar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    display: flex;
+    gap: 2px;
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+  .tabs-bar::-webkit-scrollbar { height: 3px; }
+  .tabs-bar::-webkit-scrollbar-track { background: transparent; }
+  .tabs-bar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .tab {
+    padding: 10px 16px;
+    cursor: pointer;
+    color: var(--text-dim);
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    font-size: 12px;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+  }
+  .tab:hover { color: var(--text-mid); }
+  .tab.active { color: var(--text); border-bottom-color: var(--blue); }
+  .tab-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Main layout ── */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Diagram area ── */
+  .diagram-area {
+    flex: 1;
+    overflow: auto;
+    padding: 24px;
+    position: relative;
+  }
+  .diagram-area::-webkit-scrollbar { width: 6px; height: 6px; }
+  .diagram-area::-webkit-scrollbar-track { background: transparent; }
+  .diagram-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .diagram-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .diagram-subtitle {
+    color: var(--text-dim);
+    font-size: 12px;
+    margin-bottom: 24px;
+  }
+
+  /* ── Flow canvas ── */
+  .flow-canvas {
+    position: relative;
+    min-height: 400px;
+  }
+
+  /* ── Layers ── */
+  .flow-layers {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    min-height: 340px;
+  }
+  .flow-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    min-width: 160px;
+    padding: 0 12px;
+    position: relative;
+  }
+  .flow-column-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    white-space: nowrap;
+  }
+  .flow-col-divider {
+    position: absolute;
+    right: 0; top: 24px; bottom: 0;
+    width: 1px;
+    background: var(--border);
+  }
+
+  /* ── Nodes ── */
+  .node {
+    border-radius: 6px;
+    border: 1px solid;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    max-width: 160px;
+    width: 100%;
+    text-align: center;
+    user-select: none;
+  }
+  .node:hover { transform: translateY(-1px); filter: brightness(1.15); }
+  .node.selected { box-shadow: 0 0 0 2px currentColor; }
+  .node-name { font-size: 12px; font-weight: 600; line-height: 1.3; }
+  .node-file { font-size: 10px; opacity: 0.7; margin-top: 3px; line-height: 1.2; word-break: break-all; }
+
+  .node.ui    { color: var(--blue);   background: var(--blue-bg);   border-color: rgba(59,130,246,0.35); }
+  .node.svc   { color: var(--green);  background: var(--green-bg);  border-color: rgba(34,197,94,0.35); }
+  .node.hook  { color: var(--purple); background: var(--purple-bg); border-color: rgba(168,85,247,0.35); }
+  .node.ai    { color: var(--yellow); background: var(--yellow-bg); border-color: rgba(245,158,11,0.35); }
+  .node.ext   { color: var(--red);    background: var(--red-bg);    border-color: rgba(239,68,68,0.35); }
+  .node.util  { color: var(--gray);   background: var(--gray-bg);   border-color: rgba(107,114,128,0.35); }
+
+  /* ── SVG arrows ── */
+  .arrows-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+  .arrow-path {
+    fill: none;
+    stroke-width: 1.5;
+    stroke: #2d4a6b;
+    marker-end: url(#arrowhead);
+  }
+  .arrow-path.animated {
+    stroke-dasharray: 6 4;
+    animation: dash 1.4s linear infinite;
+  }
+  @keyframes dash {
+    to { stroke-dashoffset: -20; }
+  }
+  .arrow-label {
+    font-family: ui-monospace, monospace;
+    font-size: 10px;
+    fill: #4a6888;
+  }
+
+  /* ── Pipeline (horizontal steps) ── */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    margin: 20px 0;
+  }
+  .pipeline-step {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+  .pipeline-node {
+    border-radius: 6px;
+    border: 1px solid;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    user-select: none;
+    text-align: center;
+    min-width: 110px;
+  }
+  .pipeline-node:hover { filter: brightness(1.2); transform: translateY(-1px); }
+  .pipeline-node.selected { box-shadow: 0 0 0 2px currentColor; }
+  .pipeline-arrow {
+    color: #2d4a6b;
+    font-size: 18px;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+  .pipeline-label {
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .pipeline-sub {
+    font-size: 10px;
+    opacity: 0.65;
+    margin-top: 2px;
+  }
+
+  /* ── Split layout (persistence) ── */
+  .split-layout {
+    display: grid;
+    grid-template-columns: 1fr 40px 1fr;
+    gap: 0;
+    align-items: start;
+    margin: 16px 0;
+  }
+  .split-divider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 60px;
+    color: var(--text-dim);
+    font-size: 11px;
+    gap: 8px;
+  }
+  .split-divider-line {
+    width: 1px;
+    height: 120px;
+    background: var(--border);
+  }
+  .split-panel {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .split-panel-title {
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .split-panel-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    background: var(--blue-bg);
+    color: var(--blue);
+    border: 1px solid rgba(59,130,246,0.3);
+  }
+
+  /* ── Detail panel ── */
+  .detail-panel {
+    width: 280px;
+    flex-shrink: 0;
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    padding: 20px 16px;
+    overflow-y: auto;
+    transition: all 0.2s;
+  }
+  .detail-panel::-webkit-scrollbar { width: 4px; }
+  .detail-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .detail-empty {
+    color: var(--text-dim);
+    font-size: 12px;
+    text-align: center;
+    margin-top: 40px;
+    line-height: 1.8;
+  }
+  .detail-layer-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid;
+    margin-bottom: 12px;
+  }
+  .detail-name {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .detail-file {
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 10px;
+    margin-bottom: 14px;
+    word-break: break-all;
+  }
+  .detail-section-title {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    margin-top: 14px;
+  }
+  .detail-desc {
+    font-size: 12px;
+    color: var(--text-mid);
+    line-height: 1.7;
+  }
+  .detail-fn {
+    font-size: 11px;
+    color: var(--yellow);
+    background: rgba(245,158,11,0.08);
+    border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 3px;
+    padding: 3px 7px;
+    margin: 2px 0;
+    display: block;
+  }
+  .detail-conn {
+    font-size: 11px;
+    color: var(--text-mid);
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 3px 7px;
+    margin: 2px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .detail-conn-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    position: absolute;
+    bottom: 16px;
+    right: 16px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .legend-title {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 2px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 10px;
+    color: var(--text-mid);
+  }
+  .legend-dot {
+    width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0;
+  }
+
+  /* ── Grid layout (app shell) ── */
+  .grid-diagram {
+    display: grid;
+    grid-template-columns: 140px 1fr 140px;
+    grid-template-rows: auto auto auto;
+    gap: 16px;
+    margin: 16px 0;
+  }
+  .grid-center {
+    grid-column: 2;
+    grid-row: 1 / 4;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+  .grid-left {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  .grid-right {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .central-node {
+    border-radius: 8px;
+    border: 1px solid rgba(59,130,246,0.5);
+    background: var(--blue-bg);
+    padding: 16px 24px;
+    text-align: center;
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .central-node:hover { filter: brightness(1.15); }
+  .central-node-name { font-size: 14px; font-weight: 700; color: var(--blue); }
+  .central-node-sub { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
+
+  .workspace-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+
+  /* ── Tooltip ── */
+  .tooltip {
+    position: fixed;
+    background: #1e293b;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--text-mid);
+    max-width: 220px;
+    pointer-events: none;
+    z-index: 9999;
+    display: none;
+    line-height: 1.5;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  }
+  .tooltip.visible { display: block; }
+  .tooltip-name { font-weight: 700; color: var(--text); margin-bottom: 3px; }
+  .tooltip-file { color: var(--text-dim); font-size: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">foro <span>/ arch</span></div>
+  <div class="header-badge">v1 · React + Vite + Express</div>
+  <div style="margin-left:auto; color: var(--text-dim); font-size:11px;">click node → detail · hover → tooltip</div>
+</header>
+
+<div class="tabs-bar" id="tabsBar"></div>
+
+<div class="main">
+  <div class="diagram-area" id="diagramArea"></div>
+  <div class="detail-panel" id="detailPanel">
+    <div class="detail-empty">← Click any node<br/>to see details</div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip">
+  <div class="tooltip-name" id="tooltipName"></div>
+  <div id="tooltipDesc"></div>
+  <div class="tooltip-file" id="tooltipFile"></div>
+</div>
+
+<script>
+const COLORS = {
+  ui:   { color: '#3b82f6', bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.35)',  label: 'UI Component' },
+  svc:  { color: '#22c55e', bg: 'rgba(34,197,94,0.12)',   border: 'rgba(34,197,94,0.35)',   label: 'Service' },
+  hook: { color: '#a855f7', bg: 'rgba(168,85,247,0.12)',  border: 'rgba(168,85,247,0.35)',  label: 'Hook / State' },
+  ai:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)',  border: 'rgba(245,158,11,0.35)',  label: 'AI / Grok' },
+  ext:  { color: '#ef4444', bg: 'rgba(239,68,68,0.12)',   border: 'rgba(239,68,68,0.35)',   label: 'External API' },
+  util: { color: '#6b7280', bg: 'rgba(107,114,128,0.12)', border: 'rgba(107,114,128,0.35)', label: 'Utility / Config' },
+};
+
+// ── Node data ──
+const NODES = {
+  // Home Feed
+  useHomeFeed: { name: 'useHomeFeedWorkspace', file: 'src/hooks/useHomeFeedWorkspace.ts', type: 'hook', desc: 'Orchestrates home feed: triggers RSS + X fetches, deduplication, scoring, plan limits, and AI filtering.', fns: ['fetchFeeds()', 'mergeAndDeduplicate()', 'applyPlanLimit()', 'triggerAiFilter()'], conns: ['RssService','TwitterService','scoring','GrokService','FeedCard'] },
+  RssService: { name: 'RssService', file: 'src/services/RssService.ts', type: 'svc', desc: 'Fetches and parses RSS feeds. Handles fingerprint-based dedup and seen-item registry.', fns: ['fetchAll()', 'parseFeed()', 'fingerprintItem()', 'markSeen()'], conns: ['useHomeFeed','rssCatalog','persistence'] },
+  TwitterService: { name: 'TwitterService', file: 'src/services/TwitterService.ts', type: 'svc', desc: 'Wraps X (Twitter) API for post search, user lookup, and thread context. Routes through Express proxy.', fns: ['searchPosts()', 'searchUsers()', 'getThread()', 'getUserInfo()'], conns: ['useHomeFeed','useAudienceSearch','server_app','XApi'] },
+  scoring: { name: 'scoring.ts', file: 'src/services/scoring.ts', type: 'util', desc: 'Ranks feed items by relevance score combining engagement signals, freshness, and topic match.', fns: ['scorePost()', 'rankFeed()', 'computeEngagement()'], conns: ['useHomeFeed'] },
+  pricingPlans: { name: 'pricingPlans', file: 'src/config/pricingPlans.ts', type: 'util', desc: 'Defines Free (30 cards) and Plus (100 cards) tier limits and feature gates.', fns: ['getPlanLimits()', 'PLANS constant'], conns: ['useHomeFeed','PricingWorkspace'] },
+  FeedCard: { name: 'FeedCard', file: 'src/components/FeedCard.tsx', type: 'ui', desc: 'Renders individual feed items. Handles actions: bookmark, share, open reader, AI summarize.', fns: ['render()', 'onBookmark()', 'onOpenReader()', 'onShare()'], conns: ['useHomeFeed','ArticleReaderModal','RightSidebar'] },
+  GrokService: { name: 'GrokService', file: 'src/services/GrokService.ts', type: 'ai', desc: 'Central AI service. Handles filtering, research, summarization, content generation, translation via xAI Grok.', fns: ['filterFeed()', 'research()', 'generateContent()', 'translate()', 'rankExperts()'], conns: ['useHomeFeed','useAudienceSearch','CreateContent','ArticleReaderModal'] },
+  RightSidebar: { name: 'RightSidebar', file: 'src/components/RightSidebar.tsx', type: 'ui', desc: 'Right panel showing filtered post lists, sharing controls, and feed filters. 829 lines.', fns: ['renderPostList()', 'onFilter()', 'onShare()'], conns: ['FeedCard','App'] },
+  XApi: { name: 'X (Twitter) API', file: 'External — api.twitter.com', type: 'ext', desc: 'Twitter/X REST API v2. Requires Bearer token. Accessed through server proxy to protect credentials.', fns: ['GET /2/tweets/search/recent', 'GET /2/users/search'], conns: ['TwitterService','server_app'] },
+  // Content
+  CreateContent: { name: 'CreateContent', file: 'src/components/CreateContent.tsx', type: 'ui', desc: 'Main UI for AI content creation pipeline. 1284 lines. Shows each pipeline stage with streaming output.', fns: ['startResearch()', 'buildFactSheet()', 'streamDraft()', 'polishContent()'], conns: ['ContentWorkspace','GrokService','TwitterService'] },
+  ContentWorkspace: { name: 'ContentWorkspace', file: 'src/components/ContentWorkspace.tsx', type: 'ui', desc: 'Container workspace for content creation. 713 lines. Manages draft history and workspace state.', fns: ['render()', 'saveDraft()', 'loadDraft()'], conns: ['CreateContent','App'] },
+  Tavily: { name: 'Tavily API', file: 'External — api.tavily.com', type: 'ext', desc: 'Web search API used in research phase. Returns ranked, summarized web results for a query.', fns: ['POST /search'], conns: ['GrokService','server_app'] },
+  // Audience
+  AudienceWorkspace: { name: 'AudienceWorkspace', file: 'src/components/AudienceWorkspace.tsx', type: 'ui', desc: 'Workspace for discovering expert X accounts in a topic. 647 lines.', fns: ['onSearch()', 'onAddToWatchlist()', 'renderResults()'], conns: ['useAudienceSearch','useWatchlist'] },
+  useAudienceSearch: { name: 'useAudienceSearch', file: 'src/hooks/useAudienceSearch.ts', type: 'hook', desc: 'Manages search state and orchestrates expert discovery flow.', fns: ['search()', 'rankResults()', 'reset()'], conns: ['AudienceWorkspace','TwitterService','GrokService'] },
+  useWatchlist: { name: 'useWatchlist', file: 'src/hooks/useWatchlist.ts', type: 'hook', desc: 'CRUD for the watchlist of monitored accounts. Persists to storage.', fns: ['addAccount()', 'removeAccount()', 'getWatchlist()'], conns: ['AudienceWorkspace','persistence'] },
+  // Article Reader
+  ArticleReaderModal: { name: 'ArticleReaderModal', file: 'src/components/ArticleReaderModal.tsx', type: 'ui', desc: 'Full-screen article reader modal. 825 lines. Shows extracted article with optional Thai translation.', fns: ['open()', 'extractArticle()', 'translate()', 'close()'], conns: ['FeedCard','ArticleService','GrokService'] },
+  ArticleService: { name: 'ArticleService', file: 'src/services/ArticleService.ts', type: 'svc', desc: 'Fetches and extracts clean article content. Calls server proxy which uses Mozilla Readability.', fns: ['extract(url)', 'clean()'], conns: ['ArticleReaderModal','server_app'] },
+  server_app: { name: 'server/app.cjs', file: 'server/app.cjs', type: 'svc', desc: 'Express proxy. 539 lines. Routes: /api/extract, /api/state/:ns/:key, proxies X + Tavily API calls.', fns: ['POST /api/extract', 'GET /api/state/:ns/:key', 'POST /api/twitter/*'], conns: ['ArticleService','TwitterService','appStateStore'] },
+  appStateStore: { name: 'appStateStore', file: 'server/lib/appStateStore.cjs', type: 'util', desc: 'Server-side state store. Supports file mode and memory mode for persistence.', fns: ['get(ns,key)', 'set(ns,key,val)', 'list(ns)'], conns: ['server_app'] },
+  // News Sources
+  NewsSourcesTab: { name: 'NewsSourcesTab', file: 'src/components/NewsSourcesTab.tsx', type: 'ui', desc: 'RSS source management UI. 1037 lines. Shows catalog presets and user custom feeds.', fns: ['addSource()', 'removeSource()', 'validateFeed()', 'renderCatalog()'], conns: ['rssCatalog','RssService','persistence'] },
+  rssCatalog: { name: 'rssCatalog.ts', file: 'src/config/rssCatalog.ts', type: 'util', desc: 'Static catalog of curated RSS feed presets organized by topic/category.', fns: ['CATALOG constant', 'getByTopic()'], conns: ['NewsSourcesTab','RssService'] },
+  // Persistence
+  persistenceClient: { name: 'persistence/client.ts', file: 'src/lib/persistence/client.ts', type: 'util', desc: 'Adapter that transparently switches between browser mode and backend mode persistence.', fns: ['get(key)', 'set(key,val)', 'delete(key)', 'list()'], conns: ['useWatchlist','usePostLists','RssService','server_app'] },
+  indexedDb: { name: 'indexedDb.ts', file: 'src/utils/indexedDb.ts', type: 'util', desc: 'Low-level IndexedDB helper for storing collections, lists, and large datasets in browser.', fns: ['openDb()', 'put()', 'get()', 'getAll()', 'delete()'], conns: ['persistenceClient'] },
+  localStorage: { name: 'localStorage', file: 'Browser API', type: 'util', desc: 'Used for simple key-value state: settings, preferences, seen-item registries.', fns: ['getItem()', 'setItem()', 'removeItem()'], conns: ['persistenceClient'] },
+  // App Shell
+  App: { name: 'App.tsx', file: 'src/App.tsx', type: 'ui', desc: 'Root orchestrator. 954 lines. Holds all top-level state and passes props to workspace router and sidebars.', fns: ['useState()', 'handleWorkspaceChange()', 'render()'], conns: ['AppWorkspaceRouter','Sidebar','RightSidebar'] },
+  AppWorkspaceRouter: { name: 'AppWorkspaceRouter', file: 'src/components/AppWorkspaceRouter.tsx', type: 'ui', desc: 'Routes to active workspace view based on state. 414 lines.', fns: ['renderWorkspace()', 'getActiveView()'], conns: ['App','HomeCanvas','ContentWorkspace','AudienceWorkspace'] },
+  Sidebar: { name: 'Sidebar', file: 'src/components/Sidebar.tsx', type: 'ui', desc: 'Left navigation sidebar. Account context, workspace nav, topic/source filters.', fns: ['onNavigate()', 'renderNav()', 'renderAccount()'], conns: ['App'] },
+};
+
+// ── Features / Diagrams ──
+const FEATURES = [
+  {
+    id: 'home',
+    label: 'Home Feed',
+    dot: '#a855f7',
+    title: 'Home Feed Pipeline',
+    subtitle: 'RSS + X (Twitter) → dedup → rank → plan limit → AI filter → FeedCard render',
+    render: renderHomeFeed,
+  },
+  {
+    id: 'content',
+    label: 'Content Creation',
+    dot: '#f59e0b',
+    title: 'AI Content Creation Pipeline',
+    subtitle: 'Research → Fact Sheet → Brief → Streaming Draft → Polish → Markdown output',
+    render: renderContent,
+  },
+  {
+    id: 'audience',
+    label: 'Audience Discovery',
+    dot: '#22c55e',
+    title: 'Audience & Expert Discovery',
+    subtitle: 'Query → X search → Grok rank → scored experts → watchlist',
+    render: renderAudience,
+  },
+  {
+    id: 'reader',
+    label: 'Article Reader',
+    dot: '#3b82f6',
+    title: 'Article Reader & Translation',
+    subtitle: 'FeedCard click → extract → Mozilla Readability → optional Thai translation',
+    render: renderReader,
+  },
+  {
+    id: 'sources',
+    label: 'News Sources',
+    dot: '#6b7280',
+    title: 'RSS News Source Management',
+    subtitle: 'rssCatalog presets → UI → validate → persist → feed refresh',
+    render: renderSources,
+  },
+  {
+    id: 'persistence',
+    label: 'Persistence Layer',
+    dot: '#ef4444',
+    title: 'Persistence Layer — Dual Mode',
+    subtitle: 'Adapter switches transparently between Browser (localStorage/IndexedDB) and Backend (Express API)',
+    render: renderPersistence,
+  },
+  {
+    id: 'shell',
+    label: 'App Shell',
+    dot: '#38bdf8',
+    title: 'App Shell & Routing',
+    subtitle: 'App.tsx central state ↔ AppWorkspaceRouter ↔ Sidebar ↔ RightSidebar ↔ Workspaces',
+    render: renderShell,
+  },
+];
+
+let activeTab = 'home';
+
+// ── Build tabs ──
+function buildTabs() {
+  const bar = document.getElementById('tabsBar');
+  bar.innerHTML = FEATURES.map(f => `
+    <div class="tab ${f.id === activeTab ? 'active' : ''}" data-id="${f.id}">
+      <div class="tab-dot" style="background:${f.dot}"></div>
+      ${f.label}
+    </div>
+  `).join('');
+  bar.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      activeTab = t.dataset.id;
+      buildTabs();
+      renderDiagram();
+      clearDetail();
+    });
+  });
+}
+
+// ── Render active diagram ──
+function renderDiagram() {
+  const f = FEATURES.find(x => x.id === activeTab);
+  const area = document.getElementById('diagramArea');
+  area.innerHTML = `
+    <div class="diagram-title">${f.title}</div>
+    <div class="diagram-subtitle">${f.subtitle}</div>
+    <div id="diagramContent"></div>
+  `;
+  f.render(document.getElementById('diagramContent'));
+  attachNodeEvents();
+}
+
+// ── Node HTML helper ──
+function nodeHTML(id, extra='') {
+  const n = NODES[id];
+  if (!n) return '';
+  const c = COLORS[n.type];
+  return `<div class="node ${n.type} ${extra}" data-node="${id}" style="border-color:${c.border};background:${c.bg};color:${c.color}">
+    <div class="node-name">${n.name}</div>
+    <div class="node-file">${n.file.split('/').pop()}</div>
+  </div>`;
+}
+
+// ── Pipeline step HTML ──
+function pipeHTML(id, arrow=true, extra='') {
+  const n = NODES[id];
+  if (!n) return '';
+  const c = COLORS[n.type];
+  const arrowEl = arrow ? `<span class="pipeline-arrow">→</span>` : '';
+  return `<div class="pipeline-step">
+    <div class="pipeline-node ${n.type} ${extra}" data-node="${id}" style="border-color:${c.border};background:${c.bg};color:${c.color}">
+      <div class="pipeline-label">${n.name}</div>
+      <div class="pipeline-sub">${n.file.split('/').pop()}</div>
+    </div>${arrowEl}
+  </div>`;
+}
+
+// ── HOME FEED ──
+function renderHomeFeed(el) {
+  el.innerHTML = `
+    <div class="flow-layers" id="homeFlow">
+      <div class="flow-column">
+        <div class="flow-column-label">Input Sources</div>
+        ${nodeHTML('RssService')}
+        ${nodeHTML('XApi')}
+        ${nodeHTML('rssCatalog')}
+        <div class="flow-col-divider"></div>
+      </div>
+      <div class="flow-column">
+        <div class="flow-column-label">Orchestration</div>
+        ${nodeHTML('useHomeFeed')}
+        ${nodeHTML('scoring')}
+        ${nodeHTML('pricingPlans')}
+        <div class="flow-col-divider"></div>
+      </div>
+      <div class="flow-column">
+        <div class="flow-column-label">AI / Filter</div>
+        ${nodeHTML('GrokService')}
+        ${nodeHTML('TwitterService')}
+        <div class="flow-col-divider"></div>
+      </div>
+      <div class="flow-column">
+        <div class="flow-column-label">UI Output</div>
+        ${nodeHTML('FeedCard')}
+        ${nodeHTML('RightSidebar')}
+      </div>
+    </div>
+    <div style="margin-top:24px;padding:12px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-dim);line-height:1.9;">
+      <span style="color:var(--text-mid);font-weight:700;">Flow:</span>
+      rssCatalog presets → RssService.fetchAll() + TwitterService.searchPosts()
+      → fingerprint dedup → useHomeFeedWorkspace merges + ranks via scoring.ts
+      → pricingPlans limit (Free: 30, Plus: 100 cards)
+      → GrokService.filterFeed() on visible cards
+      → FeedCard renders each item → RightSidebar lists
+    </div>
+    ${legendHTML()}
+  `;
+}
+
+// ── CONTENT CREATION ──
+function renderContent(el) {
+  el.innerHTML = `
+    <div class="pipeline">
+      ${pipeHTML('ContentWorkspace')}
+      ${pipeHTML('CreateContent')}
+      ${pipeHTML('GrokService')}
+      ${pipeHTML('Tavily')}
+      ${pipeHTML('TwitterService', false)}
+    </div>
+    <div style="margin:20px 0 8px;color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:1px;">Pipeline stages</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;">
+      ${['1. Research','2. Fact Sheet','3. Content Brief','4. Stream Draft','5. Evaluation','6. Polish','7. Markdown'].map((s,i)=>{
+        const colors=['#a855f7','#3b82f6','#22c55e','#f59e0b','#f59e0b','#22c55e','#6b7280'];
+        return `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:5px;padding:8px 14px;font-size:11px;color:${colors[i]};display:flex;align-items:center;gap:6px;">
+          <span style="font-weight:700;">${s.split('.')[0]}.</span>
+          <span style="color:var(--text-mid)">${s.split('. ')[1]}</span>
+        </div>`;
+      }).join('<span style="color:#2d4a6b;align-self:center;padding:0 2px;">→</span>')}
+    </div>
+    <div style="padding:12px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-dim);line-height:1.9;">
+      <span style="color:var(--text-mid);font-weight:700;">Flow:</span>
+      User input in ContentWorkspace → CreateContent.startResearch()
+      → GrokService.research() + Tavily API web search + TwitterService.searchPosts()
+      → buildFactSheet() → buildContentBrief() → GrokService.generateContent() [streaming]
+      → evaluation pass → polish → final Markdown rendered in CreateContent
+    </div>
+    ${legendHTML()}
+  `;
+}
+
+// ── AUDIENCE DISCOVERY ──
+function renderAudience(el) {
+  el.innerHTML = `
+    <div class="flow-layers">
+      <div class="flow-column">
+        <div class="flow-column-label">Entry</div>
+        ${nodeHTML('AudienceWorkspace')}
+        <div class="flow-col-divider"></div>
+      </div>
+      <div class="flow-column">
+        <div class="flow-column-label">Search Logic</div>
+        ${nodeHTML('useAudienceSearch')}
+        <div class="flow-col-divider"></div>
+      </div>
+      <div class="flow-column">
+        <div class="flow-column-label">APIs</div>
+        ${nodeHTML('TwitterService')}
+        ${nodeHTML('GrokService')}
+        <div class="flow-col-divider"></div>
+      </div>
+      <div class="flow-column">
+        <div class="flow-column-label">Persist</div>
+        ${nodeHTML('useWatchlist')}
+        ${nodeHTML('persistenceClient')}
+      </div>
+    </div>
+    <div style="margin-top:24px;padding:12px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-dim);line-height:1.9;">
+      <span style="color:var(--text-mid);font-weight:700;">Flow:</span>
+      Topic query in AudienceWorkspace → useAudienceSearch.search()
+      → TwitterService.searchUsers() for matching X accounts
+      → GrokService.rankExperts() scores by relevance + authority
+      → display scored list in AudienceWorkspace
+      → onAddToWatchlist() → useWatchlist.addAccount() → persistenceClient saves
+    </div>
+    ${legendHTML()}
+  `;
+}
+
+// ── ARTICLE READER ──
+function renderReader(el) {
+  el.innerHTML = `
+    <div class="pipeline">
+      ${pipeHTML('FeedCard')}
+      ${pipeHTML('ArticleReaderModal')}
+      ${pipeHTML('ArticleService')}
+      ${pipeHTML('server_app')}
+    </div>
+    <div style="margin:16px 0;display:flex;gap:12px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:14px;">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-bottom:10px;">Extraction</div>
+        <div style="font-size:11px;color:var(--text-mid);line-height:1.8;">
+          server proxy receives URL<br>
+          → Mozilla Readability parses DOM<br>
+          → returns clean article JSON<br>
+          → ArticleReaderModal renders
+        </div>
+      </div>
+      <div style="flex:1;min-width:200px;background:var(--bg3);border:1px solid rgba(245,158,11,0.25);border-radius:6px;padding:14px;">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--yellow);margin-bottom:10px;">AI Translation (optional)</div>
+        <div style="font-size:11px;color:var(--text-mid);line-height:1.8;">
+          user clicks "Translate to Thai"<br>
+          → GrokService.translate(content)<br>
+          → streaming Thai output<br>
+          → replaces original content panel
+        </div>
+        ${nodeHTML('GrokService')}
+      </div>
+    </div>
+    <div style="padding:12px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-dim);line-height:1.9;">
+      <span style="color:var(--text-mid);font-weight:700;">Route:</span>
+      FeedCard.onOpenReader() → ArticleReaderModal.open(url)
+      → ArticleService.extract(url) → POST /api/extract → Mozilla Readability
+      → render clean article → optional GrokService.translate() for Thai version
+    </div>
+    ${legendHTML()}
+  `;
+}
+
+// ── NEWS SOURCES ──
+function renderSources(el) {
+  el.innerHTML = `
+    <div class="flow-layers">
+      <div class="flow-column">
+        <div class="flow-column-label">Config</div>
+        ${nodeHTML('rssCatalog')}
+        <div class="flow-col-divider"></div>
+      </div>
+      <div class="flow-column">
+        <div class="flow-column-label">UI</div>
+        ${nodeHTML('NewsSourcesTab')}
+        <div class="flow-col-divider"></div>
+      </div>
+      <div class="flow-column">
+        <div class="flow-column-label">Service</div>
+        ${nodeHTML('RssService')}
+        <div class="flow-col-divider"></div>
+      </div>
+      <div class="flow-column">
+        <div class="flow-column-label">Storage</div>
+        ${nodeHTML('persistenceClient')}
+        ${nodeHTML('indexedDb')}
+      </div>
+    </div>
+    <div style="margin-top:24px;padding:12px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-dim);line-height:1.9;">
+      <span style="color:var(--text-mid);font-weight:700;">Flow:</span>
+      rssCatalog.ts provides curated preset feeds by topic
+      → NewsSourcesTab renders catalog + user custom sources
+      → add/remove triggers RssService.validateFeed()
+      → valid sources saved via persistenceClient
+      → next feed sync picks up new sources via RssService.fetchAll()
+    </div>
+    ${legendHTML()}
+  `;
+}
+
+// ── PERSISTENCE ──
+function renderPersistence(el) {
+  el.innerHTML = `
+    <div style="margin-bottom:16px;">
+      ${nodeHTML('persistenceClient')}
+      <div style="margin:12px 0;color:var(--text-dim);font-size:11px;">Adapter selects driver based on <code style="color:var(--yellow)">VITE_PERSISTENCE_MODE</code> env var</div>
+    </div>
+    <div class="split-layout">
+      <div class="split-panel">
+        <div class="split-panel-title">
+          <span style="color:var(--blue)">■</span>
+          Browser Mode
+          <span class="split-panel-badge">default</span>
+        </div>
+        ${nodeHTML('localStorage')}
+        <div style="margin:8px 0 4px;font-size:10px;color:var(--text-dim);">Simple KV — settings, seen-registries, prefs</div>
+        ${nodeHTML('indexedDb')}
+        <div style="margin:8px 0 4px;font-size:10px;color:var(--text-dim);">Collections — post lists, bookmarks, article cache</div>
+      </div>
+      <div class="split-divider">
+        <div class="split-divider-line"></div>
+        <span>OR</span>
+        <div class="split-divider-line"></div>
+      </div>
+      <div class="split-panel">
+        <div class="split-panel-title">
+          <span style="color:var(--green)">■</span>
+          Backend Mode
+          <span class="split-panel-badge" style="background:var(--green-bg);color:var(--green);border-color:rgba(34,197,94,0.3)">server</span>
+        </div>
+        ${nodeHTML('server_app')}
+        <div style="margin:8px 0 4px;font-size:10px;color:var(--text-dim);">Express /api/state/:namespace/:key</div>
+        ${nodeHTML('appStateStore')}
+        <div style="margin:8px 0 4px;font-size:10px;color:var(--text-dim);">File or memory store on server</div>
+      </div>
+    </div>
+    ${legendHTML()}
+  `;
+}
+
+// ── APP SHELL ──
+function renderShell(el) {
+  el.innerHTML = `
+    <div class="grid-diagram">
+      <div class="grid-left">
+        ${nodeHTML('Sidebar')}
+      </div>
+      <div class="grid-center">
+        <div class="central-node" data-node="App">
+          <div class="central-node-name">App.tsx</div>
+          <div class="central-node-sub">Root state · 954 lines</div>
+        </div>
+        ${nodeHTML('AppWorkspaceRouter')}
+        <div style="color:var(--text-dim);font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-top:4px;">Workspace Views</div>
+        <div class="workspace-grid">
+          ${[
+            ['HomeCanvas','Home','#a855f7'],
+            ['ContentWorkspace','Content','#f59e0b'],
+            ['AudienceWorkspace','Audience','#22c55e'],
+            ['BookmarksWorkspace','Bookmarks','#3b82f6'],
+            ['ReadWorkspace','Read','#6b7280'],
+            ['PricingWorkspace','Pricing','#ef4444'],
+          ].map(([id,label,color])=>
+            `<div class="node ui" data-node-custom="${id}" style="border-color:${color}44;background:${color}12;color:${color};min-width:unset;padding:8px 6px;">
+              <div class="node-name" style="font-size:11px;">${label}</div>
+            </div>`
+          ).join('')}
+        </div>
+      </div>
+      <div class="grid-right">
+        ${nodeHTML('RightSidebar')}
+      </div>
+    </div>
+    <div style="padding:12px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-dim);line-height:1.9;margin-top:8px;">
+      <span style="color:var(--text-mid);font-weight:700;">Architecture:</span>
+      App.tsx holds all top-level React state → passes props to AppWorkspaceRouter, Sidebar, RightSidebar
+      → AppWorkspaceRouter renders the active workspace based on navigation state
+      → Sidebar dispatches navigation events back to App.tsx
+      → RightSidebar receives feed items and filter callbacks from App.tsx
+    </div>
+    ${legendHTML()}
+  `;
+  // attach custom node events for workspace grid
+  el.querySelectorAll('[data-node-custom]').forEach(n => {
+    const customNodes = {
+      HomeCanvas: { name:'HomeCanvas', file:'src/components/HomeCanvas.tsx', type:'ui', desc:'Home feed view container.', fns:['render()'], conns:['AppWorkspaceRouter','useHomeFeed'] },
+      BookmarksWorkspace: { name:'BookmarksWorkspace', file:'src/components/BookmarksWorkspace.tsx', type:'ui', desc:'Bookmarked articles and posts view.', fns:['render()','onRemove()'], conns:['AppWorkspaceRouter','persistenceClient'] },
+      ReadWorkspace: { name:'ReadWorkspace', file:'src/components/ReadWorkspace.tsx', type:'ui', desc:'Article reading list workspace.', fns:['render()'], conns:['AppWorkspaceRouter'] },
+      PricingWorkspace: { name:'PricingWorkspace', file:'src/components/PricingWorkspace.tsx', type:'ui', desc:'Plan management and Stripe integration. 350 lines.', fns:['render()','onUpgrade()'], conns:['AppWorkspaceRouter','pricingPlans'] },
+      AudienceWorkspace: NODES.AudienceWorkspace,
+      ContentWorkspace: NODES.ContentWorkspace,
+    };
+    const id = n.dataset.nodeCustom;
+    if (customNodes[id]) {
+      n.style.cursor = 'pointer';
+      n.addEventListener('click', () => showDetail(customNodes[id]));
+    }
+  });
+}
+
+function legendHTML() {
+  return `<div class="legend">
+    <div class="legend-title">Legend</div>
+    ${Object.entries(COLORS).map(([k,v])=>`
+      <div class="legend-item">
+        <div class="legend-dot" style="background:${v.color}"></div>
+        ${v.label}
+      </div>
+    `).join('')}
+    <div class="legend-item" style="margin-top:4px;">
+      <div style="width:20px;height:2px;background:repeating-linear-gradient(90deg,#2d4a6b 0,#2d4a6b 6px,transparent 6px,transparent 10px)"></div>
+      Animated flow
+    </div>
+  </div>`;
+}
+
+// ── Node events ──
+function attachNodeEvents() {
+  document.querySelectorAll('[data-node]').forEach(el => {
+    const id = el.dataset.node;
+    const node = NODES[id];
+    if (!node) return;
+
+    el.addEventListener('mouseenter', (e) => showTooltip(e, node));
+    el.addEventListener('mousemove', moveTooltip);
+    el.addEventListener('mouseleave', hideTooltip);
+    el.addEventListener('click', () => {
+      document.querySelectorAll('[data-node]').forEach(n => n.classList.remove('selected'));
+      el.classList.add('selected');
+      showDetail(node);
+    });
+  });
+}
+
+const tooltip = document.getElementById('tooltip');
+const tooltipName = document.getElementById('tooltipName');
+const tooltipDesc = document.getElementById('tooltipDesc');
+const tooltipFile = document.getElementById('tooltipFile');
+
+function showTooltip(e, node) {
+  tooltipName.textContent = node.name;
+  tooltipDesc.textContent = node.desc.slice(0,80) + (node.desc.length > 80 ? '...' : '');
+  tooltipFile.textContent = node.file;
+  tooltip.classList.add('visible');
+  moveTooltip(e);
+}
+function moveTooltip(e) {
+  let x = e.clientX + 14, y = e.clientY + 14;
+  if (x + 240 > window.innerWidth) x = e.clientX - 240;
+  if (y + 100 > window.innerHeight) y = e.clientY - 100;
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = y + 'px';
+}
+function hideTooltip() { tooltip.classList.remove('visible'); }
+
+function showDetail(node) {
+  const c = COLORS[node.type];
+  const panel = document.getElementById('detailPanel');
+  panel.innerHTML = `
+    <div class="detail-layer-badge" style="color:${c.color};border-color:${c.border};background:${c.bg}">${c.label}</div>
+    <div class="detail-name">${node.name}</div>
+    <div class="detail-file">${node.file}</div>
+    <div class="detail-section-title">Responsibility</div>
+    <div class="detail-desc">${node.desc}</div>
+    ${node.fns ? `
+      <div class="detail-section-title">Key Exports / Functions</div>
+      ${node.fns.map(f => `<code class="detail-fn">${f}</code>`).join('')}
+    ` : ''}
+    ${node.conns ? `
+      <div class="detail-section-title">Connected To</div>
+      ${node.conns.map(c => {
+        const cn = NODES[c];
+        const cc = cn ? COLORS[cn.type] : COLORS.util;
+        return `<div class="detail-conn">
+          <div class="detail-conn-dot" style="background:${cc.color}"></div>
+          ${cn ? cn.name : c}
+        </div>`;
+      }).join('')}
+    ` : ''}
+  `;
+}
+
+function clearDetail() {
+  document.getElementById('detailPanel').innerHTML = '<div class="detail-empty">← Click any node<br/>to see details</div>';
+}
+
+// ── Init ──
+buildTabs();
+renderDiagram();
+</script>
+</body>
+</html>
