@@ -90,8 +90,8 @@ const ContentWorkspace = ({
 }) => {
   const summaryDateLabel = getSummaryDateLabel(searchResults, 10);
   const summaryTrustLabel = isLatestMode
-    ? 'à¸ªà¸£à¸¸à¸›à¹‚à¸”à¸¢ FORO à¸ˆà¸²à¸à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸ªà¸”à¹ƒà¸™à¸Šà¹ˆà¸§à¸‡ 24-48 à¸Šà¸±à¹ˆà¸§à¹‚à¸¡à¸‡à¸—à¸µà¹ˆà¸œà¹ˆà¸²à¸™à¸¡à¸²'
-    : 'à¸ªà¸£à¸¸à¸›à¹‚à¸”à¸¢ FORO à¸ˆà¸²à¸à¹‚à¸žà¸ªà¸•à¹Œà¹à¸¥à¸°à¹à¸«à¸¥à¹ˆà¸‡à¸­à¹‰à¸²à¸‡à¸­à¸´à¸‡à¸—à¸µà¹ˆà¹€à¸à¸µà¹ˆà¸¢à¸§à¸‚à¹‰à¸­à¸‡';
+    ? 'สรุปโดย FORO จากข้อมูลสดในช่วง 24-48 ชั่วโมงที่ผ่านมา'
+    : 'สรุปโดย FORO จากโพสต์และแหล่งอ้างอิงที่เกี่ยวข้อง';
   const normalizedCurrentSearchQuery = (searchQuery || '').trim().replace(/\s+/g, ' ');
   const shouldShowEmptySearchState =
     Boolean(normalizedCurrentSearchQuery) &&
@@ -539,7 +539,7 @@ const ContentWorkspace = ({
                       }}
                       className="icon-btn-large"
                       style={{ width: '32px', height: '32px' }}
-                      title="ÃƒÂ Ã‚Â¸Ã‚ÂÃƒÂ Ã‚Â¹Ã…Â ÃƒÂ Ã‚Â¸Ã‚Â­ÃƒÂ Ã‚Â¸Ã¢â‚¬ÂºÃƒÂ Ã‚Â¸Ã¢â‚¬ÂºÃƒÂ Ã‚Â¸Ã‚ÂµÃƒÂ Ã‚Â¹Ã¢â‚¬Â°ÃƒÂ Ã‚Â¸Ã‚ÂªÃƒÂ Ã‚Â¸Ã‚Â£ÃƒÂ Ã‚Â¸Ã‚Â¸ÃƒÂ Ã‚Â¸Ã¢â‚¬Âº"
+                      title="คัดลอกสรุป"
                     >
                       <Copy size={14} />
                     </button>
