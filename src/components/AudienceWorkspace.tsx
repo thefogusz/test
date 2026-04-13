@@ -306,7 +306,7 @@ const AudienceWorkspace = ({
           <div className="animate-fade-in">
             <div
               ref={aiSearchBarRef}
-              className="audience-ai-searchbar audience-command-row"
+              className={`audience-ai-searchbar audience-command-row ${aiSearchLoading ? 'is-searching' : ''} ${hasAiResults ? 'has-results' : ''}`}
               style={{ display: 'flex', gap: '12px', marginBottom: '20px', maxWidth: '680px', flexWrap: 'wrap' }}
             >
               <div className="audience-ai-search-input">
@@ -330,7 +330,7 @@ const AudienceWorkspace = ({
                 )}
               </div>
 
-              <button onClick={() => handleAiSearchAudience()} disabled={aiSearchLoading} className="btn-sync-premium" style={{ height: '48px', padding: '0 24px' }}>
+              <button onClick={() => handleAiSearchAudience()} disabled={aiSearchLoading} className="btn-sync-premium audience-search-cta" style={{ height: '48px', padding: '0 24px' }}>
                 {aiSearchLoading ? <RefreshCw size={15} className="animate-spin" /> : '\u0e04\u0e49\u0e19\u0e2b\u0e32'}
               </button>
               {!aiSearchLoading && hasSearchedAudience && aiSearchResults.length === 0 && (
@@ -368,7 +368,7 @@ const AudienceWorkspace = ({
                     const topicLabel = buildTopicHintLabel(aiQuery || expert.category || expert.title);
                     const followerLabel = formatFollowerCount(expert.followers);
                     return (
-                      <div key={expert.username} className="expert-card animate-fade-in" style={{ animationDelay: `${i * 0.05}s` }}>
+                      <div key={expert.username} className="expert-card animate-fade-in audience-expert-card-jitter" style={{ animationDelay: `${i * 0.05}s` }}>
                         <div className="audience-expert-top">
                           <div className="audience-expert-meta-row">
                             <div className="audience-expert-topic-chip">
@@ -395,7 +395,7 @@ const AudienceWorkspace = ({
                                 <Plus size={12} />
                               </button>
                               <div
-                                className="discovery-menu"
+                                className={`discovery-menu audience-expert-dropdown ${openExpertMenu === expert.username ? 'is-open' : ''}`}
                                 style={{ display: openExpertMenu === expert.username ? 'block' : 'none', position: 'absolute', right: 0, top: '100%', marginTop: '8px', zIndex: 100, width: '180px' }}
                               >
                                 <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--glass-border)', fontSize: '10px', fontWeight: '800', color: 'var(--accent-secondary)' }}>

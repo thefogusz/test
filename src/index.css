@@ -2045,6 +2045,13 @@ h6,
   animation: audienceCardSwapIn 260ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 
+.audience-results-grid .expert-card.audience-expert-card-jitter {
+  transform-origin: 50% 100%;
+  animation:
+    audienceCardSwapIn 260ms cubic-bezier(0.22, 1, 0.36, 1) backwards,
+    audienceCardSettle 520ms cubic-bezier(0.2, 0.85, 0.22, 1) backwards;
+}
+
 .audience-results-shell.is-refreshing .expert-card {
   animation: audienceCardRefresh 900ms ease-in-out infinite alternate;
   pointer-events: none;
@@ -2074,10 +2081,36 @@ h6,
   }
 }
 
+@keyframes audienceCardSettle {
+  from {
+    filter: saturate(0.92);
+  }
+
+  60% {
+    filter: saturate(1.04);
+  }
+
+  to {
+    filter: saturate(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .audience-results-grid .expert-card,
   .audience-results-shell.is-refreshing .expert-card {
     animation: none;
+  }
+
+  .audience-expert-dropdown.is-open {
+    animation: none;
+  }
+
+  .audience-ai-searchbar,
+  .audience-ai-search-input,
+  .audience-search-cta,
+  .audience-expert-card-jitter .audience-expert-avatar img,
+  .audience-expert-card-jitter .audience-expert-avatar span {
+    transition: none;
   }
 }
 
@@ -2213,6 +2246,20 @@ h6,
   border-color: rgba(0, 112, 243, 0.5);
   transform: translateY(-4px);
   box-shadow: 0 20px 44px rgba(0, 0, 0, 0.38);
+}
+
+.audience-expert-card-jitter {
+  will-change: transform, opacity;
+}
+
+.audience-expert-card-jitter .audience-expert-avatar img,
+.audience-expert-card-jitter .audience-expert-avatar span {
+  transition: transform 360ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.audience-expert-card-jitter:hover .audience-expert-avatar img,
+.audience-expert-card-jitter:hover .audience-expert-avatar span {
+  transform: scale(1.045);
 }
 
 .ai-pick-pill {
@@ -4704,6 +4751,7 @@ h6,
   align-items: stretch;
   width: min(100%, 620px);
   margin-left: 0;
+  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 240ms ease;
 }
 
 .audience-ai-search-input {
@@ -4720,6 +4768,13 @@ h6,
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  transition:
+    border-color 220ms ease,
+    box-shadow 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-position 420ms ease;
+  background-size: 140% 140%;
+  background-position: 0% 50%;
 }
 
 .audience-ai-search-input input {
@@ -4730,6 +4785,22 @@ h6,
 .audience-ai-searchbar .btn-sync-premium {
   min-width: 132px;
   justify-content: center;
+}
+
+.audience-search-cta {
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 220ms ease,
+    filter 220ms ease;
+}
+
+.audience-search-cta:hover:not(:disabled) {
+  transform: translateY(-1px) scale(1.01);
+  filter: saturate(1.04);
+}
+
+.audience-search-cta:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
 }
 
 .manual-search-form.audience-command-row .custom-input-wrapper {
@@ -4750,6 +4821,27 @@ h6,
 .audience-ai-search-input:focus-within {
   border-color: rgba(105, 170, 255, 0.28);
   box-shadow: 0 0 0 4px rgba(41, 151, 255, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transform: translateY(-1px);
+  background-position: 100% 50%;
+}
+
+.audience-ai-searchbar.is-searching {
+  transform: translateY(-1px);
+}
+
+.audience-ai-searchbar.is-searching .audience-ai-search-input {
+  border-color: rgba(105, 170, 255, 0.34);
+  box-shadow:
+    0 10px 28px rgba(20, 75, 160, 0.18),
+    0 0 0 1px rgba(41, 151, 255, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  background-position: 100% 50%;
+}
+
+.audience-ai-searchbar.has-results .audience-ai-search-input {
+  box-shadow:
+    0 12px 24px rgba(13, 24, 45, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .audience-ai-search-icon {
@@ -6758,6 +6850,26 @@ h6,
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+}
+
+.audience-expert-dropdown {
+  transform-origin: top right;
+}
+
+.audience-expert-dropdown.is-open {
+  animation: audienceDropdownIn 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes audienceDropdownIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .feed-card-profile-menu {
