@@ -302,6 +302,7 @@ const App = () => {
     isSyncing,
     loading,
     nextCursor,
+    visibleFeedTotalCount,
   } = useHomeFeedWorkspace({
     activePlanId,
     activeListId,
@@ -766,6 +767,7 @@ const App = () => {
             hasReachedFeedCardLimit={hasReachedFeedCardLimit}
             homeFeedCardLimit={homeFeedCardLimit}
             loading={loading}
+            visibleFeedTotalCount={visibleFeedTotalCount}
             pendingFeed={pendingFeed}
             nextCursor={nextCursor}
             aiFilterBrief={aiFilterBrief}

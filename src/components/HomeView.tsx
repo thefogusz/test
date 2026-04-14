@@ -121,6 +121,7 @@ const HomeView = ({
   hasReachedFeedCardLimit,
   homeFeedCardLimit,
   loading,
+  visibleFeedTotalCount,
   pendingFeed,
   nextCursor,
   aiFilterBrief,
@@ -173,6 +174,9 @@ const HomeView = ({
   );
   const freshFeedIdSet = useMemo(() => new Set((freshFeedIds ?? []).map((id) => String(id))), [freshFeedIds]);
   const hasVisibleFeed = feed.length > 0;
+  const liveFeedCount = isFiltered ? feed.length : visibleFeedTotalCount;
+  const shouldShowFeedCount = liveFeedCount > 0 || hasVisibleFeed || isSyncing || isFiltering;
+  const feedCountLabel = `${liveFeedCount} การ์ด`;
   const incomingSkeletonCount = isCompactSkeletonLayout ? 2 : 4;
   const shouldShowPrependedSkeletons = hadVisibleFeedBeforeSync && isSyncing;
   const shouldShowAppendedSkeletons = hasVisibleFeed && isLoadingMore;
@@ -262,6 +266,11 @@ const HomeView = ({
       <div className="mobile-only-flex home-mobile-feed-inline" style={{ alignItems: 'center', justifyContent: 'space-between', gap: '8px', width: '100%' }}>
         <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <div className="section-title" style={MOBILE_SECTION_TITLE_STYLE}>โพสต์ล่าสุด</div>
+          {shouldShowFeedCount && (
+            <span className="home-feed-count-badge" aria-live="polite">
+              {feedCountLabel}
+            </span>
+          )}
           {activeListId && <div className="active-list-pills" style={{ fontSize: '12px', padding: '4px 10px' }}>กำลังกรองตาม: {currentActiveList?.name}</div>}
           {isFiltered && <AiFilteredBadge onClear={onClearAiFilter} clearTitle="ล้าง" />}
           {renderFeedMaintenanceAction('home-mobile-clear-action')}
@@ -355,6 +364,11 @@ const HomeView = ({
         <div className="feed-section-header home-desktop-feed-header home-feed-toolbar reader-toolbar-actions" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
           <div className="feed-section-title-row" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div className="section-title">โพสต์ล่าสุด</div>
+            {shouldShowFeedCount && (
+              <span className="home-feed-count-badge" aria-live="polite">
+                {feedCountLabel}
+              </span>
+            )}
             {isFiltered && <AiFilteredBadge onClear={onClearAiFilter} clearTitle="ล้างตัวกรอง" />}
           </div>
           <div className="feed-section-filters reader-toolbar-actions-group" style={{ display: 'flex', gap: '8px' }}>

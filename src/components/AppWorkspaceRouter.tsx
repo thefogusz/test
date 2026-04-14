@@ -29,6 +29,7 @@ const AppWorkspaceRouter = ({
   hasReachedFeedCardLimit,
   homeFeedCardLimit,
   loading,
+  visibleFeedTotalCount,
   pendingFeed,
   nextCursor,
   aiFilterBrief,
@@ -194,6 +195,7 @@ const AppWorkspaceRouter = ({
           hasReachedFeedCardLimit={hasReachedFeedCardLimit}
           homeFeedCardLimit={homeFeedCardLimit}
           loading={loading}
+          visibleFeedTotalCount={visibleFeedTotalCount}
           pendingFeed={pendingFeed}
           nextCursor={nextCursor}
           aiFilterBrief={aiFilterBrief}

@@ -466,6 +466,7 @@ export const useHomeFeedWorkspace = ({
     [homeFeedCardLimit, visibleFeedCandidates],
   );
 
+  const visibleFeedTotalCount = visibleFeedCandidates.length;
   const hasReachedFeedCardLimit = visibleFeedCandidates.length >= homeFeedCardLimit;
 
   useEffect(() => {
@@ -1166,5 +1167,6 @@ export const useHomeFeedWorkspace = ({
     homeFeedCardLimit,
     loading: syncMutation.isPending || loadMoreMutation.isPending,
     nextCursor,
+    visibleFeedTotalCount,
   };
 };
