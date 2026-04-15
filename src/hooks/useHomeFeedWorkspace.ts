@@ -38,6 +38,7 @@ type XSyncCheckpointRegistry = Record<string, string>;
 const MAX_RSS_SEEN_ITEMS_PER_SOURCE = 600;
 const MAX_X_SEEN_ITEMS = 2500;
 const X_SYNC_OVERLAP_MS = 2 * 60 * 1000;
+const MIN_RSS_CARDS_IN_INITIAL_DISPLAY = 3;
 const buildFeedSyncQueryKey = ({
   activeListId,
   twitterHandles,
@@ -89,6 +90,91 @@ const shouldSummarizeWholeVisibleFeed = (prompt: string) => {
   if (!normalizedPrompt) return false;
 
   return BROAD_FORO_OVERVIEW_PATTERNS.some((pattern) => pattern.test(normalizedPrompt));
+};
+
+const buildBalancedInitialDisplay = (
+  posts: any[] = [],
+  limit: number,
+  minimumRssCards = MIN_RSS_CARDS_IN_INITIAL_DISPLAY,
+) => {
+  const normalizedLimit = Math.max(0, Number(limit) || 0);
+  if (normalizedLimit === 0) {
+    return {
+      displayPosts: [],
+      overflowPosts: [],
+    };
+  }
+
+  const sortedPosts = [...posts].sort(
+    (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
+  );
+  const initialDisplay = sortedPosts.slice(0, normalizedLimit);
+  const initialOverflow = sortedPosts.slice(normalizedLimit);
+
+  const currentRssCount = initialDisplay.filter(
+    (post) => String(post?.sourceType || '').trim().toLowerCase() === 'rss',
+  ).length;
+  const availableRssInOverflow = initialOverflow.filter(
+    (post) => String(post?.sourceType || '').trim().toLowerCase() === 'rss',
+  );
+
+  if (currentRssCount >= minimumRssCards || availableRssInOverflow.length === 0) {
+    return {
+      displayPosts: initialDisplay,
+      overflowPosts: initialOverflow,
+    };
+  }
+
+  const targetRssCount = Math.min(
+    minimumRssCards,
+    currentRssCount + availableRssInOverflow.length,
+    normalizedLimit,
+  );
+  if (targetRssCount <= currentRssCount) {
+    return {
+      displayPosts: initialDisplay,
+      overflowPosts: initialOverflow,
+    };
+  }
+
+  const nextDisplay = [...initialDisplay];
+  const nextOverflow = [...initialOverflow];
+  let rssCount = currentRssCount;
+
+  while (rssCount < targetRssCount) {
+    const overflowRssIndex = nextOverflow.findIndex(
+      (post) => String(post?.sourceType || '').trim().toLowerCase() === 'rss',
+    );
+    if (overflowRssIndex === -1) break;
+
+    const replaceIndex = (() => {
+      for (let index = nextDisplay.length - 1; index >= 0; index -= 1) {
+        if (String(nextDisplay[index]?.sourceType || '').trim().toLowerCase() !== 'rss') {
+          return index;
+        }
+      }
+      return -1;
+    })();
+    if (replaceIndex === -1) break;
+
+    const incomingRssPost = nextOverflow.splice(overflowRssIndex, 1)[0];
+    const displacedPost = nextDisplay[replaceIndex];
+    nextDisplay[replaceIndex] = incomingRssPost;
+    nextOverflow.push(displacedPost);
+    rssCount += 1;
+  }
+
+  nextDisplay.sort(
+    (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
+  );
+  nextOverflow.sort(
+    (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
+  );
+
+  return {
+    displayPosts: nextDisplay,
+    overflowPosts: nextOverflow,
+  };
 };
 
 export const useHomeFeedWorkspace = ({
@@ -852,11 +938,11 @@ export const useHomeFeedWorkspace = ({
             return Boolean(postId) && !existingIds.has(postId);
           })
           : [];
-      const combinedNewPosts = [...newTwitterDisplay, ...newRssPosts].sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      );
-      const displayData = combinedNewPosts.slice(0, MAX_INITIAL_DISPLAY);
-      const overflowDisplayData = combinedNewPosts.slice(MAX_INITIAL_DISPLAY);
+      const combinedNewPosts = [...newTwitterDisplay, ...newRssPosts];
+      const {
+        displayPosts: displayData,
+        overflowPosts: overflowDisplayData,
+      } = buildBalancedInitialDisplay(combinedNewPosts, MAX_INITIAL_DISPLAY);
       const newDisplayData =
         displayData.length > 0
           ? displayData
