@@ -40,37 +40,73 @@ const useLibraryViews = ({
     );
   }, [activeListId, postLists]);
 
+  const normalizedReadSearchQuery = useMemo(
+    () => normalizeSearchText(deferredReadSearchQuery),
+    [deferredReadSearchQuery],
+  );
+
   const filteredBookmarks = useMemo(() => {
-    return bookmarks.filter((item) => {
-      const isArticle = item?.type === 'article';
-      const matchesTab = bookmarkTab === 'news' ? !isArticle : isArticle;
-      if (!matchesTab) return false;
-      if (!activeReadListMemberSet) return true;
+    return bookmarks
+      .filter((item) => {
+        const isArticle = item?.type === 'article';
+        const matchesTab = bookmarkTab === 'news' ? !isArticle : isArticle;
+        if (!matchesTab) return false;
+        if (!activeReadListMemberSet) return true;
 
-      if (!isArticle) {
-        return item?.author?.username && activeReadListMemberSet.has(item.author.username.toLowerCase());
-      }
+        if (!isArticle) {
+          return item?.author?.username && activeReadListMemberSet.has(item.author.username.toLowerCase());
+        }
 
-      const attachedAuthor = item?.attachedSource?.author?.username;
-      if (attachedAuthor && activeReadListMemberSet.has(attachedAuthor.toLowerCase())) {
-        return true;
-      }
+        const attachedAuthor = item?.attachedSource?.author?.username;
+        if (attachedAuthor && activeReadListMemberSet.has(attachedAuthor.toLowerCase())) {
+          return true;
+        }
 
-      return (Array.isArray(item?.sources) ? item.sources : []).some((source) => {
-        const sourceAuthor = source?.author?.username;
-        return sourceAuthor && activeReadListMemberSet.has(sourceAuthor.toLowerCase());
-      });
-    });
-  }, [activeReadListMemberSet, bookmarkTab, bookmarks]);
+        return (Array.isArray(item?.sources) ? item.sources : []).some((source) => {
+          const sourceAuthor = source?.author?.username;
+          return sourceAuthor && activeReadListMemberSet.has(sourceAuthor.toLowerCase());
+        });
+      })
+      .map((item) => ({
+        item,
+        searchScore: normalizedReadSearchQuery
+          ? scoreFuzzyTextMatch(
+              normalizedReadSearchQuery,
+              item?.title,
+              item?.name,
+              item?.author?.name,
+              item?.author?.username,
+              item?.summary,
+              item?.text,
+              item?.full_text,
+              item?.attachedSource?.author?.name,
+              item?.attachedSource?.author?.username,
+              ...(Array.isArray(item?.sources)
+                ? item.sources.flatMap((source) => [
+                    source?.title,
+                    source?.summary,
+                    source?.text,
+                    source?.author?.name,
+                    source?.author?.username,
+                  ])
+                : []),
+            )
+          : 1,
+      }))
+      .filter(({ searchScore }) => searchScore > 0)
+      .sort((left, right) => {
+        if (normalizedReadSearchQuery && right.searchScore !== left.searchScore) {
+          return right.searchScore - left.searchScore;
+        }
+
+        return new Date(right.item.created_at || 0).getTime() - new Date(left.item.created_at || 0).getTime();
+      })
+      .map(({ item }) => item);
+  }, [activeReadListMemberSet, bookmarkTab, bookmarks, normalizedReadSearchQuery]);
 
   const bookmarkIds = useMemo(
     () => new Set(bookmarks.map((item) => item?.id).filter(Boolean)),
     [bookmarks],
-  );
-
-  const normalizedReadSearchQuery = useMemo(
-    () => normalizeSearchText(deferredReadSearchQuery),
-    [deferredReadSearchQuery],
   );
 
   const { readSearchSuggestions, filteredReadArchive } = useMemo(() => {

@@ -734,6 +734,7 @@ const FeedCard = ({
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '5px',
+                  flexWrap: 'nowrap',
                   borderRadius: '999px',
                   padding: '4px 7px',
                   background: 'rgba(2, 6, 23, 0.76)',
@@ -741,6 +742,8 @@ const FeedCard = ({
                   fontSize: '9px',
                   fontWeight: '800',
                   letterSpacing: '0.03em',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1,
                 }}
               >
                 <ListVideo size={10} />

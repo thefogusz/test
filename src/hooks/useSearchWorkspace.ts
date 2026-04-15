@@ -358,32 +358,44 @@ const buildSummaryCandidates = (
   posts: any[],
   summaryMode: SearchSummaryMode,
   latestMode: boolean,
+  focusMode: SearchFocusMode | null = null,
 ) => {
   const normalizedPosts = mergeUniquePostsById(posts).map(sanitizeStoredPost);
-  if (summaryMode !== 'rss_first') return normalizedPosts.slice(0, 10);
+  const getCandidateScore = (post: any) => {
+    const focusSignals = getFocusSignals(post);
+    const focusBoost = focusMode ? (focusSignals[focusMode] || 0) * 2.2 : 0;
+    const impactBoost = focusSignals.impact * 1.6;
+    const latestBoost = latestMode ? focusSignals.latest * 1.8 : 0;
+    const searchBoost = toNumber(post?.search_score) * 2.4;
+    const rssBoost =
+      summaryMode === 'rss_first'
+        ? String(post?.sourceType || '').toLowerCase() === 'rss'
+          ? 6.5
+          : 0.75
+        : 0;
+
+    return impactBoost + focusBoost + latestBoost + searchBoost + rssBoost;
+  };
 
   const sortForSummary = (items: any[]) =>
-    latestMode
-      ? [...items].sort(
-        (left, right) =>
-          new Date(right?.created_at || right?.createdAt || 0).getTime() -
-          new Date(left?.created_at || left?.createdAt || 0).getTime(),
-      )
-      : [...items];
+    [...items].sort((left, right) => getCandidateScore(right) - getCandidateScore(left));
+
+  if (summaryMode !== 'rss_first') return sortForSummary(normalizedPosts).slice(0, 16);
 
   const rssPosts = sortForSummary(normalizedPosts.filter((post) => post?.sourceType === 'rss'));
   const xPosts = sortForSummary(normalizedPosts.filter((post) => post?.sourceType !== 'rss'));
 
-  if (!rssPosts.length || !xPosts.length) return normalizedPosts.slice(0, 10);
+  if (!rssPosts.length || !xPosts.length) return sortForSummary(normalizedPosts).slice(0, 16);
 
   const blended: any[] = [];
-  while ((rssPosts.length || xPosts.length) && blended.length < 10) {
+  while ((rssPosts.length || xPosts.length) && blended.length < 16) {
     if (rssPosts.length) blended.push(rssPosts.shift());
     if (rssPosts.length) blended.push(rssPosts.shift());
     if (xPosts.length) blended.push(xPosts.shift());
+    if (xPosts.length) blended.push(xPosts.shift());
   }
 
-  return mergeUniquePostsById(blended).map(sanitizeStoredPost).slice(0, 10);
+  return mergeUniquePostsById(blended).map(sanitizeStoredPost).slice(0, 16);
 };
 
 const resolveAutomaticSummaryMode = (
@@ -549,6 +561,41 @@ export const useSearchWorkspace = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [isLiveSearching, setIsLiveSearching] = useState(false);
+
+  const progressivelyTranslateSearchResults = (posts: any[] = []) => {
+    const translationCandidates = mergeUniquePostsById(posts)
+      .filter((post) => {
+        const sourceText = getPostSummarySourceText(post);
+        return sourceText && !hasUsefulThaiSummary(post?.summary, sourceText);
+      });
+
+    if (!translationCandidates.length) return;
+
+    const CHUNK_SIZE = 5;
+    void (async () => {
+      try {
+        for (let index = 0; index < translationCandidates.length; index += CHUNK_SIZE) {
+          const chunk = translationCandidates.slice(index, index + CHUNK_SIZE);
+          const batchTexts = chunk.map((post) => getPostSummarySourceText(post));
+          const summaries = await generateGrokBatch(batchTexts);
+
+          setSearchResults((prev) =>
+            prev.map((post) => {
+              const chunkIndex = chunk.findIndex((item) => item.id === post.id);
+              if (chunkIndex === -1) return post;
+
+              const nextSummary = summaries[chunkIndex] || post.text;
+              return hasUsefulThaiSummary(nextSummary, getPostSummarySourceText(post))
+                ? { ...post, summary: nextSummary }
+                : post;
+            }),
+          );
+        }
+      } catch (batchError) {
+        console.warn('[Search] Progressive translation failed:', batchError);
+      }
+    })();
+  };
 
   const recordSearchInterest = (rawQuery: string) => {
     const normalizedQuery = normalizeSearchLabel(rawQuery);
@@ -1047,6 +1094,7 @@ export const useSearchWorkspace = ({
               mergedResults,
               effectiveSummaryMode,
               effectiveLatestMode,
+              effectiveFocus,
             ),
             requestedQuery,
             webContext,
@@ -1059,6 +1107,8 @@ export const useSearchWorkspace = ({
             .catch((summaryError) => {
               console.warn('[Search] Executive summary failed:', summaryError);
             });
+
+          progressivelyTranslateSearchResults(mergedResults);
 
           return;
         }
@@ -1194,6 +1244,7 @@ export const useSearchWorkspace = ({
               mergedResults,
               effectiveSummaryMode,
               effectiveLatestMode,
+              effectiveFocus,
             );
 
             void generateSearchSummary({
@@ -1211,30 +1262,7 @@ export const useSearchWorkspace = ({
               });
           }
 
-          const CHUNK_SIZE = 5;
-          void (async () => {
-            try {
-              for (let index = 0; index < cleanData.length; index += CHUNK_SIZE) {
-                const chunk = cleanData.slice(index, index + CHUNK_SIZE);
-                const batchTexts = chunk.map((tweet) => getPostSummarySourceText(tweet));
-                const summaries = await generateGrokBatch(batchTexts);
-
-                setSearchResults((prev) =>
-                  prev.map((post) => {
-                    const chunkIndex = chunk.findIndex((item) => item.id === post.id);
-                    if (chunkIndex === -1) return post;
-
-                    const nextSummary = summaries[chunkIndex] || post.text;
-                    return hasUsefulThaiSummary(nextSummary, getPostSummarySourceText(post))
-                      ? { ...post, summary: nextSummary }
-                      : post;
-                  }),
-                );
-              }
-            } catch (batchError) {
-              console.warn('[Search] Progressive translation failed:', batchError);
-            }
-          })();
+          progressivelyTranslateSearchResults(mergedResults);
         } else {
           setStatus('ไม่พบข้อมูลสำหรับคำค้นหานี้');
         }
@@ -1347,6 +1375,7 @@ export const useSearchWorkspace = ({
         reranked,
         effectiveSummaryMode,
         isLatestMode,
+        focus,
       );
 
       try {
