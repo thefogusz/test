@@ -25,6 +25,12 @@ import {
   FACT_CACHE_TTL_MS,
   X_VIDEO_ANALYSIS_CACHE_TTL_MS,
 } from '../lib/cache';
+import {
+  buildAdaptiveWritingDirectives,
+  hasPublisherAttributionOveruse,
+  hasSourceLedNarrative,
+  hasWeakDataDumpOpening,
+} from './contentQualityGuards.js';
 
 const grok = createXai({
   apiKey: 'local-proxy',
@@ -35,125 +41,6 @@ const grok = createXai({
 });
 
 const responseCache = new Map();
-
-const extractRepeatedPublisherAttributions = (text = '') => {
-  const normalized = String(text || '');
-  if (!normalized) return [];
-
-  const counts = new Map();
-  const patterns = [
-    /\b([A-Za-z][A-Za-z0-9.&/-]{2,})\b(?=[^\n]{0,24}(?:รายงาน|อ้าง|อ้างอิง|ระบุ|ชี้|เผย|โพสต์|เขียน))/g,
-    /(?:รายงาน|อ้าง|อ้างอิง|ระบุ|ชี้|เผย|โพสต์|เขียน|ตามข้อมูลจาก|อิงจาก)\s+([A-Za-z][A-Za-z0-9.&/-]{2,})\b/g,
-  ];
-
-  patterns.forEach((pattern) => {
-    for (const match of normalized.matchAll(pattern)) {
-      const token = (match[1] || '').trim().toLowerCase();
-      if (!token || token.length < 3) continue;
-      counts.set(token, (counts.get(token) || 0) + 1);
-    }
-  });
-
-  return Array.from(counts.entries())
-    .filter(([, count]) => count >= 2)
-    .map(([token]) => token);
-};
-
-const hasPublisherAttributionOveruse = (text = '') =>
-  extractRepeatedPublisherAttributions(text).length > 0;
-
-const buildAdaptiveWritingDirectives = ({
-  format = '',
-  tone = '',
-  length = '',
-  customInstructions = '',
-  rawUserInput = '',
-} = {}) => {
-  const normalizedInstructions = normalizeCacheText(customInstructions).toLowerCase();
-  const normalizedInput = normalizeCacheText(rawUserInput).toLowerCase();
-  const wantsHook =
-    /hook|ฮุก|เปิดแรง|เปิดให้น่าสนใจ|viral|ไวรัล|หยุดเลื่อน|stop scroll/i.test(
-      `${normalizedInstructions} ${normalizedInput} ${tone} ${format}`,
-    );
-  const isSocial = format === 'à¹‚à¸žà¸ªà¸•à¹Œà¹‚à¸‹à¹€à¸Šà¸µà¸¢à¸¥';
-  const isThread = format === 'à¹‚à¸žà¸ªà¸•à¹Œà¹ƒà¸«à¹‰à¸„à¸§à¸²à¸¡à¸£à¸¹à¹‰ (Thread)';
-  const isShortVideo = format === 'à¸ªà¸„à¸£à¸´à¸›à¸•à¹Œà¸§à¸´à¸”à¸µà¹‚à¸­à¸ªà¸±à¹‰à¸™';
-  const isViral = tone === 'à¸à¸£à¸°à¸•à¸·à¸­à¸£à¸·à¸­à¸£à¹‰à¸™/à¹„à¸§à¸£à¸±à¸¥';
-  const isFriendly = tone === 'à¹€à¸›à¹‡à¸™à¸à¸±à¸™à¹€à¸­à¸‡/à¹€à¸žà¸·à¹ˆà¸­à¸™à¹€à¸¥à¹ˆà¸²à¹ƒà¸«à¹‰à¸Ÿà¸±à¸‡';
-  const isFormal = tone === 'à¸—à¸²à¸‡à¸à¸²à¸£/à¸§à¸´à¸Šà¸²à¸à¸²à¸£';
-  const isHumorous = tone === 'à¸•à¸¥à¸/à¸¡à¸µà¸­à¸²à¸£à¸¡à¸“à¹Œà¸‚à¸±à¸™';
-
-  const directives = [
-    'Adapt the writing to the selected format and tone without forcing a fixed template when the material does not support it.',
-    'Let the facts determine how sharp or calm the piece feels.',
-    "If the user gave explicit style instructions, treat them as higher priority than house preferences unless they conflict with the fact sheet.",
-  ];
-
-  if (isSocial || isThread || isShortVideo) {
-    directives.push(
-      'For short formats, prefer compression, clarity, and momentum over completeness. Leave out anything that does not strengthen the core point.',
-    );
-  }
-
-  if (isViral) {
-    directives.push(
-      'For viral tone, choose the most natural opener for this material: a sharp fact, a real contrast, a clear consequence, or a direct thesis. Do not force a question hook or theatrical teaser.',
-    );
-    directives.push(
-      'If the material is not dramatic by itself, create energy through pacing and specificity instead of clickbait wording.',
-    );
-  } else if (wantsHook) {
-    directives.push(
-      'If you use a hook, make it feel earned by the evidence. A plain opening is better than a fake hook.',
-    );
-  } else {
-    directives.push(
-      'Do not manufacture a hook when the user did not ask for one or when a straightforward opening serves the piece better.',
-    );
-  }
-
-  if (isSocial) {
-    directives.push(
-      'For social posts, write like a real person posting with intent, not like a script skeleton. One paragraph is fine; two short paragraphs are fine; choose what reads best.',
-    );
-  }
-
-  if (isThread) {
-    directives.push(
-      'For threads, each segment should carry its own value. Do not split into many posts unless each break genuinely improves readability or sequencing.',
-    );
-  }
-
-  if (isShortVideo) {
-    directives.push(
-      'For short-form video scripts, write for the ear first. Use line breaks only where a speaker would naturally pause, not because of a rigid 3-part template.',
-    );
-  }
-
-  if (isFriendly) {
-    directives.push(
-      'For friendly tone, keep the language warm and close, but use conversational particles sparingly so the voice stays natural rather than performative.',
-    );
-  }
-
-  if (isFormal) {
-    directives.push(
-      'For formal tone, stay precise and composed, but do not flatten the prose into bureaucratic language.',
-    );
-  }
-
-  if (isHumorous) {
-    directives.push(
-      'For humorous tone, let the humor come from the situation, contrast, or phrasing. Do not bolt jokes onto information that should stay straight.',
-    );
-  }
-
-  if (normalizeLength(length) === 'short') {
-    directives.push('Because the target length is short, prioritize one strong idea and cut secondary context aggressively.');
-  }
-
-  return directives.join('\n- ');
-};
 
 // Strip characters commonly used for prompt injection from third-party content
 // before embedding into AI prompts (tweets, web search results, etc.)
@@ -1178,6 +1065,8 @@ const shouldForceNaturalRewrite = (text = '', { format = '', tone = '' } = {}) =
 
   const hasArtificialPhrase = ARTIFICIAL_THAI_PATTERNS.some((pattern) => pattern.test(normalized));
   const hasPublisherOveruse = hasPublisherAttributionOveruse(normalized);
+  const hasSourceLedFlow = hasSourceLedNarrative(text);
+  const hasWeakOpening = hasWeakDataDumpOpening(text, { format, tone });
   const paragraphCount = countContentParagraphs(text);
   const shortParagraphCount = countShortParagraphs(text);
   const looksOverSegmentedSocial =
@@ -1191,6 +1080,8 @@ const shouldForceNaturalRewrite = (text = '', { format = '', tone = '' } = {}) =
   return (
     hasArtificialPhrase ||
     hasPublisherOveruse ||
+    hasSourceLedFlow ||
+    hasWeakOpening ||
     looksOverSegmentedSocial ||
     suspiciousBoldHeadline ||
     (shouldBeCalmer && tooManyExclamations)
@@ -4610,6 +4501,7 @@ Set passed=true only if:
 - it genuinely sounds like the selected tone, instead of drifting back to a generic house style
 - it does not use forced hooks, filler transitions, or unnecessary paragraph splits that make the draft feel templated
 - it does not lean on repeated publisher/site attribution as a writing crutch
+- it does not open with a lifeless data dump when the format or tone calls for a sharper opening
 
 Do not fail a draft just because it chose a different but valid narrative stance.`,
       prompt: `[RAW USER REQUEST]\n${rawUserInput || 'None'}\n\n[RAW USER INSTRUCTIONS]\n${customInstructions || 'None'}\n\n[FORMAT]\n${format}\n\n[TONE]\n${tone}\n\n[NORMALIZED INTENT]\n${intentProfile ? JSON.stringify(intentProfile, null, 2) : 'None'}\n\n[FACT SHEET]\n${activeFactSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[DRAFT]\n${contentDraft}`,
@@ -4625,7 +4517,7 @@ Do not fail a draft just because it chose a different but valid narrative stance
       const revisedDraft = await callGrok({
         modelName: MODEL_WRITER,
         system: draftSystemPrompt,
-        prompt: `[RAW USER REQUEST]\n${rawUserInput || 'None'}\n\n[RAW USER INSTRUCTIONS]\n${customInstructions || 'None'}\n\n[FACT SHEET]\n${activeFactSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[CURRENT DRAFT]\n${contentDraft}\n\n[EDITOR FEEDBACK]\n${evalFeedback}\n\nRewrite only where needed.\n- Keep the facts intact.\n- Remove AI-sounding phrasing, forced hooks, and filler conclusions.\n- Remove repeated publisher/site attribution unless it is essential to understanding the story.\n- Make sure the voice still matches the selected format and tone instead of collapsing into generic news-summary prose.\n- Merge paragraphs if the draft feels over-segmented.\n- Keep the wording plain, natural, and specific.`,
+        prompt: `[RAW USER REQUEST]\n${rawUserInput || 'None'}\n\n[RAW USER INSTRUCTIONS]\n${customInstructions || 'None'}\n\n[FACT SHEET]\n${activeFactSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[CURRENT DRAFT]\n${contentDraft}\n\n[EDITOR FEEDBACK]\n${evalFeedback}\n\nRewrite only where needed.\n- Keep the facts intact.\n- Remove AI-sounding phrasing, forced hooks, and filler conclusions.\n- Remove repeated publisher/site attribution unless it is essential to understanding the story.\n- Replace weak data-dump openings with a sharper but still factual opening when the piece needs more momentum.\n- Make sure the voice still matches the selected format and tone instead of collapsing into generic news-summary prose.\n- Merge paragraphs if the draft feels over-segmented.\n- Keep the wording plain, natural, and specific.`,
         temperature: 0.62,
         allowEmoji,
       });
