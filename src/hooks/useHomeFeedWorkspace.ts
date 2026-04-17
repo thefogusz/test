@@ -212,6 +212,7 @@ export const useHomeFeedWorkspace = ({
   const homeFeedCardLimit = HOME_FEED_CARD_LIMITS[activePlanId] ?? HOME_FEED_CARD_LIMITS.free;
 
   const isSummarizingRef = useRef(false);
+  const queuedSummaryBatchesRef = useRef<any[][]>([]);
   const isBackfillingThaiRef = useRef(false);
   const isEnrichingImagesRef = useRef(false);
   const failedThaiSummaryIdsRef = useRef(new Set<string>());
@@ -719,13 +720,15 @@ export const useHomeFeedWorkspace = ({
   }, [originalFeed, setOriginalFeed]);
 
 
+  // Legacy blocking summarizer kept for reference during background-queue rollout.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const processAndSummarizeFeed = async (newBatch: any[], statusPrefix = 'พบ') => {
     if (newBatch.length === 0 || isSummarizingRef.current) return;
     isSummarizingRef.current = true;
 
     const CHUNK_SIZE = 20;
     const totalChunks = Math.ceil(newBatch.length / CHUNK_SIZE);
-    let runningFeed = [...originalFeed];
+    let _runningFeed = [...originalFeed];
 
     try {
       for (let index = 0; index < newBatch.length; index += CHUNK_SIZE) {
@@ -789,7 +792,7 @@ export const useHomeFeedWorkspace = ({
           const nextList = Array.from(postMap.values()).sort(
             (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
           );
-          runningFeed = nextList;
+          _runningFeed = nextList;
           return nextList;
         });
 
@@ -802,6 +805,126 @@ export const useHomeFeedWorkspace = ({
       }
     } finally {
       isSummarizingRef.current = false;
+    }
+  };
+
+  const stageIncomingFeedPosts = (posts: any[] = []) => {
+    if (posts.length === 0) return;
+
+    const sanitizedPosts = posts
+      .map((post) => sanitizeStoredPost(post))
+      .filter((post) => getNormalizedPostId(post));
+
+    if (sanitizedPosts.length === 0) return;
+
+    mergeIncomingPosts(sanitizedPosts);
+    setReadArchive((prev) => {
+      const postMap = new Map(prev.map((post) => [post.id, post]));
+      let didChange = false;
+
+      sanitizedPosts.forEach((incomingPost) => {
+        if (!postMap.has(incomingPost.id)) {
+          didChange = true;
+        }
+        postMap.set(incomingPost.id, incomingPost);
+      });
+
+      if (!didChange) return prev;
+
+      return Array.from(postMap.values()).sort(
+        (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
+      );
+    });
+  };
+
+  const drainQueuedFeedSummaries = async () => {
+    if (isSummarizingRef.current) return;
+    isSummarizingRef.current = true;
+
+    const CHUNK_SIZE = 20;
+
+    try {
+      while (queuedSummaryBatchesRef.current.length > 0) {
+        const newBatch = queuedSummaryBatchesRef.current.shift() || [];
+
+        for (let index = 0; index < newBatch.length; index += CHUNK_SIZE) {
+          const chunk = newBatch.slice(index, index + CHUNK_SIZE);
+          const toSummarize = chunk.filter((tweet) => {
+            if (isThaiNativeRssPost(tweet)) return false;
+            return !hasUsefulThaiSummary(
+              tweet.summary,
+              getPostSummarySourceText(tweet),
+            );
+          });
+
+          const preSummarizedMap = new Map(
+            chunk
+              .filter((post) => !toSummarize.some((item) => item.id === post.id))
+              .map((post) => [post.id, sanitizeStoredPost(post)]),
+          );
+
+          let summaryMap = new Map<string, string>();
+
+          if (toSummarize.length > 0) {
+            const translatedPosts = await translatePostsToThai(toSummarize, {
+              retrySingles: queuedSummaryBatchesRef.current.length === 0 && index === 0,
+              maxRetryCount: 2,
+            });
+            summaryMap = new Map(
+              translatedPosts
+                .filter((post) => hasUsefulThaiSummary(post.summary, getPostSummarySourceText(post)))
+                .map((post) => [post.id, post.summary]),
+            );
+          }
+
+          const summarizedChunk = chunk.map((post) => {
+            const normalized = sanitizeStoredPost(post);
+            if (summaryMap.has(post.id)) {
+              return { ...normalized, summary: summaryMap.get(post.id) };
+            }
+            if (preSummarizedMap.has(post.id)) {
+              return preSummarizedMap.get(post.id);
+            }
+            return normalized;
+          });
+
+          setOriginalFeed((prev) => {
+            const postMap = new Map(prev.map((post) => [post.id, post]));
+
+            summarizedChunk.forEach((newPost) => {
+              if (postMap.has(newPost.id)) {
+                postMap.set(newPost.id, {
+                  ...sanitizeStoredPost(postMap.get(newPost.id)),
+                  ...newPost,
+                });
+              } else {
+                postMap.set(newPost.id, newPost);
+              }
+            });
+
+            return Array.from(postMap.values()).sort(
+              (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
+            );
+          });
+        }
+      }
+    } finally {
+      isSummarizingRef.current = false;
+    }
+  };
+
+  const queueFeedSummaries = (incomingBatch: any[] = []) => {
+    if (incomingBatch.length === 0) return;
+
+    stageIncomingFeedPosts(incomingBatch);
+    queuedSummaryBatchesRef.current.push(
+      incomingBatch
+        .map((post) => sanitizeStoredPost(post))
+        .filter((post) => getNormalizedPostId(post)),
+    );
+
+    if (!isSummarizingRef.current) {
+      void drainQueuedFeedSummaries();
     }
   };
 
@@ -979,16 +1102,15 @@ export const useHomeFeedWorkspace = ({
       }
 
       if (newDisplayData.length > 0) {
-        await processAndSummarizeFeed(
-          newDisplayData,
-          `ดึงข้อมูลสำเร็จ! ได้มา ${statusParts.join(' + ')} กำลังแปลและแสดงผล`,
-        );
+        queueFeedSummaries(newDisplayData);
       }
 
       if (displayData.length === 0) {
         setStatus('ไม่มีข้อมูลใหม่');
       } else if (newDisplayData.length === 0) {
         setStatus('อัปเดตข้อมูลเรียบร้อย - ไม่มีโพสต์ใหม่ให้ประมวลผล');
+      } else if (statusParts.length > 0) {
+        setStatus(`อัปเดตข้อมูลเรียบร้อย • ${statusParts.join(' + ')} • เติมสรุปต่อในพื้นหลัง`);
       } else {
         setStatus('อัปเดตข้อมูลเรียบร้อย');
       }
@@ -1076,8 +1198,8 @@ export const useHomeFeedWorkspace = ({
           .filter((id) => id && !existingIds.has(id));
 
         if (newNextBatch.length > 0) {
-          await processAndSummarizeFeed(newNextBatch, 'กำลังดึงข้อมูลเพิ่มอีก');
-          setStatus('อัปเดตข้อมูลเพิ่มเติมเรียบร้อย');
+          queueFeedSummaries(newNextBatch);
+          setStatus('อัปเดตข้อมูลเพิ่มเติมเรียบร้อย • เติมสรุปต่อในพื้นหลัง');
         } else if (workingPendingFeed.length > 0 || workingCursor) {
           setStatus('ยังไม่พบโพสต์ใหม่ในชุดนี้ ลองโหลดเพิ่มเติมอีกครั้ง');
         } else {
@@ -1256,3 +1378,4 @@ export const useHomeFeedWorkspace = ({
     visibleFeedTotalCount,
   };
 };
+

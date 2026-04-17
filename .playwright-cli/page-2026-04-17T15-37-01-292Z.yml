@@ -1,0 +1,52 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - img "RO Logo" [ref=e6]
+    - navigation [ref=e7]:
+      - button "หน้าหลัก" [ref=e8] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: สรุปข่าววันนี้
+      - button "ค้นหา" [ref=e9] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: คอนเทนต์
+      - button "อ่านข่าว" [ref=e10] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: อ่านข่าว
+      - button "การติดตาม" [ref=e11] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: การติดตาม
+      - button "Bookmarks" [ref=e12] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: Bookmarks
+      - button "โปรไฟล์" [ref=e13] [cursor=pointer]:
+        - generic:
+          - img
+        - generic: Pricing
+    - button "FG Foro Free Mockup - Free free" [ref=e16] [cursor=pointer]:
+      - generic [ref=e17]:
+        - generic [ref=e18]: FG
+        - generic [ref=e19]:
+          - generic [ref=e20]: Foro Free
+          - generic [ref=e22]: Mockup - Free
+      - generic [ref=e23]:
+        - generic [ref=e24]: free
+        - img [ref=e25]
+  - main [ref=e27]:
+    - generic [ref=e29]:
+      - generic [ref=e30]:
+        - generic [ref=e32]:
+          - heading "หน้าหลัก" [level=1] [ref=e33]
+          - paragraph [ref=e34]: WATCHLIST FEED
+        - generic [ref=e35]:
+          - generic [ref=e38]: ทั้งหมด
+          - generic [ref=e39]:
+            - button "FORO Filter" [ref=e40] [cursor=pointer]:
+              - generic [ref=e42]: FORO Filter
+            - button "ฟีดข้อมูล" [ref=e43] [cursor=pointer]:
+              - img [ref=e44]
+              - text: ฟีดข้อมูล
+      - heading "FORO ติดตามทุกเรื่องที่คุณสนใจ" [level=2] [ref=e52]
