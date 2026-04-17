@@ -36,6 +36,125 @@ const grok = createXai({
 
 const responseCache = new Map();
 
+const extractRepeatedPublisherAttributions = (text = '') => {
+  const normalized = String(text || '');
+  if (!normalized) return [];
+
+  const counts = new Map();
+  const patterns = [
+    /\b([A-Za-z][A-Za-z0-9.&/-]{2,})\b(?=[^\n]{0,24}(?:รายงาน|อ้าง|อ้างอิง|ระบุ|ชี้|เผย|โพสต์|เขียน))/g,
+    /(?:รายงาน|อ้าง|อ้างอิง|ระบุ|ชี้|เผย|โพสต์|เขียน|ตามข้อมูลจาก|อิงจาก)\s+([A-Za-z][A-Za-z0-9.&/-]{2,})\b/g,
+  ];
+
+  patterns.forEach((pattern) => {
+    for (const match of normalized.matchAll(pattern)) {
+      const token = (match[1] || '').trim().toLowerCase();
+      if (!token || token.length < 3) continue;
+      counts.set(token, (counts.get(token) || 0) + 1);
+    }
+  });
+
+  return Array.from(counts.entries())
+    .filter(([, count]) => count >= 2)
+    .map(([token]) => token);
+};
+
+const hasPublisherAttributionOveruse = (text = '') =>
+  extractRepeatedPublisherAttributions(text).length > 0;
+
+const buildAdaptiveWritingDirectives = ({
+  format = '',
+  tone = '',
+  length = '',
+  customInstructions = '',
+  rawUserInput = '',
+} = {}) => {
+  const normalizedInstructions = normalizeCacheText(customInstructions).toLowerCase();
+  const normalizedInput = normalizeCacheText(rawUserInput).toLowerCase();
+  const wantsHook =
+    /hook|ฮุก|เปิดแรง|เปิดให้น่าสนใจ|viral|ไวรัล|หยุดเลื่อน|stop scroll/i.test(
+      `${normalizedInstructions} ${normalizedInput} ${tone} ${format}`,
+    );
+  const isSocial = format === 'à¹‚à¸žà¸ªà¸•à¹Œà¹‚à¸‹à¹€à¸Šà¸µà¸¢à¸¥';
+  const isThread = format === 'à¹‚à¸žà¸ªà¸•à¹Œà¹ƒà¸«à¹‰à¸„à¸§à¸²à¸¡à¸£à¸¹à¹‰ (Thread)';
+  const isShortVideo = format === 'à¸ªà¸„à¸£à¸´à¸›à¸•à¹Œà¸§à¸´à¸”à¸µà¹‚à¸­à¸ªà¸±à¹‰à¸™';
+  const isViral = tone === 'à¸à¸£à¸°à¸•à¸·à¸­à¸£à¸·à¸­à¸£à¹‰à¸™/à¹„à¸§à¸£à¸±à¸¥';
+  const isFriendly = tone === 'à¹€à¸›à¹‡à¸™à¸à¸±à¸™à¹€à¸­à¸‡/à¹€à¸žà¸·à¹ˆà¸­à¸™à¹€à¸¥à¹ˆà¸²à¹ƒà¸«à¹‰à¸Ÿà¸±à¸‡';
+  const isFormal = tone === 'à¸—à¸²à¸‡à¸à¸²à¸£/à¸§à¸´à¸Šà¸²à¸à¸²à¸£';
+  const isHumorous = tone === 'à¸•à¸¥à¸/à¸¡à¸µà¸­à¸²à¸£à¸¡à¸“à¹Œà¸‚à¸±à¸™';
+
+  const directives = [
+    'Adapt the writing to the selected format and tone without forcing a fixed template when the material does not support it.',
+    'Let the facts determine how sharp or calm the piece feels.',
+    "If the user gave explicit style instructions, treat them as higher priority than house preferences unless they conflict with the fact sheet.",
+  ];
+
+  if (isSocial || isThread || isShortVideo) {
+    directives.push(
+      'For short formats, prefer compression, clarity, and momentum over completeness. Leave out anything that does not strengthen the core point.',
+    );
+  }
+
+  if (isViral) {
+    directives.push(
+      'For viral tone, choose the most natural opener for this material: a sharp fact, a real contrast, a clear consequence, or a direct thesis. Do not force a question hook or theatrical teaser.',
+    );
+    directives.push(
+      'If the material is not dramatic by itself, create energy through pacing and specificity instead of clickbait wording.',
+    );
+  } else if (wantsHook) {
+    directives.push(
+      'If you use a hook, make it feel earned by the evidence. A plain opening is better than a fake hook.',
+    );
+  } else {
+    directives.push(
+      'Do not manufacture a hook when the user did not ask for one or when a straightforward opening serves the piece better.',
+    );
+  }
+
+  if (isSocial) {
+    directives.push(
+      'For social posts, write like a real person posting with intent, not like a script skeleton. One paragraph is fine; two short paragraphs are fine; choose what reads best.',
+    );
+  }
+
+  if (isThread) {
+    directives.push(
+      'For threads, each segment should carry its own value. Do not split into many posts unless each break genuinely improves readability or sequencing.',
+    );
+  }
+
+  if (isShortVideo) {
+    directives.push(
+      'For short-form video scripts, write for the ear first. Use line breaks only where a speaker would naturally pause, not because of a rigid 3-part template.',
+    );
+  }
+
+  if (isFriendly) {
+    directives.push(
+      'For friendly tone, keep the language warm and close, but use conversational particles sparingly so the voice stays natural rather than performative.',
+    );
+  }
+
+  if (isFormal) {
+    directives.push(
+      'For formal tone, stay precise and composed, but do not flatten the prose into bureaucratic language.',
+    );
+  }
+
+  if (isHumorous) {
+    directives.push(
+      'For humorous tone, let the humor come from the situation, contrast, or phrasing. Do not bolt jokes onto information that should stay straight.',
+    );
+  }
+
+  if (normalizeLength(length) === 'short') {
+    directives.push('Because the target length is short, prioritize one strong idea and cut secondary context aggressively.');
+  }
+
+  return directives.join('\n- ');
+};
+
 // Strip characters commonly used for prompt injection from third-party content
 // before embedding into AI prompts (tweets, web search results, etc.)
 const sanitizeForPrompt = (text = '', maxLen = 500) =>
@@ -1058,6 +1177,7 @@ const shouldForceNaturalRewrite = (text = '', { format = '', tone = '' } = {}) =
   if (!normalized) return false;
 
   const hasArtificialPhrase = ARTIFICIAL_THAI_PATTERNS.some((pattern) => pattern.test(normalized));
+  const hasPublisherOveruse = hasPublisherAttributionOveruse(normalized);
   const paragraphCount = countContentParagraphs(text);
   const shortParagraphCount = countShortParagraphs(text);
   const looksOverSegmentedSocial =
@@ -1068,7 +1188,13 @@ const shouldForceNaturalRewrite = (text = '', { format = '', tone = '' } = {}) =
   const tooManyExclamations = (normalized.match(/!/g) || []).length >= 2;
   const shouldBeCalmer = tone === 'ให้ข้อมูล/ปกติ' || tone === 'ทางการ/วิชาการ';
 
-  return hasArtificialPhrase || looksOverSegmentedSocial || suspiciousBoldHeadline || (shouldBeCalmer && tooManyExclamations);
+  return (
+    hasArtificialPhrase ||
+    hasPublisherOveruse ||
+    looksOverSegmentedSocial ||
+    suspiciousBoldHeadline ||
+    (shouldBeCalmer && tooManyExclamations)
+  );
 };
 
 const polishThaiContent = (text = '', { format, allowEmoji = false } = {}) => {
@@ -1090,6 +1216,7 @@ const CONTENT_BRIEF_SCHEMA = z.object({
   mainAngle: z.string().min(10).max(240),
   audience: z.string().min(3).max(120),
   voiceNotes: z.array(z.string()).min(2).max(5),
+  openerStrategy: z.string().min(4).max(160).optional(),
   mustIncludeFacts: z.array(z.string()).min(2).max(6),
   caveats: z.array(z.string()).min(1).max(4),
   structure: z.array(z.string()).min(2).max(6),
@@ -1269,6 +1396,9 @@ ${factSheet}
 - Choose a structure that fits the requested format instead of forcing a fixed house style.
 - Prefer natural Thai over dramatic packaging. Avoid fake hooks, fake punchlines, or lines that sound like generic social-copy filler.
 - If the content works best as one compact paragraph, choose that. Do not force multiple short paragraphs unless they genuinely improve readability.
+- For social and thread formats, synthesize the research into an original Thai angle instead of recapping what each source said.
+- Do not use publisher names, website names, or outlet attribution as the main narrative spine unless the publisher itself is the subject.
+- Include an openerStrategy that explains the most suitable opening move for this piece. It can be direct, analytical, conversational, tension-led, or fact-led, and it should stay plain if the material does not support a stronger hook.
 `.trim();
 };
 
@@ -4166,6 +4296,9 @@ export const researchAndPreventHallucination = async (input, interactionData = '
 - หากมีต้นทางเป็น URL ข่าวโดยตรง ห้ามเดาเส้นทางขนส่ง ผลกระทบต่อผู้บริโภค เจตนาคนร้าย มาตรการบริษัท หรือรายละเอียดแวดล้อมอื่นใด เว้นแต่มีระบุชัดในต้นทางหรือแหล่งข่าวหลักที่สอดคล้องกัน
 - ถ้าข้อมูลใดยังเป็นการอนุมานหรือขยายความจากบริบท ห้ามใส่ใน verified_facts ให้ย้ายไป open_questions หรือไม่ต้องใส่เลย
 
+In verified_facts, reported_claims, and open_questions, write the substance of the story instead of repeatedly saying which outlet reported it.
+Exclude publisher names, website names, and domains from named_entities unless that publisher is directly part of the story.
+
 [CITATIONS RULE]
 - ห้ามระบุชื่อบัญชี (@handle) ของผู้ใช้ทั่วไปที่ไม่มีอิมแพค ให้ใช้คำว่า "กลุ่มผู้ใช้" แทน
 - หากข้อมูลใน [PRIMARY LEAD] ขัดแย้งกับ [WEB SOURCES] อย่างรุนแรง (เช่น อันหนึ่งบอกปิด อีกอันบอกเปิด) **ห้ามตัดสินทิ้งข้อมูลอันใดอันหนึ่งแล้วมโนเรื่องใหม่ขึ้นมาเอง** ให้สรุปข้อคัดแย้งนั้นลงใน [OPEN QUESTIONS] อย่างชัดเจน
@@ -4349,6 +4482,13 @@ export const generateStructuredContentV2 = async (
   const brief = await buildContentBrief({ factSheet, length, tone, format, customInstructions, intentProfile });
   const activeFactSheet = compressFactSheetForFormat(factSheet, format);
   const skipReviewPass = shouldSkipReviewPass({ format, tone, intentProfile, customInstructions, factSheet: activeFactSheet });
+  const adaptiveStyleDirectives = buildAdaptiveWritingDirectives({
+    format,
+    tone,
+    length,
+    customInstructions,
+    rawUserInput,
+  });
 
   const draftSystemPrompt = `You are a senior Thai writer — not an AI assistant, not a content template engine. You write the way skilled Thai journalists and editors write: specific, grounded, with a distinct voice shaped by the requested tone and format.
 
@@ -4368,7 +4508,10 @@ Hard rules:
 - Do not state unsupported details as facts. Treat reported claims and open questions as softer context.
 - If uncertainty exists, acknowledge it naturally — do not force certainty or hedge with useless filler phrases.
 - Mention people and accounts only when they materially matter to the story.
+- Do not write like a news roundup that keeps re-attributing each paragraph to a publisher or website.
+- Do not mention publisher names, site names, or domains unless they materially matter to the story, the user explicitly asked for attribution, or a source conflict needs to be explained.
 - Follow the requested format and tone faithfully; do not substitute a "safer" house style.
+- Treat format profiles and brief guidance as flexible craft direction, not a rigid fill-in-the-blanks template.
 - Write natural Thai. Never literal translation. Never corporate jargon.
 - Never use the em dash character (Unicode U+2014) anywhere in the final output.
 - Forbidden phrases: "นั่นหมายความว่า...", "จะเห็นได้ว่า...", "ที่สำคัญกว่านั้น...", "ซึ่งทำให้เราเห็นว่า...", "นับว่าเป็น...", "เรียกได้ว่า...", "สิ่งที่น่าสนใจคือ..." - these are filler that adds no information.
@@ -4382,8 +4525,10 @@ Hard rules:
     `<raw_user_instructions>\n${customInstructions || 'None'}\n</raw_user_instructions>`,
     `<normalized_intent_guidance>\n${intentProfile ? JSON.stringify(intentProfile, null, 2) : 'None'}\n</normalized_intent_guidance>`,
     `<structured_brief_guidance>\n${JSON.stringify(brief, null, 2)}\n</structured_brief_guidance>`,
+    `<adaptive_style_directives>\n- ${adaptiveStyleDirectives}\n</adaptive_style_directives>`,
     `<fact_sheet>\n${activeFactSheet}\n</fact_sheet>`,
     'If raw user instructions and normalized guidance differ, follow the raw user instructions unless they conflict with the fact sheet.',
+    brief?.openerStrategy ? `Use this opener strategy if it fits naturally: ${brief.openerStrategy}` : 'Choose the opening move that best fits the evidence. Do not force a hook.',
     'Prefer the simplest structure that reads naturally. If one or two paragraphs are enough, do not pad the piece.',
     'Avoid phrases that sound like filler or AI-generated social copy.',
     'Write the final Thai content now.',
@@ -4462,7 +4607,9 @@ Set passed=true only if:
 - it does not turn reported claims or open questions into hard facts
 - it follows the user's explicit request closely enough
 - it is natural Thai and broadly fits the requested format
+- it genuinely sounds like the selected tone, instead of drifting back to a generic house style
 - it does not use forced hooks, filler transitions, or unnecessary paragraph splits that make the draft feel templated
+- it does not lean on repeated publisher/site attribution as a writing crutch
 
 Do not fail a draft just because it chose a different but valid narrative stance.`,
       prompt: `[RAW USER REQUEST]\n${rawUserInput || 'None'}\n\n[RAW USER INSTRUCTIONS]\n${customInstructions || 'None'}\n\n[FORMAT]\n${format}\n\n[TONE]\n${tone}\n\n[NORMALIZED INTENT]\n${intentProfile ? JSON.stringify(intentProfile, null, 2) : 'None'}\n\n[FACT SHEET]\n${activeFactSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[DRAFT]\n${contentDraft}`,
@@ -4478,7 +4625,7 @@ Do not fail a draft just because it chose a different but valid narrative stance
       const revisedDraft = await callGrok({
         modelName: MODEL_WRITER,
         system: draftSystemPrompt,
-        prompt: `[RAW USER REQUEST]\n${rawUserInput || 'None'}\n\n[RAW USER INSTRUCTIONS]\n${customInstructions || 'None'}\n\n[FACT SHEET]\n${activeFactSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[CURRENT DRAFT]\n${contentDraft}\n\n[EDITOR FEEDBACK]\n${evalFeedback}\n\nRewrite only where needed.\n- Keep the facts intact.\n- Remove AI-sounding phrasing, forced hooks, and filler conclusions.\n- Merge paragraphs if the draft feels over-segmented.\n- Keep the wording plain, natural, and specific.`,
+        prompt: `[RAW USER REQUEST]\n${rawUserInput || 'None'}\n\n[RAW USER INSTRUCTIONS]\n${customInstructions || 'None'}\n\n[FACT SHEET]\n${activeFactSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[CURRENT DRAFT]\n${contentDraft}\n\n[EDITOR FEEDBACK]\n${evalFeedback}\n\nRewrite only where needed.\n- Keep the facts intact.\n- Remove AI-sounding phrasing, forced hooks, and filler conclusions.\n- Remove repeated publisher/site attribution unless it is essential to understanding the story.\n- Make sure the voice still matches the selected format and tone instead of collapsing into generic news-summary prose.\n- Merge paragraphs if the draft feels over-segmented.\n- Keep the wording plain, natural, and specific.`,
         temperature: 0.62,
         allowEmoji,
       });
