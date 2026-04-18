@@ -8,6 +8,17 @@ import { usePersistentState } from './usePersistentState';
 
 const normalizeAudienceQuery = (value = '') => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
 const normalizeHandle = (value = '') => String(value || '').replace(/^@/, '').trim().toLowerCase();
+const AUDIENCE_LOAD_MORE_MAX_ATTEMPTS = 3;
+const buildAudienceExpansionQueries = (query = '') => {
+  const base = String(query || '').trim();
+  if (!base) return [];
+  return [
+    base,
+    `${base} experts`,
+    `${base} analysts`,
+    `${base} news`,
+  ];
+};
 
 const buildAudienceExpertsQueryKey = (query, excludes = []) => [
   'audience-experts',
@@ -92,21 +103,76 @@ export const useAudienceSearch = ({
         return;
       }
 
-      const experts = await aiSearchMutation.mutateAsync({ query, excludes });
-      const overflowExperts = Array.isArray(experts.overflowExperts) ? experts.overflowExperts : [];
-      const nextExperts = Array.isArray(experts) ? experts : [];
+      let nextExperts = [];
+      let overflowExperts = [];
+      let combinedCandidates = [];
+      let attemptExcludes = [...excludes];
+      let appendedCount = 0;
+
+      const attemptQueries = isMore
+        ? buildAudienceExpansionQueries(query).slice(0, AUDIENCE_LOAD_MORE_MAX_ATTEMPTS)
+        : [query];
+
+      for (let attempt = 0; attempt < attemptQueries.length; attempt += 1) {
+        const experts = await aiSearchMutation.mutateAsync({ query: attemptQueries[attempt], excludes: attemptExcludes });
+        overflowExperts = Array.isArray(experts.overflowExperts) ? experts.overflowExperts : [];
+        nextExperts = Array.isArray(experts) ? experts : [];
+        combinedCandidates = [...nextExperts, ...overflowExperts];
+
+        if (!isMore) break;
+
+        const nextBatchHandles = [
+          ...nextExperts.map((u) => normalizeHandle(u?.username)),
+          ...overflowExperts.map((u) => normalizeHandle(u?.username)),
+        ].filter(Boolean);
+
+        const currentSeen = new Set([
+          ...watchlist.map((u) => normalizeHandle(u?.username)),
+          ...aiSearchSeenUsernames.map(normalizeHandle),
+        ]);
+        const uniqueNextExperts = nextExperts.filter((item) => !currentSeen.has(normalizeHandle(item?.username)));
+
+        if (uniqueNextExperts.length > 0 || nextBatchHandles.length === 0) {
+          break;
+        }
+
+        attemptExcludes = Array.from(new Set([...attemptExcludes, ...nextBatchHandles]));
+      }
+
       if (isMore) {
         if (nextExperts.length > 0) {
-          setAiSearchResults((prev) => {
-            const seen = new Set(prev.map((item) => normalizeHandle(item?.username)));
-            const appended = nextExperts.filter((item) => !seen.has(normalizeHandle(item?.username)));
-            return appended.length > 0 ? [...prev, ...appended] : prev;
-          });
+          const seen = new Set(aiSearchResults.map((item) => normalizeHandle(item?.username)));
+          const uniqueCandidates = combinedCandidates.filter((item) => !seen.has(normalizeHandle(item?.username)));
+          const appended = uniqueCandidates.slice(0, 6);
+          appendedCount = appended.length;
+          if (appended.length > 0) {
+            setAiSearchResults((prev) => [...prev, ...appended]);
+          }
         }
       } else {
         setAiSearchResults(nextExperts);
       }
-      setAiSearchOverflowResults(overflowExperts);
+      if (isMore) {
+        setAiSearchOverflowResults((prev) => {
+          const seen = new Set([
+            ...aiSearchResults.map((item) => normalizeHandle(item?.username)),
+            ...nextExperts.map((item) => normalizeHandle(item?.username)),
+          ]);
+          const queued = [...prev, ...combinedCandidates]
+            .filter((item) => !seen.has(normalizeHandle(item?.username)));
+          const deduped = [];
+          const queuedSeen = new Set();
+          queued.forEach((item) => {
+            const handle = normalizeHandle(item?.username);
+            if (!handle || queuedSeen.has(handle)) return;
+            queuedSeen.add(handle);
+            deduped.push(item);
+          });
+          return deduped;
+        });
+      } else {
+        setAiSearchOverflowResults(overflowExperts);
+      }
       setAiSearchSeenUsernames(prev => {
         const nextSeen = [
           ...(isMore ? prev : []),
@@ -116,8 +182,10 @@ export const useAudienceSearch = ({
         return Array.from(new Set(nextSeen));
       });
       if (!isMore) setHasSearchedAudience(true);
+      return appendedCount;
     } catch (err) {
       console.error(err);
+      return 0;
     }
   };
 

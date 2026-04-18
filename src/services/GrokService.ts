@@ -589,8 +589,12 @@ const buildNaturalExpertReasoning = (categoryQuery, expert = {}) => {
     const firstSentence = description.split(/(?<=[.!?])\s+/)[0]?.trim() || description;
     const cleaned = firstSentence.replace(/^["'??]+|["'??]+$/g, '').replace(/[.]+$/g, '').trim();
     if (!cleaned) return '';
-    if (cleaned.toLowerCase().startsWith(displayName.toLowerCase())) return cleaned;
-    return `${displayName} : ${cleaned}`;
+    const username = String(expert?.username || '').replace(/^@/, '').trim();
+    const prefixes = [displayName, username ? `@${username}` : '', username]
+      .filter(Boolean)
+      .map((value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    if (!prefixes.length) return cleaned;
+    return cleaned.replace(new RegExp(`^(?:${prefixes.join('|')})\\s*[:：\\-–]\\s*`, 'i'), '').trim();
   };
   const bioSummary = buildBioSummary();
 
@@ -3588,7 +3592,7 @@ Hard rules:
 - Do not hallucinate usernames. If you are not confident a username is real and active, skip it.
 - Prefer diversity: mix practitioners, analysts, journalists, researchers — not 6 accounts of the same type.
 - Exclude list — never recommend these: [${excludeUsernames.join(', ')}]
-- Write "reasoning" in natural Thai, 1 sentence, about why this account is useful to follow for "${categoryQuery}". Do not describe activity, engagement, scoring, or internal verification.`,
+- Write "reasoning" in natural Thai, 1-2 sentences, like a human recommendation. Explain who this account is or what role it has, what it usually posts or covers, and what the user will get from following it for "${categoryQuery}". Do not repeat the account name at the start. Do not use templated phrases like "เหมาะสำหรับ", "ช่วยให้", "ถ้าอยากตาม", or "ทำไมควรติดตาม". Do not describe activity, engagement, scoring, or internal verification.`,
       prompt: `Recall 18-30 real Twitter/X accounts for "${topicLabel}" from the user's request "${categoryQuery}". Username must not start with @. Include the right account types for this niche: experts, creators, analysts, journalists, operators, athletes, entertainers, or high-quality publications where relevant. Write reasoning in natural Thai, 1 sentence, as a human recommendation about domain expertise or useful perspective. Never mention backend scoring, activity checks, engagement, signals, recency, "แอคทีฟ", or "โพสต์สม่ำเสมอ" in reasoning.`,
       schema: z.object({
         experts: z.array(

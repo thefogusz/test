@@ -45,8 +45,26 @@ const cleanRecommendationText = (value = '') =>
     .replace(/\s+/g, ' ')
     .trim();
 
+const escapeRecommendationRegExp = (value = '') =>
+  String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const stripExpertNamePrefix = (text = '', expert = {}) => {
+  const cleaned = cleanRecommendationText(text);
+  if (!cleaned) return '';
+
+  const displayName = cleanRecommendationText(expert?.name || '');
+  const username = cleanRecommendationText(expert?.username || '').replace(/^@/, '');
+  const prefixes = [displayName, username ? `@${username}` : '', username]
+    .map((value) => cleanRecommendationText(value))
+    .filter(Boolean)
+    .map((value) => escapeRecommendationRegExp(value));
+
+  if (!prefixes.length) return cleaned;
+  return cleaned.replace(new RegExp(`^(?:${prefixes.join('|')})\\s*[:：\\-–]\\s*`, 'i'), '').trim();
+};
+
 const buildExpertIdentityReasoning = (expert) => {
-  const bio = cleanRecommendationText(expert?.description || '');
+  const bio = stripExpertNamePrefix(expert?.description || '', expert);
   if (!bio) return '';
 
   const shortBio = bio.split(/(?<=[.!?])\s+/)[0]?.trim() || bio;
@@ -107,6 +125,24 @@ const formatExpertReasoningCard = (expert, topicHint = '') => {
   if (raw && !rawLooksGeneric && THAI_TEXT_PATTERN.test(raw)) return raw;
   if (identityReason && THAI_TEXT_PATTERN.test(identityReason)) return buildReadableExpertReasoning(expert, topicHint);
   return buildReadableExpertReasoning(expert, topicHint);
+};
+
+const formatExpertRecommendationText = (expert, topicHint = '') => {
+  const topicLabel = cleanRecommendationText(topicHint || expert?.category || expert?.title) || 'หัวข้อนี้';
+  const raw = stripExpertNamePrefix(expert?.reasoning || '', expert);
+  const bio = stripExpertNamePrefix(expert?.description || '', expert);
+  const rawLooksGeneric = !raw || GENERIC_EXPERT_REASONING_PATTERN.test(raw) || raw.length > 180;
+  const bioLooksUseful = bio && bio.length <= 180 && !GENERIC_EXPERT_REASONING_PATTERN.test(bio);
+
+  if (raw && !rawLooksGeneric && THAI_TEXT_PATTERN.test(raw)) return raw;
+  if (bioLooksUseful) return bio;
+
+  const variants = [
+    `เป็นบัญชีที่อยู่กับเรื่อง${topicLabel}โดยตรง เนื้อหามักหยิบประเด็นสำคัญมาเล่าแบบจับใจความได้เร็วและเอาไปตามต่อได้`,
+    `ฟีดของบัญชีนี้โฟกัสเรื่อง${topicLabel}ค่อนข้างตรง เวลาอยากรู้ว่าคนในวงการกำลังคุยอะไรหรือให้น้ำหนักกับประเด็นไหน บัญชีนี้ช่วยย่นเวลาได้เยอะ`,
+    `เก็บไว้ตามเรื่อง${topicLabel}ได้แบบต่อเนื่อง เพราะไม่ได้พาออกนอกประเด็นมากและมักมีมุมที่เอาไปใช้ต่อได้จริง`,
+  ];
+  return variants[(topicLabel.length + cleanRecommendationText(expert?.username || '').length) % variants.length];
 };
 
 const getExpertAvatarSrc = (expert) => {
@@ -278,8 +314,10 @@ const AudienceWorkspace = ({
       return;
     }
     if (!aiSearchHasMore) return;
-    await handleAiSearchAudience(null, true);
-    setVisibleAiCount((prev) => prev + 6);
+    const appendedCount = await handleAiSearchAudience(null, true);
+    if (appendedCount > 0) {
+      setVisibleAiCount((prev) => prev + appendedCount);
+    }
   }, [aiSearchHasMore, aiSearchLoading, aiSearchResults.length, handleAiSearchAudience, hasLocallyHiddenAiResults]);
 
   return (
@@ -386,7 +424,7 @@ const AudienceWorkspace = ({
                   {visibleAiResults.map((expert, i) => {
                     const isAdded = watchlist.find((w) => w.username.toLowerCase() === expert.username.toLowerCase());
                     const avatarFallback = getExpertAvatarFallback(expert);
-                    const reasoningText = formatExpertReasoningCard(expert, aiQuery);
+                    const reasoningText = formatExpertRecommendationText(expert, aiQuery);
                     const topicLabel = buildTopicHintLabel(aiQuery || expert.category || expert.title);
                     const followerLabel = formatFollowerCount(expert.followers);
                     return (
