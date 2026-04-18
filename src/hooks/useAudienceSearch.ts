@@ -38,7 +38,6 @@ export const useAudienceSearch = ({
   const [aiSearchResults, setAiSearchResults] = useState([]);
   const [aiSearchOverflowResults, setAiSearchOverflowResults] = useState([]);
   const [aiSearchSeenUsernames, setAiSearchSeenUsernames] = useState([]);
-  const [aiSearchCanFetchMore, setAiSearchCanFetchMore] = useState(false);
   const [hasSearchedAudience, setHasSearchedAudience] = useState(false);
   const [manualQuery, setManualQuery] = useState('');
   const [manualPreview, setManualPreview] = useState(null);
@@ -90,7 +89,6 @@ export const useAudienceSearch = ({
         setAiSearchResults(prev => [...prev, ...nextResults]);
         setAiSearchOverflowResults(aiSearchOverflowResults.slice(6));
         setAiSearchSeenUsernames(prev => Array.from(new Set([...prev, ...nextResults.map(u => u.username).filter(Boolean)])));
-        setAiSearchCanFetchMore(aiSearchOverflowResults.slice(6).length > 0);
         return;
       }
 
@@ -98,9 +96,7 @@ export const useAudienceSearch = ({
       const overflowExperts = Array.isArray(experts.overflowExperts) ? experts.overflowExperts : [];
       const nextExperts = Array.isArray(experts) ? experts : [];
       if (isMore) {
-        if (nextExperts.length === 0) {
-          setAiSearchCanFetchMore(false);
-        } else {
+        if (nextExperts.length > 0) {
           setAiSearchResults((prev) => {
             const seen = new Set(prev.map((item) => normalizeHandle(item?.username)));
             const appended = nextExperts.filter((item) => !seen.has(normalizeHandle(item?.username)));
@@ -111,7 +107,6 @@ export const useAudienceSearch = ({
         setAiSearchResults(nextExperts);
       }
       setAiSearchOverflowResults(overflowExperts);
-      setAiSearchCanFetchMore(overflowExperts.length > 0 || nextExperts.length >= 6);
       setAiSearchSeenUsernames(prev => {
         const nextSeen = [
           ...(isMore ? prev : []),
@@ -149,12 +144,11 @@ export const useAudienceSearch = ({
     setAiQuery,
     aiSearchLoading: aiSearchMutation.isPending,
     aiSearchResults,
-    aiSearchHasMore: aiSearchOverflowResults.length > 0 || aiSearchCanFetchMore,
+    aiSearchHasMore: hasSearchedAudience && aiSearchResults.length > 0,
     setAiSearchResults: (nextResults) => {
       setAiSearchResults(nextResults);
       setAiSearchOverflowResults([]);
       setAiSearchSeenUsernames([]);
-      setAiSearchCanFetchMore(false);
     },
     hasSearchedAudience,
     manualQuery,
