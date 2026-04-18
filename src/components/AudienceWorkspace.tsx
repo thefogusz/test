@@ -35,6 +35,23 @@ import NewsSourcesTab, { SourceCard } from './NewsSourcesTab';
 import { RSS_CATALOG, TOPIC_LABELS, type RssSource } from '../config/rssCatalog';
 
 const LOADED_CATEGORY_IMAGE_URLS = new Set();
+const KNOWN_EXPERT_RECOMMENDATIONS = {
+  coindesk: 'สื่อคริปโตเจ้าใหญ่ที่เกาะข่าวตลาด บริษัท และกฎระเบียบค่อนข้างครบ ฟีดจะออกแนวตามความเคลื่อนไหวรายวันของวงการ ถ้าอยากมีแหล่งกลาง ๆ ไว้เปิดดูภาพรวม บัญชีนี้ใช้งานง่ายมาก',
+  theblock__: 'สื่อสายอุตสาหกรรมคริปโตที่หนักไปทางดีล บริษัท เงินทุน และสัญญาณจากฝั่งสถาบัน อ่านแล้วจะได้มุมธุรกิจมากกว่าฟีดข่าวแมส',
+  theblockco: 'สื่อสายอุตสาหกรรมคริปโตที่หนักไปทางดีล บริษัท เงินทุน และสัญญาณจากฝั่งสถาบัน อ่านแล้วจะได้มุมธุรกิจมากกว่าฟีดข่าวแมส',
+  lopp: 'Jameson Lopp อยู่ฝั่ง Bitcoin มานานและพูดเรื่องเทคนิค ความปลอดภัย และการเก็บสินทรัพย์อย่างจริงจัง ฟีดไม่เร่งเร้าแต่มีประโยชน์มากถ้าอยากตามมุมที่ใช้งานได้จริง',
+  aantonop: 'Andreas M. Antonopoulos เป็นคนอธิบาย Bitcoin ได้เป็นระบบและอ่านง่าย เนื้อหาจะพาเข้าใจหลักคิดกับภาพใหญ่ของเทคโนโลยี มากกว่าพาไล่ข่าวหรือราคา',
+  sassal0x: 'Sassal เป็นตัวจริงฝั่ง Ethereum ที่ตาม ecosystem แบบใกล้มาก ฟีดจะมีทั้งมุมมองต่อโปรเจกต์ งานฝั่ง dev และประเด็นที่คนในวงกำลังคุยกันจริง',
+  vitalikbuterin: 'Vitalik Buterin คือผู้ร่วมก่อตั้ง Ethereum โพสต์ไม่ถี่แต่เวลาพูดมักเป็นเรื่องที่มีน้ำหนัก ทั้งมุมเทคนิค ทิศทางของ ecosystem และประเด็นที่เขาคิดจริงจัง',
+  vitaliketh: 'Vitalik Buterin คือผู้ร่วมก่อตั้ง Ethereum โพสต์ไม่ถี่แต่เวลาพูดมักเป็นเรื่องที่มีน้ำหนัก ทั้งมุมเทคนิค ทิศทางของ ecosystem และประเด็นที่เขาคิดจริงจัง',
+  aswathdamodaran: 'Aswath Damodaran เป็นอาจารย์การเงินที่เด่นเรื่อง valuation เนื้อหามักพาแยกสมมติฐานกับวิธีคิดอย่างเป็นขั้นตอน เหมาะกับคนที่อยากเข้าใจการประเมินมูลค่ามากกว่าจำสูตร',
+  charliebilello: 'Charlie Bilello โดดเด่นเรื่องสรุปตลาดด้วยกราฟและข้อมูลที่อ่านเร็ว ฟีดของเขาช่วยให้เห็นภาพการลงทุนและเศรษฐกิจแบบไม่ต้องไล่เปิดหลายแหล่ง',
+  lizannsnders: 'Liz Ann Sonders อยู่ในฝั่งกลยุทธ์การลงทุนและมักพูดเรื่องตลาดกับเศรษฐกิจในมุมที่เอาไปใช้ต่อได้ดี ถ้าชอบมองภาพรวมก่อนตัดสินใจ บัญชีนี้มีประโยชน์มาก',
+  lizanns: 'Liz Ann Sonders อยู่ในฝั่งกลยุทธ์การลงทุนและมักพูดเรื่องตลาดกับเศรษฐกิจในมุมที่เอาไปใช้ต่อได้ดี ถ้าชอบมองภาพรวมก่อนตัดสินใจ บัญชีนี้มีประโยชน์มาก',
+  lynaldencontact: 'Lyn Alden เขียนเรื่องมหภาค ดอกเบี้ย สภาพคล่อง และสินทรัพย์เสี่ยงแบบเป็นระบบ ฟีดจะเหมาะกับคนที่อยากเข้าใจเหตุผลเบื้องหลังตลาดมากกว่าดูแค่ความเคลื่อนไหวรายวัน',
+  wsjmarkets: 'บัญชีตลาดจาก WSJ ที่เน้นข่าวการเงิน ตลาด และสัญญาณจากฝั่งนโยบายในจังหวะที่คนลงทุนต้องรู้ เหมาะเวลาอยากตามข่าวใหญ่จากสำนักหลักแบบกระชับ',
+  zerohedge: 'Zero Hedge ออกแนวมุมตลาดที่ค่อนข้างแรงและชอบหยิบประเด็นมหภาคมาโยงกับสินทรัพย์ต่าง ๆ คนที่ตามมักดูไว้เทียบอารมณ์ตลาดและ narrative ที่กำลังก่อตัว',
+};
 const GENERIC_EXPERT_REASONING_PATTERN =
   /(\u0e0a\u0e48\u0e27\u0e22\u0e43\u0e2b\u0e49\u0e40\u0e2b\u0e47\u0e19\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21|\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e19\u0e35\u0e49\u0e0a\u0e48\u0e27\u0e22\u0e44\u0e14\u0e49\u0e14\u0e35|\u0e16\u0e49\u0e32\u0e04\u0e38\u0e13\u0e2d\u0e22\u0e32\u0e01\u0e15\u0e32\u0e21|\u0e04\u0e38\u0e13\u0e2d\u0e22\u0e32\u0e01|\u0e40\u0e2b\u0e47\u0e19\u0e20\u0e32\u0e1e\u0e23\u0e27\u0e21\u0e0a\u0e31\u0e14\u0e02\u0e36\u0e49\u0e19|\u0e40\u0e2b\u0e21\u0e32\u0e30|\u0e43\u0e0a\u0e49\u0e40\u0e1b\u0e47\u0e19\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e2b\u0e25\u0e31\u0e01\u0e44\u0e27\u0e49\u0e15\u0e32\u0e21|\u0e0a\u0e48\u0e27\u0e22\u0e43\u0e2b\u0e49\u0e15\u0e32\u0e21|\u0e40\u0e01\u0e47\u0e1a\u0e43\u0e19\u0e25\u0e34\u0e2a\u0e15\u0e4c|\u0e42\u0e2d\u0e40\u0e04|\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e42\u0e1f\u0e01\u0e31\u0e2a|\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\u0e1b\u0e23\u0e30\u0e40\u0e14\u0e47\u0e19|\u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e17\u0e35\u0e48\u0e21\u0e35\u0e21\u0e38\u0e21\u0e21\u0e2d\u0e07|\u0e04\u0e23\u0e35\u0e40\u0e2d\u0e40\u0e15\u0e2d\u0e23\u0e4c\u0e17\u0e35\u0e48\u0e40\u0e25\u0e48\u0e32\u0e21\u0e38\u0e21\u0e04\u0e34\u0e14)/i;
 const THAI_TEXT_PATTERN = /[\u0E00-\u0E7F]/;
@@ -65,6 +82,8 @@ const stripExpertNamePrefix = (text = '', expert = {}) => {
 
 const buildExpertIdentityReasoning = (expert) => {
   const bio = stripExpertNamePrefix(expert?.description || '', expert);
+  const normalizedHandle = cleanRecommendationText(expert?.username || '').replace(/^@/, '').toLowerCase();
+  const knownRecommendation = KNOWN_EXPERT_RECOMMENDATIONS[normalizedHandle];
   if (!bio) return '';
 
   const shortBio = bio.split(/(?<=[.!?])\s+/)[0]?.trim() || bio;
@@ -122,6 +141,7 @@ const formatExpertReasoningCard = (expert, topicHint = '') => {
   const raw = cleanRecommendationText(expert?.reasoning || '');
   const rawLooksGeneric = !raw || GENERIC_EXPERT_REASONING_PATTERN.test(raw) || raw.length > 110;
 
+  if (knownRecommendation) return knownRecommendation;
   if (raw && !rawLooksGeneric && THAI_TEXT_PATTERN.test(raw)) return raw;
   if (identityReason && THAI_TEXT_PATTERN.test(identityReason)) return buildReadableExpertReasoning(expert, topicHint);
   return buildReadableExpertReasoning(expert, topicHint);
@@ -131,9 +151,12 @@ const formatExpertRecommendationText = (expert, topicHint = '') => {
   const topicLabel = cleanRecommendationText(topicHint || expert?.category || expert?.title) || 'หัวข้อนี้';
   const raw = stripExpertNamePrefix(expert?.reasoning || '', expert);
   const bio = stripExpertNamePrefix(expert?.description || '', expert);
+  const normalizedHandle = cleanRecommendationText(expert?.username || '').replace(/^@/, '').toLowerCase();
+  const knownRecommendation = KNOWN_EXPERT_RECOMMENDATIONS[normalizedHandle];
   const rawLooksGeneric = !raw || GENERIC_EXPERT_REASONING_PATTERN.test(raw) || raw.length > 180;
   const bioLooksUseful = bio && bio.length <= 180 && !GENERIC_EXPERT_REASONING_PATTERN.test(bio);
 
+  if (knownRecommendation) return knownRecommendation;
   if (raw && !rawLooksGeneric && THAI_TEXT_PATTERN.test(raw)) return raw;
   if (bioLooksUseful) return bio;
 
@@ -292,7 +315,7 @@ const AudienceWorkspace = ({
   const isRefreshingAiResults = aiSearchLoading && hasAiResults;
   const visibleAiResults = React.useMemo(() => aiSearchResults.slice(0, visibleAiCount), [aiSearchResults, visibleAiCount]);
   const hasLocallyHiddenAiResults = aiSearchResults.length > visibleAiCount;
-  const canLoadMoreAi = hasLocallyHiddenAiResults || aiSearchHasMore;
+  const canLoadMoreAi = hasAiResults;
   const getExpertAvatarFallback = (expert) =>
     `https://ui-avatars.com/api/?name=${encodeURIComponent(expert.name || expert.username || 'FORO')}&background=101826&color=bfdbfe&bold=true`;
   const getExpertInitial = (expert) => String(expert.name || expert.username || 'F').trim().charAt(0).toUpperCase();
@@ -313,12 +336,11 @@ const AudienceWorkspace = ({
       setVisibleAiCount((prev) => Math.min(prev + 6, aiSearchResults.length));
       return;
     }
-    if (!aiSearchHasMore) return;
     const appendedCount = await handleAiSearchAudience(null, true);
     if (appendedCount > 0) {
       setVisibleAiCount((prev) => prev + appendedCount);
     }
-  }, [aiSearchHasMore, aiSearchLoading, aiSearchResults.length, handleAiSearchAudience, hasLocallyHiddenAiResults]);
+  }, [aiSearchLoading, aiSearchResults.length, handleAiSearchAudience, hasLocallyHiddenAiResults]);
 
   return (
     <div style={{ display: isVisible ? 'block' : 'none' }}>

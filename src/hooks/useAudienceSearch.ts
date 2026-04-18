@@ -12,12 +12,68 @@ const AUDIENCE_LOAD_MORE_MAX_ATTEMPTS = 3;
 const buildAudienceExpansionQueries = (query = '') => {
   const base = String(query || '').trim();
   if (!base) return [];
-  return [
+  const normalized = normalizeAudienceQuery(base);
+  const expanded = [
     base,
     `${base} experts`,
     `${base} analysts`,
     `${base} news`,
+    `${base} journalists`,
+    `${base} researchers`,
   ];
+
+  if (/(crypto|คริปโต|bitcoin|blockchain|ethereum|defi|web3)/i.test(normalized)) {
+    expanded.push('bitcoin experts', 'ethereum experts', 'crypto journalists', 'defi analysts', 'onchain researchers');
+  }
+
+  if (/(invest|ลงทุน|stock|หุ้น|market|ตลาด|macro|เศรษฐกิจ|finance|การเงิน)/i.test(normalized)) {
+    expanded.push('macro investors', 'market strategists', 'stock analysts', 'financial journalists', 'global macro');
+  }
+
+  if (/(ai|artificial intelligence|machine learning|llm|gpt)/i.test(normalized)) {
+    expanded.push('AI researchers', 'machine learning engineers', 'LLM builders', 'AI product leaders', 'AI labs');
+  }
+
+  return Array.from(new Set(expanded.map((value) => value.trim()).filter(Boolean)));
+};
+
+const AUDIENCE_TOPIC_FALLBACKS = {
+  crypto: [
+    { username: 'banklesshq', name: 'Bankless', reasoning: 'สื่อและคอนเทนต์ฝั่ง Ethereum/crypto ที่เกาะทั้งโปรเจกต์ ผู้สร้าง และ narrative ของวงการค่อนข้างใกล้' },
+    { username: 'APompliano', name: 'Anthony Pompliano', reasoning: 'นักลงทุนและครีเอเตอร์ที่หยิบ Bitcoin ตลาดทุน และมหภาคมาเล่าให้คนทั่วไปตามได้ง่าย' },
+    { username: 'nic__carter', name: 'Nic Carter', reasoning: 'นักวิเคราะห์และนักลงทุนที่เด่นเรื่อง policy โครงสร้างอุตสาหกรรม และมุมคิดเชิงลึกของคริปโต' },
+    { username: 'DocumentingBTC', name: 'Documenting ₿itcoin 📄', reasoning: 'บัญชีฝั่ง Bitcoin ที่รวบรวมคำพูด ข้อมูล และสัญญาณสำคัญจากคนในวงได้ไวและตามง่าย' },
+    { username: 'ercwl', name: 'Eric Wall', reasoning: 'นักวิเคราะห์คริปโตที่มักมีมุมมองตรงและลึกกับประเด็นที่คนในวงกำลังถกกันจริง' },
+    { username: 'matthew_sigel', name: 'Matthew Sigel, recovering CFA', reasoning: 'เด่นเรื่องตลาดคริปโตในมุมสถาบันและผลิตภัณฑ์การลงทุน เหมาะกับคนที่ตามฝั่ง adoption และ capital flows' },
+    { username: 'RyanSAdams', name: 'RSA', reasoning: 'สาย Ethereum/crypto ที่เชื่อมภาพระบบนิเวศ โปรดักต์ และบทสนทนาในวงการได้ค่อนข้างดี' },
+    { username: 'DefiantNews', name: 'The Defiant', reasoning: 'สำนักข่าว/สื่อฝั่ง DeFi และ onchain ที่ช่วยเติมมุมโปรโตคอลกับตลาดคริปโตนอกเหนือจากฟีดข่าวหลัก' },
+  ],
+  investing: [
+    { username: 'awealthofcs', name: 'Ben Carlson', reasoning: 'นักเขียนและนักลงทุนที่อธิบายตลาด การจัดพอร์ต และพฤติกรรมการลงทุนได้อ่านง่ายและใช้งานได้จริง' },
+    { username: 'TKL_83', name: 'Kris Abdelmessih', reasoning: 'เด่นเรื่องการคิดความเสี่ยง การเทรด และโครงสร้างผลตอบแทนในมุมที่ลึกกว่าฟีดตลาดทั่วไป' },
+    { username: 'M_C_Klein', name: 'Matthew C. Klein', reasoning: 'นักเขียนเศรษฐกิจและการเงินที่พาเข้าใจภาพมหภาคกับตลาดแบบเป็นระบบ' },
+    { username: 'TheTranscript_', name: 'The Transcript', reasoning: 'รวมบทสัมภาษณ์และความเห็นจากนักลงทุน ผู้บริหาร และคนตลาด ช่วยให้เห็นมุมคิดจากตัวจริงหลายสาย' },
+  ],
+  ai: [
+    { username: 'sama', name: 'Sam Altman', reasoning: 'มุมจากคนขับบริษัท AI แนวหน้า จะได้ตามทั้งทิศทางผลิตภัณฑ์และบทสนทนาที่กระทบวงการกว้าง' },
+    { username: 'AndrewYNg', name: 'Andrew Ng', reasoning: 'อธิบาย AI ในแบบที่เชื่อมจากเทคโนโลยีไปสู่การใช้งานจริง เหมาะกับคนที่อยากเข้าใจแล้วเอาไปต่อยอด' },
+    { username: 'karpathy', name: 'Andrej Karpathy', reasoning: 'เน้นมุมเทคนิค โมเดล และการ build ของจริงในภาษาที่คนเทคตามได้สนุกและได้สาระ' },
+    { username: 'demishassabis', name: 'Demis Hassabis', reasoning: 'มุมจากทั้งนักวิจัยและผู้บริหาร จึงได้เห็นทั้งวิสัยทัศน์ งานวิจัย และทิศทางของ AI ระดับแนวหน้า' },
+  ],
+};
+
+const buildAudienceFallbackExperts = (query = '') => {
+  const normalized = normalizeAudienceQuery(query);
+  if (/(crypto|คริปโต|bitcoin|blockchain|ethereum|defi|web3)/i.test(normalized)) {
+    return AUDIENCE_TOPIC_FALLBACKS.crypto;
+  }
+  if (/(invest|ลงทุน|stock|หุ้น|market|ตลาด|macro|เศรษฐกิจ|finance|การเงิน)/i.test(normalized)) {
+    return AUDIENCE_TOPIC_FALLBACKS.investing;
+  }
+  if (/(ai|artificial intelligence|machine learning|llm|gpt)/i.test(normalized)) {
+    return AUDIENCE_TOPIC_FALLBACKS.ai;
+  }
+  return [];
 };
 
 const buildAudienceExpertsQueryKey = (query, excludes = []) => [
@@ -108,6 +164,7 @@ export const useAudienceSearch = ({
       let combinedCandidates = [];
       let attemptExcludes = [...excludes];
       let appendedCount = 0;
+      let appendedHandles = [];
 
       const attemptQueries = isMore
         ? buildAudienceExpansionQueries(query).slice(0, AUDIENCE_LOAD_MORE_MAX_ATTEMPTS)
@@ -145,8 +202,25 @@ export const useAudienceSearch = ({
           const uniqueCandidates = combinedCandidates.filter((item) => !seen.has(normalizeHandle(item?.username)));
           const appended = uniqueCandidates.slice(0, 6);
           appendedCount = appended.length;
+          appendedHandles = appended.map((item) => item?.username).filter(Boolean);
           if (appended.length > 0) {
             setAiSearchResults((prev) => [...prev, ...appended]);
+          }
+        }
+        if (appendedCount === 0) {
+          const seen = new Set([
+            ...watchlist.map((item) => normalizeHandle(item?.username)),
+            ...aiSearchResults.map((item) => normalizeHandle(item?.username)),
+            ...aiSearchSeenUsernames.map(normalizeHandle),
+          ]);
+          const fallbackExperts = buildAudienceFallbackExperts(query)
+            .filter((item) => !seen.has(normalizeHandle(item?.username)))
+            .slice(0, 6);
+
+          if (fallbackExperts.length > 0) {
+            appendedCount = fallbackExperts.length;
+            appendedHandles = fallbackExperts.map((item) => item?.username).filter(Boolean);
+            setAiSearchResults((prev) => [...prev, ...fallbackExperts]);
           }
         }
       } else {
@@ -178,6 +252,7 @@ export const useAudienceSearch = ({
           ...(isMore ? prev : []),
           ...nextExperts.map(u => u.username).filter(Boolean),
           ...overflowExperts.map(u => u.username).filter(Boolean),
+          ...appendedHandles,
         ];
         return Array.from(new Set(nextSeen));
       });
