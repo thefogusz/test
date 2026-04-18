@@ -149,6 +149,7 @@ const AudienceWorkspace = ({
   const aiSearchBarRef = React.useRef<HTMLDivElement | null>(null);
   const menuContainerRef = React.useRef<HTMLDivElement | null>(null);
   const [openExpertMenu, setOpenExpertMenu] = React.useState<string | null>(null);
+  const [visibleAiCount, setVisibleAiCount] = React.useState(6);
   const CATEGORIES = React.useMemo(() => [
     { label: 'เทคโนโลยี', image: 'Tech.jpg_202604080519.jpeg' },
     { label: 'AI', image: 'AI.jpg_202604080519.jpeg' },
@@ -237,6 +238,7 @@ const AudienceWorkspace = ({
 
   const handleCategorySelect = React.useCallback((label) => {
     setAiQuery(label);
+    setVisibleAiCount(6);
     window.requestAnimationFrame(() => {
       aiSearchBarRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
@@ -246,9 +248,13 @@ const AudienceWorkspace = ({
   const handleClearAiSearch = () => {
     setAiQuery('');
     setAiSearchResults([]);
+    setVisibleAiCount(6);
   };
   const hasAiResults = aiSearchResults.length > 0;
   const isRefreshingAiResults = aiSearchLoading && hasAiResults;
+  const visibleAiResults = React.useMemo(() => aiSearchResults.slice(0, visibleAiCount), [aiSearchResults, visibleAiCount]);
+  const hasLocallyHiddenAiResults = aiSearchResults.length > visibleAiCount;
+  const canLoadMoreAi = hasLocallyHiddenAiResults || aiSearchHasMore;
   const getExpertAvatarFallback = (expert) =>
     `https://ui-avatars.com/api/?name=${encodeURIComponent(expert.name || expert.username || 'FORO')}&background=101826&color=bfdbfe&bold=true`;
   const getExpertInitial = (expert) => String(expert.name || expert.username || 'F').trim().charAt(0).toUpperCase();
@@ -259,6 +265,20 @@ const AudienceWorkspace = ({
     if (followers >= 1000) return `${(followers / 1000).toFixed(followers >= 100000 ? 0 : 1).replace(/\.0$/, '')}K`;
     return followers.toLocaleString();
   };
+  const triggerAiSearch = React.useCallback((queryOverride?: string) => {
+    setVisibleAiCount(6);
+    return handleAiSearchAudience(queryOverride);
+  }, [handleAiSearchAudience]);
+  const handleLoadMoreAi = React.useCallback(async () => {
+    if (aiSearchLoading) return;
+    if (hasLocallyHiddenAiResults) {
+      setVisibleAiCount((prev) => Math.min(prev + 6, aiSearchResults.length));
+      return;
+    }
+    if (!aiSearchHasMore) return;
+    await handleAiSearchAudience(null, true);
+    setVisibleAiCount((prev) => prev + 6);
+  }, [aiSearchHasMore, aiSearchLoading, aiSearchResults.length, handleAiSearchAudience, hasLocallyHiddenAiResults]);
 
   return (
     <div style={{ display: isVisible ? 'block' : 'none' }}>
@@ -316,7 +336,7 @@ const AudienceWorkspace = ({
                   placeholder="เช่น นักวิเคราะห์ตลาดเกม, ครีเอเตอร์สาย AI, ผู้ก่อตั้งสตาร์ทอัพสุขภาพ"
                   value={aiQuery}
                   onChange={(e) => setAiQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAiSearchAudience()}
+                  onKeyDown={(e) => e.key === 'Enter' && triggerAiSearch()}
                   style={{ background: 'transparent', border: 'none', color: '#fff', flex: 1, fontSize: '14px', outline: 'none' }}
                 />
                 {aiQuery && (
@@ -330,7 +350,7 @@ const AudienceWorkspace = ({
                 )}
               </div>
 
-              <button onClick={() => handleAiSearchAudience()} disabled={aiSearchLoading} className="btn-sync-premium audience-search-cta" style={{ height: '48px', padding: '0 24px' }}>
+              <button onClick={() => triggerAiSearch()} disabled={aiSearchLoading} className="btn-sync-premium audience-search-cta" style={{ height: '48px', padding: '0 24px' }}>
                 {aiSearchLoading ? <RefreshCw size={15} className="animate-spin" /> : '\u0e04\u0e49\u0e19\u0e2b\u0e32'}
               </button>
               {!aiSearchLoading && hasSearchedAudience && aiSearchResults.length === 0 && (
@@ -361,7 +381,7 @@ const AudienceWorkspace = ({
                 aria-busy={isRefreshingAiResults}
               >
                 <div className="expert-grid audience-results-grid" style={{ marginBottom: '24px' }}>
-                  {aiSearchResults.slice(0, 6).map((expert, i) => {
+                  {visibleAiResults.map((expert, i) => {
                     const isAdded = watchlist.find((w) => w.username.toLowerCase() === expert.username.toLowerCase());
                     const avatarFallback = getExpertAvatarFallback(expert);
                     const reasoningText = formatExpertReasoningCard(expert, aiQuery);
@@ -371,9 +391,7 @@ const AudienceWorkspace = ({
                       <div key={expert.username} className="expert-card animate-fade-in audience-expert-card-jitter" style={{ animationDelay: `${i * 0.05}s` }}>
                         <div className="audience-expert-top">
                           <div className="audience-expert-meta-row">
-                            <div className="audience-expert-topic-chip">
-                              {'\u0e41\u0e19\u0e30\u0e19\u0e33\u0e43\u0e19\u0e2b\u0e31\u0e27\u0e02\u0e49\u0e2d'} {topicLabel}
-                            </div>
+                            <div className="audience-expert-topic-chip">{topicLabel}</div>
                             <div
                               ref={openExpertMenu === expert.username ? menuContainerRef : null}
                               className="audience-expert-menu-wrap"
@@ -426,7 +444,7 @@ const AudienceWorkspace = ({
                           <div className="audience-expert-profile">
                             <div
                               className="audience-expert-avatar"
-                              style={{ width: '56px', height: '56px', borderRadius: '18px', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden', position: 'relative', display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg, rgba(41,151,255,0.22), rgba(157,117,255,0.18))', color: '#bfdbfe', fontSize: '18px', fontWeight: 900 }}
+                              style={{ width: '52px', height: '52px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', overflow: 'hidden', position: 'relative', display: 'grid', placeItems: 'center', background: 'linear-gradient(135deg, rgba(41,151,255,0.22), rgba(157,117,255,0.18))', color: '#bfdbfe', fontSize: '17px', fontWeight: 900 }}
                             >
                               <span>{getExpertInitial(expert)}</span>
                               <img
@@ -462,7 +480,6 @@ const AudienceWorkspace = ({
                           </div>
                         </div>
                         <div className="audience-expert-summary-panel">
-                          <div className="audience-expert-summary-label">{'\u0e17\u0e33\u0e44\u0e21\u0e04\u0e27\u0e23\u0e15\u0e34\u0e14\u0e15\u0e32\u0e21'}</div>
                           <div className="expert-reasoning audience-expert-reasoning">
                             {reasoningText || '\u0e0a\u0e48\u0e27\u0e22\u0e43\u0e2b\u0e49\u0e15\u0e32\u0e21\u0e1b\u0e23\u0e30\u0e40\u0e14\u0e47\u0e19\u0e2a\u0e33\u0e04\u0e31\u0e0d\u0e41\u0e25\u0e30\u0e21\u0e38\u0e21\u0e21\u0e2d\u0e07\u0e02\u0e2d\u0e07\u0e04\u0e19\u0e43\u0e19\u0e27\u0e07\u0e01\u0e32\u0e23\u0e44\u0e14\u0e49\u0e15\u0e48\u0e2d\u0e40\u0e19\u0e37\u0e48\u0e2d\u0e07'}
                           </div>
@@ -474,9 +491,9 @@ const AudienceWorkspace = ({
                     );
                   })}
                 </div>
-                {aiSearchHasMore && (
-                  <div style={{ textAlign: 'center' }}>
-                    <button onClick={() => handleAiSearchAudience(null, true)} disabled={aiSearchLoading} className="btn-pill">
+                {canLoadMoreAi && (
+                  <div className="audience-load-more-row">
+                    <button onClick={handleLoadMoreAi} disabled={aiSearchLoading} className="btn-pill audience-load-more-btn">
                       {aiSearchLoading ? <RefreshCw size={14} className="animate-spin" /> : '\u0e04\u0e49\u0e19\u0e2b\u0e32\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e15\u0e34\u0e21'}
                     </button>
                   </div>
