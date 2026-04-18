@@ -38,6 +38,7 @@ export const useAudienceSearch = ({
   const [aiSearchResults, setAiSearchResults] = useState([]);
   const [aiSearchOverflowResults, setAiSearchOverflowResults] = useState([]);
   const [aiSearchSeenUsernames, setAiSearchSeenUsernames] = useState([]);
+  const [aiSearchCanFetchMore, setAiSearchCanFetchMore] = useState(false);
   const [hasSearchedAudience, setHasSearchedAudience] = useState(false);
   const [manualQuery, setManualQuery] = useState('');
   const [manualPreview, setManualPreview] = useState(null);
@@ -89,17 +90,32 @@ export const useAudienceSearch = ({
         setAiSearchResults(prev => [...prev, ...nextResults]);
         setAiSearchOverflowResults(aiSearchOverflowResults.slice(6));
         setAiSearchSeenUsernames(prev => Array.from(new Set([...prev, ...nextResults.map(u => u.username).filter(Boolean)])));
+        setAiSearchCanFetchMore(aiSearchOverflowResults.slice(6).length > 0);
         return;
       }
 
       const experts = await aiSearchMutation.mutateAsync({ query, excludes });
       const overflowExperts = Array.isArray(experts.overflowExperts) ? experts.overflowExperts : [];
-      setAiSearchResults(prev => isMore && experts.length === 0 ? prev : experts);
+      const nextExperts = Array.isArray(experts) ? experts : [];
+      if (isMore) {
+        if (nextExperts.length === 0) {
+          setAiSearchCanFetchMore(false);
+        } else {
+          setAiSearchResults((prev) => {
+            const seen = new Set(prev.map((item) => normalizeHandle(item?.username)));
+            const appended = nextExperts.filter((item) => !seen.has(normalizeHandle(item?.username)));
+            return appended.length > 0 ? [...prev, ...appended] : prev;
+          });
+        }
+      } else {
+        setAiSearchResults(nextExperts);
+      }
       setAiSearchOverflowResults(overflowExperts);
+      setAiSearchCanFetchMore(overflowExperts.length > 0 || nextExperts.length >= 6);
       setAiSearchSeenUsernames(prev => {
         const nextSeen = [
           ...(isMore ? prev : []),
-          ...experts.map(u => u.username).filter(Boolean),
+          ...nextExperts.map(u => u.username).filter(Boolean),
           ...overflowExperts.map(u => u.username).filter(Boolean),
         ];
         return Array.from(new Set(nextSeen));
@@ -133,11 +149,12 @@ export const useAudienceSearch = ({
     setAiQuery,
     aiSearchLoading: aiSearchMutation.isPending,
     aiSearchResults,
-    aiSearchHasMore: aiSearchOverflowResults.length > 0,
+    aiSearchHasMore: aiSearchOverflowResults.length > 0 || aiSearchCanFetchMore,
     setAiSearchResults: (nextResults) => {
       setAiSearchResults(nextResults);
       setAiSearchOverflowResults([]);
       setAiSearchSeenUsernames([]);
+      setAiSearchCanFetchMore(false);
     },
     hasSearchedAudience,
     manualQuery,
