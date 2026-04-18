@@ -112,6 +112,8 @@ const formatExpertReasoningCard = (expert, topicHint = '') => {
 const getExpertAvatarSrc = (expert) => {
   const rawSrc = String(expert?.profile_image_url || '').trim();
   if (rawSrc) return rawSrc.replace('_normal', '_200x200');
+  const handle = String(expert?.username || '').replace(/^@/, '').trim();
+  if (handle) return `https://unavatar.io/twitter/${encodeURIComponent(handle)}`;
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(expert?.name || expert?.username || 'FORO')}&background=101826&color=bfdbfe&bold=true&size=128`;
 };
 
