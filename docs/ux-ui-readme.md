@@ -1,141 +1,146 @@
 # UX/UI README
 
-## เป้าหมายของเอกสารนี้
+เอกสารนี้เป็น UX/UI source of truth สำหรับ Foro ใน repo นี้ โดยใช้คู่กับ `DESIGN.md`
 
-เอกสารนี้เป็น UX/UI source of truth สำหรับ repo `foro` ตัว test ที่ใช้เป็นต้นแบบก่อนย้ายหรือ copy logic ไปทำ `foro` ตัวจริง
+- `DESIGN.md` อธิบาย visual language, token, hierarchy, spacing, และ brand feel
+- หน้านี้อธิบาย interaction contract, responsive behavior, state meaning, และเหตุผลเชิง UX ว่าแต่ละหน้าถูกออกแบบให้ทำงานอย่างไร
 
-เป้าหมายหลักมี 3 ข้อ:
+เป้าหมายคือให้ dev และ LLM อ่านแล้วเข้าใจ "ของที่ผู้ใช้ควรเจอจริงตอนนี้" โดยไม่ต้องไล่เปิดหลาย component พร้อมกัน
 
-- ให้ dev ที่เพิ่งเข้ามาอ่านแล้วเข้าใจภาพรวมของ UI โดยไม่ต้องไล่เปิดหลาย component พร้อมกัน
-- ให้ LLM มีภาษากลางในการคุยเรื่อง layout, state, animation, responsive behavior และ interaction detail
-- ให้เวลานำ repo นี้ไปแตกต่อเป็น production repo ยังรักษา intent ของงานออกแบบเดิมได้ ไม่ใช่ copy แค่หน้าตาแล้วเสีย behavior
+## ภาพรวม UX ของผลิตภัณฑ์
 
-เอกสารนี้ควรใช้คู่กับ `DESIGN.md` ที่ root ของ repo ซึ่งเน้น visual language, token, spacing, และ tone ของแบรนด์ ส่วนหน้านี้จะเน้นว่า UX แต่ละจุด "ถูกออกแบบให้ทำงานอย่างไร"
+Foro ไม่ได้ถูกออกแบบให้เป็น landing page หรือ social feed ทั่วไป แต่เป็น workspace สำหรับ:
 
-## วิธีใช้เอกสารนี้กับ dev และ LLM
+- เก็บสัญญาณจาก X และ RSS
+- คัดกรองสิ่งที่ควรดูต่อ
+- อ่านและแปลบทความ
+- ค้นหาและสรุปข้อมูล
+- สร้างคอนเทนต์จาก source ที่เกี่ยวข้อง
 
-เวลา brief งานกับ dev หรือถาม LLM ให้ใช้คำต่อไปนี้เป็นคำกลาง:
+สิ่งที่ UI ต้องสื่อเสมอ:
+
+- ผู้ใช้กำลังทำงานอยู่ในเครื่องมือ ไม่ได้อยู่ในหน้าโปรโมต
+- signal, source, summary, และ next action สำคัญกว่าของตกแต่ง
+- motion ต้องช่วยแปล state ไม่ใช่แย่งความสนใจ
+- แต่ละ workspace ต้องรู้สึกเป็นระบบเดียวกัน แม้หน้าที่ต่างกัน
+
+## คำศัพท์กลางที่ใช้คุยงาน
 
 - `app shell`: โครงซ้าย กลาง ขวา ของแอป
 - `left rail`: sidebar หลัก
 - `main workspace`: พื้นที่ทำงานตรงกลาง
-- `right rail`: post list / supporting context
-- `home feed`: หน้าติดตามสัญญาณจาก X + RSS
-- `content search`: หน้าค้นหาและสรุปข้อมูล
-- `content create`: หน้าสร้างคอนเทนต์จาก source
-- `read workspace`: ห้องอ่านบทความและข่าวที่เก็บไว้
-- `audience workspace`: หน้าหา account / source ใหม่
-- `pricing workspace`: หน้า profile, plan, usage, upgrade
-- `mobile context switcher`: แถบสลับโหมดด้านล่างบน mobile
-- `AI summary card`: การ์ดสรุปผลจาก FORO เช่น `FORO FILTER` หรือ `FORO SUMMARY`
-
-prompt แนะนำสำหรับถาม LLM:
-
-> ใช้ `docs/ux-ui-readme.md` และ `DESIGN.md` เป็น source of truth ก่อนแก้ UI ของ Foro อย่าแก้แค่หน้าตา ให้รักษา layout contract, interaction flow, mobile behavior, และ animation intent ของ workspace นี้ด้วย
-
-## Product UX Intent
-
-FORO ไม่ได้ถูกออกแบบให้เหมือน landing page หรือ social app แต่เป็น "workspace สำหรับคัดสัญญาณและตัดสินใจเร็ว"
-
-สิ่งที่ UI ต้องสื่อให้ได้ตลอด:
-
-- ผู้ใช้กำลังทำงานอยู่ในเครื่องมือ ไม่ได้กำลังดูหน้าโปรโมต
-- สิ่งสำคัญที่สุดคือ signal, result, source, action ต่อไป
-- animation ต้องช่วยแปล state ไม่ใช่ทำให้รู้สึก flashy
-- แต่ละ workspace ต้องดูเป็นพี่น้องกัน แม้หน้าที่ต่างกัน
+- `right rail`: post list และ supporting context
+- `home feed`: หน้าติดตามสัญญาณหลัก
+- `content search`: โหมดค้นหาและสรุป
+- `content create`: โหมดสร้างคอนเทนต์
+- `read workspace`: ห้องอ่านและ archive
+- `audience workspace`: หน้าหา account และ news source ใหม่
+- `pricing workspace`: profile, usage, plan, upgrade
+- `mobile context switcher`: ปุ่มสลับบริบทบนมือถือของแต่ละ workspace
+- `summary card`: การ์ดสรุปแบบ `FORO FILTER` หรือ `FORO SUMMARY`
 
 ## UX Principles ที่ห้ามหลุด
 
 ### 1. Content-first
 
-- header ต้องสั้น
-- title ต้องบอกงานที่หน้าจอนั้นทำ
+- header ต้องบอกงานของหน้าแบบสั้นและชัด
 - action สำคัญต้องอยู่ใกล้ข้อมูลที่มันกระทบ
-- metadata ต้องไม่แย่ง hierarchy จาก content หลัก
+- metadata ต้องไม่ดังเกิน content หลัก
 
 ### 2. Progressive disclosure
 
 - โชว์เท่าที่จำเป็นก่อน
-- รายละเอียดรองให้ขยายเมื่อผู้ใช้ต้องการ
-- ตัวอย่างในระบบนี้คือ right sidebar, source expansion, load more, search suggestions
+- context รองค่อยขยายเมื่อผู้ใช้ต้องการ
+- right rail, source expansion, suggestions, และ load more เป็นตัวอย่างของหลักนี้
 
 ### 3. Fast state readability
 
-ผู้ใช้ต้องแยกให้ออกภายในไม่กี่วินาทีว่า:
+ผู้ใช้ต้องมองออกภายในไม่กี่วินาทีว่า:
 
 - ตอนนี้อยู่ workspace ไหน
-- ระบบกำลังทำงานอะไร
-- ปุ่มไหนคือ primary action ของหน้าปัจจุบัน
-- ตอนนี้เป็น empty, loading, filtered, or completed state
+- ระบบกำลังทำอะไร
+- primary action ของหน้าคืออะไร
+- หน้านี้อยู่ในสถานะ empty, loading, filtered, searching, หรือ completed
 
 ### 4. Reusable mental model
 
-- `FeedCard` ถูกใช้หลาย workspace เพราะผู้ใช้ควรคุ้นกับ object เดียวกัน
-- ปุ่ม pill, icon action, summary card, list pill และ chips ควรให้ความรู้สึกคุ้นเคยข้ามหน้า
+- `FeedCard` ต้องรู้สึกคุ้น across home, search, read, bookmarks
+- pill buttons, icon actions, summary cards, และ list chips ต้องใช้ภาษาดีไซน์ร่วมกัน
 
 ### 5. Thai-first readability
 
-- สำคัญกับ heading, subtitle, reasoning, summary, empty state
-- ถ้าข้อความไทยยาวขึ้น UI ต้องยังอ่านง่ายและไม่ชนกัน
+- label, summary, empty state, reasoning, และ helper text ต้องอ่านไทยได้ลื่น
+- เมื่อข้อความไทยยาวขึ้น layout ต้องยังไม่พังและไม่แน่นเกินไป
 
 ## App Shell Contract
 
-อ้างอิงจาก `src/App.tsx`, `src/components/Sidebar.tsx`, `src/components/RightSidebar.tsx`, `src/index.css`
+อ้างอิงจาก `src/App.tsx`, `src/components/Sidebar.tsx`, `src/components/RightSidebar.tsx`, `src/components/AppWorkspaceRouter.tsx`
 
-### Desktop structure
+### Desktop
+
+โครงหลักเป็น 3 ส่วน:
 
 - ซ้าย: navigation + plan panel
 - กลาง: workspace ปัจจุบัน
-- ขวา: post list และบริบทเสริม
+- ขวา: post list manager และ supporting context
 
-ค่า layout ปัจจุบันใน CSS:
+intent ของ shell:
 
-- left sidebar กว้างประมาณ `288px`
-- right sidebar กว้างประมาณ `320px`
-- main workspace เป็น panel กลางพื้น `--bg-900`
-- shell ด้านนอกเป็น pure black เพื่อสร้าง negative space ชัดเจน
+- main workspace ต้องเป็นพระเอก
+- rail สองฝั่งต้องนิ่งและใช้งานได้ต่อเนื่อง
+- outer shell เป็น dark negative space เพื่อดัน focus เข้าหาพื้นที่ทำงาน
 
 ### Pricing exception
 
-เมื่อเข้า `pricing`:
+เมื่ออยู่ `pricing`:
 
 - right rail ต้องหาย
-- main workspace ต้องดูเหมือน focus mode
-- อย่าเปิด context รองมาชนกับ flow profile / billing
+- main workspace ต้องกลายเป็น focus mode
+- ผู้ใช้ไม่ควรถูกดึง attention ไปที่ context รอง
 
-### Mobile shell behavior
+### Mobile shell
 
-บน mobile shell เปลี่ยนจาก 3-column เป็น:
+บนมือถือ shell เปลี่ยนจาก 3-column เป็น:
 
-- bottom nav fixed
-- มี context switcher / launcher ตาม workspace
-- right sidebar กลายเป็น sheet
-- main content ต้องมี bottom padding พอสำหรับ nav และ switcher
+- bottom navigation แบบ fixed
+- context switcher เฉพาะ workspace
+- right rail กลายเป็น sheet
+- main content ต้องเว้นพื้นที่ด้านล่างพอสำหรับ nav และ switcher
 
-## Navigation Design Intent
+## Navigation Contract
 
 ### Left rail
 
-- active item ใช้ tint + contrast + indicator bar ไม่ใช่แค่สีตัวอักษร
-- busy state ใช้ spinner เล็กด้านขวา
-- desktop label เน้นความชัด ส่วน mobile label ย่อให้สั้น
+Sidebar ปัจจุบันมี top-level views:
 
-### Mobile nav
+- `home`
+- `content`
+- `read`
+- `audience`
+- `bookmarks`
+- `pricing`
 
-- มี 4 จุดหลัก: home, content, read, pricing
-- audience และ bookmarks ถูกลด priority บน mobile
-- แต่ละ workspace มี shortcut เพิ่มตามบริบท เช่น filter, feed, search/create, read/bookmarks
+บน desktop:
+
+- active item ใช้ tint + contrast + shape ไม่ใช่แค่เปลี่ยนสีตัวอักษร
+- busy state แสดง spinner ด้านขวา
+- logo area สามารถแสดง global working state ได้
+
+บน mobile:
+
+- `audience` และ `bookmarks` ถูกลดความสำคัญจาก bottom nav หลัก
+- access ถูกส่งผ่าน context switcher หรือ flow ภายในหน้าที่เกี่ยวข้อง
 
 ### Plan panel
 
-Plan panel ไม่ใช่แค่ billing widget แต่เป็น global utility panel:
+Plan panel ไม่ใช่แค่ billing widget แต่เป็น global utility panel สำหรับ:
 
-- สรุป plan ปัจจุบัน
-- usage คงเหลือ
-- ช่องทางไป pricing
-- ช่องทางไป Foro Docs
+- plan ปัจจุบัน
+- usage ที่เหลือ
+- entry ไป pricing
+- notice ระดับระบบที่เกี่ยวกับ plan
 
-## Workspace-by-Workspace UX
+## Workspace-by-Workspace Contract
 
 ## 1. Home Feed
 
@@ -143,103 +148,95 @@ Plan panel ไม่ใช่แค่ billing widget แต่เป็น glob
 
 ### หน้าที่ของหน้า
 
-ตอบคำถามว่า "ตอนนี้มีอะไรน่าดู น่าอ่าน หรือน่าเอาไปทำต่อ"
+ตอบคำถามว่า:
 
-### โครงสร้าง UX
+- ตอนนี้มีอะไรน่าดู
+- อะไรควรถูกคัดขึ้นมาก่อน
+- ควร sync, filter, sort, อ่าน, หรือเอาไปทำคอนเทนต์ต่อไหม
 
-- header บอกว่าผู้ใช้อยู่หน้า home feed
-- control panel มี quick filter, FORO Filter, sync
-- feed toolbar มี clear/undo + sort
-- body เป็น `feed-grid`
-- footer มี load more หรือ plan limit state
+### UX structure
 
-### Interaction intent
+- header บอกว่าผู้ใช้อยู่หน้า Home
+- desktop control panel มี selected list context, quick presets, `FORO Filter`, และ sync action
+- feed toolbar มี clear/undo และ sort
+- body เป็น feed grid
+- footer ของหน้าเป็น load more หรือ plan-limit state
 
-- `FORO Filter` เป็น smart action ที่อยู่ใกล้ feed เพราะมันเปลี่ยนความหมายของรายการทั้งชุด
-- `Feed data` เป็น primary button ของหน้า home
-- `Clear` และ `Undo` ใช้ตำแหน่งเดียวกันเพื่อให้ผู้ใช้เข้าใจว่าเป็น action ต่อเนื่องกัน
-- quick presets มีไว้ลด friction สำหรับ prompt ที่ใช้บ่อย
+### Current behavior ที่ต้องรักษา
 
-### States ที่ต้องรักษา
+- `FORO Filter` เป็น smart action ใกล้ feed ไม่ใช่ utility ห่าง ๆ
+- quick presets มีไว้ลด friction ของ prompt ที่ใช้บ่อย
+- clear กับ undo ใช้ตำแหน่งเดียวกันเพื่อสื่อว่าเป็น action ต่อเนื่อง
+- เมื่อ sync ระหว่างที่ feed เดิมยังอยู่ ต้องแสดง prepended/appended skeleton มากกว่าล้าง context เดิมทิ้ง
+- filtered result ต้องมี badge หรือ summary บอกชัดว่าผลที่เห็นถูกคัดมาแล้ว
+- เมื่อถึงเพดาน plan ต้องบอกตรง ๆ ว่าเห็นครบตาม plan แล้ว
 
-- empty state: ใช้ `HomeCanvas` + title กลางจอเพื่อให้หน้าไม่ตาย แต่ยังไม่กลายเป็น marketing hero
-- syncing with existing feed: ใช้ skeleton แทรกก่อน/หลัง feed เดิม แปลว่าระบบกำลังเติมข้อมูล ไม่ได้ล้าง context
-- filtering: ปุ่ม filter ต้องเปลี่ยน label/state ชัด
-- filtered result: ต้องมี summary card หรือ badge ว่าผลที่เห็นถูกคัดแล้ว
-- limit reached: ต้องบอกตรง ๆ ว่าเห็นครบตาม plan แล้ว
+### Empty state
+
+- ใช้ `HomeCanvas`
+- ต้องรู้สึกเป็น workspace ว่างที่พร้อมเริ่ม ไม่ใช่ marketing hero
 
 ### Animation intent
 
-- feed card hover ยกขึ้นเล็กน้อย เพื่อสื่อว่า interact ได้
-- undo ปรากฏด้วย animation สั้นเพื่อบอกว่ามี recovery state
-- summary card ใช้ fade-in ไม่ควรเด้งแรง
-- skeleton ใช้ shimmer เพื่อสื่อ "กำลังโหลด" ไม่ใช่ decoration
-
-### สิ่งที่ห้ามทำ
-
-- ห้ามเปลี่ยน empty state ให้เหมือน landing page
-- ห้ามทำปุ่ม primary หลายตัวแข่งกันใน header เดียว
-- ห้ามทำ filter result ให้แยก visual language จนดูเหมือนคนละระบบ
+- card hover ยกขึ้นเล็กน้อย
+- undo state ต้องโผล่แบบสั้นและชัด
+- summary card ใช้ fade-in เบา ๆ
+- skeleton ใช้เพื่อแปล state loading เท่านั้น
 
 ## 2. Content Workspace
 
-อ้างอิงหลัก: `src/components/ContentWorkspace.tsx`
+อ้างอิงหลัก: `src/components/ContentWorkspace.tsx`, `src/components/CreateContent.tsx`
 
-หน้านี้มี 2 โหมดหลัก:
+มี 2 โหมดหลัก:
 
 - `search`
 - `create`
 
 ### 2.1 Search mode
 
-#### หน้าที่ของหน้า
+### หน้าที่ของหน้า
 
-ให้ผู้ใช้ค้นหา topic, สำรวจผลลัพธ์, และอ่าน `FORO SUMMARY` ที่สรุปจากหลาย source
+ให้ผู้ใช้ค้นหา topic, อ่านสรุป, สำรวจ result set, เปิดอ่าน source, และต่อยอดเป็น content หรือ reading flow
 
-#### UX structure
+### UX structure
 
-- hero header สั้น
-- search field เป็นองค์ประกอบหลักของหน้า
-- toggle latest mode เป็น quick intent modifier
+- search input เป็น command surface หลัก
+- latest toggle เป็น intent modifier ไม่ใช่ CTA แข่งกับปุ่มค้นหา
 - media type chips เป็น secondary filter
-- preset/history/discovery tags ช่วยเริ่มต้นเมื่อยังไม่ค้น
-- result area ใช้ summary card ก่อน feed cards
+- preset/history/discovery tags ช่วยเริ่มต้นก่อนผู้ใช้จะคิด query เอง
+- summary card ต้องมาก่อน result cards เมื่อ summary พร้อม
+- source expansion ใต้ summary ช่วยสร้างความเชื่อมั่นว่าข้อสรุปมีที่มา
 
-#### Interaction intent
-
-- search bar ต้องรู้สึกเหมือน command surface มากกว่า form ปกติ
-- latest toggle ต้องเป็น "state modifier" ไม่ใช่ CTA แข่งกับปุ่มค้นหา
-- clear result ต้องชัดว่าล้างผลรอบนี้ ไม่ใช่ล้างข้อมูลระบบ
-- source expansion ใต้ summary มีไว้สร้างความเชื่อมั่น
-
-#### States
+### States ที่ต้องรักษา
 
 - pre-search discovery state
 - typing with suggestions
 - live preparing state
 - searching state
 - empty result state
-- results with summary
-- results without summary เสร็จไม่พร้อมกันได้
+- result-with-summary state
+- result-without-summary-yet state
+- search choice refinement state เมื่อมีหลายมุมให้โฟกัส
 
-#### Animation intent
+### Animation intent
 
-- focus-within ของ search box ยกและเรืองเล็กน้อย เพื่อดึงสายตาเข้าจุดพิมพ์
-- loading state ใช้ bar/lines ที่นิ่งพอ ไม่ควร distract
-- results และ summary ค่อย ๆ ปรากฏ ไม่ควร snap แข็งเกินไป
+- search box focus ต้องดึงสายตาแบบนิ่งและคม
+- loading skeleton/line state ต้องสื่อว่าระบบกำลังขยายและจัดอันดับข้อมูล
+- summary และ results ควรค่อย ๆ ปรากฏ ไม่ snap แรง
 
 ### 2.2 Create mode
 
-#### หน้าที่ของหน้า
+### หน้าที่ของหน้า
 
-ให้ผู้ใช้สร้าง content จาก source ที่ attach มา โดยไม่ให้ source panel บังพื้นที่คิด
+ให้ผู้ใช้สร้าง content จาก prompt หรือ attached source โดยไม่ให้ source panel แย่งพื้นที่คิด
 
-#### Intent สำคัญ
+### Current UX intent
 
-- source attachment ต้อง compact
-- editor/work area ต้องเป็นพระเอก
-- generating state ต้องบอก phase ได้
-- save result แล้วควรไปต่อ bookmark/article flow ได้
+- attached source ต้อง compact
+- writing area และ result area ต้องเป็นพระเอก
+- generation phase ต้องบอกเป็นลำดับงาน เช่น researching, briefing, generating
+- ระหว่างสตรีม draft ต้องอ่านได้โดยไม่ crash render
+- หลังสร้างเสร็จ ผู้ใช้ต้อง copy, edit, regenerate, bookmark, และเปิด source ต่อได้ทันที
 
 ## 3. Read Workspace
 
@@ -247,62 +244,56 @@ Plan panel ไม่ใช่แค่ billing widget แต่เป็น glob
 
 ### หน้าที่ของหน้า
 
-เป็น library สำหรับ deep read ของข่าวและบทความที่ผู้ใช้เก็บไว้
+เป็น library สำหรับสิ่งที่ควรกลับมาอ่านต่อ ไม่ใช่ feed สด
 
-### UX structure
+### UX intent
 
-- header อธิบายว่าหน้านี้คือห้องอ่าน
-- search box สำหรับค้นในคลัง
-- suggestion pills สำหรับคืนคำค้นที่น่าจะเกี่ยว
-- sort pills ตาม view / engagement
-- card grid ใช้ object เดิมคือ `FeedCard`
+- บรรยากาศต้องนิ่งกว่า Home
+- search ในคลังต้องช่วยพาผู้ใช้กลับไปเจอสิ่งที่เคยเก็บ
+- sort/filter ต้องเป็น utility รอง ไม่แย่ง hierarchy จากเนื้อหา
+- ใช้ object เดิมอย่าง `FeedCard` เพื่อคง mental model
 
-### Intent สำคัญ
+### Mobile behavior
 
-- ผู้ใช้ควรรู้สึกว่าเป็น "คลังอ่านต่อ" ไม่ใช่ feed สด
-- interaction ต้องนิ่งกว่า home
-- search empty state ต้องช่วยพากลับ ไม่ใช่แค่บอกว่าไม่เจอ
-
-### Animation intent
-
-- ใช้ fade-in เบา ๆ ระดับ workspace
-- ไม่ควรมี motion เยอะกว่าหน้า home
+- มี context switcher ร่วมกับ Bookmarks
+- post list ยังเข้าถึงได้ผ่าน mobile launcher
 
 ## 4. Audience Workspace
 
-อ้างอิงหลัก: `src/components/AudienceWorkspace.tsx`
+อ้างอิงหลัก: `src/components/AudienceWorkspace.tsx`, `src/components/NewsSourcesTab.tsx`
 
 ### หน้าที่ของหน้า
 
-ช่วยผู้ใช้ขยาย network ของ signal ทั้งจาก account และ RSS source
+ช่วยผู้ใช้ขยาย network ของสัญญาณ ทั้งจาก account และ source
 
-### UX structure
-
-มี 3 tab:
+### Current tabs
 
 - `FORO recommendations`
 - `news sources`
 - `manual search`
 
-### AI recommendation mode
+### Recommendation mode intent
 
-- search bar คือจุดสั่งงานหลัก
+- search bar คือ command surface หลัก
 - category image cards ใช้เป็น guided discovery
-- result card ต้องตอบให้ได้ว่า "ทำไมควรติดตาม"
-- ปุ่มเพิ่มเข้า watchlist ต้องตรงและชัด
+- result card ต้องตอบได้ว่า "ทำไมควรติดตาม"
+- CTA เพิ่มเข้ watchlist ต้องชัดและเร็ว
+- reasoning ภาษาไทยเป็นส่วนสำคัญของ UX ไม่ใช่ text filler
 
-### Why-this-person reasoning
+### Reasoning contract
 
-ข้อความ reasoning เป็นส่วนสำคัญของ UX ไม่ใช่แค่ description:
+ข้อความ reasoning ควร:
 
-- ต้องอ่านง่าย
-- ต้องเฉพาะเจาะจง
-- ควรช่วยตัดสินใจได้ใน 1-2 ประโยค
+- อ่านง่าย
+- เฉพาะเจาะจง
+- ช่วยตัดสินใจได้ใน 1-2 ประโยค
+- ไม่ generic แบบ marketing copy
 
 ### News sources mode
 
-- ใช้ mental model เดียวกับ source management
+- ใช้ mental model ของ source management
 - subscription state ต้องดูออกทันที
+- source card ต้องเชื่อมกับ post list flow ได้
 
 ### Manual mode
 
@@ -310,20 +301,18 @@ Plan panel ไม่ใช่แค่ billing widget แต่เป็น glob
 - suggestion dropdown ช่วยลด typo
 - preview card ต้องยืนยันตัวตนก่อน add
 
-### Animation intent
-
-- category cards ควรตอบสนองไว
-- results shell ตอน refresh ควรบอกว่าอัปเดตผลเดิม ไม่ใช่รีเซ็ตทั้งหมด
-- menu / dropdown ต้องเป็น utility motion สั้น ๆ
-
 ## 5. Bookmarks Workspace
 
-แม้หน้านี้ไม่ได้ inspect ละเอียดเท่าหน้าอื่นในรอบนี้ แต่จาก architecture ปัจจุบันมันอยู่ใน mental model เดียวกับ read workspace:
+อ้างอิงหลัก: `src/components/BookmarksWorkspace.tsx`
 
-- เป็นพื้นที่เก็บ object ที่จะกลับมาใช้ต่อ
-- ควร reuse card pattern เดิม
-- visual hierarchy ต้องนิ่งและอ่านง่าย
-- ไม่ควรแข่งขันกับ home ในแง่ urgency
+บทบาทของหน้านี้อยู่ใกล้กับ Read workspace แต่เน้นสิ่งที่ผู้ใช้บันทึกไว้เพื่อหยิบกลับมาใช้ต่อ
+
+intent สำคัญ:
+
+- reuse card pattern เดิม
+- hierarchy ต้องนิ่งและอ่านง่าย
+- ไม่แข่งกับ Home ในแง่ urgency
+- บนมือถือมี context switcher ร่วมกับ Read
 
 ## 6. Pricing Workspace
 
@@ -331,38 +320,59 @@ Plan panel ไม่ใช่แค่ billing widget แต่เป็น glob
 
 ### หน้าที่ของหน้า
 
-รวม profile, usage, current plan, plan comparison, และ upgrade flow ไว้ในหน้าเดียว
+รวม profile, usage, current plan, comparison, และ upgrade flow ไว้ในหน้าเดียว
 
-### UX structure
+### UX intent
 
-- hero block สำหรับ current profile/usage
-- plan grid เทียบ free กับ plus
-- buy flow เปิด modal overlay
+- หน้านี้ต้องดู trustworthy และตรงไปตรงมา
+- usage tiles ต้องอ่านง่ายกว่าตกแต่ง
+- current plan ต้องเด่นด้วย state, not decoration only
+- buy flow ต้องรู้สึกเป็น focus mode เต็ม ๆ
 
-### Intent สำคัญ
-
-- หน้า pricing ต้องดู trustworthy และตรงไปตรงมา
-- usage tiles ต้องอ่านง่ายกว่า decorative
-- plan card ปัจจุบันต้องเด่นด้วย state ไม่ใช่เพราะสีแรงอย่างเดียว
-- modal ซื้อแพ็กต้องเป็น focus mode เต็ม ๆ
-
-### Animation intent
+### Motion
 
 - modal open/close ต้องนุ่มและชัด
-- meter fill ใช้บอกสัดส่วนการใช้ ไม่ควร flashy
+- meter fill ใช้บอกสัดส่วนการใช้ ไม่ใช่โชว์ motion
+
+## Right Rail Contract
+
+อ้างอิงหลัก: `src/components/RightSidebar.tsx`
+
+Right rail ปัจจุบันไม่ใช่แค่ list viewer แต่เป็น post list manager เต็มรูปแบบ
+
+มันต้องทำหน้าที่:
+
+- แสดง list ที่มีอยู่
+- เลือก active list
+- สร้าง/นำเข้า list
+- เปลี่ยนชื่อและสี
+- เพิ่ม account หรือ RSS source เข้า list
+- แชร์ list
+- ลบสมาชิกและลบ list
+
+UX intent:
+
+- right rail เป็น supporting context ไม่ใช่พระเอก
+- แต่เมื่อเปิด list ใด list หนึ่งแล้ว panel ขยายต้องใช้งานได้จริงแบบไม่รู้สึกเป็น secondary mockup
+- available accounts/sources, manual add, และ current members ต้องต่อเนื่องกันเป็น flow เดียว
+
+บน mobile:
+
+- right rail กลายเป็น sheet
+- ต้องยังเปิดไป Audience ได้จาก flow นี้
 
 ## Shared Component Contracts
 
 ## FeedCard
 
-ใช้ข้าม home, content results, read, และบาง library flows
+ใช้ข้าม Home, Search, Read, Bookmarks และบาง flow ของ Audience
 
 contract สำคัญ:
 
-- hover ยกขึ้นเล็กน้อย
 - header/body/footer ต้องแยกชัด
 - action placement ต้องสม่ำเสมอ
-- card เดียวกันต้องทำงานได้ทั้งใน feed สดและ archive
+- hover feedback ต้องมีแต่ไม่แรงเกิน
+- object เดียวกันต้องอยู่ได้ทั้งใน feed สดและ archive
 
 ## Summary Card
 
@@ -370,105 +380,81 @@ contract สำคัญ:
 
 contract สำคัญ:
 
-- มี icon/title/meta ชัด
-- มีปุ่ม copy เป็น utility action
-- เนื้อหาควรอ่านเป็น editorial digest
+- มี icon, title, meta ชัด
+- copy action เป็น utility action มาตรฐาน
+- เนื้อหาต้องอ่านเป็น editorial digest
 - ถ้ามี source support ต้องขยายดูแหล่งอ้างอิงได้
 
-## Sidebar / RightSidebar
+## Sidebar
 
-- sidebar คือ navigation and system status
-- right sidebar คือ collection management and supporting context
-- สองส่วนนี้ไม่ควรแย่งเด่นจาก main workspace
+- เป็น navigation + system status
+- ต้องบอก active workspace และ background activity ได้เร็ว
+- mobile launcher ที่โผล่ตาม workspace เป็นส่วนหนึ่งของ sidebar contract ไม่ใช่ของตกแต่งแยก
 
-## Animation System Contract
+## Animation Contract
 
-อิงจาก CSS ปัจจุบันใน `src/index.css`
+อ้างอิงจาก `src/index.css`
 
 ### Motion categories
 
 - micro motion: hover, active, focus
-- reveal motion: fade-in, summary appear, panel expand
-- loading motion: spin, shimmer, progress bar
-- mobile transition: sheet / fixed switcher behavior
+- reveal motion: fade-in, panel expand, summary appear
+- loading motion: spinner, shimmer, progress bar
+- mobile transition: sheet และ context switcher behavior
 
 ### หลักการใช้
 
-- ใช้เวลาโดยรวมสั้นประมาณ `120ms-300ms`
-- ใช้ easing ที่รู้สึกแม่นและนิ่ง
-- ถ้าเป็น loading ควรสื่อสถานะ ไม่ใช่เรียกร้องความสนใจ
-- motion ต้องรักษา continuity ของข้อมูลเดิม เช่น sync ทับของเก่าได้ ไม่ควรเด้งหายทั้งจอ
+- ใช้ motion สั้นประมาณ `120ms-300ms`
+- loading motion ต้องสื่อสถานะ ไม่ใช่เรียกความสนใจ
+- motion ต้องรักษา continuity ของข้อมูลเดิม เช่น sync หรือ refresh ไม่ควรทำให้หน้าหายแล้วโผล่ใหม่ทั้งจอ
 
-### จุดที่มี animation สำคัญตอนนี้
-
-- `nav-item` hover / active
-- `btn-pill` hover / active
-- `feed-card` hover
-- `undoReveal`
-- `postListExpandIn`
-- `fadeIn`
-- search input focus state บน mobile
-- skeleton shimmer
-
-## Responsive Behavior Contract
+## Responsive Contract
 
 ### Desktop
 
 - ใช้ 3-region shell เต็มรูปแบบ
-- right rail ต้องพร้อมใช้งานเกือบตลอด ยกเว้น pricing
+- right rail พร้อมใช้งานเกือบตลอด ยกเว้น pricing
 
 ### Tablet
 
-- ลดความกว้างและ spacing ก่อน
-- right rail อาจถูกลดความสำคัญ
-- toolbar ต้อง wrap แบบยังอ่านได้
+- ลด spacing และความกว้างก่อน
+- toolbar ต้อง wrap แล้วยังอ่านลำดับ action ได้
 
 ### Mobile
 
 - bottom nav เป็น primary navigation
 - current task สำคัญกว่าบริบทรอง
-- list / filter / library switcher ต้องอยู่ในระยะนิ้วโป้ง
-- panel ที่เคยเป็น sidebar ต้องกลายเป็น sheet หรือ inline switcher
-
-### สิ่งที่ต้องเช็กทุกครั้ง
-
-- overflow แนวนอน
-- label ไทยยาว
-- bottom safe area
-- sticky/fixed element ชนกันหรือไม่
-- main scroll padding พอหรือยัง
+- sidebar/right rail ต้องยุบเป็น switcher หรือ sheet
+- label ภาษาไทยยาวต้องยังไม่ overflow
+- ต้องเช็ก safe area ด้านล่างทุกครั้ง
 
 ## File Map สำหรับคนจะไปแก้
 
-- `src/App.tsx`: orchestration หลักและ state ระดับ app
-- `src/index.css`: visual tokens, layout shell, interaction, animation
-- `src/components/Sidebar.tsx`: navigation และ mobile context launcher
-- `src/components/RightSidebar.tsx`: post list management panel
-- `src/components/HomeView.tsx`: home feed UX
-- `src/components/ContentWorkspace.tsx`: search/create UX
-- `src/components/ReadWorkspace.tsx`: read library UX
-- `src/components/AudienceWorkspace.tsx`: audience discovery UX
-- `src/components/PricingWorkspace.tsx`: profile/pricing UX
+- `src/App.tsx`
+- `src/index.css`
+- `src/components/Sidebar.tsx`
+- `src/components/RightSidebar.tsx`
+- `src/components/HomeView.tsx`
+- `src/components/ContentWorkspace.tsx`
+- `src/components/CreateContent.tsx`
+- `src/components/ReadWorkspace.tsx`
+- `src/components/AudienceWorkspace.tsx`
+- `src/components/BookmarksWorkspace.tsx`
+- `src/components/PricingWorkspace.tsx`
 
-## Rules สำหรับ repo นี้ในฐานะ test baseline
+## ต้องอัปเดตเอกสารนี้เมื่อไร
 
-- ห้าม treat repo นี้เป็นแค่ visual mockup
-- เวลา copy ไปทำ `foro` ตัวจริง ต้องย้ายทั้ง interaction contract และ state meaning ไปด้วย
-- ถ้าจะแก้ visual language ให้เช็ก `DESIGN.md`
-- ถ้าจะแก้ flow หรือ user-facing behavior ให้แก้ docs ใน `docs/` พร้อมกัน
+อัปเดตทันทีเมื่อมีการเปลี่ยน:
 
-## เวลาแก้ UX/UI ต้องอัปเดตเอกสารนี้เมื่อไร
-
-อัปเดตหน้านี้ทันทีเมื่อมีการเปลี่ยน:
-
-- โครง app shell
+- app shell
 - navigation behavior
 - mobile interaction model
-- feed/search/read/audience/pricing flow
+- home/content/read/audience/bookmarks/pricing flow
+- hierarchy ของ summary card, feed card, หรือ rails
 - animation intent
-- hierarchy ของ summary card, feed card, หรือ utility panels
 - ภาษากลางที่ทีมใช้คุยกับ LLM
 
 ## Change Log
 
-- 2026-04-13: สร้าง UX/UI README ฉบับละเอียดสำหรับใช้เป็น source of truth ระหว่าง repo test และ foro ตัวจริง
+- 2026-04-19: รีเฟรชเอกสารให้ตรงกับ workspace ปัจจุบัน, mobile context switcher, right rail แบบ post list manager, content summary/source flow, และ audience reasoning behavior
+- 2026-04-13: สร้าง UX/UI README ฉบับแรกเป็น source of truth สำหรับ repo นี้

@@ -82,8 +82,6 @@ const stripExpertNamePrefix = (text = '', expert = {}) => {
 
 const buildExpertIdentityReasoning = (expert) => {
   const bio = stripExpertNamePrefix(expert?.description || '', expert);
-  const normalizedHandle = cleanRecommendationText(expert?.username || '').replace(/^@/, '').toLowerCase();
-  const knownRecommendation = KNOWN_EXPERT_RECOMMENDATIONS[normalizedHandle];
   if (!bio) return '';
 
   const shortBio = bio.split(/(?<=[.!?])\s+/)[0]?.trim() || bio;
@@ -110,7 +108,7 @@ const buildTopicHintLabel = (value = '') => {
   return normalized;
 };
 
-const buildThaiReasoningFallback = (expert, topicHint = '') => {
+const UNUSED_BUILD_THAI_REASONING_FALLBACK = (expert, topicHint = '') => {
   const displayName = cleanRecommendationText(expert?.name || expert?.username || 'บัญชีนี้');
   const topicLabel = buildTopicHintLabel(topicHint || expert?.category || expert?.title);
   return `${displayName} เป็นบัญชีที่น่าติดตามในเรื่อง${topicLabel} ช่วยให้เห็นมุมมองและสัญญาณสำคัญจากคนในวงการได้ต่อเนื่อง`;
@@ -136,9 +134,11 @@ const buildReadableExpertReasoning = (expert, topicHint = '') => {
   return `${reference}: ${variants[(reference.length + topicLabel.length) % variants.length]}`;
 };
 
-const formatExpertReasoningCard = (expert, topicHint = '') => {
+const UNUSED_FORMAT_EXPERT_REASONING_CARD = (expert, topicHint = '') => {
   const identityReason = buildExpertIdentityReasoning(expert);
   const raw = cleanRecommendationText(expert?.reasoning || '');
+  const normalizedHandle = cleanRecommendationText(expert?.username || '').replace(/^@/, '').toLowerCase();
+  const knownRecommendation = KNOWN_EXPERT_RECOMMENDATIONS[normalizedHandle];
   const rawLooksGeneric = !raw || GENERIC_EXPERT_REASONING_PATTERN.test(raw) || raw.length > 110;
 
   if (knownRecommendation) return knownRecommendation;
@@ -186,7 +186,7 @@ const AudienceWorkspace = ({
   aiSearchLoading,
   aiSearchError,
   aiSearchResults,
-  aiSearchHasMore,
+  aiSearchHasMore: _aiSearchHasMore,
   setAiSearchResults,
   hasSearchedAudience,
 

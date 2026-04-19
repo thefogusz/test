@@ -1,52 +1,78 @@
-# เริ่มจากตรงนี้
+# Start Here
 
-หน้านี้คือทางลัดสำหรับทำความเข้าใจว่า Foro ทำงานอย่างไรในตอนนี้ ทั้งในมุม product, frontend, และ UX/UI
+This page is the fastest way to understand the current Foro system without reverse-engineering old PRs or chat logs.
 
-ถ้าเพิ่งเปิดโปรเจกต์นี้ครั้งแรก แนะนำให้อ่านตามลำดับนี้:
+Use it when you need to answer:
+
+- What does the app do right now?
+- Which workspaces are active?
+- Where should I read next for feature behavior?
+- Which docs are product contract versus deeper implementation notes?
+
+## Recommended Reading Order
 
 1. `src/main.tsx`
 2. `src/App.tsx`
-3. [UX/UI README](/ux-ui-readme)
-4. [เอกสารฟีเจอร์](/features/)
-5. [Frontend Architecture](/architecture/frontend)
-6. [สถาปัตยกรรมฟีดและการค้นหา](/architecture/feed-search)
+3. [Getting Started](/getting-started)
+4. [Feature Docs](/features/)
+5. [Architecture Overview](/architecture/overview)
+6. [UX/UI README](/ux-ui-readme)
 
-## สถานะโปรดักต์ตอนนี้
+## Current Product Snapshot
 
-กติกาหลักที่ควรมองเป็น product contract:
+Foro currently ships six top-level workspaces:
 
-- Home feed มีเพดานการ์ดตามแพ็กเกจ
+- `home`
+- `content`
+- `read`
+- `audience`
+- `bookmarks`
+- `pricing`
+
+Supporting behavior that matters across the app:
+
+- Home feed visibility is capped by plan.
   - `Free`: 30 cards
   - `Plus`: 100 cards
-- AI filter ใช้ขอบเขตเดียวกับการ์ดที่ผู้ใช้มองเห็นได้ตามแพ็กเกจ
-- RSS ใช้ระบบ dedup แบบถาวรระหว่าง sync ปกติ
-- การล้าง Home feed จะ reset ประวัติ RSS อย่างตั้งใจ
-- X sync แยกงานหาโพสต์ใหม่ ออกจากงาน refresh สถิติของการ์ดที่กำลังมองเห็น
-- การเปิด RSS article ซ้ำควร reuse cached Thai translation
+- AI filter operates on the visible feed scope, not on hidden overflow.
+- RSS duplicate suppression is durable during normal sync.
+- Clearing the feed intentionally resets RSS seen-state.
+- Article reading supports readable extraction and cached Thai translation reuse.
+- Billing uses Stripe-backed checkout APIs from the Express server.
+- Docs data is generated before docs dev/build/preview so status and changelog pages stay fresh.
 
-## ค้นหาตามหัวข้อ
+## Read By Topic
 
-- UX/UI, layout, animation, และ interaction contract
-  - [UX/UI README](/ux-ui-readme)
-- app shell, navigation, และโครงพื้นที่ทำงาน
-  - [โครงแอปหลัก](/features/app-shell)
+- App behavior and workspace contract
+  - [Feature Docs](/features/)
+- High-level system boundaries
+  - [Architecture Overview](/architecture/overview)
+- Frontend composition and state flow
   - [Frontend Architecture](/architecture/frontend)
-- พฤติกรรม sync ของ Home, RSS และ X
-  - [หน้าโฮมฟีด](/features/home-feed)
-  - [สถาปัตยกรรมฟีดและการค้นหา](/architecture/feed-search)
-- การสร้างคอนเทนต์และ article reader
-  - [พื้นที่ทำคอนเทนต์](/features/content-workspace)
-- การค้นหา Audience
-  - [พื้นที่ค้นหา Audience](/features/audience-workspace)
-- ขีดจำกัดของแพ็กเกจและการ upgrade
-  - [หน้าแพ็กเกจ](/features/pricing-workspace)
-- ต้นทุน API และ provider
-  - [วิเคราะห์ต้นทุน API](/cost-analysis)
+- Feed, search, and research flow
+  - [Feed Search Architecture](/architecture/feed-search)
+- AI generation and research pipeline
+  - [AI Pipeline](/architecture/ai-pipeline)
+- Upstream services and providers
+  - [API Integrations](/api-integrations)
+- UI intent and interaction language
+  - [UX/UI README](/ux-ui-readme)
 
-## ทำไม Docs ถึงสำคัญ
+## Docs Categories
 
-ใช้ docs ชุดนี้เป็น product truth ไม่ใช่แค่เอกสาร onboarding
+- `docs/features/`
+  - user-visible behavior and feature rules
+- `docs/architecture/`
+  - system design, boundaries, and internal flows
+- `docs/process/`
+  - templates and docs governance
+- `docs/status/`
+  - generated status view showing where docs may trail source changes
+- `docs/changelog/`
+  - generated change timeline
+- `docs/drafts/`
+  - generated docs follow-up suggestions
 
-เมื่อ behavior ในโค้ดเปลี่ยน หน้า docs ที่เกี่ยวข้องต้องอัปเดตในคอมมิตหรือ PR เดียวกัน เพื่อให้ทีม dev และ LLM เข้าใจ "ของที่ระบบทำจริงตอนนี้" โดยไม่ต้องไล่ย้อนจากแชตหรือ PR เก่า
+## Maintenance Rule
 
-สำหรับงานหน้าจอ ให้ถือว่า [UX/UI README](/ux-ui-readme) เป็นภาษากลางสำหรับคุยว่าแต่ละ workspace, state, และ animation ถูกออกแบบให้ทำงานอย่างไร
+If a change updates user-facing behavior, plan limits, loading states, error states, or integration expectations, update the relevant docs in the same PR.

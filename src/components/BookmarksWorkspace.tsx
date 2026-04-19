@@ -34,7 +34,7 @@ const BookmarksWorkspace = ({
     } catch {
       return new Set();
     }
-  }, [filteredBookmarks]);
+  }, []);
 
   const shouldShowGeneratedFromContentBadge = (item) => {
     if (item?.type !== 'article') return false;

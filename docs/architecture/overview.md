@@ -1,134 +1,121 @@
 # Foro Architecture Overview
 
-## บทนำ
+## Purpose
 
-Foro เป็นระบบข่าวและสร้างคอนเทนต์ภาษาไทยที่รวม 3 ความสามารถหลักไว้ในแอปเดียว:
+Foro is a single application that combines feed discovery, audience research, article reading, bookmarking, and AI-assisted content creation. The current codebase is split between a React frontend, an Express integration layer, and a VitePress documentation site that is shipped alongside the app.
 
-- ดึง feed และค้นหาข้อมูลจาก X
-- ใช้ AI เพื่อคัดกรอง สรุป แปล และจัดระเบียบข้อมูล
-- ใช้ AI pipeline เพื่อสร้างคอนเทนต์จากข้อมูลที่ผ่านการ research แล้ว
-
-ในเชิงสถาปัตยกรรม ระบบนี้เป็น React SPA ที่มี Express proxy เป็นชั้นเชื่อมต่อกับ external services
-
-## ภาพรวมระบบ
+## System Diagram
 
 ```mermaid
 flowchart TD
-  U["User"]
-  U --> FE["React Frontend"]
-  FE --> LS["localStorage"]
-  FE --> BE["Express Proxy"]
-  BE --> TW["Twitter API"]
-  BE --> XAI["xAI / Grok"]
-  BE --> TV["Tavily"]
+  U["User"] --> FE["React App"]
+  FE --> P["Persistence Hooks"]
+  P --> LS["localStorage / IndexedDB"]
+  P --> ST["State API"]
+
+  FE --> API["Express Server"]
+  API --> X["Twitter/X upstream"]
+  API --> XAI["xAI upstream"]
+  API --> TV["Tavily upstream"]
+  API --> AR["Readable article extraction"]
+  API --> STR["Stripe"]
+
+  API --> DOCS["/test/docs static docs site"]
+  API --> APP["/test static app build"]
 ```
 
-## โครงสร้างหลัก
+## Main Runtime Pieces
 
 ### Frontend
 
-จุดเริ่มต้นของแอปอยู่ที่ `src/main.jsx` และ controller หลักของระบบอยู่ที่ `src/App.jsx`
+Core frontend responsibilities live in:
 
-`App.jsx` รับผิดชอบเรื่องต่อไปนี้
+- `src/App.tsx`
+- `src/components/AppWorkspaceRouter.tsx`
+- `src/hooks/useHomeFeedWorkspace.ts`
+- `src/hooks/useSearchWorkspace.ts`
+- `src/hooks/useAudienceSearch.ts`
+- `src/hooks/useBilling.ts`
 
-- ถือ state หลักของระบบ
-- orchestration การทำงานของแต่ละ feature
-- เรียก service layer เพื่อคุยกับ API และ AI
+Key points:
 
-### Service Layer
+- `App.tsx` owns the cross-workspace state graph.
+- workspace routing is view-driven, not URL-route-driven inside the SPA shell.
+- most heavy workspaces are lazy-loaded.
+- persistence is abstracted through shared hooks and adapters rather than direct ad hoc storage access.
 
-- `src/services/TwitterService.js`: ดึงข้อมูล user, feed, search และ thread context
-- `src/services/GrokService.js`: สรุปข่าว, filter feed, expand query, research, fact sheet และ content generation
-- `src/utils/markdown.js`: render markdown อย่างปลอดภัย
+### Backend
 
-### Proxy Layer
+The server entrypoints are:
 
-`server.cjs` ทำหน้าที่เป็น API gateway สำหรับ:
+- `server/app.cjs`
+- `server.cjs`
 
-- `/api/twitter`
-- `/api/xai`
-- `/api/tavily/search`
+The server is responsible for:
 
-หน้าที่หลักคือซ่อน key, จัดการ CORS และเป็น integration boundary ของระบบ
+- internal API auth gate on `/api`
+- upstream proxying
+- state storage APIs
+- article extraction
+- Stripe checkout session management
+- serving the production app and docs outputs
 
-## Feature Flows
+## Workspace Model
 
-### 1. Feed Sync
+The frontend currently exposes six top-level workspaces:
 
-flow หลัก:
+- `home`
+- `content`
+- `read`
+- `audience`
+- `bookmarks`
+- `pricing`
 
-1. ผู้ใช้เพิ่ม account เข้า watchlist
-2. ระบบเรียก `fetchWatchlistFeed()`
-3. service สร้าง query แบบ batch
-4. proxy ส่งคำขอไป Twitter API
-5. frontend รับผลลัพธ์ กลั่นข้อมูล และแปล summary ภาษาไทยแบบเป็น chunk
+This workspace split is important because many product rules are scoped by active view, especially feed visibility, AI filtering, saved content behavior, and mobile navigation handling.
 
-จุดสำคัญคือใช้ `originalFeed` เป็น source of truth แล้ว derive `feed` สำหรับแสดงผล
+## Persistence Model
 
-### 2. Search + AI Filter
+The current app uses two persistence paths:
 
-flow หลัก:
+- browser persistence through local storage and IndexedDB-backed hooks
+- backend persistence through `/api/state/:namespace/:key`
 
-1. ผู้ใช้กรอกคำค้น
-2. AI ขยาย query ด้วย `expandSearchQuery()`
-3. ระบบค้นหาผ่าน `searchEverything()`
-4. AI คัดโพสต์คุณภาพด้วย `agentFilterFeed()`
-5. AI สรุปภาพรวมด้วย `generateExecutiveSummary()`
-6. แปล summary ของแต่ละโพสต์เป็นภาษาไทยแบบ progressive
+This lets the app keep feature code mostly storage-agnostic while still supporting a backend-backed mode when needed.
 
-### 3. Audience Discovery
+## Integration Surface
 
-ระบบช่วยหา expert account ตาม topic ที่ผู้ใช้สนใจ
+Current server-facing integrations include:
 
-1. ผู้ใช้กรอกหัวข้อ
-2. AI สร้างรายชื่อ expert candidate
-3. frontend แสดงรายการ
-4. เมื่อผู้ใช้กดเพิ่ม จะเรียก `getUserInfo()` เพื่อ verify ตัวตนจริงก่อนเพิ่มเข้า watchlist
+- X/Twitter upstream via `/api/twitter/*`
+- xAI via `/api/xai/*`
+- Tavily via `/api/tavily/search`
+- article extraction via `/api/article`
+- RSS fetching via `/api/rss`
+- Stripe checkout via `/api/billing/*`
 
-### 4. Content Generation Pipeline
+## Docs Architecture
 
-flow หลัก:
+The repo also includes a generated docs system:
 
-```mermaid
-flowchart TD
-  A["Prompt / Attached Source"] --> B["researchAndPreventHallucination"]
-  B --> C["Fact Sheet + Sources"]
-  C --> D["buildContentBrief"]
-  D --> E["generateStructuredContentV2"]
-  E --> F["Streaming Draft"]
-  F --> G["Evaluation + Polish"]
-  G --> H["Final Markdown"]
-```
+- VitePress content lives in `docs/`
+- generated data lives in `docs/.vitepress/data`
+- docs status, changelog, and draft suggestions are regenerated by scripts before docs dev/build/preview
 
-จุดเด่นของ pipeline นี้คือแยก research ออกจาก writing อย่างชัดเจน เพื่อลด hallucination และทำให้ output น่าเชื่อถือขึ้น
+Production serving exposes:
 
-## Data Persistence
+- app at `/test`
+- docs at `/test/docs`
 
-ระบบปัจจุบันใช้ `localStorage` เป็นหลักในการเก็บ state เช่น:
+## Current Architectural Constraints
 
-- watchlist
-- home feed
-- bookmarks
-- read archive
-- post lists
-- content generation draft
+- `src/App.tsx` still carries a large orchestration surface.
+- workspace state is intentionally centralized, which improves coordination but increases file size and coupling.
+- some feature docs are still behind newer source commits, so generated docs status should be checked during behavior changes.
 
-ข้อดีคือเริ่มใช้งานง่าย แต่ข้อจำกัดคือข้อมูลยังผูกกับ browser/device เดียว
+## Read Next
 
-## ข้อสังเกตเชิงสถาปัตยกรรม
-
-จุดแข็ง:
-
-- พัฒนา feature ได้เร็ว
-- AI workflow ชัด
-- UX ดีจาก progressive update และ streaming
-
-ข้อจำกัด:
-
-- `src/App.jsx` ใหญ่และรวมหลาย domain
-- state หลักยังกระจุกอยู่จุดเดียว
-- persistence ยังเป็น local-only
-
-## เอกสารฉบับเต็ม
-
-สำหรับรายละเอียดเชิงลึกของแต่ละฟีเจอร์ อ่านต่อได้ที่ [architecture-th.md](/architecture-th)
+- [Frontend Architecture](/architecture/frontend)
+- [Feed Search Architecture](/architecture/feed-search)
+- [AI Pipeline](/architecture/ai-pipeline)
+- [Integrations](/architecture/integrations)
+- [State](/architecture/state)

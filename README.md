@@ -1,162 +1,127 @@
 # Foro App
 
-React + Vite application with an Express edge server for API proxying, AI integration, and state persistence.
+Foro is a React 19 + Vite application for discovering signals from X and RSS, curating a working feed, researching articles, and generating Thai-first content with AI assistance. The repo also contains a VitePress documentation site and an Express server that proxies external APIs, serves the production app, and exposes persistence and billing endpoints.
 
-## UI Design Guide
+## What The App Does
 
-Use `DESIGN.md` as the UI source of truth before changing FORO screens, components, or styling. It captures the current dark command-center direction, color tokens, typography, component rules, responsive behavior, and agent prompts for keeping future UI work on-brand.
+- Home workspace syncs a watchlist-driven feed, applies AI filtering, and respects plan-based card limits.
+- Content workspace supports search, source-aware drafting, article reading, and AI-assisted content generation.
+- Audience workspace finds accounts and manages source subscriptions.
+- Read and Bookmarks workspaces keep saved material and generated articles reusable.
+- Pricing workspace manages plan state and Stripe checkout flow.
 
-Use [`docs/ux-ui-readme.md`](docs/ux-ui-readme.md) as the UX/UI handoff guide for developers and LLMs. It explains the interaction design, workspace intent, responsive behavior, and animation rules that should survive when this test repo is copied forward into the real Foro product repo.
+## Current Product Rules
 
-## Product Docs
+These behaviors are user-facing contract and should be treated as documentation-critical:
 
-Use the VitePress docs in `docs/` as the living source of truth for product behavior and architecture.
-
-- Feature behavior lives in `docs/features/`
-- Product tradeoffs live in `docs/decisions/`
-- UX/UI handoff lives in `docs/ux-ui-readme.md`
-- Docs workflow lives in `docs/process/docs-governance.md`
-
-When a PR changes user-facing behavior, business rules, workflow steps, UI states, interaction behavior, responsive behavior, or animation intent, update the matching docs page in the same PR. If the change touches the UI/UX contract, also update `docs/ux-ui-readme.md`.
-
-แนวคิดนี้มีไว้เพื่อให้ทีม dev เปิด docs แล้วเข้าใจ "ของที่ระบบทำจริงตอนนี้" ได้โดยไม่ต้องไล่หา context จากแชตหรือ PR เก่า
-
-### Docs status dashboard
-
-Use the docs status generator to see which feature docs are current, which ones are behind source changes, and which app views still need coverage.
-
-```bash
-npm run docs:status
-```
-
-The dashboard is rendered at `/status/` inside the VitePress site and is regenerated automatically before `docs:dev`, `docs:build`, and `docs:preview`.
-
-### Docs changelog and draft suggestions
-
-The docs site also includes:
-
-- `/changelog/` for a readable timeline of tracked feature changes from Git
-- `/drafts/` for suggested docs follow-up based on the current branch or working tree
-
-These are generated automatically together with the docs site.
-
-## Recent Product Notes
-
-The current product behavior now includes several feed and workspace rules that should be treated as user-facing contract, not implementation detail:
-
-- Home feed is tier-capped for user-facing cards and AI filter scope:
+- Home feed card visibility is capped by plan.
   - `Free`: 30 cards
   - `Plus`: 100 cards
-- RSS sync now uses durable duplicate protection so old items from the same source are not reintroduced as new items during normal sync.
-- Clearing the feed resets RSS "seen" state so previously fetched RSS items can appear again after the user intentionally clears the feed.
-- X/Twitter sync now separates "discover new posts" from "refresh stats for visible cards":
-  - advanced search is used for new-candidate discovery
-  - stat refresh is limited to cards currently visible on Home
-- Opening the same RSS article again should reuse cached Thai translation instead of paying for repeated translation.
-- Content source attachments in the Create workflow are intentionally compact so the source context does not crowd out the writing surface.
+- AI filter works on the same visible feed scope the user can currently access.
+- RSS sync uses durable duplicate suppression during normal sync.
+- Clearing the Home feed intentionally resets RSS seen-state.
+- Reopening the same RSS article should reuse cached Thai translation when available.
+- X discovery and stats refresh are handled as separate concerns.
 
-### Serving docs with the app
+## Architecture At A Glance
 
-Production builds now include both the app and the docs site. The Express server serves the app at `/test` and Foro Docs at `/test/docs/`.
+Frontend:
 
-If you need the in-app "Foro Docs" button to point somewhere else, set `VITE_FORO_DOCS_URL`.
+- `src/App.tsx` is the orchestration layer for cross-workspace state.
+- `src/components/AppWorkspaceRouter.tsx` switches between `home`, `content`, `read`, `audience`, `bookmarks`, and `pricing`.
+- State is persisted through shared persistence hooks and IndexedDB/local storage adapters.
 
-## What Changed
+Backend:
 
-This codebase now supports two persistence modes:
+- `server/app.cjs` creates the Express app.
+- `server.cjs` starts the server.
+- `/api/state/:namespace/:key` provides backend persistence when enabled.
+- `/api/rss`, `/api/twitter`, `/api/xai`, `/api/tavily/search`, and `/api/article` proxy or normalize upstream integrations.
+- `/api/billing/*` handles Stripe checkout session creation and status reads.
 
-- `browser`
-  Uses `localStorage` for lightweight UI preferences and IndexedDB for larger cached collections.
-- `backend`
-  Routes the same app state through Express state APIs so the frontend is no longer hard-coupled to browser-only storage.
+Docs:
 
-The frontend state hooks now use a shared persistence adapter instead of calling `localStorage` and IndexedDB directly. That makes it possible to move to a real backend store without rewriting feature code.
+- `docs/` is a VitePress site.
+- docs status, changelog, and draft suggestions are generated from repository state before docs dev/build/preview runs.
+- production serving exposes the app at `/test` and docs at `/test/docs`.
 
-## Architecture
+## Project Structure
 
-- `src/hooks/usePersistentState.ts`
-  UI-oriented persisted state backed by the persistence adapter.
-- `src/hooks/useIndexedDbState.ts`
-  Durable collection state backed by the same adapter.
-- `src/lib/persistence/client.ts`
-  Frontend persistence driver selector and read/write/delete contract.
-- `server.cjs`
-  Express server with proxy routes plus backend state APIs.
-- `server/lib/appStateStore.cjs`
-  Server-side store abstraction. Current implementations: `file`, `memory`.
-- `server/lib/config.cjs`
-  Environment loading and runtime configuration.
-
-## Persistence Modes
-
-### 1. Browser Mode
-
-Default mode. No extra setup needed.
-
-```env
-VITE_APP_PERSISTENCE_DRIVER=browser
+```text
+src/                  React app, hooks, services, UI workspaces
+server/               Express app, config, store, tests
+docs/                 VitePress product and architecture docs
+scripts/              Docs-data generators and dev helpers
+public/               Static assets
+dist/                 Built frontend output
 ```
 
-Behavior:
-
-- Lightweight state is stored in `localStorage`
-- Large collections are stored in IndexedDB
-- Existing browser data keeps working as before
-
-### 2. Backend Mode
-
-Use this when you want the UI designed around backend persistence rather than browser-only state.
-
-```env
-VITE_APP_PERSISTENCE_DRIVER=backend
-VITE_APP_STATE_NAMESPACE=foro-dev
-INTERNAL_API_SECRET=your-internal-token
-VITE_INTERNAL_API_SECRET=your-internal-token
-APP_STATE_STORAGE=file
-APP_STATE_FILE=.data/app-state.json
-```
-
-Behavior:
-
-- Frontend reads and writes app state through `/api/state/:namespace/:key`
-- Existing browser state is used as the migration source when backend state is empty
-- Feature code does not need to know whether storage is local or remote
-
-## Server State API
-
-These endpoints are used by the frontend when `VITE_APP_PERSISTENCE_DRIVER=backend`.
-
-- `GET /api/state/:namespace/:key`
-- `PUT /api/state/:namespace/:key`
-- `DELETE /api/state/:namespace/:key`
-
-Current store implementations:
-
-- `APP_STATE_STORAGE=file`
-  Persists app state to a JSON file on the server.
-- `APP_STATE_STORAGE=memory`
-  Keeps app state in memory only.
-
-For real production at scale, replace the file/memory store behind `server/lib/appStateStore.cjs` with a database-backed implementation. The frontend contract can remain unchanged.
-
-## Development
+## Quick Start
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Production Build
+App URL in local dev:
+
+- Vite app: usually `http://localhost:5173`
+- Production-style server: `npm run build && npm run start`, then open `http://localhost:3000/test`
+
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Run app dev flow together with docs data/watch helpers |
+| `npm run dev:app` | Run the Vite app only |
+| `npm run build` | Build the app and docs site |
+| `npm run build:app` | Build the frontend only |
+| `npm run start` | Start the Express production server |
+| `npm run test` | Run server tests |
+| `npm run lint` | Run ESLint |
+| `npm run typecheck` | Run TypeScript without emit |
+| `npm run docs:dev` | Run the docs site with generated data |
+| `npm run docs:build` | Build the docs site |
+| `npm run docs:status` | Regenerate documentation status data |
+| `npm run docs:changelog` | Regenerate docs changelog data |
+| `npm run docs:draft` | Regenerate draft suggestions for docs follow-up |
+
+## Environment Notes
+
+Common environment variables used by the current codebase include:
+
+- `INTERNAL_API_SECRET`
+- `VITE_INTERNAL_API_SECRET`
+- `TWITTER_API_KEY`
+- `XAI_API_KEY`
+- `TAVILY_API_KEY`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_PLUS_PRICE_ID`
+- `STRIPE_CHECKOUT_BASE_URL`
+- `VITE_STRIPE_PUBLISHABLE_KEY`
+- `APP_STATE_STORAGE`
+- `APP_STATE_FILE`
+- `PORT`
+
+See `server/lib/config.cjs` for the runtime contract and defaults.
+
+## Documentation Workflow
+
+Treat docs as a living product contract, not as optional onboarding material.
+
+- Update matching docs in the same PR when user-facing behavior changes.
+- Start with `docs/index.md` for the current docs entry point.
+- Use `docs/features/` for behavior-level documentation.
+- Use `docs/architecture/` for implementation and system boundaries.
+- Use `docs/process/docs-governance.md` for the docs maintenance workflow.
+
+## Verification
+
+Recommended checks after behavior or docs updates:
 
 ```bash
-npm run build
-npm run start
-```
-
-## Quality Checks
-
-```bash
-npm run typecheck
 npm run lint
+npm run typecheck
+npm run test
 npm run docs:build
 ```

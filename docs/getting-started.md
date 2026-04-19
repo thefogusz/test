@@ -1,111 +1,106 @@
-# อ่านเริ่มจากตรงนี้
+# Getting Started
 
-หน้านี้ออกแบบมาสำหรับ dev ที่เพิ่งเปิดโปรเจ็กต์ครั้งแรกและอยากเข้าใจระบบให้เร็วที่สุด
+This guide is for developers opening the repo for the first time and wanting an accurate picture of the current system quickly.
 
-## ถ้าจะไล่ระบบแบบเร็ว
+## Fastest Orientation Path
 
-อ่านตามลำดับนี้:
+Read these files in order:
 
 1. `src/main.tsx`
 2. `src/App.tsx`
-3. `src/services/TwitterService.ts`
-4. `src/services/GrokService.ts`
-5. `src/components/CreateContent.tsx`
-6. `server.cjs`
+3. `src/components/AppWorkspaceRouter.tsx`
+4. `src/hooks/useHomeFeedWorkspace.ts`
+5. `src/hooks/useSearchWorkspace.ts`
+6. `server/app.cjs`
 
-ถ้าอ่านตามนี้ จะเห็นทั้ง entry point, state กลาง, data flow, AI flow และ proxy integration ครบ
+That path gives you the app entrypoint, workspace routing, the two biggest interaction flows, and the server boundary.
 
-## Mental Model ของระบบ
+## Mental Model
 
-Foro คือแอป React ตัวเดียวที่ทำ 3 อย่างพร้อมกัน:
+Foro is one app that combines several workflows:
 
-- ดึงข่าวและโพสต์จาก X
-- ใช้ AI ช่วยคัดกรอง แปล และสรุป
-- ใช้ AI สร้างคอนเทนต์ภาษาไทยจากข้อมูลที่ค้นคว้าแล้ว
+- collect signal from watchlists and subscribed RSS sources
+- research and read content through a normalized article pipeline
+- search and summarize posts with AI assistance
+- generate Thai-first content from prompts or attached sources
+- persist user state locally or through backend state APIs
 
-พูดแบบง่ายที่สุด:
+In simple terms:
 
 ```text
-UI ใน App.tsx
-  -> เรียก service
-  -> service คุยกับ proxy
-  -> proxy คุยกับ external APIs
-  -> ผลลัพธ์กลับมาเก็บใน state + storage
-  -> UI render ต่อ
+React UI
+  -> hooks orchestrate workspace behavior
+  -> services call internal API routes
+  -> Express server proxies upstream providers or stores state
+  -> results return to persisted app state
+  -> UI renders per workspace
 ```
 
-## ถ้าจะ debug feature หลัก
+## Workspaces
 
-### Feed ไม่ขึ้น
+The active app shell routes between:
 
-ดูไฟล์:
+- `home`
+- `content`
+- `read`
+- `audience`
+- `bookmarks`
+- `pricing`
 
-- `src/App.tsx`
-- `src/hooks/useHomeFeedWorkspace.ts`
-- `src/services/TwitterService.ts`
-- `server.cjs`
+Most cross-workspace state is coordinated in `src/App.tsx`.
 
-ดู flow:
+## Frontend Notes
 
-- `handleSync()`
-- `fetchWatchlistFeed()`
+- Persistence uses shared hooks such as `usePersistentState` and `useIndexedDbState`.
+- `AppWorkspaceRouter.tsx` lazy-loads most workspaces.
+- UI history is mirrored into browser history state so back/forward navigation restores workspace state.
+- Home feed, search, bookmarks, read archive, lists, watchlist, and attached content sources are all part of the main application state graph.
 
-### Search ผลไม่ตรง
+## Server Notes
 
-ดูไฟล์:
+The Express app currently provides:
 
-- `src/App.tsx`
-- `src/hooks/useSearchWorkspace.ts`
-- `src/services/GrokService.ts`
-- `src/services/TwitterService.ts`
+- state storage APIs at `/api/state/:namespace/:key`
+- RSS proxying at `/api/rss`
+- X/Twitter upstream proxying at `/api/twitter/*`
+- xAI proxying at `/api/xai/*`
+- Tavily search proxying at `/api/tavily/search`
+- article extraction at `/api/article`
+- Stripe checkout APIs at `/api/billing/*`
+- static serving for `/test` and `/test/docs`
 
-ดู flow:
+The main implementation entrypoint is `server/app.cjs`. `server.cjs` only starts the server.
 
-- `handleSearch()`
-- `expandSearchQuery()`
-- `searchEverything()`
-- `agentFilterFeed()`
-- `generateExecutiveSummary()`
+## Docs Workflow
 
-### AI สร้างคอนเทนต์ไม่ตรง
+Before docs dev/build/preview, the repo generates:
 
-ดูไฟล์:
+- docs status data
+- docs changelog data
+- docs draft suggestions
 
-- `src/components/CreateContent.tsx`
-- `src/services/GrokService.ts`
+That means these commands are the normal docs workflow:
 
-ดู flow:
+```bash
+npm run docs:dev
+npm run docs:build
+npm run docs:preview
+```
 
-- `handleGenerate()`
-- `researchAndPreventHallucination()`
-- `buildContentBrief()`
-- `generateStructuredContentV2()`
+## Useful Commands
 
-### อยากเข้าใจต้นทุนระบบ
+```bash
+npm run dev
+npm run lint
+npm run typecheck
+npm run test
+npm run docs:status
+```
 
-ดูเอกสาร:
+## What To Read Next
 
-- [Cost Analysis](/cost-analysis)
-- [API Integrations](/api-integrations)
-
-## หน้าที่ของไฟล์สำคัญ
-
-| ไฟล์ | หน้าที่ |
-| :--- | :--- |
-| `src/main.tsx` | boot app |
-| `src/App.tsx` | state กลาง + orchestration ของทุก feature |
-| `src/hooks/useHomeFeedWorkspace.ts` | flow ของ home feed และ sync |
-| `src/hooks/useSearchWorkspace.ts` | flow ของ search workspace |
-| `src/services/TwitterService.ts` | ดึงข้อมูลจาก X และจัดรูปข้อมูล |
-| `src/services/GrokService.ts` | AI logic ทั้งระบบ |
-| `src/components/CreateContent.tsx` | UI ของ content generation |
-| `server.cjs` | proxy ไป Twitter, xAI และ Tavily |
-
-## แผนการอ่านต่อ
-
-- เริ่มจาก [ภาพรวมระบบ](/architecture/overview)
-- ถ้าอยากเข้าใจ UI และ state ก่อน ไปที่ [Frontend](/architecture/frontend)
-- ถ้าสนใจ flow ข่าวและการค้นหา ไปที่ [Feed และ Search](/architecture/feed-search)
-- ถ้าสนใจ AI writer ไปที่ [AI Content Pipeline](/architecture/ai-pipeline)
-- ถ้ากำลังไล่ดูว่าใช้ provider ไหนบ้าง ไปที่ [API Integrations](/api-integrations)
-- ถ้ากำลังทำระบบเก็บเงินหรือวิเคราะห์ต้นทุน ไปที่ [Cost Analysis](/cost-analysis)
+- [Features Index](/features/)
+- [Architecture Overview](/architecture/overview)
+- [Frontend Architecture](/architecture/frontend)
+- [Feed Search Architecture](/architecture/feed-search)
+- [AI Pipeline](/architecture/ai-pipeline)

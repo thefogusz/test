@@ -14,8 +14,10 @@ import { useHomeFeedWorkspace } from './hooks/useHomeFeedWorkspace';
 import { useIndexedDbState } from './hooks/useIndexedDbState';
 import useLibraryViews from './hooks/useLibraryViews';
 import { usePersistentState } from './hooks/usePersistentState';
+import { useQuickFilterPresets } from './hooks/useQuickFilterPresets';
 import { useSearchWorkspace } from './hooks/useSearchWorkspace';
 import useSearchSuggestions from './hooks/useSearchSuggestions';
+import { useUiHistoryState } from './hooks/useUiHistoryState';
 import { useBilling } from './hooks/useBilling';
 import { useWatchlist } from './hooks/useWatchlist';
 import { usePostLists } from './hooks/usePostLists';
@@ -37,8 +39,6 @@ const shouldRemoveWhenFalsy = (value) => !value;
 const STORAGE_RESET_QUERY_PARAM = 'reset';
 const FORO_STORAGE_KEY_PREFIX = 'foro_';
 const PROFILE_SECTION_EVENT = 'foro:profile-section';
-const UI_HISTORY_STATE_KEY = 'foroUiState';
-const UI_HISTORY_CONTROLLED_KEY = 'foroUiControlled';
 
 const dispatchProfileSectionChange = (section: 'details' | 'pricing' | 'audience') => {
   if (typeof window === 'undefined') return;
@@ -47,30 +47,6 @@ const dispatchProfileSectionChange = (section: 'details' | 'pricing' | 'audience
     window.dispatchEvent(new CustomEvent(PROFILE_SECTION_EVENT, { detail: section }));
   }, 0);
 };
-
-const buildUiHistorySignature = ({
-  activeView,
-  contentTab,
-  isMobilePostListOpen,
-  isFilterModalOpen,
-  filterPrompt,
-  selectedArticleId,
-}: {
-  activeView: string;
-  contentTab: string;
-  isMobilePostListOpen: boolean;
-  isFilterModalOpen: boolean;
-  filterPrompt: string;
-  selectedArticleId: string | null;
-}) =>
-  JSON.stringify({
-    activeView,
-    contentTab,
-    isMobilePostListOpen,
-    isFilterModalOpen,
-    filterPrompt,
-    selectedArticleId,
-  });
 
 const App = () => {
   const [status, setStatus] = useState('');
@@ -227,8 +203,6 @@ const App = () => {
   });
   const [bookmarkTab, setBookmarkTab] = useState('news');
   const [selectedArticle, setSelectedArticle] = useState(null);
-  const hasInitializedUiHistoryRef = useRef(false);
-  const isApplyingUiHistoryRef = useRef(false);
   const bookmarkIdSet = useMemo(
     () => new Set(bookmarks.map((item) => item?.id).filter(Boolean)),
     [bookmarks],
@@ -247,36 +221,17 @@ const App = () => {
   });
 
   const [filterModal, setFilterModal] = useState({ show: false, prompt: '' });
-  const DEFAULT_QUICK_PRESETS = ['สรุป', 'หาโพสต์เด่น', 'โพสต์ไหนน่าทำคอนเทนต์'];
-  const [quickFilterPresets, setQuickFilterPresets] = usePersistentState(STORAGE_KEYS.quickFilterPresets, DEFAULT_QUICK_PRESETS);
-  const [quickFilterVisiblePresets, setQuickFilterVisiblePresets] = usePersistentState(
-    STORAGE_KEYS.quickFilterVisiblePresets,
-    DEFAULT_QUICK_PRESETS.slice(0, 3),
-  );
   const [readFilters, setReadFilters] = useState({ view: false, engagement: false });
   const [isGeneratingContent, setIsGeneratingContent] = useState(false);
   const [genPhase, setGenPhase] = useState('idle');
-
-  const uiHistorySnapshot = useMemo(() => ({
-    activeView,
-    contentTab,
-    isMobilePostListOpen,
-    filterModal,
-    selectedArticle,
-  }), [activeView, contentTab, filterModal, isMobilePostListOpen, selectedArticle]);
-
-  const uiHistorySignature = useMemo(
-    () =>
-      buildUiHistorySignature({
-        activeView,
-        contentTab,
-        isMobilePostListOpen,
-        isFilterModalOpen: Boolean(filterModal?.show),
-        filterPrompt: String(filterModal?.prompt || ''),
-        selectedArticleId: selectedArticle?.id ? String(selectedArticle.id) : null,
-      }),
-    [activeView, contentTab, filterModal, isMobilePostListOpen, selectedArticle],
-  );
+  const {
+    quickFilterPresets,
+    quickFilterVisiblePresets,
+    visibleQuickPresets,
+    addQuickPreset,
+    removeQuickPreset,
+    toggleQuickPresetVisibility,
+  } = useQuickFilterPresets();
 
   // --- Composed Hooks ---
   const {
@@ -372,6 +327,20 @@ const App = () => {
     status,
   });
 
+  useUiHistoryState({
+    activeView,
+    setActiveView,
+    setMobileProfileSection,
+    contentTab,
+    setContentTab,
+    isMobilePostListOpen,
+    setIsMobilePostListOpen,
+    filterModal,
+    setFilterModal,
+    selectedArticle,
+    setSelectedArticle,
+  });
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -413,98 +382,6 @@ const App = () => {
     };
   }, []);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-
-    const applyUiHistorySnapshot = (snapshot) => {
-      if (!snapshot || typeof snapshot !== 'object') return;
-
-      startTransition(() => {
-        if (snapshot.activeView) {
-          setActiveView(snapshot.activeView);
-          if (snapshot.activeView === 'pricing') {
-            setMobileProfileSection('details');
-          }
-        }
-
-        if (snapshot.contentTab) {
-          setContentTab(snapshot.contentTab);
-        }
-
-        setIsMobilePostListOpen(Boolean(snapshot.isMobilePostListOpen));
-        setFilterModal(snapshot.filterModal && typeof snapshot.filterModal === 'object'
-          ? snapshot.filterModal
-          : { show: false, prompt: '' });
-        setSelectedArticle(snapshot.selectedArticle ?? null);
-      });
-    };
-
-    const currentState = window.history.state || {};
-    const existingSnapshot = currentState?.[UI_HISTORY_STATE_KEY];
-
-    if (existingSnapshot) {
-      isApplyingUiHistoryRef.current = true;
-      applyUiHistorySnapshot(existingSnapshot);
-    }
-
-    window.history.replaceState(
-      {
-        ...currentState,
-        [UI_HISTORY_CONTROLLED_KEY]: true,
-        [UI_HISTORY_STATE_KEY]: existingSnapshot || uiHistorySnapshot,
-      },
-      '',
-      window.location.href,
-    );
-    hasInitializedUiHistoryRef.current = true;
-
-    const handlePopState = (event) => {
-      const nextSnapshot = event.state?.[UI_HISTORY_STATE_KEY];
-      if (!nextSnapshot) return;
-
-      isApplyingUiHistoryRef.current = true;
-      applyUiHistorySnapshot(nextSnapshot);
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !hasInitializedUiHistoryRef.current) return;
-
-    const currentState = window.history.state || {};
-    const currentSnapshot = currentState?.[UI_HISTORY_STATE_KEY];
-    const currentSignature = buildUiHistorySignature({
-      activeView: currentSnapshot?.activeView || 'home',
-      contentTab: currentSnapshot?.contentTab || 'search',
-      isMobilePostListOpen: Boolean(currentSnapshot?.isMobilePostListOpen),
-      isFilterModalOpen: Boolean(currentSnapshot?.filterModal?.show),
-      filterPrompt: String(currentSnapshot?.filterModal?.prompt || ''),
-      selectedArticleId: currentSnapshot?.selectedArticle?.id
-        ? String(currentSnapshot.selectedArticle.id)
-        : null,
-    });
-
-    const nextState = {
-      ...currentState,
-      [UI_HISTORY_CONTROLLED_KEY]: true,
-      [UI_HISTORY_STATE_KEY]: uiHistorySnapshot,
-    };
-
-    if (isApplyingUiHistoryRef.current) {
-      isApplyingUiHistoryRef.current = false;
-      window.history.replaceState(nextState, '', window.location.href);
-      return;
-    }
-
-    if (currentSignature === uiHistorySignature) {
-      window.history.replaceState(nextState, '', window.location.href);
-      return;
-    }
-
-    window.history.pushState(nextState, '', window.location.href);
-  }, [uiHistorySignature, uiHistorySnapshot]);
 
   const {
     filteredBookmarks,
@@ -557,68 +434,6 @@ const App = () => {
     setBookmarks(prev => sanitizeCollectionState(prev));
     setCreateContentSource(prev => sanitizeStoredSingle(prev));
   }, [setBookmarks, setCreateContentSource, setOriginalFeed, setPendingFeed, setReadArchive]);
-
-  // --- Quick Filter Presets ---
-  const removeQuickPreset = (preset) => {
-    setQuickFilterPresets(prev => prev.filter(p => p !== preset));
-    setQuickFilterVisiblePresets(prev => prev.filter(p => p !== preset));
-  };
-
-  const addQuickPreset = (preset) => {
-    const trimmed = String(preset || '').trim();
-    if (!trimmed) return;
-
-    setQuickFilterPresets(prev => {
-      if (prev.includes(trimmed)) return prev;
-      return [...prev, trimmed];
-    });
-  };
-
-  const toggleQuickPresetVisibility = (preset) => {
-    const trimmed = String(preset || '').trim();
-    if (!trimmed) return;
-
-    setQuickFilterVisiblePresets((prev) => {
-      const next = Array.isArray(prev) ? [...prev] : [];
-      if (next.includes(trimmed)) {
-        return next.filter((item) => item !== trimmed);
-      }
-      if (next.length >= 3) return next;
-      return [...next, trimmed];
-    });
-  };
-
-  useEffect(() => {
-    setQuickFilterVisiblePresets((prev) => {
-      const availablePresets = new Set(quickFilterPresets);
-      const normalized = (Array.isArray(prev) ? prev : []).filter((preset) => availablePresets.has(preset)).slice(0, 3);
-      const fallback = quickFilterPresets.slice(0, 3);
-
-      if (normalized.length > 0) {
-        if (
-          normalized.length === (Array.isArray(prev) ? prev : []).length &&
-          normalized.every((preset, index) => preset === prev[index])
-        ) {
-          return prev;
-        }
-        return normalized;
-      }
-
-      if (
-        fallback.length === (Array.isArray(prev) ? prev : []).length &&
-        fallback.every((preset, index) => preset === prev[index])
-      ) {
-        return prev;
-      }
-
-      return fallback;
-    });
-  }, [quickFilterPresets, setQuickFilterVisiblePresets]);
-
-  const visibleQuickPresets = useMemo(() => {
-    const visibleSet = new Set(quickFilterVisiblePresets);
-    return quickFilterPresets.filter((preset) => visibleSet.has(preset)).slice(0, 3);
-  }, [quickFilterPresets, quickFilterVisiblePresets]);
 
   // --- Handlers ---
   const handleBookmark = (tweet, isSaving) => {
