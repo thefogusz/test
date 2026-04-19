@@ -717,8 +717,11 @@ const isLowQualityExpertAuthor = (author = {}) => {
     author.name,
     author.description,
   ].map((value) => String(value || '').toLowerCase()).join(' ');
+  const username = String(author.username || '').toLowerCase();
 
-  return /retweets?|rt\b|giveaway|promo|follow\s*back|f4f|airdrop|signals?|alerts?|deals?|coupon|casino|betting|nsfw/.test(profileText);
+  return /retweets?|rt\b|giveaway|promo|follow\s*back|f4f|airdrop|signals?|alerts?|deals?|coupon|casino|betting|nsfw/.test(profileText)
+    || /(?:^|_)(fan|stan|updates?|updateacc|archive|pics|clips|memes?|fyp|central|daily)(?:_|$)/.test(username)
+    || /\d{5,}/.test(username);
 };
 
 const hasExpertQualitySignal = (activity = {}) => {
@@ -2804,7 +2807,99 @@ const CATEGORY_QUERY_EXPANSION: Record<string, string> = {
   'การพัฒนาตัวเอง': 'การพัฒนาตัวเอง OR "self improvement" OR productivity OR habits',
 };
 
+const EXPERT_DISCOVERY_SIGNAL_DEFS = [
+  {
+    id: 'gaming',
+    pattern: /ธุรกิจเกม|การตลาดเกม|เกมมือถือ|เกมพีซี|วงการเกม|เกม|gaming|videogame|video game|gamedev|game dev|game studio|publisher|esports/i,
+    query: '"video game" OR gaming OR videogames OR gamedev OR "game studio" OR publisher OR esports',
+  },
+  {
+    id: 'business',
+    pattern: /ธุรกิจ|ผู้ประกอบ|สตาร์ทอัพ|startup|business|entrepreneur|venture capital|vc|founder|ceo|โมเดลรายได้|revenue|monetization|strategy/i,
+    query: 'business OR startups OR entrepreneurship OR venture capital OR "business model" OR monetization OR strategy',
+  },
+  {
+    id: 'marketing',
+    pattern: /การตลาด|มาร์เก็ต|marketing|แบรนด์|brand|user acquisition|growth/i,
+    query: 'marketing OR growth marketing OR branding OR digital marketing OR creator marketing OR user acquisition',
+  },
+  {
+    id: 'ai',
+    pattern: /AI|artificial intelligence|machine learning|llm|gpt/i,
+    query: 'AI OR "artificial intelligence" OR LLM OR ChatGPT OR "machine learning"',
+  },
+  {
+    id: 'tech',
+    pattern: /เทค|เทคโนโลยี|technology|tech|software|developer/i,
+    query: 'technology OR tech OR software OR developer tools OR startups',
+  },
+  {
+    id: 'finance',
+    pattern: /การเงิน|ไฟแนนซ์|finance|fintech/i,
+    query: 'finance OR fintech OR markets OR investing OR economics',
+  },
+  {
+    id: 'investing',
+    pattern: /ลงทุน|หุ้น|investment|investing|stocks|equity/i,
+    query: 'investing OR investment strategy OR stocks OR markets OR venture capital',
+  },
+  {
+    id: 'crypto',
+    pattern: /คริปโต|crypto|bitcoin|ethereum|web3|blockchain/i,
+    query: 'crypto OR bitcoin OR ethereum OR DeFi OR web3',
+  },
+  {
+    id: 'health',
+    pattern: /สุขภาพ|health|medicine|wellness|fitness/i,
+    query: 'health OR medicine OR public health OR wellness OR fitness',
+  },
+  {
+    id: 'economics',
+    pattern: /เศรษฐกิจ|economy|economic|macro/i,
+    query: 'economics OR macroeconomics OR economy OR markets OR policy',
+  },
+];
+
+const getMatchedExpertDiscoverySignals = (categoryQuery = '') => {
+  const rawQuery = String(categoryQuery || '').trim();
+  if (!rawQuery) return [];
+  return EXPERT_DISCOVERY_SIGNAL_DEFS.filter(({ pattern }) => pattern.test(rawQuery));
+};
+
+const EXPERT_ROLE_PATTERN =
+  /podcast|host|creator|content|youtuber|streamer|journalist|reporter|editor|analyst|researcher|writer|blogger|influencer|commentator|reviewer|insider|diplomat|executive|operator|founder|ceo|investor|developer|engineer|professor|นักข่าว|ครีเอเตอร์|คนทำคอนเทนต์|คนทำ content|พอดแคสต์|พิธีกร|นักวิเคราะห์|นักวิจัย|นักเขียน|บล็อกเกอร์|อินฟลู|ผู้บริหาร|ผู้ก่อตั้ง|นักพัฒนา|วิศวกร|นักการทูต|สายข่าว/i;
+
+const SIMPLE_EXPERT_TOPIC_PATTERN =
+  /^(ai|technology|tech|software|business|startup|marketing|finance|investing|crypto|bitcoin|ethereum|health|wellness|fitness|economy|economics|politics|policy|geopolitics|sports|football|soccer|basketball|tennis|entertainment|film|movie|music|celebrity|travel|tourism|food|restaurant|cooking|environment|climate|education|learning|analysis|commentary|real estate|realestate|housing|property|auto|cars|automotive|vehicle|ev|gaming|videogame|video game|gamedev|game dev|kpop|k-pop|anime|manga|fashion|fashion week|เทคโนโลยี|ธุรกิจ|การตลาด|การเงิน|การลงทุน|คริปโต|สุขภาพ|ไลฟ์สไตล์|เศรษฐกิจ|การเมือง|กีฬา|บันเทิง|ท่องเที่ยว|อาหาร|สิ่งแวดล้อม|การศึกษา|บทวิเคราะห์|อสังหา|อสังหาฯ|ยานยนต์|วงการเกม|เกม)$/i;
+
+const isBroadTopicOnlyExpertQuery = (categoryQuery = '') => {
+  const rawQuery = String(categoryQuery || '').trim();
+  if (!rawQuery) return false;
+  if (EXPERT_ROLE_PATTERN.test(rawQuery)) return false;
+  if (SIMPLE_EXPERT_TOPIC_PATTERN.test(rawQuery)) return true;
+
+  const matchedSignals = getMatchedExpertDiscoverySignals(rawQuery);
+  const tokenCount = rawQuery.split(/\s+/).filter(Boolean).length;
+  return matchedSignals.length === 1 && tokenCount <= 3;
+};
+
+const isSpecialCompositeExpertQuery = (categoryQuery = '') =>
+  /ธุรกิจเกม|เกม.*ธุรกิจ|ธุรกิจ.*เกม|gaming business|game business|game industry|gaming industry|video game business|การตลาดเกม|เกม.*การตลาด|การตลาด.*เกม|game marketing|gaming marketing/i.test(
+    String(categoryQuery || ''),
+  );
+
+const shouldUseCanonicalExpertFallbacks = (categoryQuery = '') =>
+  isBroadTopicOnlyExpertQuery(categoryQuery) || isSpecialCompositeExpertQuery(categoryQuery);
+
 const THAI_EXPERT_DISCOVERY_QUERIES = [
+  {
+    pattern: /ธุรกิจเกม|เกม.*ธุรกิจ|ธุรกิจ.*เกม|gaming business|game business|game industry|gaming industry|video game business/i,
+    query: '("video game" OR gaming OR videogames OR gamedev OR "game studio" OR publisher OR esports) AND (business OR startups OR entrepreneurship OR venture capital OR "business model" OR monetization OR strategy)',
+  },
+  {
+    pattern: /การตลาดเกม|เกม.*การตลาด|การตลาด.*เกม|game marketing|gaming marketing/i,
+    query: '("video game" OR gaming OR videogames OR mobile games OR "game studio") AND (marketing OR branding OR growth OR "user acquisition" OR creator marketing)',
+  },
   {
     pattern: /การเมืองไทย|ไทย.*การเมือง|การเมือง.*ไทย|thai politics|thailand politics/i,
     query: 'Thailand politics OR Thai politics OR Thai government OR Thailand policy analysis',
@@ -2870,7 +2965,21 @@ const THAI_EXPERT_DISCOVERY_QUERIES = [
 const buildExpertDiscoveryQuery = (categoryQuery = '') => {
   const rawQuery = String(categoryQuery || '').trim();
   const mappedQuery = THAI_EXPERT_DISCOVERY_QUERIES.find(({ pattern }) => pattern.test(rawQuery))?.query;
-  return mappedQuery || CATEGORY_QUERY_EXPANSION[rawQuery] || rawQuery;
+  if (mappedQuery) return mappedQuery;
+
+  if (!isBroadTopicOnlyExpertQuery(rawQuery)) {
+    return rawQuery;
+  }
+
+  const matchedSignals = getMatchedExpertDiscoverySignals(rawQuery);
+  if (matchedSignals.length >= 2) {
+    return matchedSignals
+      .slice(0, 3)
+      .map(({ query }) => `(${query})`)
+      .join(' AND ');
+  }
+
+  return CATEGORY_QUERY_EXPANSION[rawQuery] || matchedSignals[0]?.query || rawQuery;
 };
 
 const interpretExpertDiscoveryIntent = async (rawQuery = '') => {
@@ -2893,12 +3002,43 @@ const interpretExpertDiscoveryIntent = async (rawQuery = '') => {
   if (/เดินป่า|hiking|trekking|outdoor|backpacking|camping/i.test(userQuery)) {
     localHints.push('hiking influencer OR backpacking creator OR thru-hiking YouTuber OR outdoor adventure creator OR camping influencer OR trail running creator');
   }
+  if (/podcast|พอดแคสต์|พิธีกร/i.test(userQuery)) {
+    localHints.push('podcast host OR podcast creator OR show host OR interviewer');
+  }
+  if (/creator|content|ครีเอเตอร์|คนทำคอนเทนต์|คนทำ content|youtuber|streamer|blogger/i.test(userQuery)) {
+    localHints.push('creator OR commentator OR YouTuber OR streamer OR blogger OR content creator');
+  }
+  if (/journalist|reporter|editor|นักข่าว|สื่อ/i.test(userQuery)) {
+    localHints.push('journalist OR reporter OR editor OR correspondent OR newsroom');
+  }
+  if (/analyst|นักวิเคราะห์|insider|commentator|reviewer/i.test(userQuery)) {
+    localHints.push('analyst OR insider OR commentator OR reviewer OR critic');
+  }
+  if (/นักการทูต|diplomat|ambassador/i.test(userQuery)) {
+    localHints.push('diplomat OR ambassador OR foreign policy practitioner OR international affairs commentator');
+  }
+  if (/kpop|k-pop|เคป็อป/i.test(userQuery)) {
+    localHints.push('K-pop journalist OR K-pop insider OR K-pop analyst OR K-pop creator');
+  }
+  if (/anime|manga|อนิเมะ|มังงะ/i.test(userQuery)) {
+    localHints.push('anime reviewer OR manga commentator OR anime journalist OR manga creator');
+  }
+  if (/fashion|แฟชั่น|fashion week/i.test(userQuery)) {
+    localHints.push('fashion journalist OR fashion editor OR stylist OR fashion week insider OR runway commentator');
+  }
+  if (/basketball|nba|บาส|บาสเกตบอล/i.test(userQuery)) {
+    localHints.push('basketball analyst OR NBA creator OR basketball commentator OR hoops journalist');
+  }
+  if (/ญี่ปุ่น|japan|ญี่ปุ่น/i.test(userQuery) && /travel|ท่องเที่ยว|creator|ครีเอเตอร์/i.test(userQuery)) {
+    localHints.push('Japan travel creator OR Japan travel journalist OR Japan-focused travel guide');
+  }
 
   const heuristicQuery = localHints.length > 0 ? localHints.join(' OR ') : ruleQuery;
 
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
+      temperature: 0,
       system: `You translate messy Thai/English user requests into an expert-discovery plan for finding Twitter/X accounts.
 
 Rules:
@@ -2906,11 +3046,15 @@ Rules:
 - Convert Thai concepts into strong English search terms because global X/web discovery works better in English.
 - Do not assume Thailand/Thai accounts just because the user typed Thai. Default to global/English results unless the user explicitly says ไทย, ในไทย, คนไทย, Thailand, or Thai.
 - Detect niche, role, geography, and freshness needs.
-- Do not recommend accounts here. Return only the search plan.`,
+- Do not recommend accounts here. Return only the search plan.
+- Return 3-5 discovery queries ordered from broad recall to sharper role/topic precision.
+- Keep each query short enough for X search. Avoid over-constraining niche topics with too many AND-style clauses.
+- Never inject Thailand, Thai, lang:th, or local scope unless the user explicitly asked for it.`,
       prompt: `User wants to follow experts/accounts for: "${userQuery}"`,
       schema: z.object({
         interpretedLabel: z.string().describe('Short human-readable topic label'),
         discoveryQuery: z.string().describe('English-heavy boolean-ish query for web/X discovery'),
+        searchQueries: z.array(z.string()).max(5).describe('Ordered list of broad-to-precise X search queries'),
         freshnessMode: z.enum(['weekly', 'latest', 'evergreen']).describe('How fresh the accounts should be'),
         includeTerms: z.array(z.string()).max(10).describe('Terms that indicate good topic fit'),
         excludeTerms: z.array(z.string()).max(10).describe('Terms that indicate off-topic results'),
@@ -2921,6 +3065,13 @@ Rules:
     return {
       interpretedLabel: object.interpretedLabel || userQuery,
       discoveryQuery: object.discoveryQuery || heuristicQuery,
+      searchQueries: Array.from(
+        new Set(
+          [object.discoveryQuery, ...(object.searchQueries || [])]
+            .map((query) => String(query || '').trim())
+            .filter(Boolean),
+        ),
+      ).slice(0, 5),
       freshnessMode: object.freshnessMode || (/(กำลังดัง|ตอนนี้|ล่าสุด|มาแรง|trending|viral|now)/i.test(userQuery) ? 'latest' : 'weekly'),
       includeTerms: object.includeTerms || [],
       excludeTerms: object.excludeTerms || [],
@@ -2931,6 +3082,7 @@ Rules:
     return {
       interpretedLabel: userQuery,
       discoveryQuery: heuristicQuery,
+      searchQueries: [heuristicQuery, ruleQuery].filter(Boolean),
       freshnessMode: /(กำลังดัง|ตอนนี้|ล่าสุด|มาแรง|trending|viral|now)/i.test(userQuery) ? 'latest' : 'weekly',
       includeTerms: localHints.flatMap((hint) => hint.split(/,\s*|\s+OR\s+/i)).filter(Boolean).slice(0, 10),
       excludeTerms: [],
@@ -2943,6 +3095,83 @@ const shouldUseThailandScope = (categoryQuery = '') =>
   /การเมืองไทย|ไทย.*การเมือง|การเมือง.*ไทย|thai politics|thailand politics/i.test(String(categoryQuery || ''));
 
 const CANONICAL_EXPERT_FALLBACKS = [
+  {
+    pattern: /podcast.*business|business.*podcast|startup.*podcast|podcast.*startup|entrepreneur.*podcast|คนทำ podcast.*business|พอดแคสต์.*ธุรกิจ/i,
+    experts: [
+      { username: 'AcquiredFM', name: 'Acquired' },
+      { username: 'InvestLikeBest', name: 'Invest Like the Best' },
+      { username: 'patrick_oshag', name: "Patrick O'Shaughnessy" },
+      { username: 'mfaber', name: 'Meb Faber' },
+      { username: 'theallinpod', name: 'All-In Podcast' },
+      { username: 'pivotpodcast', name: 'Pivot' },
+    ],
+  },
+  {
+    pattern: /kpop|k-pop|เคป๊อป/i,
+    experts: [
+      { username: 'Jeff__Benjamin', name: 'Jeff Benjamin' },
+      { username: 'soompi', name: 'Soompi' },
+      { username: 'allkpop', name: 'allkpop' },
+      { username: 'Koreaboo', name: 'Koreaboo' },
+      { username: 'billboard', name: 'Billboard' },
+      { username: 'NME', name: 'NME' },
+    ],
+  },
+  {
+    pattern: /fashion week|แฟชั่นวีค|แฟชั่น/i,
+    experts: [
+      { username: 'BoF', name: 'The Business of Fashion' },
+      { username: 'derekblasberg', name: 'Derek Blasberg' },
+      { username: 'susiebubble', name: 'Susie Bubble' },
+      { username: 'imranamed', name: 'Imran Amed' },
+      { username: 'voguemagazine', name: 'Vogue Magazine' },
+      { username: 'wmag', name: 'W Magazine' },
+    ],
+  },
+  {
+    pattern: /basketball|nba|บาส|บาสเกตบอล/i,
+    experts: [
+      { username: 'ShamsCharania', name: 'Shams Charania' },
+      { username: 'TheAthleticNBA', name: 'The Athletic NBA' },
+      { username: 'KOT4Q', name: 'KOT4Q' },
+      { username: 'DimeDropperPod', name: 'Dime Dropper' },
+      { username: 'LegionHoops', name: 'Legion Hoops' },
+      { username: 'NBA', name: 'NBA' },
+    ],
+  },
+  {
+    pattern: /ธุรกิจเกม|เกม.*ธุรกิจ|ธุรกิจ.*เกม|gaming business|game business|game industry|gaming industry|video game business|สตูดิโอเกม|โมเดลรายได้.*เกม|เกมมือถือ|mobile game|mobile gaming|game studio|publisher/i,
+    experts: [
+      { username: 'ZhugeEX', name: 'Daniel Ahmad' },
+      { username: 'MatPiscatella', name: 'Mat Piscatella' },
+      { username: 'gamesindustry', name: 'GamesIndustry' },
+      { username: 'jasonschreier', name: 'Jason Schreier' },
+      { username: 'geoffkeighley', name: 'Geoff Keighley' },
+      { username: 'tha_rami', name: 'Rami Ismail' },
+    ],
+  },
+  {
+    pattern: /การตลาดเกม|เกม.*การตลาด|การตลาด.*เกม|game marketing|gaming marketing|user acquisition.*game|branding.*game/i,
+    experts: [
+      { username: 'gamesindustry', name: 'GamesIndustry' },
+      { username: 'ZhugeEX', name: 'Daniel Ahmad' },
+      { username: 'geoffkeighley', name: 'Geoff Keighley' },
+      { username: 'jasonschreier', name: 'Jason Schreier' },
+      { username: 'MatPiscatella', name: 'Mat Piscatella' },
+      { username: 'tha_rami', name: 'Rami Ismail' },
+    ],
+  },
+  {
+    pattern: /เกม|gaming|videogame|video game|gamedev|game dev|esports/i,
+    experts: [
+      { username: 'ZhugeEX', name: 'Daniel Ahmad' },
+      { username: 'jasonschreier', name: 'Jason Schreier' },
+      { username: 'gamesindustry', name: 'GamesIndustry' },
+      { username: 'geoffkeighley', name: 'Geoff Keighley' },
+      { username: 'Wario64', name: 'Wario64' },
+      { username: 'Nibellion', name: 'Nibellion' },
+    ],
+  },
   {
     pattern: /การลงทุน|ลงทุน|investment|investing|stocks|equity/i,
     experts: [
@@ -3205,6 +3434,8 @@ const getCanonicalExpertFallbacks = (categoryQuery = '') => {
 };
 
 const isFastSeedableExpertQuery = (categoryQuery = '') =>
+  shouldUseCanonicalExpertFallbacks(categoryQuery) &&
+  !EXPERT_ROLE_PATTERN.test(String(categoryQuery || '').trim()) &&
   CANONICAL_EXPERT_FALLBACKS.some(({ pattern }) => pattern.test(String(categoryQuery || '').trim()));
 
 const normalizeExpertUsername = (username = '') =>
@@ -3260,6 +3491,168 @@ const buildExpertWebEvidence = (tavilyData = {}) => {
   return evidence;
 };
 
+const dedupeExpertSearchTweets = (tweets = []) => {
+  const seen = new Map();
+  for (const tweet of Array.isArray(tweets) ? tweets : []) {
+    const key = String(tweet?.id || '').trim()
+      || `${String(tweet?.author?.username || '').toLowerCase()}::${String(tweet?.text || '').trim().slice(0, 120)}`;
+    if (!key) continue;
+    if (!seen.has(key)) seen.set(key, tweet);
+  }
+  return Array.from(seen.values());
+};
+
+const EXPERT_ROLE_HINT_DEFS = [
+  { pattern: /podcast|พอดแคสต์|พอดแคสท์|host|พิธีกร/i, terms: ['podcast host', 'podcaster', 'show host'] },
+  { pattern: /creator|content|ครีเอเตอร์|คนทำคอนเทนต์|youtuber|streamer|blogger/i, terms: ['content creator', 'creator', 'commentator'] },
+  { pattern: /journalist|reporter|editor|นักข่าว|สื่อ/i, terms: ['journalist', 'reporter', 'editor'] },
+  { pattern: /analyst|insider|reviewer|critic|นักวิเคราะห์|สายข่าว/i, terms: ['analyst', 'insider', 'commentator'] },
+  { pattern: /developer|engineer|นักพัฒนา|วิศวกร|coder|programmer/i, terms: ['developer', 'engineer', 'builder'] },
+  { pattern: /executive|operator|founder|ceo|ผู้บริหาร|ผู้ก่อตั้ง/i, terms: ['operator', 'executive', 'founder'] },
+  { pattern: /diplomat|ambassador|นักการทูต/i, terms: ['diplomat', 'foreign policy practitioner', 'ambassador'] },
+];
+
+const EXPERT_TOPIC_HINT_DEFS = [
+  { pattern: /kpop|k-pop|เคป๊อป/i, terms: ['K-pop', 'Kpop', 'K-pop news', 'K-pop industry'] },
+  { pattern: /fashion week|แฟชั่นวีค/i, terms: ['fashion week', 'runway', 'fashion industry'] },
+  { pattern: /fashion|แฟชั่น/i, terms: ['fashion', 'style', 'fashion industry'] },
+  { pattern: /basketball|nba|บาส|บาสเกตบอล/i, terms: ['basketball', 'NBA', 'hoops'] },
+  { pattern: /business|startup|ธุรกิจ|สตาร์ทอัพ|entrepreneur/i, terms: ['business', 'startup', 'entrepreneurship'] },
+  { pattern: /gaming|game|เกม|วงการเกม/i, terms: ['gaming', 'video game', 'game industry'] },
+  { pattern: /ai|artificial intelligence|machine learning|เอไอ/i, terms: ['AI', 'artificial intelligence', 'machine learning'] },
+  { pattern: /marketing|branding|การตลาด|แบรนด์/i, terms: ['marketing', 'branding', 'growth'] },
+  { pattern: /geopolitics|foreign policy|การทูต|ภูมิรัฐศาสตร์/i, terms: ['geopolitics', 'foreign policy', 'international affairs'] },
+  { pattern: /travel|tourism|ท่องเที่ยว/i, terms: ['travel', 'tourism', 'trip'] },
+];
+
+const parseExpertDiscoveryIntentHints = (rawQuery = '', includeTerms = []) => {
+  const query = String(rawQuery || '').trim();
+  const roleTerms = [];
+  const topicTerms = [];
+
+  EXPERT_ROLE_HINT_DEFS.forEach(({ pattern, terms }) => {
+    if (pattern.test(query)) roleTerms.push(...terms);
+  });
+
+  EXPERT_TOPIC_HINT_DEFS.forEach(({ pattern, terms }) => {
+    if (pattern.test(query)) topicTerms.push(...terms);
+  });
+
+  const normalizedIncludeTerms = (includeTerms || []).map((term) => String(term || '').trim()).filter(Boolean);
+  normalizedIncludeTerms.forEach((term) => {
+    if (EXPERT_ROLE_PATTERN.test(term)) {
+      roleTerms.push(term);
+    } else {
+      topicTerms.push(term);
+    }
+  });
+
+  const scopeTerms = [];
+  if (/ญี่ปุ่น|japan/i.test(query)) scopeTerms.push('Japan');
+  if (/ไทย|thailand|thai/i.test(query)) scopeTerms.push('Thailand');
+  if (/global|ทั่วโลก|ต่างประเทศ/i.test(query)) scopeTerms.push('global');
+
+  const freshnessTerms = [];
+  if (/กำลังดัง|ตอนนี้|ล่าสุด|มาแรง|trending|viral|now/i.test(query)) freshnessTerms.push('active now');
+
+  return {
+    roleTerms: Array.from(new Set(roleTerms)).slice(0, 6),
+    topicTerms: Array.from(new Set(topicTerms)).slice(0, 6),
+    scopeTerms: Array.from(new Set(scopeTerms)).slice(0, 3),
+    freshnessTerms: Array.from(new Set(freshnessTerms)).slice(0, 2),
+  };
+};
+
+const stripImplicitThailandBiasFromExpertQuery = (query = '', thailandScope = false) => {
+  const raw = String(query || '').trim();
+  if (!raw) return '';
+  if (thailandScope) return raw;
+
+  return raw
+    .replace(/\blang:th\b/gi, ' ')
+    .replace(/\b(?:Thailand|Thai)\b/gi, ' ')
+    .replace(/[\u0E00-\u0E7F]+/gu, ' ')
+    .replace(/\(\s*\)/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+};
+
+const ensureExpertDiscoveryLang = (query = '', thailandScope = false) => {
+  const cleaned = String(query || '')
+    .replace(/\blang:(?:en|th)\b/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  if (!cleaned) return '';
+  return `${cleaned} ${thailandScope ? 'lang:th' : 'lang:en'}`.trim();
+};
+
+const buildExpertDiscoverySearchQueries = ({
+  categoryQuery = '',
+  intentPlan = {},
+  expandedQuery = '',
+  thailandScope = false,
+}) => {
+  const querySet = new Set();
+  const pushQuery = (value = '') => {
+    const stripped = stripImplicitThailandBiasFromExpertQuery(value, thailandScope);
+    const normalized = ensureExpertDiscoveryLang(stripped, thailandScope);
+    if (normalized) querySet.add(normalized);
+  };
+
+  pushQuery(expandedQuery);
+
+  const plannedQueries = Array.isArray(intentPlan.searchQueries) ? intentPlan.searchQueries : [];
+  plannedQueries.forEach((query) => pushQuery(query));
+
+  const fallbackRawQuery = buildExpertDiscoveryQuery(categoryQuery);
+  pushQuery(fallbackRawQuery);
+  const parsedIntentHints = parseExpertDiscoveryIntentHints(categoryQuery, intentPlan.includeTerms || []);
+
+  const parenthesizedGroups = stripImplicitThailandBiasFromExpertQuery(expandedQuery, thailandScope).match(/\([^()]+\)/g) || [];
+  if (!shouldUseCanonicalExpertFallbacks(categoryQuery)) {
+    if (parenthesizedGroups.length >= 2) {
+      pushQuery(`${parenthesizedGroups[0]} ${parenthesizedGroups[1]}`);
+    }
+    if (parenthesizedGroups.length >= 1) {
+      pushQuery(parenthesizedGroups[0]);
+    }
+  }
+
+  const roleTerms = (intentPlan.includeTerms || [])
+    .map((term) => String(term || '').trim())
+    .filter(Boolean)
+    .filter((term) => EXPERT_ROLE_PATTERN.test(term))
+    .slice(0, 4);
+  const topicTerms = (intentPlan.includeTerms || [])
+    .map((term) => String(term || '').trim())
+    .filter(Boolean)
+    .filter((term) => !EXPERT_ROLE_PATTERN.test(term))
+    .slice(0, 4);
+
+  if (roleTerms.length > 0 && topicTerms.length > 0) {
+    pushQuery(`(${topicTerms.join(' OR ')}) (${roleTerms.join(' OR ')})`);
+  } else if (topicTerms.length > 0) {
+    pushQuery(`(${topicTerms.join(' OR ')})`);
+  }
+
+  const mergedRoleTerms = Array.from(new Set([...roleTerms, ...parsedIntentHints.roleTerms])).slice(0, 4);
+  const mergedTopicTerms = Array.from(new Set([...topicTerms, ...parsedIntentHints.topicTerms])).slice(0, 4);
+  const mergedScopeTerms = parsedIntentHints.scopeTerms.slice(0, 2);
+  const mergedFreshnessTerms = parsedIntentHints.freshnessTerms.slice(0, 1);
+
+  const buildPhrase = (parts = []) => parts.filter(Boolean).join(' ');
+  if (mergedTopicTerms.length > 0 && mergedRoleTerms.length > 0) {
+    pushQuery(buildPhrase([mergedTopicTerms[0], mergedRoleTerms[0], ...mergedScopeTerms]));
+    pushQuery(buildPhrase([mergedTopicTerms[0], mergedRoleTerms[0], ...mergedFreshnessTerms]));
+    pushQuery(`(${mergedTopicTerms.join(' OR ')}) (${mergedRoleTerms.join(' OR ')}) ${mergedScopeTerms.join(' ')}`.trim());
+  }
+  if (mergedTopicTerms.length > 0) {
+    pushQuery(buildPhrase([mergedTopicTerms[0], ...mergedScopeTerms, ...mergedFreshnessTerms]));
+  }
+
+  return Array.from(querySet).slice(0, 5);
+};
+
 const mergeExpertCandidate = (candidateMap, expert = {}, source = 'unknown') => {
   const username = normalizeExpertUsername(expert.username);
   if (!isValidExpertUsername(username)) return;
@@ -3299,9 +3692,9 @@ const scoreExpertCandidate = ({ candidate, activity, webEvidence }) => {
   const engagementScore = Math.min(12, Math.log10(Number(activity?.engagementSignal || 0) + 1) * 4);
   const webScore = Math.min(28, Number(webEvidence?.mentions || 0) * 10 + Math.min(8, Number(webEvidence?.sources?.length || 0) * 4));
   const grokScore = Math.min(18, Number(candidate.grokConfidence || 0) * 18);
-  const seedScore = candidate.sources?.has('seed') ? 34 : 0;
+  const seedScore = candidate.sources?.has('seed') ? 42 : 0;
   const realtimeScore = candidate.sources?.has('x-realtime') ? 14 : 0;
-  const noActivityPenalty = Number.isFinite(lastSeenDays) ? 0 : 50;
+  const noActivityPenalty = Number.isFinite(lastSeenDays) ? 0 : candidate.sources?.has('seed') ? 8 : 50;
 
   return activeScore + authorityScore + verifiedScore + engagementScore + webScore + grokScore + seedScore + realtimeScore - noActivityPenalty;
 };
@@ -3352,6 +3745,7 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
       ? {
         interpretedLabel: categoryQuery,
         discoveryQuery: buildExpertDiscoveryQuery(categoryQuery),
+        searchQueries: [buildExpertDiscoveryQuery(categoryQuery)],
         freshnessMode: 'weekly',
         includeTerms: [],
         excludeTerms: [],
@@ -3369,23 +3763,70 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
     const scopedDiscoveryQuery = thailandScope && !/thailand|thai|ไทย|lang:th/i.test(expandedQuery)
       ? `${expandedQuery} Thailand Thai lang:th`
       : expandedQuery;
-    const xDiscoveryQuery = thailandScope || /\blang:/i.test(scopedDiscoveryQuery)
-      ? scopedDiscoveryQuery
-      : `${scopedDiscoveryQuery} lang:en`;
+    const xDiscoveryQuery = ensureExpertDiscoveryLang(
+      stripImplicitThailandBiasFromExpertQuery(scopedDiscoveryQuery, thailandScope),
+      thailandScope,
+    );
+    const directCanonicalExperts = thailandScope ? [] : getCanonicalExpertFallbacks(categoryQuery);
+    const shouldPreferDirectCanonicalExperts =
+      directCanonicalExperts.length > 0 &&
+      /kpop|k-pop|fashion|fashion week|basketball|nba|podcast/i.test(String(categoryQuery || '')) &&
+      !/trending|viral|now|ล่าสุด|มาแรง|กำลังดัง/i.test(`${categoryQuery} ${topicLabel} ${expandedQuery}`);
+    if (shouldPreferDirectCanonicalExperts) {
+      return directCanonicalExperts
+        .filter((expert) => {
+          const username = normalizeExpertUsername(expert?.username || '').toLowerCase();
+          return username && !(excludeUsernames || []).some((item) => normalizeExpertUsername(item).toLowerCase() === username);
+        })
+        .slice(0, 6)
+        .map((expert) => ({
+          username: normalizeExpertUsername(expert.username),
+          name: expert.name,
+          description: '',
+          reasoning: buildNaturalExpertReasoning(topicLabel, expert),
+          lastSeenDays: undefined,
+          activityLabel: '',
+          recentTweetCount: 0,
+          followers: 0,
+          profile_image_url: '',
+          webMentionCount: 0,
+          webSources: [],
+        }));
+    }
+    const expertSearchQueries = useFastSeedPath
+      ? [xDiscoveryQuery]
+      : buildExpertDiscoverySearchQueries({
+        categoryQuery,
+        intentPlan,
+        expandedQuery: xDiscoveryQuery,
+        thailandScope,
+      });
     const nowMs = Date.now();
 
     const shouldUseWebEvidence = /วิจัย|research|เว็บ|web|sources?|อ้างอิง|ไม่มั่นใจ|verify/i.test(categoryQuery);
+
+    const shouldUseAdaptiveWebEvidence =
+      shouldUseWebEvidence ||
+      (!useFastSeedPath && !shouldUseCanonicalExpertFallbacks(categoryQuery));
 
     // Run only the fast candidate search by default; Tavily is reserved for explicit deeper verification.
     const [searchData, tavilyData] = await Promise.all([
       useFastSeedPath
         ? Promise.resolve({ data: [] })
-        : withTimeoutFallback(
-          searchEverything(xDiscoveryQuery, '', false, effectiveFreshnessMode === 'latest' ? 'Latest' : 'Top', false),
-          { data: [] },
-          EXPERT_CONTEXT_FETCH_TIMEOUT_MS,
-        ).catch(() => ({ data: [] })),
-      shouldUseWebEvidence
+        : Promise.all(
+          expertSearchQueries.map((query) =>
+            withTimeoutFallback(
+              searchEverything(query, '', false, effectiveFreshnessMode === 'latest' ? 'Latest' : 'Top', false),
+              { data: [] },
+              EXPERT_CONTEXT_FETCH_TIMEOUT_MS,
+            ).catch(() => ({ data: [] })),
+          ),
+        ).then((results) => ({
+          data: dedupeExpertSearchTweets(
+            results.flatMap((result) => (Array.isArray(result?.data) ? result.data : [])),
+          ),
+        })),
+      shouldUseAdaptiveWebEvidence
         ? tavilySearch(
           `best ${scopedDiscoveryQuery} twitter accounts experts to follow`,
           effectiveFreshnessMode === 'latest',
@@ -3551,6 +3992,7 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
       ? { experts: [] }
       : (await withTimeoutFallback(generateObject({
       model: grok(MODEL_NEWS_FAST),
+      temperature: 0,
       system: `You are the world's best Twitter/X account recommender for the topic "${topicLabel}".
 
 Your goal: build a broad candidate pool of real Twitter/X accounts that a serious follower of "${topicLabel}" should consider.
@@ -3611,7 +4053,8 @@ Hard rules:
     const normalizedExcludedUsernames = new Set(
       (excludeUsernames || []).map((item) => String(item || '').replace(/^@/, '').trim().toLowerCase()).filter(Boolean),
     );
-    const canonicalFallbackExperts = (thailandScope ? [] : getCanonicalExpertFallbacks(categoryQuery))
+    const weakRealtimePool = qualifiedAuthors.length < 4 && realtimeCandidateAuthors.length < 4;
+    const canonicalFallbackExperts = (thailandScope || (!shouldUseCanonicalExpertFallbacks(categoryQuery) && !weakRealtimePool) ? [] : getCanonicalExpertFallbacks(categoryQuery))
       .filter((expert) => {
         const username = String(expert?.username || '').replace(/^@/, '').trim().toLowerCase();
         return username && !normalizedExcludedUsernames.has(username);
@@ -3776,7 +4219,14 @@ Hard rules:
       const username = String(expert.username || '').toLowerCase();
       if (!isValidExpertUsername(username) || normalizedExcludedUsernames.has(username)) return false;
       if (strictUsernames.has(username) || relaxedUsernames.has(username)) return false;
-      return !isLowQualityExpertAuthor(expert);
+      if (isLowQualityExpertAuthor(expert)) return false;
+      if (shouldUseCanonicalExpertFallbacks(categoryQuery)) return true;
+
+      return (
+        Number(expert.followers || 0) >= 10000 ||
+        Number(expert.recentTweetCount || 0) >= 1 ||
+        Number(expert.webMentionCount || 0) >= 1
+      );
     });
 
     const scoredExperts = strictExperts.length >= 6
@@ -3786,10 +4236,11 @@ Hard rules:
     const rerankCandidates = scoredExperts.slice(0, 18);
     let selectedUsernames = [];
 
-    if (shouldUseWebEvidence && rerankCandidates.length > 6) {
+    if (shouldUseAdaptiveWebEvidence && rerankCandidates.length > 6) {
       try {
         const { object: rerankObject } = await withTimeoutFallback(generateObject({
           model: grok(MODEL_NEWS_FAST),
+          temperature: 0,
           system: `You are selecting the final 6 Twitter/X experts for "${topicLabel}" from a pre-verified candidate list.
 
 Rules:
