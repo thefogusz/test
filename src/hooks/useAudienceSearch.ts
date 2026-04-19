@@ -106,6 +106,7 @@ export const useAudienceSearch = ({
   const [aiSearchOverflowResults, setAiSearchOverflowResults] = useState([]);
   const [aiSearchSeenUsernames, setAiSearchSeenUsernames] = useState([]);
   const [hasSearchedAudience, setHasSearchedAudience] = useState(false);
+  const [aiSearchError, setAiSearchError] = useState('');
   const [manualQuery, setManualQuery] = useState('');
   const [manualPreview, setManualPreview] = useState(null);
 
@@ -147,6 +148,7 @@ export const useAudienceSearch = ({
     if (!query || aiSearchMutation.isPending) return;
 
     try {
+      if (!isMore) setAiSearchError('');
       const excludes = [
         ...watchlist.map(u => u.username),
         ...(isMore ? aiSearchSeenUsernames : [])
@@ -260,6 +262,13 @@ export const useAudienceSearch = ({
       return appendedCount;
     } catch (err) {
       console.error(err);
+      if (!isMore) {
+        setAiSearchResults([]);
+        setAiSearchOverflowResults([]);
+        setAiSearchSeenUsernames([]);
+        setHasSearchedAudience(true);
+        setAiSearchError('ค้นหาไม่สำเร็จ ลองใหม่อีกครั้งในอีกสักครู่');
+      }
       return 0;
     }
   };
@@ -286,12 +295,14 @@ export const useAudienceSearch = ({
     aiQuery,
     setAiQuery,
     aiSearchLoading: aiSearchMutation.isPending,
+    aiSearchError,
     aiSearchResults,
     aiSearchHasMore: hasSearchedAudience && aiSearchResults.length > 0,
     setAiSearchResults: (nextResults) => {
       setAiSearchResults(nextResults);
       setAiSearchOverflowResults([]);
       setAiSearchSeenUsernames([]);
+      setAiSearchError('');
     },
     hasSearchedAudience,
     manualQuery,

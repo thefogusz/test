@@ -197,6 +197,7 @@ const App = () => {
     aiQuery,
     setAiQuery,
     aiSearchLoading,
+    aiSearchError,
     aiSearchResults,
     aiSearchHasMore,
     setAiSearchResults,
@@ -877,6 +878,7 @@ const App = () => {
             setAiQuery={setAiQuery}
             handleAiSearchAudience={handleAiSearchAudience}
             aiSearchLoading={aiSearchLoading}
+            aiSearchError={aiSearchError}
             aiSearchResults={aiSearchResults}
             aiSearchHasMore={aiSearchHasMore}
             setAiSearchResults={setAiSearchResults}

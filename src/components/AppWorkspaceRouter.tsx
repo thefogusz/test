@@ -133,6 +133,7 @@ const AppWorkspaceRouter = ({
   setAiQuery,
   handleAiSearchAudience,
   aiSearchLoading,
+  aiSearchError,
   aiSearchResults,
   aiSearchHasMore,
   setAiSearchResults,
@@ -367,6 +368,7 @@ const AppWorkspaceRouter = ({
             setAiQuery={setAiQuery}
             handleAiSearchAudience={handleAiSearchAudience}
             aiSearchLoading={aiSearchLoading}
+            aiSearchError={aiSearchError}
             aiSearchResults={aiSearchResults}
             aiSearchHasMore={aiSearchHasMore}
             setAiSearchResults={setAiSearchResults}

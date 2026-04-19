@@ -184,6 +184,7 @@ const AudienceWorkspace = ({
   setAiQuery,
   handleAiSearchAudience,
   aiSearchLoading,
+  aiSearchError,
   aiSearchResults,
   aiSearchHasMore,
   setAiSearchResults,
@@ -207,7 +208,7 @@ const AudienceWorkspace = ({
   subscribedSources = [],
   onToggleSource = () => { },
 }) => {
-  const aiSearchBarRef = React.useRef<HTMLDivElement | null>(null);
+  const aiSearchBarRef = React.useRef<HTMLFormElement | null>(null);
   const menuContainerRef = React.useRef<HTMLDivElement | null>(null);
   const [openExpertMenu, setOpenExpertMenu] = React.useState<string | null>(null);
   const [visibleAiCount, setVisibleAiCount] = React.useState(6);
@@ -330,6 +331,10 @@ const AudienceWorkspace = ({
     setVisibleAiCount(6);
     return handleAiSearchAudience(queryOverride);
   }, [handleAiSearchAudience]);
+  const handleAiSearchSubmit = React.useCallback((event?: React.FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    void triggerAiSearch();
+  }, [triggerAiSearch]);
   const handleLoadMoreAi = React.useCallback(async () => {
     if (aiSearchLoading) return;
     if (hasLocallyHiddenAiResults) {
@@ -386,8 +391,9 @@ const AudienceWorkspace = ({
 
         {audienceTab === 'ai' && (
           <div className="animate-fade-in">
-            <div
+            <form
               ref={aiSearchBarRef}
+              onSubmit={handleAiSearchSubmit}
               className={`audience-ai-searchbar audience-command-row ${aiSearchLoading ? 'is-searching' : ''} ${hasAiResults ? 'has-results' : ''}`}
               style={{ display: 'flex', gap: '12px', marginBottom: '20px', maxWidth: '680px', flexWrap: 'wrap' }}
             >
@@ -398,11 +404,11 @@ const AudienceWorkspace = ({
                   placeholder="เช่น นักวิเคราะห์ตลาดเกม, ครีเอเตอร์สาย AI, ผู้ก่อตั้งสตาร์ทอัพสุขภาพ"
                   value={aiQuery}
                   onChange={(e) => setAiQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && triggerAiSearch()}
                   style={{ background: 'transparent', border: 'none', color: '#fff', flex: 1, fontSize: '14px', outline: 'none' }}
                 />
                 {aiQuery && (
-                  <button 
+                  <button
+                    type="button"
                     onClick={handleClearAiSearch}
                     style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', padding: '4px' }}
                     className="icon-hover"
@@ -412,15 +418,20 @@ const AudienceWorkspace = ({
                 )}
               </div>
 
-              <button onClick={() => triggerAiSearch()} disabled={aiSearchLoading} className="btn-sync-premium audience-search-cta" style={{ height: '48px', padding: '0 24px' }}>
+              <button type="submit" disabled={aiSearchLoading} className="btn-sync-premium audience-search-cta" style={{ height: '48px', padding: '0 24px' }}>
                 {aiSearchLoading ? <RefreshCw size={15} className="animate-spin" /> : '\u0e04\u0e49\u0e19\u0e2b\u0e32'}
               </button>
+              {!aiSearchLoading && aiSearchError && (
+                <div style={{ flexBasis: '100%', fontSize: '12px', color: '#fda4af', lineHeight: 1.45 }}>
+                  {aiSearchError}
+                </div>
+              )}
               {!aiSearchLoading && hasSearchedAudience && aiSearchResults.length === 0 && (
                 <div style={{ flexBasis: '100%', fontSize: '12px', color: 'rgba(255,255,255,0.52)', lineHeight: 1.45 }}>
                   ยังไม่เจอบัญชีที่เข้าเกณฑ์ ลองเพิ่มคำเฉพาะหรือเปลี่ยนมุมค้นหา
                 </div>
               )}
-            </div>
+            </form>
 
             {aiSearchLoading && aiSearchResults.length === 0 && (
               <div className="audience-loading-state" aria-live="polite">
