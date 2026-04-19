@@ -434,6 +434,8 @@ const EXPERT_ACTIVITY_VERIFY_FALLBACK_BATCH_SIZE = 8;
 const EXPERT_MIN_FOLLOWERS = 10000;
 const EXPERT_MIN_TOPIC_SIGNAL = 4;
 const EXPERT_MIN_ENGAGEMENT_SIGNAL = 10;
+const EXPERT_MODEL_DISCOVERY_TIMEOUT_MS = 8000;
+const EXPERT_MODEL_RERANK_TIMEOUT_MS = 4000;
 
 const withTimeoutFallback = async (promise, fallbackValue, timeoutMs) => {
   let timeoutId;
@@ -3547,7 +3549,7 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
 
     const object = useFastSeedPath
       ? { experts: [] }
-      : (await generateObject({
+      : (await withTimeoutFallback(generateObject({
       model: grok(MODEL_NEWS_FAST),
       system: `You are the world's best Twitter/X account recommender for the topic "${topicLabel}".
 
@@ -3604,7 +3606,7 @@ Hard rules:
           }),
         ).max(30),
       }),
-    })).object;
+    }), { object: { experts: [] } }, EXPERT_MODEL_DISCOVERY_TIMEOUT_MS)).object;
 
     const normalizedExcludedUsernames = new Set(
       (excludeUsernames || []).map((item) => String(item || '').replace(/^@/, '').trim().toLowerCase()).filter(Boolean),
@@ -3786,7 +3788,7 @@ Hard rules:
 
     if (shouldUseWebEvidence && rerankCandidates.length > 6) {
       try {
-        const { object: rerankObject } = await generateObject({
+        const { object: rerankObject } = await withTimeoutFallback(generateObject({
           model: grok(MODEL_NEWS_FAST),
           system: `You are selecting the final 6 Twitter/X experts for "${topicLabel}" from a pre-verified candidate list.
 
@@ -3817,7 +3819,7 @@ Rules:
           schema: z.object({
             usernames: z.array(z.string()).max(6),
           }),
-        });
+        }), { object: { usernames: [] } }, EXPERT_MODEL_RERANK_TIMEOUT_MS);
 
         const allowed = new Set(rerankCandidates.map((candidate) => String(candidate.username || '').toLowerCase()));
         selectedUsernames = (rerankObject.usernames || [])
