@@ -186,7 +186,7 @@ const AudienceWorkspace = ({
   aiSearchLoading,
   aiSearchError,
   aiSearchResults,
-  aiSearchHasMore: _aiSearchHasMore,
+  aiSearchHasMore,
   setAiSearchResults,
   hasSearchedAudience,
 
@@ -316,7 +316,7 @@ const AudienceWorkspace = ({
   const isRefreshingAiResults = aiSearchLoading && hasAiResults;
   const visibleAiResults = React.useMemo(() => aiSearchResults.slice(0, visibleAiCount), [aiSearchResults, visibleAiCount]);
   const hasLocallyHiddenAiResults = aiSearchResults.length > visibleAiCount;
-  const canLoadMoreAi = hasAiResults;
+  const canLoadMoreAi = hasAiResults && (hasLocallyHiddenAiResults || aiSearchHasMore);
   const getExpertAvatarFallback = (expert) =>
     `https://ui-avatars.com/api/?name=${encodeURIComponent(expert.name || expert.username || 'FORO')}&background=101826&color=bfdbfe&bold=true`;
   const getExpertInitial = (expert) => String(expert.name || expert.username || 'F').trim().charAt(0).toUpperCase();
@@ -345,7 +345,7 @@ const AudienceWorkspace = ({
     if (appendedCount > 0) {
       setVisibleAiCount((prev) => prev + appendedCount);
     }
-  }, [aiSearchLoading, aiSearchResults.length, handleAiSearchAudience, hasLocallyHiddenAiResults]);
+  }, [aiSearchHasMore, aiSearchLoading, aiSearchResults.length, handleAiSearchAudience, hasLocallyHiddenAiResults]);
 
   return (
     <div style={{ display: isVisible ? 'block' : 'none' }}>

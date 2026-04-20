@@ -9,6 +9,7 @@ import { usePersistentState } from './usePersistentState';
 const normalizeAudienceQuery = (value = '') => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
 const normalizeHandle = (value = '') => String(value || '').replace(/^@/, '').trim().toLowerCase();
 const AUDIENCE_LOAD_MORE_MAX_ATTEMPTS = 3;
+const AUDIENCE_INITIAL_RESULT_TARGET = 6;
 const buildAudienceExpansionQueries = (query = '') => {
   const base = String(query || '').trim();
   if (!base) return [];
@@ -88,6 +89,18 @@ const buildAudienceUserQueryKey = (username) => [
   normalizeHandle(username),
 ];
 
+const dedupeAudienceExperts = (items = []) => {
+  const deduped = [];
+  const seen = new Set();
+  items.forEach((item) => {
+    const handle = normalizeHandle(item?.username);
+    if (!handle || seen.has(handle)) return;
+    seen.add(handle);
+    deduped.push(item);
+  });
+  return deduped;
+};
+
 type UseAudienceSearchParams = {
   watchlist: any[];
   hasWatchlistRoomFor: (handle: string) => boolean;
@@ -105,6 +118,7 @@ export const useAudienceSearch = ({
   const [aiSearchResults, setAiSearchResults] = useState([]);
   const [aiSearchOverflowResults, setAiSearchOverflowResults] = useState([]);
   const [aiSearchSeenUsernames, setAiSearchSeenUsernames] = useState([]);
+  const [aiSearchHasMore, setAiSearchHasMore] = useState(false);
   const [hasSearchedAudience, setHasSearchedAudience] = useState(false);
   const [aiSearchError, setAiSearchError] = useState('');
   const [manualQuery, setManualQuery] = useState('');
@@ -148,17 +162,22 @@ export const useAudienceSearch = ({
     if (!query || aiSearchMutation.isPending) return;
 
     try {
-      if (!isMore) setAiSearchError('');
+      if (!isMore) {
+        setAiSearchError('');
+        setAiSearchHasMore(false);
+      }
       const excludes = [
         ...watchlist.map(u => u.username),
         ...(isMore ? aiSearchSeenUsernames : [])
       ];
       if (isMore && aiSearchOverflowResults.length > 0) {
         const nextResults = aiSearchOverflowResults.slice(0, 6);
+        const remainingOverflow = aiSearchOverflowResults.slice(6);
         setAiSearchResults(prev => [...prev, ...nextResults]);
-        setAiSearchOverflowResults(aiSearchOverflowResults.slice(6));
+        setAiSearchOverflowResults(remainingOverflow);
         setAiSearchSeenUsernames(prev => Array.from(new Set([...prev, ...nextResults.map(u => u.username).filter(Boolean)])));
-        return;
+        setAiSearchHasMore(nextResults.length > 0);
+        return nextResults.length;
       }
 
       let nextExperts = [];
@@ -168,17 +187,38 @@ export const useAudienceSearch = ({
       let appendedCount = 0;
       let appendedHandles = [];
 
-      const attemptQueries = isMore
-        ? buildAudienceExpansionQueries(query).slice(0, AUDIENCE_LOAD_MORE_MAX_ATTEMPTS)
-        : [query];
+      const attemptQueries = buildAudienceExpansionQueries(query).slice(
+        0,
+        isMore ? AUDIENCE_LOAD_MORE_MAX_ATTEMPTS : AUDIENCE_INITIAL_RESULT_TARGET,
+      );
 
       for (let attempt = 0; attempt < attemptQueries.length; attempt += 1) {
         const experts = await aiSearchMutation.mutateAsync({ query: attemptQueries[attempt], excludes: attemptExcludes });
-        overflowExperts = Array.isArray(experts.overflowExperts) ? experts.overflowExperts : [];
-        nextExperts = Array.isArray(experts) ? experts : [];
-        combinedCandidates = [...nextExperts, ...overflowExperts];
+        const attemptOverflowExperts = Array.isArray(experts.overflowExperts) ? experts.overflowExperts : [];
+        const attemptNextExperts = Array.isArray(experts) ? experts : [];
+        const attemptCombinedCandidates = [...attemptNextExperts, ...attemptOverflowExperts];
 
-        if (!isMore) break;
+        if (!isMore) {
+          nextExperts = dedupeAudienceExperts([...nextExperts, ...attemptNextExperts]);
+          overflowExperts = dedupeAudienceExperts([...overflowExperts, ...attemptOverflowExperts]);
+          combinedCandidates = dedupeAudienceExperts([...combinedCandidates, ...attemptCombinedCandidates]);
+
+          const enoughInitialCandidates =
+            dedupeAudienceExperts([...nextExperts, ...overflowExperts]).length >= AUDIENCE_INITIAL_RESULT_TARGET;
+          if (enoughInitialCandidates || attemptCombinedCandidates.length === 0) {
+            break;
+          }
+
+          attemptExcludes = Array.from(new Set([
+            ...attemptExcludes,
+            ...attemptCombinedCandidates.map((u) => normalizeHandle(u?.username)).filter(Boolean),
+          ]));
+          continue;
+        }
+
+        overflowExperts = attemptOverflowExperts;
+        nextExperts = attemptNextExperts;
+        combinedCandidates = attemptCombinedCandidates;
 
         const nextBatchHandles = [
           ...nextExperts.map((u) => normalizeHandle(u?.username)),
@@ -226,7 +266,23 @@ export const useAudienceSearch = ({
           }
         }
       } else {
-        setAiSearchResults(nextExperts);
+        const excludedHandles = new Set(excludes.map(normalizeHandle));
+        const fallbackExperts = buildAudienceFallbackExperts(query)
+          .filter((item) => !excludedHandles.has(normalizeHandle(item?.username)));
+        const initialCandidates = dedupeAudienceExperts([
+          ...nextExperts,
+          ...overflowExperts,
+          ...fallbackExperts,
+        ]);
+        const initialResults = initialCandidates.slice(0, AUDIENCE_INITIAL_RESULT_TARGET);
+        const remainingCandidates = initialCandidates.slice(AUDIENCE_INITIAL_RESULT_TARGET);
+
+        nextExperts = initialResults;
+        overflowExperts = remainingCandidates;
+        combinedCandidates = initialCandidates;
+        appendedCount = initialResults.length;
+        appendedHandles = initialResults.map((item) => item?.username).filter(Boolean);
+        setAiSearchResults(initialResults);
       }
       if (isMore) {
         setAiSearchOverflowResults((prev) => {
@@ -258,6 +314,7 @@ export const useAudienceSearch = ({
         ];
         return Array.from(new Set(nextSeen));
       });
+      setAiSearchHasMore(isMore ? appendedCount > 0 : (nextExperts.length > 0 || overflowExperts.length > 0));
       if (!isMore) setHasSearchedAudience(true);
       return appendedCount;
     } catch (err) {
@@ -269,6 +326,7 @@ export const useAudienceSearch = ({
         setHasSearchedAudience(true);
         setAiSearchError('ค้นหาไม่สำเร็จ ลองใหม่อีกครั้งในอีกสักครู่');
       }
+      setAiSearchHasMore(false);
       return 0;
     }
   };
@@ -297,11 +355,12 @@ export const useAudienceSearch = ({
     aiSearchLoading: aiSearchMutation.isPending,
     aiSearchError,
     aiSearchResults,
-    aiSearchHasMore: hasSearchedAudience && aiSearchResults.length > 0,
+    aiSearchHasMore,
     setAiSearchResults: (nextResults) => {
       setAiSearchResults(nextResults);
       setAiSearchOverflowResults([]);
       setAiSearchSeenUsernames([]);
+      setAiSearchHasMore(false);
       setAiSearchError('');
     },
     hasSearchedAudience,
