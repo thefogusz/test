@@ -525,34 +525,14 @@ export const useHomeFeedWorkspace = ({
   );
 
   const limitedVisibleFeed = useMemo(
-    () => {
-      const combinedVisiblePosts = [
+    () =>
+      [
         ...xVisibleFeedCandidates,
         ...rssVisibleFeedCandidates.slice(0, homeFeedCardLimit),
       ].sort(
         (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
-      );
-
-      if (!freshFeedIds.length) {
-        return combinedVisiblePosts;
-      }
-
-      const freshIdSet = new Set(
-        freshFeedIds
-          .map((id) => String(id || '').trim())
-          .filter(Boolean),
-      );
-
-      const freshVisiblePosts = combinedVisiblePosts.filter((post) =>
-        freshIdSet.has(getNormalizedPostId(post)),
-      );
-      const nonFreshVisiblePosts = combinedVisiblePosts.filter(
-        (post) => !freshIdSet.has(getNormalizedPostId(post)),
-      );
-
-      return [...freshVisiblePosts, ...nonFreshVisiblePosts];
-    },
-    [freshFeedIds, homeFeedCardLimit, rssVisibleFeedCandidates, xVisibleFeedCandidates],
+      ),
+    [homeFeedCardLimit, rssVisibleFeedCandidates, xVisibleFeedCandidates],
   );
 
   const visibleFeedTotalCount = limitedVisibleFeed.length;
