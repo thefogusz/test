@@ -837,6 +837,17 @@ export const useHomeFeedWorkspace = ({
     });
   };
 
+  const deriveLatestFetchedXCheckpoint = (posts: any[] = []) => {
+    const timestamps = posts
+      .filter((post) => isXFeedPost(post))
+      .map((post) => Date.parse(String(post?.created_at || '')))
+      .filter((timestamp) => Number.isFinite(timestamp));
+
+    if (timestamps.length === 0) return '';
+
+    return new Date(Math.max(...timestamps)).toISOString();
+  };
+
   const drainQueuedFeedSummaries = async () => {
     if (isSummarizingRef.current) return;
     isSummarizingRef.current = true;
@@ -1021,7 +1032,10 @@ export const useHomeFeedWorkspace = ({
 
       markRssPostsAsSeen(rssPosts);
       markXPostsAsSeen(twitterData);
-      updateXSyncCheckpoint(syncStartedAt);
+      // Advance the X checkpoint only to the newest post we actually received.
+      // This avoids skipping fresh posts when the upstream search index lags behind
+      // the moment the sync request was started.
+      updateXSyncCheckpoint(deriveLatestFetchedXCheckpoint(twitterData));
 
       const newRssPosts = (rssPosts || []).filter((post) => {
         const postId = getNormalizedPostId(post);

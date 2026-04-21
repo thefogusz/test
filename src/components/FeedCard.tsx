@@ -28,15 +28,41 @@ import {
   extractFirstImageUrl,
 } from '../utils/appUtils';
 
-const getRelativeTime = (dateString) => {
-  if (!dateString) return '';
+const getRelativeTimeState = (dateString) => {
+  if (!dateString) return { label: '', nextUpdateMs: null };
+
   const date = new Date(dateString);
-  if (isNaN(date.getTime())) return '';
-  const diff = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (diff < 60) return `${Math.max(1, diff)}s`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
-  return `${Math.floor(diff / 86400)}d`;
+  const timestamp = date.getTime();
+  if (Number.isNaN(timestamp)) return { label: '', nextUpdateMs: null };
+
+  const diffSeconds = Math.max(1, Math.floor((Date.now() - timestamp) / 1000));
+  const diffMinutes = Math.floor(diffSeconds / 60);
+
+  if (diffMinutes < 30) {
+    return {
+      label: '<30m',
+      nextUpdateMs: Math.max(1000, (30 * 60 - diffSeconds) * 1000),
+    };
+  }
+
+  if (diffMinutes < 60) {
+    return {
+      label: '30m',
+      nextUpdateMs: Math.max(1000, (60 * 60 - diffSeconds) * 1000),
+    };
+  }
+
+  if (diffSeconds < 86400) {
+    return {
+      label: `${Math.floor(diffSeconds / 3600)}h`,
+      nextUpdateMs: (3600 - (diffSeconds % 3600 || 3600)) * 1000,
+    };
+  }
+
+  return {
+    label: `${Math.floor(diffSeconds / 86400)}d`,
+    nextUpdateMs: (86400 - (diffSeconds % 86400 || 86400)) * 1000,
+  };
 };
 
 const fmt = (num) => {
@@ -212,6 +238,9 @@ const FeedCard = ({
   onTogglePostList,
 }: FeedCardProps) => {
   const [bookmarked, setBookmarked] = useState(initialBookmarked);
+  const [{ label: relativeTimeLabel, nextUpdateMs }, setRelativeTimeState] = useState(() =>
+    getRelativeTimeState(tweet?.created_at || tweet?.createdAt),
+  );
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [optimisticInWatchlist, setOptimisticInWatchlist] = useState(false);
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
@@ -277,6 +306,20 @@ const FeedCard = ({
   useEffect(() => {
     setBookmarked(initialBookmarked);
   }, [initialBookmarked]);
+
+  useEffect(() => {
+    setRelativeTimeState(getRelativeTimeState(tweet?.created_at || tweet?.createdAt));
+  }, [tweet?.created_at, tweet?.createdAt]);
+
+  useEffect(() => {
+    if (!nextUpdateMs) return undefined;
+
+    const timer = window.setTimeout(() => {
+      setRelativeTimeState(getRelativeTimeState(tweet?.created_at || tweet?.createdAt));
+    }, Math.max(1000, nextUpdateMs));
+
+    return () => window.clearTimeout(timer);
+  }, [nextUpdateMs, tweet?.created_at, tweet?.createdAt]);
 
   useEffect(() => {
     setOptimisticInWatchlist(false);
@@ -643,7 +686,7 @@ const FeedCard = ({
               height: '26px',
             }}
           >
-            {getRelativeTime(displayTweet.created_at)}
+            {relativeTimeLabel}
           </div>
 
           <button
