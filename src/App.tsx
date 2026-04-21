@@ -1,67 +1,84 @@
 // @ts-nocheck
-import React, { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { startTransition } from 'react';
+import {
+  READ_ARCHIVE_INITIAL_RENDER,
+} from './app/constants';
+import {
+  useSanitizeStoredState,
+  useStatusAutoClear,
+  useStorageReset,
+} from './app/hooks/useAppEffects';
+import { useAppLibraryState } from './app/hooks/useAppLibraryState';
+import { useAppShellState } from './app/hooks/useAppShellState';
+import { createWorkspaceRouterProps } from './app/workspaceRouterProps';
+import { useSubscribedSources } from './app/hooks/useSubscribedSources';
 import AiFilterModal from './components/AiFilterModal';
-import ArticleReaderModal from './components/ArticleReaderModal';
 import AppWorkspaceRouter from './components/AppWorkspaceRouter';
+import ArticleReaderModal from './components/ArticleReaderModal';
 import ListModal from './components/ListModal';
+import RightSidebar from './components/RightSidebar';
 import Sidebar from './components/Sidebar';
 import StatusToast from './components/StatusToast';
-import RightSidebar from './components/RightSidebar';
-import './index.css';
-import { STORAGE_KEYS } from './constants/storageKeys';
-import { RSS_CATALOG } from './config/rssCatalog';
-import { useHomeFeedWorkspace } from './hooks/useHomeFeedWorkspace';
-import { useIndexedDbState } from './hooks/useIndexedDbState';
-import useLibraryViews from './hooks/useLibraryViews';
-import { usePersistentState } from './hooks/usePersistentState';
-import { useQuickFilterPresets } from './hooks/useQuickFilterPresets';
-import { useSearchWorkspace } from './hooks/useSearchWorkspace';
-import useSearchSuggestions from './hooks/useSearchSuggestions';
-import { useUiHistoryState } from './hooks/useUiHistoryState';
 import { useBilling } from './hooks/useBilling';
-import { useWatchlist } from './hooks/useWatchlist';
+import { useHomeFeedWorkspace } from './hooks/useHomeFeedWorkspace';
+import useLibraryViews from './hooks/useLibraryViews';
 import { usePostLists } from './hooks/usePostLists';
+import { useQuickFilterPresets } from './hooks/useQuickFilterPresets';
+import useSearchSuggestions from './hooks/useSearchSuggestions';
+import { useSearchWorkspace } from './hooks/useSearchWorkspace';
+import { useUiHistoryState } from './hooks/useUiHistoryState';
 import { useAudienceSearch } from './hooks/useAudienceSearch';
-import { clearForoIndexedDbStorage } from './utils/indexedDb';
-import {
-  sanitizeCollectionState,
-  sanitizeStoredSingle,
-} from './utils/appUtils';
-import {
-  deserializeAttachedSource,
-  deserializeStoredCollection,
-} from './utils/appPersistence';
-
-const READ_ARCHIVE_INITIAL_RENDER = 24;
-const READ_ARCHIVE_RENDER_BATCH = 24;
-
-const shouldRemoveWhenFalsy = (value) => !value;
-const STORAGE_RESET_QUERY_PARAM = 'reset';
-const FORO_STORAGE_KEY_PREFIX = 'foro_';
-const PROFILE_SECTION_EVENT = 'foro:profile-section';
-
-const dispatchProfileSectionChange = (section: 'details' | 'pricing' | 'audience') => {
-  if (typeof window === 'undefined') return;
-
-  window.setTimeout(() => {
-    window.dispatchEvent(new CustomEvent(PROFILE_SECTION_EVENT, { detail: section }));
-  }, 0);
-};
+import { useWatchlist } from './hooks/useWatchlist';
+import './index.css';
 
 const App = () => {
-  const [status, setStatus] = useState('');
-  const [activeView, setActiveView] = usePersistentState(STORAGE_KEYS.activeView, 'home');
-  const [contentTab, setContentTab] = usePersistentState(STORAGE_KEYS.contentTab, 'search');
-  const [, setMobileProfileSection] = useState<'details' | 'pricing' | 'audience'>('details');
-  const mainScrollRef = useRef<HTMLDivElement | null>(null);
+  const {
+    status,
+    setStatus,
+    activeView,
+    setActiveView,
+    contentTab,
+    setContentTab,
+    setMobileProfileSection,
+    mainScrollRef,
+    scrollMainToTop,
+  } = useAppShellState();
 
-  const scrollMainToTop = () => {
-    window.setTimeout(() => {
-      mainScrollRef.current?.scrollTo({ top: 0, behavior: 'auto' });
-    }, 0);
-  };
+  const {
+    originalFeed,
+    setOriginalFeed,
+    pendingFeed,
+    setPendingFeed,
+    bookmarks,
+    setBookmarks,
+    bookmarkTab,
+    setBookmarkTab,
+    selectedArticle,
+    setSelectedArticle,
+    bookmarkIdSet,
+    readArchive,
+    setReadArchive,
+    readSearchQuery,
+    setReadSearchQuery,
+    deferredReadSearchQuery,
+    visibleReadCount,
+    setVisibleReadCount,
+    createContentSource,
+    setCreateContentSource,
+    filterModal,
+    setFilterModal,
+    readFilters,
+    setReadFilters,
+    isGeneratingContent,
+    setIsGeneratingContent,
+    genPhase,
+    setGenPhase,
+    handleBookmark,
+    handleSaveGeneratedArticle,
+  } = useAppLibraryState();
 
-  // --- Billing & Pricing ---
+  useStorageReset({ setStatus });
+
   const {
     activePlanId,
     currentPlan,
@@ -79,7 +96,6 @@ const App = () => {
     setPlanNotice,
   } = useBilling({ setActiveView, setStatus });
 
-  // --- Watchlist ---
   const {
     watchlist,
     setWatchlist,
@@ -92,39 +108,8 @@ const App = () => {
     handleAddSearchAuthorToWatchlist,
   } = useWatchlist({ currentPlan, openPricingWithStatus, setStatus });
 
-  // --- Subscribed RSS Sources ---
-  const [subscribedSources, setSubscribedSources] = usePersistentState(STORAGE_KEYS.subscribedSources, []);
-  const supportedRssSourcesById = useMemo(
-    () => new Map(Object.values(RSS_CATALOG).flat().map((source) => [String(source.id), source])),
-    [],
-  );
-  const handleToggleSource = (source) => {
-    setSubscribedSources((prev) => {
-      const exists = prev.some((s) => s.id === source.id);
-      return exists ? prev.filter((s) => s.id !== source.id) : [...prev, source];
-    });
-  };
+  const { subscribedSources, setSubscribedSources, handleToggleSource } = useSubscribedSources();
 
-  // Safer normalization: only update if found in catalog, don't delete if NOT found
-  useEffect(() => {
-    setSubscribedSources((prev) => {
-      if (!Array.isArray(prev) || prev.length === 0) return prev;
-      
-      let changed = false;
-      const next = prev.map(source => {
-        const catalogMatch = supportedRssSourcesById.get(String(source?.id || ''));
-        if (catalogMatch && catalogMatch.url !== source.url) {
-          changed = true;
-          return { ...source, ...catalogMatch };
-        }
-        return source;
-      });
-
-      return changed ? next : prev;
-    });
-  }, [setSubscribedSources, supportedRssSourcesById]);
-
-  // --- Post Lists ---
   const {
     postLists,
     activeListId,
@@ -160,13 +145,11 @@ const App = () => {
     setStatus,
   });
 
-  // Combined remove: watchlist + lists
   const handleRemoveAccountGlobal = (id) => {
     removeAccountFromWatchlist(id);
     handleRemoveAccountFromLists(id);
   };
 
-  // --- Audience Search ---
   const {
     audienceTab,
     setAudienceTab,
@@ -179,7 +162,6 @@ const App = () => {
     setAiSearchResults,
     hasSearchedAudience,
     manualQuery,
-
     setManualQuery,
     manualPreview,
     handleAiSearchAudience,
@@ -191,39 +173,6 @@ const App = () => {
     handleAddUser: addUserToWatchlist,
   });
 
-  // --- Feed & Content State ---
-  const [originalFeed, setOriginalFeed] = useIndexedDbState(STORAGE_KEYS.homeFeed, [], {
-    deserialize: deserializeStoredCollection,
-  });
-  const [pendingFeed, setPendingFeed] = useIndexedDbState(STORAGE_KEYS.pendingFeed, [], {
-    deserialize: deserializeStoredCollection,
-  });
-  const [bookmarks, setBookmarks] = useIndexedDbState(STORAGE_KEYS.bookmarks, [], {
-    deserialize: deserializeStoredCollection,
-  });
-  const [bookmarkTab, setBookmarkTab] = useState('news');
-  const [selectedArticle, setSelectedArticle] = useState(null);
-  const bookmarkIdSet = useMemo(
-    () => new Set(bookmarks.map((item) => item?.id).filter(Boolean)),
-    [bookmarks],
-  );
-
-  const [readArchive, setReadArchive] = useIndexedDbState(STORAGE_KEYS.readArchive, [], {
-    deserialize: deserializeStoredCollection,
-  });
-  const [readSearchQuery, setReadSearchQuery] = usePersistentState(STORAGE_KEYS.readSearchQuery, '');
-  const deferredReadSearchQuery = useDeferredValue(readSearchQuery);
-  const [visibleReadCount, setVisibleReadCount] = useState(READ_ARCHIVE_INITIAL_RENDER);
-
-  const [createContentSource, setCreateContentSource] = usePersistentState(STORAGE_KEYS.attachedSource, null, {
-    deserialize: deserializeAttachedSource,
-    shouldRemove: shouldRemoveWhenFalsy,
-  });
-
-  const [filterModal, setFilterModal] = useState({ show: false, prompt: '' });
-  const [readFilters, setReadFilters] = useState({ view: false, engagement: false });
-  const [isGeneratingContent, setIsGeneratingContent] = useState(false);
-  const [genPhase, setGenPhase] = useState('idle');
   const {
     quickFilterPresets,
     quickFilterVisiblePresets,
@@ -233,7 +182,6 @@ const App = () => {
     toggleQuickPresetVisibility,
   } = useQuickFilterPresets();
 
-  // --- Composed Hooks ---
   const {
     activeFilters,
     activeFilterPrompt,
@@ -258,7 +206,6 @@ const App = () => {
     isSyncing,
     loading,
     canLoadMoreFeed,
-    nextCursor,
     visibleFeedTotalCount,
   } = useHomeFeedWorkspace({
     activePlanId,
@@ -342,48 +289,6 @@ const App = () => {
     setSelectedArticle,
   });
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const currentUrl = new URL(window.location.href);
-    if (currentUrl.searchParams.get(STORAGE_RESET_QUERY_PARAM) !== '1') return;
-
-    let cancelled = false;
-
-    const resetBrowserState = async () => {
-      setStatus('กำลังล้างข้อมูลแอปในเบราว์เซอร์...');
-
-      try {
-        Object.keys(localStorage).forEach((key) => {
-          if (key.startsWith(FORO_STORAGE_KEY_PREFIX)) {
-            localStorage.removeItem(key);
-          }
-        });
-      } catch (error) {
-        console.warn('[App] Failed to clear localStorage during reset', error);
-      }
-
-      try {
-        await clearForoIndexedDbStorage();
-      } catch (error) {
-        console.warn('[App] Failed to clear IndexedDB during reset', error);
-      }
-
-      if (cancelled) return;
-
-      currentUrl.searchParams.delete(STORAGE_RESET_QUERY_PARAM);
-      window.history.replaceState({}, '', currentUrl.toString());
-      window.location.reload();
-    };
-
-    void resetBrowserState();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-
   const {
     filteredBookmarks,
     bookmarkIds,
@@ -414,39 +319,23 @@ const App = () => {
     interestSeedLabels,
   });
 
-  // --- Effects ---
-  useEffect(() => {
-    if (status) {
-      const shouldKeepStatusVisible =
-        isSearching ||
-        (activeView === 'content' && contentTab === 'search' && searchResults.length > 0 && !searchSummary);
+  useStatusAutoClear({
+    activeView,
+    contentTab,
+    isSearching,
+    searchResultsCount: searchResults.length,
+    searchSummary,
+    setStatus,
+    status,
+  });
 
-      if (shouldKeepStatusVisible) return undefined;
-
-      const timer = setTimeout(() => setStatus(''), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [activeView, contentTab, isSearching, searchResults.length, searchSummary, status]);
-
-  useEffect(() => {
-    setOriginalFeed(prev => sanitizeCollectionState(prev));
-    setPendingFeed(prev => sanitizeCollectionState(prev));
-    setReadArchive(prev => sanitizeCollectionState(prev));
-    setBookmarks(prev => sanitizeCollectionState(prev));
-    setCreateContentSource(prev => sanitizeStoredSingle(prev));
-  }, [setBookmarks, setCreateContentSource, setOriginalFeed, setPendingFeed, setReadArchive]);
-
-  // --- Handlers ---
-  const handleBookmark = (tweet, isSaving) => {
-    if (isSaving) {
-      setBookmarks(prev => {
-        if (prev.find(p => p.id === tweet.id)) return prev;
-        return [tweet, ...prev];
-      });
-    } else {
-      setBookmarks(prev => prev.filter(p => p.id !== tweet.id));
-    }
-  };
+  useSanitizeStoredState({
+    setBookmarks,
+    setCreateContentSource,
+    setOriginalFeed,
+    setPendingFeed,
+    setReadArchive,
+  });
 
   const handleAiFilter = async (promptOverride) => {
     const prompt = promptOverride ?? filterModal.prompt;
@@ -476,19 +365,6 @@ const App = () => {
   const handleBeforeGenerate = () => tryConsumeFeature('generate');
   const handleBeforeRegenerate = () => tryConsumeFeature('generate');
 
-  const handleSaveGeneratedArticle = (title, content, meta) => {
-    const newArt = {
-      id: Date.now().toString(),
-      type: 'article',
-      title: title || 'บทความ AI',
-      summary: content,
-      created_at: new Date().toISOString(),
-      attachedSource: meta?.attachedSource || null,
-      sources: meta?.sources || [],
-    };
-    setBookmarks((prev) => [newArt, ...prev]);
-  };
-
   const openContentComposerFromPost = (item) => {
     setCreateContentSource(item);
     setContentTab('create');
@@ -503,6 +379,147 @@ const App = () => {
   const closeFilterModal = () => setFilterModal((prev) => ({ ...prev, show: false }));
 
   const showRightSidebar = activeView !== 'pricing';
+  const workspaceRouterProps = createWorkspaceRouterProps({
+    activeListId,
+    activePlanId,
+    activeSearchFocus,
+    activeSuggestionIndex,
+    activeFilterPrompt,
+    activeFilters,
+    aiFilterBrief,
+    aiFilterSummary,
+    aiQuery,
+    aiSearchError,
+    aiSearchHasMore,
+    aiSearchLoading,
+    aiSearchResults,
+    audienceTab,
+    addSearchPreset,
+    applySearchFocus,
+    bookmarkIds,
+    bookmarkIdSet,
+    bookmarks,
+    bookmarkTab,
+    canLoadMoreFeed,
+    canSaveCurrentSearchAsPreset,
+    clearAiFilter,
+    contentTab,
+    createContentSource,
+    currentActiveList,
+    currentPlan,
+    dailyUsage,
+    deletedFeedCount,
+    dismissSearchChoices,
+    dynamicSearchTags,
+    feed,
+    filteredBookmarks,
+    filteredReadArchive,
+    freshFeedIds,
+    genPhase,
+    handleAddExpert,
+    handleAddSearchAuthorToWatchlist,
+    handleAddUser,
+    handleAiFilter,
+    handleAiSearchAudience,
+    handleBeforeGenerate,
+    handleBeforeRegenerate,
+    handleBookmark,
+    handleDeleteAll,
+    handleLoadMore,
+    handleManualSearch,
+    handlePlanLoadMore,
+    handlePlanSearch,
+    handlePlanSelection,
+    handlePlanSync,
+    handleRemoveAccountGlobal,
+    handleSaveGeneratedArticle,
+    handleSort,
+    handleToggleMemberInList,
+    handleToggleSource,
+    handleUndo,
+    hasReachedFeedCardLimit,
+    hasSearchedAudience,
+    homeFeedCardLimit,
+    interestSeedLabels,
+    isFiltered,
+    isFilterPrimed,
+    isFiltering,
+    isGeneratingContent,
+    isLatestMode,
+    isLiveSearching,
+    isLoadingMore,
+    isSearching,
+    isSourcesExpanded,
+    isStartingCheckout,
+    isSyncing,
+    lastSubmittedSearchQuery,
+    loading,
+    manualPreview,
+    manualQuery,
+    maxSearchPresets,
+    openArticleReader,
+    openContentComposerFromPost,
+    originalFeed,
+    plusAccess,
+    postLists,
+    quickFilterVisiblePresets,
+    readArchive,
+    readFilters,
+    readSearchQuery,
+    readSearchSuggestions,
+    remainingUsage,
+    removeSearchPreset,
+    searchChoiceOptions,
+    searchCursor,
+    searchHistory,
+    searchMediaType,
+    searchOverflowResults,
+    searchPresets,
+    searchQuery,
+    searchResults,
+    searchStatusMessage,
+    searchSummary,
+    searchWebSources,
+    setActiveSuggestionIndex,
+    setActiveView,
+    setAiQuery,
+    setAiSearchResults,
+    setAudienceTab,
+    setBookmarkTab,
+    setBookmarks,
+    setContentTab,
+    setCreateContentSource,
+    setFilterModal,
+    setGenPhase,
+    setIsGeneratingContent,
+    setIsLatestMode,
+    setIsMobilePostListOpen,
+    setIsSourcesExpanded,
+    setManualQuery,
+    setMobileProfileSection,
+    setReadFilters,
+    setReadSearchQuery,
+    setSearchCursor,
+    setSearchMediaType,
+    setSearchOverflowResults,
+    setSearchQuery,
+    setSearchResults,
+    setSearchSummary,
+    setSearchWebSources,
+    setShowSuggestions,
+    setStatus,
+    setVisibleReadCount,
+    shouldInlineSearchStatus,
+    shouldShowSearchChoices,
+    showSuggestions,
+    subscribedSources,
+    suggestions,
+    visibleQuickPresets,
+    visibleReadArchive,
+    visibleFeedTotalCount,
+    watchlist,
+    watchlistHandleSet,
+  });
 
   return (
     <div className={`foro-layout ${showRightSidebar ? '' : 'pricing-open'}`.trim()}>
@@ -521,7 +538,7 @@ const App = () => {
           generating: isGeneratingContent,
           searching: isSearching,
           filtering: isFiltering,
-          audienceSearch: aiSearchLoading
+          audienceSearch: aiSearchLoading,
         }}
         activePlanId={activePlanId}
         plusAccess={plusAccess}
@@ -565,156 +582,7 @@ const App = () => {
 
       <main className="foro-main">
         <div className="foro-main-scroll" ref={mainScrollRef}>
-          <AppWorkspaceRouter
-            activeView={activeView}
-            activeListId={activeListId}
-            currentActiveList={currentActiveList}
-            originalFeed={originalFeed}
-            deletedFeedCount={deletedFeedCount}
-            feed={feed}
-            freshFeedIds={freshFeedIds}
-            activeFilterPrompt={activeFilterPrompt}
-            isFiltered={isFiltered}
-            activeFilters={activeFilters}
-            visibleQuickPresets={visibleQuickPresets}
-            isFilterPrimed={isFilterPrimed}
-            isFiltering={isFiltering}
-            isLoadingMore={isLoadingMore}
-            isSyncing={isSyncing}
-            hasReachedFeedCardLimit={hasReachedFeedCardLimit}
-            homeFeedCardLimit={homeFeedCardLimit}
-            loading={loading}
-            visibleFeedTotalCount={visibleFeedTotalCount}
-            pendingFeed={pendingFeed}
-            canLoadMoreFeed={canLoadMoreFeed}
-            nextCursor={nextCursor}
-            aiFilterBrief={aiFilterBrief}
-            aiFilterSummary={aiFilterSummary}
-            bookmarkIdSet={bookmarkIdSet}
-            watchlistHandleSet={watchlistHandleSet}
-            postLists={postLists}
-            setIsMobilePostListOpen={setIsMobilePostListOpen}
-            handleDeleteAll={handleDeleteAll}
-            handleUndo={handleUndo}
-            handleSort={handleSort}
-            handleAiFilter={handleAiFilter}
-            setFilterModal={setFilterModal}
-            handlePlanSync={handlePlanSync}
-            handlePlanLoadMore={handlePlanLoadMore}
-            clearAiFilter={clearAiFilter}
-            handleBookmark={handleBookmark}
-            openContentComposerFromPost={openContentComposerFromPost}
-            openArticleReader={openArticleReader}
-            setStatus={setStatus}
-            contentTab={contentTab}
-            setContentTab={setContentTab}
-            createContentSource={createContentSource}
-            setCreateContentSource={setCreateContentSource}
-            handleSaveGeneratedArticle={handleSaveGeneratedArticle}
-            handleBeforeGenerate={handleBeforeGenerate}
-            handleBeforeRegenerate={handleBeforeRegenerate}
-            isGeneratingContent={isGeneratingContent}
-            setIsGeneratingContent={setIsGeneratingContent}
-            genPhase={genPhase}
-            setGenPhase={setGenPhase}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            searchMediaType={searchMediaType}
-            setSearchMediaType={setSearchMediaType}
-            activeSearchFocus={activeSearchFocus}
-            applySearchFocus={applySearchFocus}
-            dismissSearchChoices={dismissSearchChoices}
-            suggestions={suggestions}
-            showSuggestions={showSuggestions}
-            setShowSuggestions={setShowSuggestions}
-            activeSuggestionIndex={activeSuggestionIndex}
-            setActiveSuggestionIndex={setActiveSuggestionIndex}
-            handlePlanSearch={handlePlanSearch}
-            isLatestMode={isLatestMode}
-            setIsLatestMode={setIsLatestMode}
-            isSearching={isSearching}
-            searchResults={searchResults}
-            searchChoiceOptions={searchChoiceOptions}
-            setSearchResults={setSearchResults}
-            setSearchOverflowResults={setSearchOverflowResults}
-            setSearchSummary={setSearchSummary}
-            setSearchWebSources={setSearchWebSources}
-            setSearchCursor={setSearchCursor}
-            shouldInlineSearchStatus={shouldInlineSearchStatus}
-            searchStatusMessage={searchStatusMessage}
-            lastSubmittedSearchQuery={lastSubmittedSearchQuery}
-            searchPresets={searchPresets}
-            canSaveCurrentSearchAsPreset={canSaveCurrentSearchAsPreset}
-            maxSearchPresets={maxSearchPresets}
-            addSearchPreset={addSearchPreset}
-            isLiveSearching={isLiveSearching}
-            dynamicSearchTags={dynamicSearchTags}
-            handleAddSearchAuthorToWatchlist={handleAddSearchAuthorToWatchlist}
-            handleToggleMemberInList={handleToggleMemberInList}
-            searchHistory={searchHistory}
-            interestSeedLabels={interestSeedLabels}
-            removeSearchPreset={removeSearchPreset}
-            searchOverflowResults={searchOverflowResults}
-            searchCursor={searchCursor}
-            searchSummary={searchSummary}
-            searchWebSources={searchWebSources}
-            shouldShowSearchChoices={shouldShowSearchChoices}
-            isSourcesExpanded={isSourcesExpanded}
-            setIsSourcesExpanded={setIsSourcesExpanded}
-            activePlanId={activePlanId}
-            onOpenPricing={openPricingView}
-            dailyUsage={dailyUsage}
-            remainingUsage={remainingUsage}
-            currentPlan={currentPlan}
-            plusAccess={plusAccess}
-            handlePlanSelection={handlePlanSelection}
-            isStartingCheckout={isStartingCheckout}
-            profileSectionEventName={PROFILE_SECTION_EVENT}
-            onOpenMobileProfileDetails={() => {
-              setMobileProfileSection('details');
-              setActiveView('pricing');
-              dispatchProfileSectionChange('details');
-            }}
-            onOpenMobileAudience={() => {
-              setActiveView('audience');
-            }}
-            readArchive={readArchive}
-            readSearchQuery={readSearchQuery}
-            setReadSearchQuery={setReadSearchQuery}
-            readSearchSuggestions={readSearchSuggestions}
-            filteredReadArchive={filteredReadArchive}
-            readFilters={readFilters}
-            setReadFilters={setReadFilters}
-            visibleReadArchive={visibleReadArchive}
-            setVisibleReadCount={setVisibleReadCount}
-            readArchiveRenderBatch={READ_ARCHIVE_RENDER_BATCH}
-            bookmarkIds={bookmarkIds}
-            audienceTab={audienceTab}
-            setAudienceTab={setAudienceTab}
-            aiQuery={aiQuery}
-            setAiQuery={setAiQuery}
-            handleAiSearchAudience={handleAiSearchAudience}
-            aiSearchLoading={aiSearchLoading}
-            aiSearchError={aiSearchError}
-            aiSearchResults={aiSearchResults}
-            aiSearchHasMore={aiSearchHasMore}
-            setAiSearchResults={setAiSearchResults}
-            hasSearchedAudience={hasSearchedAudience}
-            watchlist={watchlist}
-            handleAddExpert={handleAddExpert}
-            manualQuery={manualQuery}
-            setManualQuery={setManualQuery}
-            handleManualSearch={handleManualSearch}
-            manualPreview={manualPreview}
-            handleAddUser={handleAddUser}
-            handleRemoveAccountGlobal={handleRemoveAccountGlobal}
-            subscribedSources={subscribedSources}
-            handleToggleSource={handleToggleSource}
-            bookmarkTab={bookmarkTab}
-            setBookmarkTab={setBookmarkTab}
-            filteredBookmarks={filteredBookmarks}
-            setBookmarks={setBookmarks}
-          />
+          <AppWorkspaceRouter activeView={activeView} {...workspaceRouterProps} />
         </div>
       </main>
 
@@ -752,13 +620,21 @@ const App = () => {
       />
       {showRightSidebar && (
         <RightSidebar
-          watchlist={watchlist} subscribedSources={subscribedSources} postLists={postLists} activeListId={activeListId}
+          watchlist={watchlist}
+          subscribedSources={subscribedSources}
+          postLists={postLists}
+          activeListId={activeListId}
           onSelectList={setActiveListId}
           onCreateList={handleCreateListRequest}
           onImportList={handleImportListRequest}
-          onRemoveList={handleRemoveList} onAddMember={handleAddMember} onRemoveMember={handleRemoveMember}
-          onUpdateList={handleUpdateList} onShareList={handleShareList} onRemoveAccount={handleRemoveAccountGlobal}
-          isMobileOpen={isMobilePostListOpen} onCloseMobile={() => setIsMobilePostListOpen(false)}
+          onRemoveList={handleRemoveList}
+          onAddMember={handleAddMember}
+          onRemoveMember={handleRemoveMember}
+          onUpdateList={handleUpdateList}
+          onShareList={handleShareList}
+          onRemoveAccount={handleRemoveAccountGlobal}
+          isMobileOpen={isMobilePostListOpen}
+          onCloseMobile={() => setIsMobilePostListOpen(false)}
           onOpenAudience={() => {
             setIsMobilePostListOpen(false);
             setActiveView('audience');
