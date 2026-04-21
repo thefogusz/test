@@ -31,6 +31,7 @@ const AppWorkspaceRouter = ({
   loading,
   visibleFeedTotalCount,
   pendingFeed,
+  canLoadMoreFeed,
   nextCursor,
   aiFilterBrief,
   aiFilterSummary,
@@ -198,6 +199,7 @@ const AppWorkspaceRouter = ({
           loading={loading}
           visibleFeedTotalCount={visibleFeedTotalCount}
           pendingFeed={pendingFeed}
+          canLoadMoreFeed={canLoadMoreFeed}
           nextCursor={nextCursor}
           aiFilterBrief={aiFilterBrief}
           aiFilterSummary={aiFilterSummary}

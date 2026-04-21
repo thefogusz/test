@@ -123,6 +123,7 @@ const HomeView = ({
   loading,
   visibleFeedTotalCount,
   pendingFeed,
+  canLoadMoreFeed,
   nextCursor,
   aiFilterBrief,
   aiFilterSummary,
@@ -527,7 +528,7 @@ const HomeView = ({
         </div>
       )}
 
-      {hasVisibleFeed && !hasReachedFeedCardLimit && (pendingFeed.length > 0 || nextCursor || isLoadingMore) && (
+      {hasVisibleFeed && !hasReachedFeedCardLimit && (canLoadMoreFeed || isLoadingMore) && (
         <div className="home-load-more-shell">
           <button onClick={onLoadMore} className="btn-pill" disabled={loading}>
             {isLoadingMore ? <RefreshCw size={14} className="animate-spin" /> : 'โหลดเพิ่มเติม'}

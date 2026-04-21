@@ -241,6 +241,30 @@ const appendNewsFilter = (query, onlyNews) => {
   return `${query} -filter:replies`.trim();
 };
 
+const buildFeedTimeWindowQuery = ({
+  fallbackSinceDate,
+  formattedSinceTime,
+  formattedUntilTime,
+}: {
+  fallbackSinceDate: string;
+  formattedSinceTime?: string;
+  formattedUntilTime?: string;
+}) => {
+  const segments = [];
+
+  if (formattedSinceTime) {
+    segments.push(`since:${formattedSinceTime}`);
+  } else if (!formattedUntilTime) {
+    segments.push(`since:${fallbackSinceDate}`);
+  }
+
+  if (formattedUntilTime) {
+    segments.push(`until:${formattedUntilTime}`);
+  }
+
+  return segments.join(' ').trim();
+};
+
 const safeJson = async (response, fallback = {}) => {
   try {
     return await response.json();
@@ -336,9 +360,11 @@ export const fetchForoFeed = async (
   }
 
   if (preferPerHandleLatest && !cursor && queryType === 'Latest') {
-    const timeWindowQuery = formattedSinceTime
-      ? `since:${formattedSinceTime}${formattedUntilTime ? ` until:${formattedUntilTime}` : ''}`
-      : `since:${sinceDate}`;
+    const timeWindowQuery = buildFeedTimeWindowQuery({
+      fallbackSinceDate: sinceDate,
+      formattedSinceTime,
+      formattedUntilTime,
+    });
 
     const perHandleResults = await Promise.all(
       validHandles.map(async (handle) => {
@@ -379,9 +405,11 @@ export const fetchForoFeed = async (
     const MAX_PAGES_PER_BATCH = 1;
 
     while (pagesFetched < MAX_PAGES_PER_BATCH) {
-      const timeWindowQuery = formattedSinceTime
-        ? `since:${formattedSinceTime}${formattedUntilTime ? ` until:${formattedUntilTime}` : ''}`
-        : `since:${sinceDate}`;
+      const timeWindowQuery = buildFeedTimeWindowQuery({
+        fallbackSinceDate: sinceDate,
+        formattedSinceTime,
+        formattedUntilTime,
+      });
       const query = `(${batch.map((username) => `from:${username}`).join(' OR ')}) ${timeWindowQuery}`.trim();
       const url = `${BASE_URL}/tweet/advanced_search?query=${encodeURIComponent(query)}&queryType=${queryType}${
         currentCursor ? `&cursor=${currentCursor}` : ''

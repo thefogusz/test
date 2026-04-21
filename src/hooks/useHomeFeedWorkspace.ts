@@ -496,6 +496,16 @@ export const useHomeFeedWorkspace = ({
     return Boolean(authorHandle) && activeTwitterHandleSet.has(authorHandle);
   };
 
+  const oldestScopedXTimestamp = useMemo(
+    () =>
+      originalFeed
+        .filter((post) => isXPostInActiveScope(post))
+        .map((post) => new Date(post?.created_at || post?.createdAt || 0).getTime())
+        .filter((timestamp) => Number.isFinite(timestamp))
+        .sort((left, right) => left - right)[0],
+    [activeListId, activeListMembers.twitterHandles, originalFeed],
+  );
+
   const currentXSyncCheckpoint = useMemo(
     () =>
       String(
@@ -571,6 +581,7 @@ export const useHomeFeedWorkspace = ({
 
   const visibleFeedTotalCount = visibleFeedCandidates.length;
   const hasReachedFeedCardLimit = visibleFeedCandidates.length >= homeFeedCardLimit;
+  const canLoadMoreFeed = pendingFeed.length > 0 || Boolean(nextCursor) || Number.isFinite(oldestScopedXTimestamp);
 
   useEffect(() => {
     if (activeView === 'search' || isFiltered) return;
@@ -1163,7 +1174,11 @@ export const useHomeFeedWorkspace = ({
   const loadMoreMutation = useMutation({
     mutationFn: async () => {
       if ((!nextCursor && pendingFeed.length === 0) || syncMutation.isPending || loadMoreMutation.isPending) {
-        return;
+        const targetAccounts = activeListMembers.twitterHandles;
+        if (targetAccounts.length === 0 && !Number.isFinite(oldestScopedXTimestamp)) {
+          setStatus('ไม่มีโพสต์ค้างจาก RSS ให้โหลดเพิ่มแล้ว');
+          return;
+        }
       }
 
       if (visibleFeedCandidates.length >= homeFeedCardLimit) {
@@ -1196,6 +1211,15 @@ export const useHomeFeedWorkspace = ({
         } else if (workingCursor) {
           const targetAccounts = activeListMembers.twitterHandles;
           const { data, meta } = await fetchWatchlistFeed(targetAccounts, workingCursor, 'Latest');
+          workingCursor = meta?.next_cursor || null;
+          nextBatch = data.slice(0, MAX_SYNC);
+          workingPendingFeed = data.slice(MAX_SYNC);
+        } else if (activeListMembers.twitterHandles.length > 0 && Number.isFinite(oldestScopedXTimestamp)) {
+          const targetAccounts = activeListMembers.twitterHandles;
+          const untilTime = new Date(Math.max(0, oldestScopedXTimestamp - 1000)).toISOString();
+          const { data, meta } = await fetchWatchlistFeed(targetAccounts, '', 'Latest', {
+            untilTime,
+          });
           workingCursor = meta?.next_cursor || null;
           nextBatch = data.slice(0, MAX_SYNC);
           workingPendingFeed = data.slice(MAX_SYNC);
@@ -1233,13 +1257,21 @@ export const useHomeFeedWorkspace = ({
           setStatus('อัปเดตข้อมูลเพิ่มเติมเรียบร้อย • เติมสรุปต่อในพื้นหลัง');
         } else if (workingPendingFeed.length > 0 || workingCursor) {
           setStatus('ยังไม่พบโพสต์ใหม่ในชุดนี้ ลองโหลดเพิ่มเติมอีกครั้ง');
+        } else if (activeListMembers.twitterHandles.length > 0 && Number.isFinite(oldestScopedXTimestamp)) {
+          setStatus('ยังไม่พบโพสต์ X ที่เก่ากว่านี้ในช่วงที่ค้นได้');
+        } else if (pendingFeed.length > 0) {
+          setStatus('แสดงโพสต์ RSS ที่ค้างไว้ครบแล้ว');
         } else {
-          setStatus('อัปเดตข้อมูลเพิ่มเติมเรียบร้อย - ไม่มีโพสต์ใหม่ให้ประมวลผล');
+          setStatus('ไม่มีข้อมูลให้โหลดเพิ่มเติมแล้ว');
         }
         setFreshFeedIds(nextFreshFeedIds);
       } else {
         setFreshFeedIds([]);
-        setStatus('ไม่มีข้อมูลเพิ่มเติม');
+        if (activeListMembers.twitterHandles.length > 0 && Number.isFinite(oldestScopedXTimestamp)) {
+          setStatus('ไม่พบโพสต์ X ที่เก่ากว่านี้แล้ว');
+        } else {
+          setStatus('ไม่มีโพสต์ค้างจาก RSS ให้โหลดเพิ่มแล้ว');
+        }
       }
     },
     onError: (error: any) => {
@@ -1405,6 +1437,7 @@ export const useHomeFeedWorkspace = ({
     hasReachedFeedCardLimit,
     homeFeedCardLimit,
     loading: syncMutation.isPending || loadMoreMutation.isPending,
+    canLoadMoreFeed,
     nextCursor,
     visibleFeedTotalCount,
   };

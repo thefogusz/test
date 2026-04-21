@@ -257,6 +257,7 @@ const App = () => {
     isLoadingMore,
     isSyncing,
     loading,
+    canLoadMoreFeed,
     nextCursor,
     visibleFeedTotalCount,
   } = useHomeFeedWorkspace({
@@ -585,6 +586,7 @@ const App = () => {
             loading={loading}
             visibleFeedTotalCount={visibleFeedTotalCount}
             pendingFeed={pendingFeed}
+            canLoadMoreFeed={canLoadMoreFeed}
             nextCursor={nextCursor}
             aiFilterBrief={aiFilterBrief}
             aiFilterSummary={aiFilterSummary}
