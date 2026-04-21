@@ -3,7 +3,7 @@ import type { Post } from '../types/domain';
 import { apiFetch } from '../utils/apiFetch';
 
 const RSS_PROXY_URL = '/api/rss';
-const RSS_LATEST_LOOKBACK_HOURS = 48;
+const RSS_LATEST_LOOKBACK_HOURS = 24;
 const RSS_LATEST_LOOKBACK_MS = RSS_LATEST_LOOKBACK_HOURS * 60 * 60 * 1000;
 
 interface RssItem {
@@ -307,7 +307,7 @@ export const fetchRssFeed = async (source: RssSourceInfo, maxItems = 999): Promi
       })
       .sort((left, right) => (right.timestamp || 0) - (left.timestamp || 0));
 
-    console.log(`[RSS] [${source.name}] Kept ${filteredItems.length} fresh items (within 48h limit)`);
+    console.log(`[RSS] [${source.name}] Kept ${filteredItems.length} fresh items (within 24h limit)`);
 
     return filteredItems
       .slice(0, maxItems)
