@@ -429,12 +429,28 @@ export const useHomeFeedWorkspace = ({
 
   const activeListMembers = useMemo(() => {
     if (!activeListId) {
+      const listMembers = Array.isArray(postLists)
+        ? postLists.flatMap((list) => (Array.isArray(list?.members) ? list.members : []))
+        : [];
+      const allMembers = [
+        ...watchlist.map((user) => (typeof user === 'string' ? user : user?.username)),
+        ...listMembers,
+      ];
+
+      const uniqueMembers = Array.from(
+        new Set(
+          allMembers
+            .filter(Boolean)
+            .map((member) => String(member).trim().toLowerCase()),
+        ),
+      );
+
       return {
-        twitterHandles: watchlist
-          .map((user) => (typeof user === 'string' ? user : user?.username))
-          .filter(Boolean)
-          .map((handle) => String(handle).trim().toLowerCase()),
-        rssSourceIds: [],
+        twitterHandles: uniqueMembers.filter((member) => !member.startsWith('rss:')),
+        rssSourceIds: uniqueMembers
+          .filter((member) => member.startsWith('rss:'))
+          .map((member) => member.slice(4))
+          .filter(Boolean),
       };
     }
 
@@ -998,6 +1014,7 @@ export const useHomeFeedWorkspace = ({
         return fetchWatchlistFeed(targetAccounts, '', 'Latest', {
           sinceTime: xSinceTime,
           untilTime: syncStartedAt,
+          preferPerHandleLatest: true,
         });
       })();
 

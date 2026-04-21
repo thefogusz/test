@@ -319,6 +319,7 @@ export const fetchForoFeed = async (
   const {
     sinceTime = null,
     untilTime = null,
+    preferPerHandleLatest = false,
   } = options;
   const date = new Date();
   date.setHours(date.getHours() - 24);
@@ -332,6 +333,36 @@ export const fetchForoFeed = async (
 
   if (validHandles.length === 0) {
     return { data: [], meta: { next_cursor: null } };
+  }
+
+  if (preferPerHandleLatest && !cursor && queryType === 'Latest') {
+    const timeWindowQuery = formattedSinceTime
+      ? `since:${formattedSinceTime}${formattedUntilTime ? ` until:${formattedUntilTime}` : ''}`
+      : `since:${sinceDate}`;
+
+    const perHandleResults = await Promise.all(
+      validHandles.map(async (handle) => {
+        const query = `from:${handle} ${timeWindowQuery}`.trim();
+        const url = `${BASE_URL}/tweet/advanced_search?query=${encodeURIComponent(query)}&queryType=${queryType}`;
+        const response = await apiFetch(url, { method: 'GET' });
+
+        if (!response.ok) {
+          throw new Error(`Feed fetch failed with status ${response.status}`);
+        }
+
+        const data = await safeJson(response, { tweets: [], next_cursor: null });
+        return normalizeTweets(data.tweets);
+      }),
+    );
+
+    const mergedTweets = dedupeTweetsById(perHandleResults.flat()).sort(
+      (a, b) => new Date(b.created_at) - new Date(a.created_at),
+    );
+
+    return {
+      data: mergedTweets,
+      meta: { next_cursor: null },
+    };
   }
 
   const batches = [];

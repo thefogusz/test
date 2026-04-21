@@ -6809,10 +6809,18 @@ h6,
   align-items: center;
   justify-content: center;
   will-change: transform;
+  transform-origin: center;
+  transform-box: fill-box;
+}
+
+.status-toast__icon-core svg {
+  display: block;
+  transform-origin: center;
+  transform-box: fill-box;
 }
 
 .status-toast__icon.is-processing .status-toast__icon-core {
-  animation: statusToastIconSpin 1.15s linear infinite;
+  animation: statusToastIconSpin 0.88s linear infinite;
 }
 
 .status-toast__media.is-processing .status-toast__icon-glow {

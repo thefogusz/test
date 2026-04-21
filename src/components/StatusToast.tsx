@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle2, LoaderCircle } from 'lucide-react';
+import { CheckCircle2, RefreshCw } from 'lucide-react';
 
 const PROCESSING_PATTERN =
   /(กำลัง|เชื่อมต่อ|โหลด|ค้นหา|วิเคราะห์|คัด|อัปเดต|สรุป|loading|processing|searching|preparing|analyzing|analysing|filtering|syncing)/i;
@@ -40,7 +40,7 @@ const StatusToast = ({ status, message, hidden }) => {
         <div className={`status-toast__icon ${isProcessing ? 'is-processing' : 'is-complete'}`}>
           <span className="status-toast__icon-core">
             {isProcessing ? (
-              <LoaderCircle size={16} strokeWidth={2.2} />
+              <RefreshCw size={16} strokeWidth={2.35} />
             ) : (
               <CheckCircle2 size={16} strokeWidth={2.3} />
             )}
