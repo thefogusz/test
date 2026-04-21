@@ -143,6 +143,52 @@ const buildSearchSummaryWebContext = (sources: any[] = []) =>
     .filter(Boolean)
     .join('\n');
 
+const THAI_LOCAL_HOST_PATTERNS = [
+  /\.th$/i,
+  /siamblockchain/i,
+  /line\.today/i,
+  /mgronline/i,
+  /bangkokbiznews/i,
+  /kaohoon/i,
+  /thestandard/i,
+  /dailynews/i,
+  /khaosod/i,
+  /posttoday/i,
+  /matichon/i,
+  /ประชาชาติ/i,
+];
+
+const getSourceHostname = (url = '') => {
+  try {
+    return new URL(url).hostname.replace(/^www\./i, '').toLowerCase();
+  } catch {
+    return '';
+  }
+};
+
+const isThaiHeavyText = (value = '') => {
+  const text = String(value || '');
+  const thaiChars = text.match(/[\u0E00-\u0E7F]/g) || [];
+  const latinChars = text.match(/[a-z]/gi) || [];
+
+  return thaiChars.length >= 24 && thaiChars.length > latinChars.length * 1.5;
+};
+
+const filterSearchWebSources = (sources: any[] = [], query = '') => {
+  if (isExplicitlyLocalQuery(query)) return sources;
+
+  return sources.filter((source: any) => {
+    const hostname = getSourceHostname(source?.url || '');
+    if (!hostname) return false;
+    if (THAI_LOCAL_HOST_PATTERNS.some((pattern) => pattern.test(hostname))) return false;
+
+    const combinedText = `${source?.title || ''} ${source?.content || ''} ${source?.raw_content || ''}`;
+    if (isThaiHeavyText(combinedText)) return false;
+
+    return true;
+  });
+};
+
 const toWebSearchCards = (sources: any[] = [], latestMode = false) =>
   sources
     .filter((source: any) => source?.url && (source?.title || source?.content || source?.raw_content))
@@ -1024,13 +1070,14 @@ export const useSearchWorkspace = ({
           }
 
           if (webData && (webData.results?.length || webData.answer)) {
-            const webResultsWithCitations = (webData.results || []).map((result: any, index: number) => ({
+            const filteredWebResults = filterSearchWebSources(webData.results || [], requestedQuery);
+            const webResultsWithCitations = filteredWebResults.map((result: any, index: number) => ({
               ...result,
               citation_id: `[W${index + 1}]`,
             }));
 
             webContext = [
-              webData.answer ? `[WEB NEWS ANSWER]\n${webData.answer}` : '',
+              filteredWebResults.length > 0 && webData.answer ? `[WEB NEWS ANSWER]\n${webData.answer}` : '',
               webResultsWithCitations
                 .map(
                   (result: any) =>
