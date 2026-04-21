@@ -1052,10 +1052,39 @@ export const useHomeFeedWorkspace = ({
         feedSyncPromise,
         statRefreshPromise,
       ]);
-      console.log(`[Sync] Twitter: ${twitterResult?.data?.length || 0}, RSS: ${rssPosts?.length || 0}`);
-
-      const twitterData = Array.isArray(twitterResult?.data) ? twitterResult.data : [];
+      let twitterData = Array.isArray(twitterResult?.data) ? twitterResult.data : [];
       const meta = twitterResult?.meta || { next_cursor: null };
+
+      if (
+        twitterData.length === 0 &&
+        hasWatchlist &&
+        xSinceTime &&
+        activeListMembers.twitterHandles.length > 0
+      ) {
+        try {
+          const fallbackLatestResult = await fetchWatchlistFeed(
+            activeListMembers.twitterHandles,
+            '',
+            'Latest',
+            {
+              untilTime: syncStartedAt,
+              preferPerHandleLatest: true,
+            },
+          );
+          const checkpointFloor = Math.max(0, checkpointTimestamp - X_SYNC_OVERLAP_MS);
+          twitterData = (Array.isArray(fallbackLatestResult?.data) ? fallbackLatestResult.data : []).filter((post) => {
+            const createdAt = Date.parse(String(post?.created_at || ''));
+            return Number.isFinite(createdAt) && createdAt >= checkpointFloor;
+          });
+          if (twitterData.length > 0) {
+            console.info(`[Sync] Fallback recovered ${twitterData.length} X posts newer than checkpoint`);
+          }
+        } catch (fallbackError) {
+          console.error('[Sync] X latest fallback failed', fallbackError);
+        }
+      }
+
+      console.log(`[Sync] Twitter: ${twitterData.length || 0}, RSS: ${rssPosts?.length || 0}`);
       setNextCursor(meta?.next_cursor || null);
 
       markRssPostsAsSeen(rssPosts);
