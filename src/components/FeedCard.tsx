@@ -248,24 +248,27 @@ const FeedCard = ({
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const displayTweet = tweet.repostedPost || tweet;
   const isRepost = Boolean(tweet.isRepost || tweet.repostedPost);
-  const isRssPost = String(displayTweet.sourceType || tweet.sourceType || '').trim().toLowerCase() === 'rss';
+  const normalizedSourceType = String(displayTweet.sourceType || tweet.sourceType || '').trim().toLowerCase();
+  const isRssPost = normalizedSourceType === 'rss';
+  const isWebArticle = normalizedSourceType === 'web_article';
+  const isArticleCard = isRssPost || isWebArticle;
   const repostedByUsername = (tweet.repostedByUsername || tweet.author?.username || '').trim().replace(/^@/, '');
   const repostedByName = (tweet.repostedByName || tweet.author?.name || '').trim();
   const hasThaiSummary = hasUsefulThaiSummary(displayTweet.summary, displayTweet.text);
   const displayText = hasThaiSummary ? displayTweet.summary : displayTweet.text;
-  const extractedImageUrl = isRssPost ? extractFirstImageUrl(displayTweet.text || displayTweet.summary || displayTweet.full_text || '') : '';
+  const extractedImageUrl = isArticleCard ? extractFirstImageUrl(displayTweet.text || displayTweet.summary || displayTweet.full_text || '') : '';
   const previewImageUrl = displayTweet.primaryImageUrl || displayTweet.imageUrls?.[0] || extractedImageUrl || '';
   const hasMediaPreview = Boolean(displayTweet.isXVideo || previewImageUrl);
-  const rssCardPresentation = isRssPost
+  const rssCardPresentation = isArticleCard
     ? getRssCardPresentation(displayTweet, { hasMediaPreview })
     : null;
-  const displayTitle = isRssPost
+  const displayTitle = isArticleCard
     ? (rssCardPresentation?.title || '')
     : getPreferredPostTitle(displayTweet);
-  const rssSummaryText = isRssPost
+  const rssSummaryText = isArticleCard
     ? (rssCardPresentation?.summary || '')
     : getPreferredPostSummary(displayTweet);
-  const shouldShowRssTitle = isRssPost && !!String(displayTitle || '').trim();
+  const shouldShowRssTitle = isArticleCard && !!String(displayTitle || '').trim();
   const imageUrls = useMemo(
     () =>
       Array.from(
@@ -277,11 +280,11 @@ const FeedCard = ({
     [displayTweet.imageUrls, previewImageUrl],
   );
   const shouldShowRssSummary =
-    isRssPost &&
+    isArticleCard &&
     !!String(rssSummaryText || '').trim();
   const isReadableArticle =
     Boolean(onReadArticle) &&
-    ['rss', 'web_article'].includes(String(displayTweet.sourceType || '').trim().toLowerCase()) &&
+    isArticleCard &&
     Boolean(displayTweet.url);
   const authorUsername = (displayTweet.author?.username || '').trim().replace(/^@/, '').toLowerCase();
   const postUrl = useMemo(
@@ -441,7 +444,7 @@ const FeedCard = ({
       }
       : null,
   ].filter(Boolean) as FeedCardFooterBadge[];
-  const showSocialStats = !isRssPost;
+  const showSocialStats = !isArticleCard;
   const shouldShowFooterMeta = showSocialStats || footerBadges.length > 0;
   const showRepostBanner = false;
   const showInlineReplyBanner = false;
@@ -539,7 +542,7 @@ const FeedCard = ({
                 </div>
               </div>
               <div style={{ color: 'var(--text-dim)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                <span>{isRssPost && tweet.url ? new URL(tweet.url).hostname.replace('www.', '') : `@${displayTweet.author?.username}`}</span>
+                <span>{isArticleCard && tweet.url ? new URL(tweet.url).hostname.replace('www.', '') : `@${displayTweet.author?.username}`}</span>
               </div>
             </div>
           </button>
@@ -626,25 +629,25 @@ const FeedCard = ({
             </div>
           )}
 
-          {isRssPost && (
+          {isArticleCard && (
             <div
               style={{
-                background: 'rgba(251, 146, 60, 0.14)',
+                background: isWebArticle ? 'rgba(96, 165, 250, 0.14)' : 'rgba(251, 146, 60, 0.14)',
                 padding: '0 10px',
                 borderRadius: '100px',
                 fontSize: '10px',
                 fontWeight: '900',
-                color: '#fdba74',
-                border: '1px solid rgba(251, 146, 60, 0.28)',
+                color: isWebArticle ? '#bfdbfe' : '#fdba74',
+                border: isWebArticle ? '1px solid rgba(96, 165, 250, 0.28)' : '1px solid rgba(251, 146, 60, 0.28)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '5px',
                 height: '26px',
               }}
-              title="RSS news source"
+              title={isWebArticle ? 'Web article source' : 'RSS news source'}
             >
-              RSS
+              {isWebArticle ? 'WEB' : 'RSS'}
             </div>
           )}
 
@@ -710,7 +713,7 @@ const FeedCard = ({
           </button>
 
           <a
-            href={isRssPost ? (tweet.url || '#') : `https://x.com/${displayTweet.author?.username || 'i'}/status/${displayTweet.id}`}
+            href={isArticleCard ? (tweet.url || '#') : `https://x.com/${displayTweet.author?.username || 'i'}/status/${displayTweet.id}`}
             target="_blank"
             rel="noopener noreferrer"
             style={{
@@ -887,17 +890,17 @@ const FeedCard = ({
                 {displayTitle}
               </div>
             )}
-            {(!isRssPost || shouldShowRssSummary || !shouldShowRssTitle) && (
+            {(!isArticleCard || shouldShowRssSummary || !shouldShowRssTitle) && (
               <p
                 className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
                 style={{
                   ...FEED_CARD_BODY_COPY_STYLE,
-                  lineHeight: isRssPost ? '1.58' : FEED_CARD_BODY_COPY_STYLE.lineHeight,
-                  color: isRssPost ? 'rgba(255, 255, 255, 0.78)' : FEED_CARD_BODY_COPY_STYLE.color,
-                  WebkitLineClamp: isRssPost ? (rssCardPresentation?.summaryLineClamp || 3) : FEED_CARD_BODY_COPY_STYLE.WebkitLineClamp,
+                  lineHeight: isArticleCard ? '1.58' : FEED_CARD_BODY_COPY_STYLE.lineHeight,
+                  color: isArticleCard ? 'rgba(255, 255, 255, 0.78)' : FEED_CARD_BODY_COPY_STYLE.color,
+                  WebkitLineClamp: isArticleCard ? (rssCardPresentation?.summaryLineClamp || 3) : FEED_CARD_BODY_COPY_STYLE.WebkitLineClamp,
                 }}
               >
-                {isRssPost ? (rssSummaryText || displayTitle) : displayText}
+                {isArticleCard ? (rssSummaryText || displayTitle) : displayText}
               </p>
             )}
           </div>
@@ -921,25 +924,25 @@ const FeedCard = ({
               {displayTitle}
             </div>
           )}
-          {(!isRssPost || shouldShowRssSummary || !shouldShowRssTitle) && (
+          {(!isArticleCard || shouldShowRssSummary || !shouldShowRssTitle) && (
             <p
               className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
               style={{
                 ...FEED_CARD_BODY_COPY_STYLE,
-                lineHeight: isRssPost ? '1.58' : FEED_CARD_BODY_COPY_STYLE.lineHeight,
-                color: isRssPost ? 'rgba(255, 255, 255, 0.78)' : FEED_CARD_BODY_COPY_STYLE.color,
-                WebkitLineClamp: isRssPost ? (rssCardPresentation?.summaryLineClamp || 3) : FEED_CARD_BODY_COPY_STYLE.WebkitLineClamp,
+                lineHeight: isArticleCard ? '1.58' : FEED_CARD_BODY_COPY_STYLE.lineHeight,
+                color: isArticleCard ? 'rgba(255, 255, 255, 0.78)' : FEED_CARD_BODY_COPY_STYLE.color,
+                WebkitLineClamp: isArticleCard ? (rssCardPresentation?.summaryLineClamp || 3) : FEED_CARD_BODY_COPY_STYLE.WebkitLineClamp,
               }}
             >
-              {isRssPost ? (rssSummaryText || displayTitle) : displayText}
+              {isArticleCard ? (rssSummaryText || displayTitle) : displayText}
             </p>
           )}
         </div>
       )}
 
-      <div className={footerClassName} style={{ ...FEED_CARD_FOOTER_STYLE, ...(isRssPost && !shouldShowFooterMeta ? { flexWrap: 'nowrap' } : {}) }}>
+      <div className={footerClassName} style={{ ...FEED_CARD_FOOTER_STYLE, ...(isArticleCard && !shouldShowFooterMeta ? { flexWrap: 'nowrap' } : {}) }}>
         {isReadableArticle && (
-          <div className="feed-card-priority-action-slot" style={isRssPost && !shouldShowFooterMeta ? { width: 'auto' } : undefined}>
+          <div className="feed-card-priority-action-slot" style={isArticleCard && !shouldShowFooterMeta ? { width: 'auto' } : undefined}>
             <FeedCardActionButton
               icon={FileText}
               label="อ่านเนื้อหา"
@@ -1015,7 +1018,7 @@ const FeedCard = ({
             >
               <div onClick={stopImageViewerPropagation} style={{ minWidth: 0 }}>
                 <div className="modal-title" style={{ fontSize: '16px', marginBottom: '4px' }}>
-                  {isRssPost
+                  {isArticleCard
                     ? `รูปภาพจาก ${displayTweet.author?.name || 'แหล่งข่าว'}`
                     : `รูปภาพจาก @${tweet.author?.username || 'x'}`}
                 </div>
@@ -1032,7 +1035,7 @@ const FeedCard = ({
                   style={{ height: '36px', padding: '0 14px', fontSize: '12px', background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)' }}
                 >
                   <ExternalLink size={13} />
-                  {isRssPost ? 'เปิดต้นฉบับ' : 'เปิดบน X'}
+                  {isArticleCard ? 'เปิดต้นฉบับ' : 'เปิดบน X'}
                 </a>
                 <button
                   className="modal-close-btn"

@@ -143,6 +143,42 @@ const buildSearchSummaryWebContext = (sources: any[] = []) =>
     .filter(Boolean)
     .join('\n');
 
+const toWebSearchCards = (sources: any[] = [], latestMode = false) =>
+  sources
+    .filter((source: any) => source?.url && (source?.title || source?.content || source?.raw_content))
+    .map((source: any, index: number) => {
+      let hostname = 'web';
+
+      try {
+        hostname = new URL(source.url).hostname.replace(/^www\./i, '') || hostname;
+      } catch {
+        hostname = 'web';
+      }
+
+      const title = String(source.title || '').trim();
+      const content = String(source.content || source.raw_content || source.snippet || '').trim();
+      const summary = content || title;
+
+      return sanitizeStoredPost({
+        id: `web:${source.url}:${index}`,
+        type: 'post',
+        sourceType: 'web_article',
+        title,
+        text: summary,
+        summary,
+        full_text: summary,
+        url: source.url,
+        citation_id: source.citation_id || `[W${index + 1}]`,
+        author: {
+          name: hostname,
+          username: hostname,
+          profile_image_url: '',
+        },
+        temporalTag: latestMode ? 'Breaking' : 'Related',
+        ai_reasoning: 'Matched from web search coverage when social and RSS sources were limited.',
+      });
+    });
+
 const RSS_SEARCH_STOP_TERMS = new Set([
   'a',
   'an',
@@ -805,6 +841,7 @@ export const useSearchWorkspace = ({
         let webContext = '';
         let searchPlan = activeSearchPlan;
         let resolvedSearchWebSources: any[] = [];
+        let webFallbackResults: any[] = [];
         const broadBlueprint = effectiveBroadDiscoveryQuery
           ? getBroadQueryBlueprint(requestedQuery)
           : null;
@@ -1004,9 +1041,11 @@ export const useSearchWorkspace = ({
               .filter(Boolean)
               .join('\n\n');
             resolvedSearchWebSources = webResultsWithCitations;
+            webFallbackResults = toWebSearchCards(webResultsWithCitations, effectiveLatestMode);
             setSearchWebSources(webResultsWithCitations);
           } else {
             resolvedSearchWebSources = [];
+            webFallbackResults = [];
             setSearchWebSources([]);
           }
 
@@ -1113,6 +1152,49 @@ export const useSearchWorkspace = ({
           return;
         }
 
+        if (!isMore && data.length === 0 && webFallbackResults.length > 0) {
+          const effectiveSummaryMode = resolveAutomaticSummaryMode(webFallbackResults, searchMediaType);
+
+          setSearchResults(webFallbackResults);
+          setSearchOverflowResults([]);
+          setSearchCursor(finalCursor);
+          setActiveSearchFocus(effectiveFocus);
+          setStatus(`Found ${webFallbackResults.length} web articles from search context`);
+
+          const snapshot: SearchCacheSnapshot = {
+            lastSubmittedSearchQuery: normalizedRequestedQueryLabel,
+            searchCursor: finalCursor,
+            searchOverflowResults: [],
+            searchResults: webFallbackResults,
+            searchSummary: '',
+            searchWebSources: resolvedSearchWebSources,
+          };
+          queryClient.setQueryData(cacheKey, snapshot);
+
+          setStatus('[Agent 3/3] Generating executive summary from web coverage...');
+          setSearchSummary('');
+          void generateSearchSummary({
+            summaryCandidates: buildSummaryCandidates(
+              webFallbackResults,
+              effectiveSummaryMode,
+              effectiveLatestMode,
+              effectiveFocus,
+            ),
+            requestedQuery,
+            webContext,
+            preferXSummary: false,
+            focusMode: effectiveFocus,
+            summaryMode: effectiveSummaryMode,
+            cacheKey,
+            cachedWebSources: resolvedSearchWebSources,
+          })
+            .catch((summaryError) => {
+              console.warn('[Search] Executive summary failed:', summaryError);
+            });
+
+          return;
+        }
+
         if (data.length > 0) {
           setStatus('[Quality Gate] คัดกรองและประเมิน Engagement...');
           const curated = curateSearchResults(data, rankingQuery, {
@@ -1209,16 +1291,22 @@ export const useSearchWorkspace = ({
           const mergedResults = isMore
             ? xResults
             : mergeSearchCards(xResults, rssSearchResults, effectiveLatestMode);
-          const effectiveSummaryMode = resolveAutomaticSummaryMode(mergedResults, searchMediaType);
+          const finalResults =
+            !isMore && mergedResults.length === 0 && webFallbackResults.length > 0
+              ? webFallbackResults
+              : mergedResults;
+          const effectiveSummaryMode = resolveAutomaticSummaryMode(finalResults, searchMediaType);
 
-          setSearchResults(mergedResults);
+          setSearchResults(finalResults);
           setSearchOverflowResults(effectiveBroadDiscoveryQuery ? nextOverflowResults : []);
           setSearchCursor(finalCursor);
           if (!isMore) {
             setActiveSearchFocus(effectiveFocus);
           }
 
-          if (cleanData.length === 0) {
+          if (cleanData.length === 0 && finalResults === webFallbackResults && webFallbackResults.length > 0) {
+            setStatus(`Found ${webFallbackResults.length} web articles after filtering low-signal social posts`);
+          } else if (cleanData.length === 0) {
             setStatus(`ไม่พบเนื้อหาที่มีประโยชน์ หรือถูก AI ปฏิเสธทั้งหมด (จาก ${data.length} โพสต์ที่อ้างอิง)`);
           } else {
             setStatus(`ค้นพบ ${cleanData.length} รายการ (กลั่นกรองโดย AI จากทั้งหมด ${data.length} โพสต์)`);
@@ -1228,7 +1316,7 @@ export const useSearchWorkspace = ({
             lastSubmittedSearchQuery: normalizedRequestedQueryLabel,
             searchCursor: finalCursor,
             searchOverflowResults: effectiveBroadDiscoveryQuery ? nextOverflowResults : [],
-            searchResults: mergedResults,
+            searchResults: finalResults,
             searchSummary: '',
             searchWebSources: resolvedSearchWebSources,
           };
@@ -1241,7 +1329,7 @@ export const useSearchWorkspace = ({
             const shouldPreferXSummary =
               searchMediaType === 'videos' || summaryIntent.queryKey === 'viral_video';
             const summaryCandidates = buildSummaryCandidates(
-              mergedResults,
+              finalResults,
               effectiveSummaryMode,
               effectiveLatestMode,
               effectiveFocus,
@@ -1262,7 +1350,7 @@ export const useSearchWorkspace = ({
               });
           }
 
-          progressivelyTranslateSearchResults(mergedResults);
+          progressivelyTranslateSearchResults(finalResults);
         } else {
           setStatus('ไม่พบข้อมูลสำหรับคำค้นหานี้');
         }
