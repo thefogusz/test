@@ -29,6 +29,7 @@ import {
   hasUsefulThaiSummary,
   sanitizeStoredPost,
 } from '../utils/appUtils';
+import { canonicalizePostListMember } from '../utils/rssSourceResolver';
 
 type SetState<T> = Dispatch<SetStateAction<T>>;
 type RssSeenRegistry = Record<string, Record<string, string>>;
@@ -362,7 +363,7 @@ export const useHomeFeedWorkspace = ({
         new Set(
           allMembers
             .filter(Boolean)
-            .map((member) => String(member).trim().toLowerCase()),
+            .map((member) => canonicalizePostListMember(member)),
         ),
       );
 
@@ -380,7 +381,7 @@ export const useHomeFeedWorkspace = ({
 
     return members.reduce(
       (acc, member) => {
-        const normalizedMember = String(member || '').trim().toLowerCase();
+        const normalizedMember = canonicalizePostListMember(member);
         if (!normalizedMember) return acc;
 
         if (normalizedMember.startsWith('rss:')) {

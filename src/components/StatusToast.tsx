@@ -1,14 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
 
 const PROCESSING_PATTERN =
   /(กำลัง|เชื่อมต่อ|โหลด|ค้นหา|วิเคราะห์|คัด|อัปเดต|สรุป|loading|processing|searching|preparing|analyzing|analysing|filtering|syncing)/i;
+
+const WARNING_PATTERN =
+  /(warning|invalid|not found|à¹„à¸¡à¹ˆà¸žà¸š|à¹„à¸¡à¹ˆà¸£à¸­à¸‡à¸£à¸±à¸š|rss issue|rss source)/i;
 
 const StatusToast = ({ status, message, hidden }) => {
   const [isVisible, setIsVisible] = useState(() => Boolean(status) && !hidden);
   const displayMessage = message || status;
   const isProcessing = PROCESSING_PATTERN.test(String(displayMessage || ''));
+  const isWarning = !isProcessing && WARNING_PATTERN.test(String(displayMessage || ''));
 
   useEffect(() => {
     if (!status || hidden) {
@@ -29,18 +33,20 @@ const StatusToast = ({ status, message, hidden }) => {
 
   return createPortal(
     <div
-      className={`status-toast ${isVisible ? 'visible' : ''} ${isProcessing ? 'is-processing' : 'is-complete'}`}
+      className={`status-toast ${isVisible ? 'visible' : ''} ${isProcessing ? 'is-processing' : isWarning ? 'is-warning' : 'is-complete'}`}
       role="status"
       aria-live="polite"
       aria-busy={isProcessing}
     >
       <div className="status-toast__ambient" aria-hidden="true" />
-      <div className={`status-toast__media ${isProcessing ? 'is-processing' : 'is-complete'}`} aria-hidden="true">
+      <div className={`status-toast__media ${isProcessing ? 'is-processing' : isWarning ? 'is-warning' : 'is-complete'}`} aria-hidden="true">
         <span className="status-toast__icon-glow" />
-        <div className={`status-toast__icon ${isProcessing ? 'is-processing' : 'is-complete'}`}>
+        <div className={`status-toast__icon ${isProcessing ? 'is-processing' : isWarning ? 'is-warning' : 'is-complete'}`}>
           <span className="status-toast__icon-core">
             {isProcessing ? (
               <RefreshCw size={16} strokeWidth={2.35} />
+            ) : isWarning ? (
+              <AlertTriangle size={16} strokeWidth={2.3} />
             ) : (
               <CheckCircle2 size={16} strokeWidth={2.3} />
             )}

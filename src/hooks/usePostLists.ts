@@ -3,12 +3,19 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { RSS_CATALOG } from '../config/rssCatalog';
 import { STORAGE_KEYS } from '../constants/storageKeys';
 import { getUserInfo } from '../services/TwitterService';
-import { deserializePostLists } from '../utils/appPersistence';
+import {
+  deserializePostLists,
+  getInvalidPostListMembers,
+  getMigratedPostListMembers,
+  resolveRssSourceId,
+  sanitizePostListMembers,
+} from '../utils/appPersistence';
 import {
   decodeShareListPayload,
   encodeShareListPayload,
   DEFAULT_POST_LIST_COLOR,
 } from '../features/post-lists/shareListCodec';
+import { canonicalizePostListMember } from '../utils/rssSourceResolver';
 import { usePersistentState } from './usePersistentState';
 
 type UsePostListsParams = {
@@ -45,6 +52,7 @@ export const usePostLists = ({
   const [listModal, setListModal] = useState({ show: false, mode: 'create', value: '' });
   const [isMobilePostListOpen, setIsMobilePostListOpen] = useState(false);
   const [reopenMobilePostListAfterModal, setReopenMobilePostListAfterModal] = useState(false);
+  const [postListWarnings, setPostListWarnings] = useState({});
 
   const normalizeMemberHandle = useCallback(
     (value = '') => String(value || '').trim().replace(/^@/, '').toLowerCase(),
@@ -67,6 +75,16 @@ export const usePostLists = ({
     [],
   );
 
+  const clearPostListWarning = useCallback((listId) => {
+    if (!listId) return;
+    setPostListWarnings((prev) => {
+      if (!prev?.[listId]) return prev;
+      const next = { ...(prev || {}) };
+      delete next[listId];
+      return next;
+    });
+  }, []);
+
   const rssSourceLookup = useMemo(() => {
     const byId = new Map();
 
@@ -79,11 +97,176 @@ export const usePostLists = ({
     return byId;
   }, [subscribedSources]);
 
+  useEffect(() => {
+    let nextWarningsFromCleanup = null;
+    let invalidCountFromCleanup = 0;
+    let migratedCountFromCleanup = 0;
+    let resolvedRssMembersFromCleanup = [];
+
+    setPostLists((prev) => {
+      if (!Array.isArray(prev) || prev.length === 0) return prev;
+
+      let changed = false;
+      const warningsForLists = {};
+      const next = prev.map((list) => {
+        const invalidMembers = getInvalidPostListMembers(list?.members);
+        const migratedMembers = getMigratedPostListMembers(list?.members);
+        const sanitizedMembers = sanitizePostListMembers(list?.members);
+        const originalMembers = Array.isArray(list?.members) ? list.members : [];
+        const normalizedOriginalMembers = originalMembers
+          .map((member) => normalizeMemberHandle(member))
+          .filter(Boolean);
+
+        if (invalidMembers.length > 0 && list?.id) {
+          warningsForLists[list.id] = {
+            invalidRssMembers: invalidMembers,
+          };
+          invalidCountFromCleanup += invalidMembers.length;
+        }
+
+        if (migratedMembers.length > 0) {
+          migratedCountFromCleanup += migratedMembers.length;
+        }
+
+        sanitizedMembers
+          .filter((member) => member.startsWith('rss:'))
+          .forEach((member) => {
+            resolvedRssMembersFromCleanup.push(member);
+          });
+
+        if (
+          sanitizedMembers.length === normalizedOriginalMembers.length &&
+          sanitizedMembers.every((member, index) => member === normalizedOriginalMembers[index])
+        ) {
+          return list;
+        }
+
+        changed = true;
+        return {
+          ...list,
+          members: sanitizedMembers,
+        };
+      });
+
+      nextWarningsFromCleanup = warningsForLists;
+
+      return changed ? next : prev;
+    });
+
+    if (nextWarningsFromCleanup) {
+      setPostListWarnings((current) => {
+        const validWarnings = Object.fromEntries(
+          Object.entries(current || {}).filter(([listId]) => nextWarningsFromCleanup[listId]),
+        );
+        const nextWarnings = {
+          ...validWarnings,
+          ...nextWarningsFromCleanup,
+        };
+        const currentSerialized = JSON.stringify(current || {});
+        const nextSerialized = JSON.stringify(nextWarnings);
+        return currentSerialized === nextSerialized ? current : nextWarnings;
+      });
+    }
+
+    if (resolvedRssMembersFromCleanup.length > 0) {
+      const resolvedSourceIds = Array.from(
+        new Set(
+          resolvedRssMembersFromCleanup
+            .map((member) => resolveRssSourceId(member.slice(4)))
+            .filter(Boolean),
+        ),
+      );
+
+      if (resolvedSourceIds.length > 0) {
+        setSubscribedSources((prev) => {
+          const next = Array.isArray(prev) ? [...prev] : [];
+          const seenIds = new Set(
+            next.map((source) => String(source?.id || '').trim().toLowerCase()).filter(Boolean),
+          );
+          let didChange = false;
+
+          resolvedSourceIds.forEach((sourceId) => {
+            const source = rssSourceLookup.get(sourceId);
+            if (!source || seenIds.has(sourceId)) return;
+            next.push(source);
+            seenIds.add(sourceId);
+            didChange = true;
+          });
+
+          return didChange ? next : prev;
+        });
+      }
+    }
+
+    if (invalidCountFromCleanup > 0) {
+      const statusParts = [];
+      if (migratedCountFromCleanup > 0) {
+        statusParts.push(`แก้ RSS source ให้ตรงกับ source จริง ${migratedCountFromCleanup} รายการ`);
+      }
+      statusParts.push(`ล้าง RSS source ที่ไม่รองรับออกจาก Post List ${invalidCountFromCleanup} รายการ`);
+      setStatus(statusParts.join(' • '));
+      return;
+    }
+
+    if (migratedCountFromCleanup > 0) {
+      setStatus(`แก้ RSS source ให้ตรงกับ source จริง ${migratedCountFromCleanup} รายการ`);
+    }
+  }, [rssSourceLookup, setPostLists, setStatus, setSubscribedSources]);
+
+  useEffect(() => {
+    const validListIds = new Set(
+      (Array.isArray(postLists) ? postLists : [])
+        .map((list) => String(list?.id || '').trim())
+        .filter(Boolean),
+    );
+
+    setPostListWarnings((prev) => {
+      const next = Object.fromEntries(
+        Object.entries(prev || {}).filter(([listId]) => validListIds.has(String(listId || ''))),
+      );
+      const prevSerialized = JSON.stringify(prev || {});
+      const nextSerialized = JSON.stringify(next);
+      return prevSerialized === nextSerialized ? prev : next;
+    });
+  }, [postLists]);
+
+  useEffect(() => {
+    const resolvedSourceIds = Array.from(
+      new Set(
+        (Array.isArray(postLists) ? postLists : [])
+          .flatMap((list) => sanitizePostListMembers(list?.members))
+          .filter((member) => member.startsWith('rss:'))
+          .map((member) => resolveRssSourceId(member.slice(4)))
+          .filter(Boolean),
+      ),
+    );
+
+    if (resolvedSourceIds.length === 0) return;
+
+    setSubscribedSources((prev) => {
+      const next = Array.isArray(prev) ? [...prev] : [];
+      const seenIds = new Set(
+        next.map((source) => String(source?.id || '').trim().toLowerCase()).filter(Boolean),
+      );
+      let didChange = false;
+
+      resolvedSourceIds.forEach((sourceId) => {
+        const source = rssSourceLookup.get(sourceId);
+        if (!source || seenIds.has(sourceId)) return;
+        next.push(source);
+        seenIds.add(sourceId);
+        didChange = true;
+      });
+
+      return didChange ? next : prev;
+    });
+  }, [postLists, rssSourceLookup, setSubscribedSources]);
+
   const ensureSubscribedRssSources = useCallback((handles: string[]) => {
     const normalizedHandles = Array.from(
       new Set(
         (Array.isArray(handles) ? handles : [])
-          .map((handle) => normalizeMemberHandle(handle))
+          .map((handle) => canonicalizePostListMember(handle))
           .filter((handle) => handle.startsWith('rss:')),
       ),
     );
@@ -252,18 +435,30 @@ export const usePostLists = ({
               .filter(Boolean),
           ),
         );
+        const sanitizedMembers = sanitizePostListMembers(newMembers);
+        const invalidImportedRssCount =
+          newMembers.filter((member) => member.startsWith('rss:')).length -
+          sanitizedMembers.filter((member) => member.startsWith('rss:')).length;
         const newList = {
           ...decoded,
           id: Date.now().toString(),
           createdAt: new Date().toISOString(),
-          members: newMembers,
+          members: sanitizedMembers,
         };
 
-        const rssSyncResult = ensureSubscribedRssSources(newMembers);
-        const twitterSyncResult = syncImportedTwitterMembersToWatchlist(newMembers);
+        const rssSyncResult = ensureSubscribedRssSources(sanitizedMembers);
+        const twitterSyncResult = syncImportedTwitterMembersToWatchlist(sanitizedMembers);
 
         setPostLists([...postLists, newList]);
         setActiveListId(newList.id);
+        if (invalidImportedRssCount > 0) {
+          setPostListWarnings((prev) => ({
+            ...(prev || {}),
+            [newList.id]: {
+              invalidRssMembers: getInvalidPostListMembers(newMembers),
+            },
+          }));
+        }
         const statusParts = [`นำเข้า Post List "${newList.name}" สำเร็จ (${newMembers.length} สมาชิก)`];
         if (rssSyncResult.addedCount > 0) {
           statusParts.push(`เพิ่ม RSS เข้าวอตช์ลิสต์ ${rssSyncResult.addedCount} แหล่ง`);
@@ -289,24 +484,34 @@ export const usePostLists = ({
   };
 
   const handleRemoveList = (id) => {
+    clearPostListWarning(id);
     setPostLists(prev => prev.filter(l => l.id !== id));
     if (activeListId === id) setActiveListId(null);
   };
 
-  const handleUpdateList = (id, updates) =>
-    setPostLists(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+  const handleUpdateList = (id, updates) => {
+    clearPostListWarning(id);
+    return setPostLists(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+  };
 
   const handleAddMember = (listId, handle) => {
-    const cleanHandle = normalizeMemberHandle(handle);
+    const cleanHandle = canonicalizePostListMember(handle);
     if (!cleanHandle) return;
 
     if (isRssMemberHandle(cleanHandle)) {
+      const rssSourceId = resolveRssSourceId(cleanHandle.slice(4));
+      if (!rssSourceLookup.get(rssSourceId)) {
+        setStatus('ไม่พบ RSS source นี้ในระบบ');
+        return;
+      }
+      clearPostListWarning(listId);
       ensureSubscribedRssSources([cleanHandle]);
       setPostLists(prev => prev.map(l => l.id === listId ? { ...l, members: [...new Set([...l.members, cleanHandle])] } : l));
       return;
     }
 
     if (!hasWatchlistRoomFor(cleanHandle)) return;
+    clearPostListWarning(listId);
     setPostLists(prev => prev.map(l => l.id === listId ? { ...l, members: [...new Set([...l.members, cleanHandle])] } : l));
     if (!watchlist.find(u => normalizeMemberHandle(u?.username) === cleanHandle)) {
       const newUser = buildPlaceholderWatchlistUser(cleanHandle);
@@ -315,8 +520,10 @@ export const usePostLists = ({
     }
   };
 
-  const handleRemoveMember = (handle, listId) =>
+  const handleRemoveMember = (handle, listId) => {
+    clearPostListWarning(listId);
     setPostLists(prev => prev.map(l => l.id === listId ? { ...l, members: l.members.filter(m => m.toLowerCase() !== handle.toLowerCase()) } : l));
+  };
 
   const handleShareList = async (list) => {
     if (!canUseExportShare()) return;
@@ -326,7 +533,7 @@ export const usePostLists = ({
 
   const handleToggleMemberInList = async (listId, contributor) => {
     const handle = typeof contributor === 'string' ? contributor : (contributor?.username || '');
-    const cleanHandle = normalizeMemberHandle(handle);
+    const cleanHandle = canonicalizePostListMember(handle);
     if (!cleanHandle) return;
     const targetList = (Array.isArray(postLists) ? postLists : []).find((list) => list.id === listId);
     const currentMembers = Array.isArray(targetList?.members) ? targetList.members : [];
@@ -336,6 +543,12 @@ export const usePostLists = ({
     if (!alreadyIn && !isRssMember && !hasWatchlistRoomFor(cleanHandle)) return;
 
     if (!alreadyIn && isRssMember) {
+      const rssSourceId = resolveRssSourceId(cleanHandle.slice(4));
+      if (!rssSourceLookup.get(rssSourceId)) {
+        setStatus('ไม่พบ RSS source นี้ในระบบ');
+        return;
+      }
+      clearPostListWarning(listId);
       ensureSubscribedRssSources([cleanHandle]);
     }
 
@@ -352,6 +565,7 @@ export const usePostLists = ({
       }
     }
 
+    clearPostListWarning(listId);
     setPostLists(prev => (prev || []).map(l => {
       if (l.id !== listId) return l;
       const members = Array.isArray(l.members) ? l.members : [];
@@ -376,6 +590,7 @@ export const usePostLists = ({
     activeListId,
     setActiveListId,
     currentActiveList,
+    postListWarnings,
     listModal,
     setListModal,
     isMobilePostListOpen,

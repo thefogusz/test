@@ -1,3 +1,5 @@
+import { canonicalizePostListMember } from '../../utils/rssSourceResolver';
+
 const DEFAULT_POST_LIST_COLOR = 'var(--accent-secondary)';
 
 const textEncoder = new TextEncoder();
@@ -53,7 +55,7 @@ const sanitizeShareListPayload = (payload: {
     new Set(
       (Array.isArray(payload?.members) ? payload.members : [])
         .filter((member) => typeof member === 'string')
-        .map((member) => normalizeHandle(member))
+        .map((member) => canonicalizePostListMember(member))
         .filter((member) => isSupportedShareMember(member)),
     ),
   );
@@ -73,7 +75,7 @@ export const encodeShareListPayload = async (list: {
   const compactPayload = {
     n: String(list?.name || '').slice(0, 60).trim() || 'List',
     m: Array.isArray(list?.members)
-      ? list.members.map((member) => normalizeHandle(member)).filter(Boolean)
+      ? list.members.map((member) => canonicalizePostListMember(member)).filter(Boolean)
       : [],
     ...(list?.color && list.color !== DEFAULT_POST_LIST_COLOR ? { c: list.color } : {}),
   };

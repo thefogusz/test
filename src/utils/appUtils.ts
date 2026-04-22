@@ -1,3 +1,5 @@
+import { canonicalizePostListMember, resolveRssSourceId } from './rssSourceResolver';
+
 export const safeParse = (value, fallback) => {
   if (!value) return fallback;
   try {
@@ -448,7 +450,7 @@ export const deriveVisibleFeed = ({
     if (activeList) {
       const activeMembers = new Set(
         (Array.isArray(activeList.members) ? activeList.members : [])
-          .map((member) => normalizeMemberHandle(member))
+          .map((member) => canonicalizePostListMember(member))
           .filter(Boolean),
       );
 
@@ -461,8 +463,9 @@ export const deriveVisibleFeed = ({
           if (!authorUsername) return false;
 
           if (authorUsername.startsWith('rss:')) {
-            const rssSourceId = normalizeMemberHandle(post.rssSourceId || authorUsername.slice(4));
-            return activeMembers.has(authorUsername) || (rssSourceId ? activeMembers.has(`rss:${rssSourceId}`) : false);
+            const rssSourceId = resolveRssSourceId(post.rssSourceId || authorUsername.slice(4));
+            const canonicalAuthorUsername = canonicalizePostListMember(authorUsername);
+            return activeMembers.has(canonicalAuthorUsername) || (rssSourceId ? activeMembers.has(`rss:${rssSourceId}`) : false);
           }
 
           return activeMembers.has(authorUsername);

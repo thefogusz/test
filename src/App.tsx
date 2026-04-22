@@ -115,6 +115,7 @@ const App = () => {
     activeListId,
     setActiveListId,
     currentActiveList,
+    postListWarnings,
     listModal,
     setListModal,
     isMobilePostListOpen,
@@ -623,6 +624,7 @@ const App = () => {
           watchlist={watchlist}
           subscribedSources={subscribedSources}
           postLists={postLists}
+          postListWarnings={postListWarnings}
           activeListId={activeListId}
           onSelectList={setActiveListId}
           onCreateList={handleCreateListRequest}

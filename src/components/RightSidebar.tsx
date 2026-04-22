@@ -128,6 +128,7 @@ const RightSidebar = ({
   watchlist,
   subscribedSources,
   postLists,
+  postListWarnings,
   activeListId,
   onSelectList,
   onCreateList,
@@ -303,6 +304,10 @@ const RightSidebar = ({
             </div>
           )}
           {postLists.map(list => {
+            const listWarning = postListWarnings?.[list.id] || null;
+            const invalidRssMembers = Array.isArray(listWarning?.invalidRssMembers)
+              ? listWarning.invalidRssMembers
+              : [];
             const normalizedMembers = new Set(
               (Array.isArray(list.members) ? list.members : [])
                 .map(normalizeHandle)
@@ -341,20 +346,37 @@ const RightSidebar = ({
               String(left?.name || left?.id || '').localeCompare(String(right?.name || right?.id || '')),
             );
             const typeaheadAccounts = matchingAccounts.slice(0, 6);
+            const isRssQuery = normalizedQuery.startsWith('rss:');
             const exactMatch = normalizedQuery
               ? matchingAccounts.find((user) => normalizeHandle(user?.username) === normalizedQuery)
               : null;
+            const exactSourceMatch = normalizedQuery
+              ? matchingSources.find(
+                (source) => `rss:${String(source?.id || '').trim().toLowerCase()}` === normalizedQuery,
+              )
+              : null;
             const singleMatch = matchingAccounts.length === 1 ? matchingAccounts[0] : null;
-            const canAddManually = normalizedQuery && !normalizedMembers.has(normalizedQuery) && matchingAccounts.length === 0;
+            const singleSourceMatch = matchingSources.length === 1 ? matchingSources[0] : null;
+            const canAddManually =
+              normalizedQuery &&
+              !isRssQuery &&
+              !normalizedMembers.has(normalizedQuery) &&
+              matchingAccounts.length === 0;
             const highlightedAccount = typeaheadAccounts[highlightedSuggestion] || null;
             const helperText = !normalizedQuery
               ? `Browse ${availableAccounts.length} accounts and ${availableSources.length} sources from your saved watchlist.`
               : exactMatch
                 ? `Press Enter to add @${exactMatch.username}.`
+                : exactSourceMatch
+                  ? `Press Enter to add ${exactSourceMatch.name}.`
                 : singleMatch
                   ? `Press Enter to add @${singleMatch.username}.`
+                  : singleSourceMatch
+                    ? `Press Enter to add ${singleSourceMatch.name}.`
                   : canAddManually
                     ? `No watchlist match found. Press Enter to add @${normalizedQuery} manually.`
+                    : isRssQuery
+                      ? `Pick an RSS source from the list below. Manual RSS ids are disabled to avoid broken post lists.`
                     : `Found ${matchingAccounts.length} accounts and ${matchingSources.length} sources in your saved watchlist.`;
             const handleSubmitAdd = () => {
               if (!normalizedQuery) return;
@@ -365,8 +387,20 @@ const RightSidebar = ({
                 return;
               }
 
+              if (exactSourceMatch) {
+                onAddMember(list.id, `rss:${exactSourceMatch.id}`);
+                setAddHandle('');
+                return;
+              }
+
               if (singleMatch) {
                 onAddMember(list.id, singleMatch.username);
+                setAddHandle('');
+                return;
+              }
+
+              if (singleSourceMatch) {
+                onAddMember(list.id, `rss:${singleSourceMatch.id}`);
                 setAddHandle('');
                 return;
               }
@@ -512,8 +546,23 @@ const RightSidebar = ({
                       {list.name}
                     </div>
                   )}
-                  <div className="list-meta" style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div className="list-meta" style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
                     <Users size={12} /> {list.members.length}
+                    {invalidRssMembers.length > 0 && (
+                      <span
+                        style={{
+                          marginLeft: '6px',
+                          padding: '2px 8px',
+                          borderRadius: '999px',
+                          background: 'rgba(245, 158, 11, 0.16)',
+                          color: '#fbbf24',
+                          fontSize: '11px',
+                          fontWeight: '700',
+                        }}
+                      >
+                        RSS issue {invalidRssMembers.length}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -563,6 +612,23 @@ const RightSidebar = ({
                 </div>
               </div>
 
+              {invalidRssMembers.length > 0 && (
+                <div
+                  style={{
+                    margin: '4px 10px 10px 72px',
+                    padding: '8px 10px',
+                    borderRadius: '10px',
+                    background: 'rgba(245, 158, 11, 0.1)',
+                    border: '1px solid rgba(245, 158, 11, 0.24)',
+                    color: '#fde68a',
+                    fontSize: '12px',
+                    lineHeight: '1.5',
+                  }}
+                >
+                  RSS บางตัวถูกตัดออกเพราะ source ไม่รองรับ: {invalidRssMembers.join(', ')}
+                </div>
+              )}
+
               {/* Color Swatches - shown ONLY when expanded */}
               {currentExpandedId === list.id && (
                 <div className="post-list-expand-swatches" style={{ display: 'flex', padding: '4px 12px 12px' }}>
@@ -587,6 +653,31 @@ const RightSidebar = ({
               {/* Spotify-Style Expanded Members View */}
               {currentExpandedId === list.id && (
                 <div className="list-members-container post-list-expand-panel" style={{ padding: '0 8px 16px 12px' }}>
+                  {invalidRssMembers.length > 0 && (
+                    <div
+                      style={{
+                        margin: '0 4px 14px',
+                        padding: '12px 14px',
+                        borderRadius: '12px',
+                        background: 'rgba(245, 158, 11, 0.1)',
+                        border: '1px solid rgba(245, 158, 11, 0.28)',
+                        color: '#fde68a',
+                      }}
+                    >
+                      <div style={{ fontSize: '12px', fontWeight: '800', letterSpacing: '0.08em', marginBottom: '6px' }}>
+                        RSS WARNING
+                      </div>
+                      <div style={{ fontSize: '13px', lineHeight: '1.5' }}>
+                        ระบบตัด RSS source ที่ไม่รองรับออกจากลิสต์นี้แล้ว เพื่อไม่ให้ฟีดหายแบบไม่มีคำอธิบาย
+                      </div>
+                      <div style={{ fontSize: '12px', lineHeight: '1.6', color: '#fcd34d', marginTop: '8px' }}>
+                        {invalidRssMembers.join(', ')}
+                      </div>
+                      <div style={{ fontSize: '12px', lineHeight: '1.5', color: 'rgba(255,255,255,0.72)', marginTop: '8px' }}>
+                        วิธีแก้: เพิ่ม RSS ใหม่จากรายการ Available sources ด้านล่าง หรือเลือก source ที่ id ถูกต้อง
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Search/Add Input - Spotify Style */}
                   <div ref={addInputAreaRef} style={{ position: 'relative', marginBottom: '16px', padding: '0 4px' }}>
