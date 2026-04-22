@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { STORAGE_KEYS } from '../constants/storageKeys';
 import { getUserInfo } from '../services/TwitterService';
@@ -101,14 +101,22 @@ const dedupeAudienceExperts = (items = []) => {
   return deduped;
 };
 
+const filterAudienceExperts = (items = [], excludedHandles = new Set()) =>
+  dedupeAudienceExperts(items).filter((item) => {
+    const handle = normalizeHandle(item?.username);
+    return handle && !excludedHandles.has(handle);
+  });
+
 type UseAudienceSearchParams = {
   watchlist: any[];
+  watchlistHandleSet?: Set<string>;
   hasWatchlistRoomFor: (handle: string) => boolean;
   handleAddUser: (user: any) => void;
 };
 
 export const useAudienceSearch = ({
   watchlist,
+  watchlistHandleSet,
   hasWatchlistRoomFor,
   handleAddUser: addUserToWatchlist,
 }: UseAudienceSearchParams) => {
@@ -123,6 +131,12 @@ export const useAudienceSearch = ({
   const [aiSearchError, setAiSearchError] = useState('');
   const [manualQuery, setManualQuery] = useState('');
   const [manualPreview, setManualPreview] = useState(null);
+  const effectiveWatchlistHandleSet = useMemo(
+    () =>
+      watchlistHandleSet ??
+      new Set((watchlist || []).map((user) => normalizeHandle(user?.username)).filter(Boolean)),
+    [watchlist, watchlistHandleSet],
+  );
 
   const aiSearchMutation = useMutation({
     mutationFn: async ({ query, excludes }) => {
@@ -167,17 +181,24 @@ export const useAudienceSearch = ({
         setAiSearchHasMore(false);
       }
       const excludes = [
-        ...watchlist.map(u => u.username),
-        ...(isMore ? aiSearchSeenUsernames : [])
+        ...Array.from(effectiveWatchlistHandleSet),
+        ...(isMore ? aiSearchSeenUsernames : []),
       ];
       if (isMore && aiSearchOverflowResults.length > 0) {
-        const nextResults = aiSearchOverflowResults.slice(0, 6);
-        const remainingOverflow = aiSearchOverflowResults.slice(6);
-        setAiSearchResults(prev => [...prev, ...nextResults]);
-        setAiSearchOverflowResults(remainingOverflow);
-        setAiSearchSeenUsernames(prev => Array.from(new Set([...prev, ...nextResults.map(u => u.username).filter(Boolean)])));
-        setAiSearchHasMore(nextResults.length > 0);
-        return nextResults.length;
+        const availableOverflow = filterAudienceExperts(aiSearchOverflowResults, effectiveWatchlistHandleSet);
+        if (availableOverflow.length > 0) {
+          const nextResults = availableOverflow.slice(0, 6);
+          const remainingOverflow = availableOverflow.slice(6);
+          setAiSearchResults(prev => [...prev, ...nextResults]);
+          setAiSearchOverflowResults(remainingOverflow);
+          setAiSearchSeenUsernames((prev) =>
+            Array.from(new Set([...prev, ...nextResults.map((u) => normalizeHandle(u?.username)).filter(Boolean)])),
+          );
+          setAiSearchHasMore(nextResults.length > 0);
+          return nextResults.length;
+        }
+
+        setAiSearchOverflowResults([]);
       }
 
       let nextExperts = [];
@@ -240,8 +261,11 @@ export const useAudienceSearch = ({
 
       if (isMore) {
         if (nextExperts.length > 0) {
-          const seen = new Set(aiSearchResults.map((item) => normalizeHandle(item?.username)));
-          const uniqueCandidates = combinedCandidates.filter((item) => !seen.has(normalizeHandle(item?.username)));
+          const seen = new Set([
+            ...Array.from(effectiveWatchlistHandleSet),
+            ...aiSearchResults.map((item) => normalizeHandle(item?.username)),
+          ]);
+          const uniqueCandidates = filterAudienceExperts(combinedCandidates, seen);
           const appended = uniqueCandidates.slice(0, 6);
           appendedCount = appended.length;
           appendedHandles = appended.map((item) => item?.username).filter(Boolean);
@@ -266,14 +290,16 @@ export const useAudienceSearch = ({
           }
         }
       } else {
-        const excludedHandles = new Set(excludes.map(normalizeHandle));
-        const fallbackExperts = buildAudienceFallbackExperts(query)
-          .filter((item) => !excludedHandles.has(normalizeHandle(item?.username)));
-        const initialCandidates = dedupeAudienceExperts([
+        const excludedHandles = new Set([
+          ...Array.from(effectiveWatchlistHandleSet),
+          ...excludes.map(normalizeHandle),
+        ]);
+        const fallbackExperts = filterAudienceExperts(buildAudienceFallbackExperts(query), excludedHandles);
+        const initialCandidates = filterAudienceExperts([
           ...nextExperts,
           ...overflowExperts,
           ...fallbackExperts,
-        ]);
+        ], excludedHandles);
         const initialResults = initialCandidates.slice(0, AUDIENCE_INITIAL_RESULT_TARGET);
         const remainingCandidates = initialCandidates.slice(AUDIENCE_INITIAL_RESULT_TARGET);
 
@@ -287,32 +313,25 @@ export const useAudienceSearch = ({
       if (isMore) {
         setAiSearchOverflowResults((prev) => {
           const seen = new Set([
+            ...Array.from(effectiveWatchlistHandleSet),
             ...aiSearchResults.map((item) => normalizeHandle(item?.username)),
             ...nextExperts.map((item) => normalizeHandle(item?.username)),
           ]);
-          const queued = [...prev, ...combinedCandidates]
-            .filter((item) => !seen.has(normalizeHandle(item?.username)));
-          const deduped = [];
-          const queuedSeen = new Set();
-          queued.forEach((item) => {
-            const handle = normalizeHandle(item?.username);
-            if (!handle || queuedSeen.has(handle)) return;
-            queuedSeen.add(handle);
-            deduped.push(item);
-          });
-          return deduped;
+          return filterAudienceExperts([...prev, ...combinedCandidates], seen);
         });
       } else {
-        setAiSearchOverflowResults(overflowExperts);
+        setAiSearchOverflowResults(filterAudienceExperts(overflowExperts, effectiveWatchlistHandleSet));
       }
       setAiSearchSeenUsernames(prev => {
         const nextSeen = [
           ...(isMore ? prev : []),
-          ...nextExperts.map(u => u.username).filter(Boolean),
-          ...overflowExperts.map(u => u.username).filter(Boolean),
-          ...appendedHandles,
+          ...nextExperts.map((u) => normalizeHandle(u?.username)).filter(Boolean),
+          ...overflowExperts.map((u) => normalizeHandle(u?.username)).filter(Boolean),
+          ...appendedHandles.map((item) => normalizeHandle(item)).filter(Boolean),
         ];
-        return Array.from(new Set(nextSeen));
+        return Array.from(
+          new Set(nextSeen.filter((handle) => handle && !effectiveWatchlistHandleSet.has(handle))),
+        );
       });
       setAiSearchHasMore(isMore ? appendedCount > 0 : (nextExperts.length > 0 || overflowExperts.length > 0));
       if (!isMore) setHasSearchedAudience(true);
@@ -357,7 +376,7 @@ export const useAudienceSearch = ({
     aiSearchResults,
     aiSearchHasMore,
     setAiSearchResults: (nextResults) => {
-      setAiSearchResults(nextResults);
+      setAiSearchResults(filterAudienceExperts(nextResults, effectiveWatchlistHandleSet));
       setAiSearchOverflowResults([]);
       setAiSearchSeenUsernames([]);
       setAiSearchHasMore(false);

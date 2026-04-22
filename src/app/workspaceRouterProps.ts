@@ -283,6 +283,7 @@ export const createWorkspaceRouterProps = (args: WorkspaceRouterBuilderArgs) => 
       setAiSearchResults,
       hasSearchedAudience,
       watchlist,
+      watchlistHandleSet,
       postLists,
       handleToggleMemberInList,
       handleAddExpert,

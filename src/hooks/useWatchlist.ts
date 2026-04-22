@@ -5,6 +5,8 @@ import { getUserInfo } from '../services/TwitterService';
 import { deserializeWatchlist } from '../utils/appPersistence';
 import { usePersistentState } from './usePersistentState';
 
+const normalizeHandle = (value = '') => String(value || '').trim().replace(/^@/, '').toLowerCase();
+
 type UseWatchlistParams = {
   currentPlan: any;
   openPricingWithStatus: (message: string) => void;
@@ -17,14 +19,14 @@ export const useWatchlist = ({ currentPlan, openPricingWithStatus, setStatus }: 
   });
 
   const watchlistHandleSet = useMemo(
-    () => new Set((watchlist || []).map((user) => (user?.username || '').toLowerCase()).filter(Boolean)),
+    () => new Set((watchlist || []).map((user) => normalizeHandle(user?.username)).filter(Boolean)),
     [watchlist],
   );
 
   const hasWatchlistRoomFor = (handle) => {
-    const normalizedHandle = String(handle || '').trim().replace(/^@/, '').toLowerCase();
+    const normalizedHandle = normalizeHandle(handle);
     if (!normalizedHandle) return true;
-    if (watchlist.some((user) => (user.username || '').toLowerCase() === normalizedHandle)) {
+    if (watchlistHandleSet.has(normalizedHandle)) {
       return true;
     }
 
@@ -58,22 +60,39 @@ export const useWatchlist = ({ currentPlan, openPricingWithStatus, setStatus }: 
   };
 
   const handleAddUser = (user) => {
-    if (!hasWatchlistRoomFor(user?.username)) return;
-    setWatchlist(prev => [user, ...prev]);
+    const username = normalizeHandle(user?.username);
+    if (!hasWatchlistRoomFor(username)) return;
+
+    setWatchlist((prev) => {
+      if (username && prev.some((existingUser) => normalizeHandle(existingUser?.username) === username)) return prev;
+      return [user, ...prev];
+    });
   };
 
   const handleAddExpert = async (expert) => {
-    if (!hasWatchlistRoomFor(expert?.username)) return;
-    const full = await getUserInfo(expert.username);
-    if (full) setWatchlist(prev => [full, ...prev]);
+    const username = normalizeHandle(expert?.username);
+    if (!username) return;
+    if (!hasWatchlistRoomFor(username)) return;
+    if (watchlistHandleSet.has(username)) {
+      setStatus(`@${username} à¸­à¸¢à¸¹à¹ˆà¹ƒà¸™ Watchlist à¹à¸¥à¹‰à¸§`);
+      return;
+    }
+
+    const full = await getUserInfo(username);
+    if (!full) return;
+
+    setWatchlist((prev) => {
+      if (prev.some((existingUser) => normalizeHandle(existingUser?.username) === username)) return prev;
+      return [full, ...prev];
+    });
   };
 
   const handleAddSearchAuthorToWatchlist = async (post) => {
-    const username = (post?.author?.username || '').trim().replace(/^@/, '').toLowerCase();
+    const username = normalizeHandle(post?.author?.username);
     if (!username) return;
     if (!hasWatchlistRoomFor(username)) return;
 
-    const existingUser = watchlist.find((user) => (user.username || '').toLowerCase() === username);
+    const existingUser = watchlist.find((user) => normalizeHandle(user?.username) === username);
     if (existingUser) {
       setStatus(`@${username} อยู่ใน Watchlist แล้ว`);
       return;
@@ -91,7 +110,7 @@ export const useWatchlist = ({ currentPlan, openPricingWithStatus, setStatus }: 
       const nextUser = fullUser || fallbackUser;
 
       setWatchlist((prev) => {
-        if (prev.some((user) => (user.username || '').toLowerCase() === username)) return prev;
+        if (prev.some((user) => normalizeHandle(user?.username) === username)) return prev;
         return [nextUser, ...prev];
       });
 
@@ -107,7 +126,7 @@ export const useWatchlist = ({ currentPlan, openPricingWithStatus, setStatus }: 
         isPlaceholder: true,
       };
       setWatchlist((prev) => {
-        if (prev.some((user) => (user.username || '').toLowerCase() === username)) return prev;
+        if (prev.some((user) => normalizeHandle(user?.username) === username)) return prev;
         return [fallbackUser, ...prev];
       });
       resolvePlaceholders([fallbackUser]);

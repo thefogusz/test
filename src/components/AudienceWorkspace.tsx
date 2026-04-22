@@ -176,6 +176,8 @@ const getExpertAvatarSrc = (expert) => {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(expert?.name || expert?.username || 'FORO')}&background=101826&color=bfdbfe&bold=true&size=128`;
 };
 
+const normalizeAudienceHandle = (value = '') => String(value || '').trim().replace(/^@/, '').toLowerCase();
+
 const AudienceWorkspace = ({
   isVisible,
   audienceTab,
@@ -191,6 +193,7 @@ const AudienceWorkspace = ({
   hasSearchedAudience,
 
   watchlist,
+  watchlistHandleSet,
   postLists,
   handleToggleMemberInList,
   handleAddExpert,
@@ -312,11 +315,28 @@ const AudienceWorkspace = ({
     setAiSearchResults([]);
     setVisibleAiCount(6);
   };
-  const hasAiResults = aiSearchResults.length > 0;
+  const effectiveWatchlistHandleSet = React.useMemo(
+    () =>
+      watchlistHandleSet ??
+      new Set((watchlist || []).map((user) => normalizeAudienceHandle(user?.username)).filter(Boolean)),
+    [watchlist, watchlistHandleSet],
+  );
+  const filteredAiResults = React.useMemo(
+    () =>
+      aiSearchResults.filter(
+        (expert) => !effectiveWatchlistHandleSet.has(normalizeAudienceHandle(expert?.username)),
+      ),
+    [aiSearchResults, effectiveWatchlistHandleSet],
+  );
+  const hasAiResults = filteredAiResults.length > 0;
   const isRefreshingAiResults = aiSearchLoading && hasAiResults;
-  const visibleAiResults = React.useMemo(() => aiSearchResults.slice(0, visibleAiCount), [aiSearchResults, visibleAiCount]);
-  const hasLocallyHiddenAiResults = aiSearchResults.length > visibleAiCount;
-  const canLoadMoreAi = hasAiResults && (hasLocallyHiddenAiResults || aiSearchHasMore);
+  const visibleAiResults = React.useMemo(
+    () => filteredAiResults.slice(0, visibleAiCount),
+    [filteredAiResults, visibleAiCount],
+  );
+  const hasLocallyHiddenAiResults = filteredAiResults.length > visibleAiCount;
+  const canLoadMoreAi = hasLocallyHiddenAiResults || aiSearchHasMore;
+  const isManualPreviewAdded = effectiveWatchlistHandleSet.has(normalizeAudienceHandle(manualPreview?.username));
   const getExpertAvatarFallback = (expert) =>
     `https://ui-avatars.com/api/?name=${encodeURIComponent(expert.name || expert.username || 'FORO')}&background=101826&color=bfdbfe&bold=true`;
   const getExpertInitial = (expert) => String(expert.name || expert.username || 'F').trim().charAt(0).toUpperCase();
@@ -338,14 +358,14 @@ const AudienceWorkspace = ({
   const handleLoadMoreAi = React.useCallback(async () => {
     if (aiSearchLoading) return;
     if (hasLocallyHiddenAiResults) {
-      setVisibleAiCount((prev) => Math.min(prev + 6, aiSearchResults.length));
+      setVisibleAiCount((prev) => Math.min(prev + 6, filteredAiResults.length));
       return;
     }
     const appendedCount = await handleAiSearchAudience(null, true);
     if (appendedCount > 0) {
       setVisibleAiCount((prev) => prev + appendedCount);
     }
-  }, [aiSearchHasMore, aiSearchLoading, aiSearchResults.length, handleAiSearchAudience, hasLocallyHiddenAiResults]);
+  }, [aiSearchLoading, filteredAiResults.length, handleAiSearchAudience, hasLocallyHiddenAiResults]);
 
   return (
     <div style={{ display: isVisible ? 'block' : 'none' }}>
@@ -426,14 +446,14 @@ const AudienceWorkspace = ({
                   {aiSearchError}
                 </div>
               )}
-              {!aiSearchLoading && hasSearchedAudience && aiSearchResults.length === 0 && (
+              {!aiSearchLoading && hasSearchedAudience && filteredAiResults.length === 0 && (
                 <div style={{ flexBasis: '100%', fontSize: '12px', color: 'rgba(255,255,255,0.52)', lineHeight: 1.45 }}>
                   ยังไม่เจอบัญชีที่เข้าเกณฑ์ ลองเพิ่มคำเฉพาะหรือเปลี่ยนมุมค้นหา
                 </div>
               )}
             </form>
 
-            {aiSearchLoading && aiSearchResults.length === 0 && (
+            {aiSearchLoading && filteredAiResults.length === 0 && (
               <div className="audience-loading-state" aria-live="polite">
                 <div className="audience-loading-kicker">Finding high-signal accounts</div>
                 <div className="audience-loading-line">
@@ -455,7 +475,7 @@ const AudienceWorkspace = ({
               >
                 <div className="expert-grid audience-results-grid" style={{ marginBottom: '24px' }}>
                   {visibleAiResults.map((expert, i) => {
-                    const isAdded = watchlist.find((w) => w.username.toLowerCase() === expert.username.toLowerCase());
+                    const isAdded = effectiveWatchlistHandleSet.has(normalizeAudienceHandle(expert?.username));
                     const avatarFallback = getExpertAvatarFallback(expert);
                     const reasoningText = formatExpertRecommendationText(expert, aiQuery);
                     const topicLabel = buildTopicHintLabel(aiQuery || expert.category || expert.title);
@@ -760,7 +780,7 @@ const AudienceWorkspace = ({
                   </div>
                 )}
               </form>
-              {manualPreview && (
+              {manualPreview && !isManualPreviewAdded && (
                 <div className="preview-card" style={{ padding: '20px', borderRadius: '16px', marginTop: '24px' }}>
                   <img
                     src={manualPreview.profile_image_url}

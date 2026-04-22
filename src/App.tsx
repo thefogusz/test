@@ -170,6 +170,7 @@ const App = () => {
     handleAddUser,
   } = useAudienceSearch({
     watchlist,
+    watchlistHandleSet,
     hasWatchlistRoomFor,
     handleAddUser: addUserToWatchlist,
   });
