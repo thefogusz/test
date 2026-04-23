@@ -110,6 +110,8 @@ Production serving exposes:
 
 - `src/App.tsx` still carries a large orchestration surface.
 - workspace state is intentionally centralized, which improves coordination but increases file size and coupling.
+- Home feed sync depends on durable feed-history hydration, so UI and usage guards must treat hydration as part of the sync contract.
+- Presentation filters such as FORO Filter are not durable feed source state; a fresh sync should clear stale filter presentation before showing refreshed data.
 - some feature docs are still behind newer source commits, so generated docs status should be checked during behavior changes.
 
 ## Read Next

@@ -104,6 +104,8 @@ Documentation is part of the product workflow, not a side artifact.
 
 - feed visibility is plan-limited
 - AI filter scope follows visible feed scope
+- a new Home sync exits stale FORO Filter state before showing the latest feed
+- Home sync is blocked until durable feed history has hydrated, so quota is not consumed by a no-op pre-hydration click
 - RSS duplicate suppression is durable during sync
 - clearing the Home feed intentionally resets RSS seen-state
 - article reading reuses cached Thai translation when available

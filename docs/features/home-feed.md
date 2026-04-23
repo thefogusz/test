@@ -106,6 +106,14 @@ flowchart TD
 - การ refresh engagement ของการ์ดที่มีอยู่แล้ว ใช้ tweet-id lookup เฉพาะการ์ดที่กำลังมองเห็น
 - ถ้าโพสต์จาก X ที่เข้ามามีอยู่แล้วในฟีด ระบบควรอัปเดตการ์ดเดิมแทนการสร้างซ้ำ
 
+### Feed history hydration และ FORO Filter ระหว่าง sync
+
+- Home sync ต้องรอให้ประวัติฟีด durable hydrate ครบก่อนเริ่ม fetch จริง โดยสถานะนี้รวม `rssSeenRegistry`, `xSeenRegistry`, และ `xSyncCheckpoints`
+- ปุ่ม `ฟีดข้อมูล` ต้อง disabled และแสดง spinner ระหว่างรอ hydrate เพื่อป้องกันการกดที่ไม่เกิดผลและไม่ควร consume quota
+- guard ใน `src/App.tsx` ต้องเช็ก hydration ก่อน `tryConsumeFeature('feed')` เพื่อไม่หัก usage เมื่อ sync ยังทำงานจริงไม่ได้
+- เมื่อผู้ใช้กด sync รอบใหม่ขณะมีผล `FORO Filter` ค้างอยู่ ระบบต้องล้าง filtered view, summary, brief, และ prompt ก่อน เพื่อกลับไปแสดงฟีดล่าสุดตามจริง
+- พฤติกรรมนี้ตั้งใจป้องกันเคสเปิดแอปข้ามวันแล้วเห็นผลกรองจากเมื่อวาน แม้ sync รอบใหม่จะมีข้อมูลเข้ามาแล้วก็ตาม
+
 ### งาน background หลังการ์ดขึ้นครบ
 
 - critical path ของ Home sync ควรจบเมื่อการ์ดรอบแรกถูก sort, สรุป และแสดงครบแล้ว
@@ -207,6 +215,7 @@ flowchart TD
 
 ## Change Log
 
+- 2026-04-23: documented feed-history hydration guard, pre-quota sync blocking, and automatic FORO Filter clearing when a fresh sync starts
 - 2026-04-13: documented first-pass `20` card sync window, cross-source chronological ordering for mixed X plus RSS lists, `Load more` overflow behavior, and background-only RSS article enrichment
 - 2026-04-12: documented durable RSS dedupe, RSS reset-on-clear behavior, X checkpoint plus visible-card stat refresh flow, post-list normalization fixes, and Home plan caps (`Free 30 / Plus 100`)
 - 2026-04-12: added UI-to-doc naming map for Home Feed actions and states

@@ -109,6 +109,8 @@ state ถูกแบ่งได้ 3 กลุ่ม:
 ## UX contract ที่ผูกกับ architecture นี้
 
 - `originalFeed` เป็น source of truth ส่วน `feed` คือ presentation state
+- Home sync ต้องรอ durable feed history hydrate ครบก่อนเริ่ม fetch หรือ consume usage เพื่อไม่ให้ UI/usage state หลุดจาก source of truth
+- เมื่อ Home เริ่ม sync รอบใหม่ presentation state ต้องออกจาก filtered view ก่อน เพื่อให้ `feed` สะท้อนข้อมูลล่าสุดแทนผล `FORO Filter` เก่า
 - `FeedCard` ต้อง reuse ข้ามหลาย workspace เพื่อให้ mental model ต่อเนื่อง
 - right rail เป็น supporting context ไม่ใช่ main content
 - pricing เป็น workspace เดียวที่ intentionally ซ่อน right rail

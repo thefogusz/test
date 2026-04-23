@@ -165,6 +165,8 @@ Plan panel ไม่ใช่แค่ billing widget แต่เป็น glob
 ### Current behavior ที่ต้องรักษา
 
 - `FORO Filter` เป็น smart action ใกล้ feed ไม่ใช่ utility ห่าง ๆ
+- ระหว่างที่ประวัติ feed durable ยัง hydrate ไม่ครบ ปุ่ม `ฟีดข้อมูล` ต้อง disabled พร้อม spinner เพื่อสื่อว่าระบบยังเตรียม state อยู่ ไม่ใช่ไม่มีข้อมูลใหม่
+- ถ้าผู้ใช้กด `ฟีดข้อมูล` ขณะมีผล `FORO Filter` ค้างอยู่ ระบบต้องกลับออกจาก filtered view ก่อนแสดง feed ล่าสุด เพื่อไม่ให้ข้อมูลใหม่ถูกซ่อนหลัง filter เก่า
 - quick presets มีไว้ลด friction ของ prompt ที่ใช้บ่อย
 - clear กับ undo ใช้ตำแหน่งเดียวกันเพื่อสื่อว่าเป็น action ต่อเนื่อง
 - เมื่อ sync ระหว่างที่ feed เดิมยังอยู่ ต้องแสดง prepended/appended skeleton มากกว่าล้าง context เดิมทิ้ง

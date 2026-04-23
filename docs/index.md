@@ -35,6 +35,8 @@ Supporting behavior that matters across the app:
   - `Free`: 30 cards
   - `Plus`: 100 cards
 - AI filter operates on the visible feed scope, not on hidden overflow.
+- Starting a new Home sync clears any stale FORO Filter result before showing the latest feed.
+- Home sync waits for durable feed-history hydration before it can consume feed quota.
 - RSS duplicate suppression is durable during normal sync.
 - Clearing the feed intentionally resets RSS seen-state.
 - Article reading supports readable extraction and cached Thai translation reuse.

@@ -100,8 +100,11 @@ repo นี้ใช้ docs เป็น living source of truth ของ produ
 และใช้คำสั่งนี้ก่อนส่งงาน:
 
 ```bash
+npm run docs:data
 npm run docs:build
 ```
+
+`npm run docs:data` จะอัปเดต generated docs status, changelog, และ draft suggestions โดยไม่ต้องรอ build เต็ม ส่วน `npm run docs:build` จะรัน data generation ก่อน build docs site อยู่แล้ว
 
 ## เอกสารแม่แบบที่ต้องใช้
 
@@ -111,4 +114,5 @@ npm run docs:build
 
 ## Change Log
 
+- 2026-04-23: เพิ่ม rule ให้รัน `npm run docs:data` สำหรับอัปเดต generated docs data และแยกบทบาทจาก `npm run docs:build`
 - 2026-04-13: เพิ่มกติกาชัดเจนว่า every code change must review docs, และถ้ากระทบ UI/UX ต้องอัปเดต `docs/ux-ui-readme.md` ทุกครั้ง

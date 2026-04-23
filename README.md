@@ -18,6 +18,8 @@ These behaviors are user-facing contract and should be treated as documentation-
   - `Free`: 30 cards
   - `Plus`: 100 cards
 - AI filter works on the same visible feed scope the user can currently access.
+- Starting a new Home sync clears any active FORO Filter result so fresh feed data is not hidden behind an older filtered view.
+- Home sync waits for feed-history hydration before consuming feed quota or starting upstream fetches.
 - RSS sync uses durable duplicate suppression during normal sync.
 - Clearing the Home feed intentionally resets RSS seen-state.
 - Reopening the same RSS article should reuse cached Thai translation when available.
@@ -114,6 +116,7 @@ Treat docs as a living product contract, not as optional onboarding material.
 - Use `docs/features/` for behavior-level documentation.
 - Use `docs/architecture/` for implementation and system boundaries.
 - Use `docs/process/docs-governance.md` for the docs maintenance workflow.
+- Run `npm run docs:data` or `npm run docs:build` after behavior changes so generated status, changelog, and draft data stay current.
 
 ## Verification
 

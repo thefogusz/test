@@ -39,6 +39,7 @@ flowchart TD
 - แกนหลักของ shell ถูกประกอบใน `App.tsx`
 - `Sidebar` ใช้สลับ `activeView` ระหว่าง home, content, read, audience, bookmarks และ pricing
 - shell แสดง background task indicator เมื่อมีการ sync, search, generate หรือ filtering
+- `App.tsx` เป็น guard ก่อน consume usage ของ Home sync โดยต้องรอ feed-history hydration ให้ครบก่อนเรียก `tryConsumeFeature('feed')`
 - `PlanPanel` แสดงข้อมูลแผน, usage คงเหลือ, ปุ่มเปิด Pricing และปุ่มเปิด Foro Docs
 - `RightSidebar` ถูกซ่อนเมื่ออยู่หน้า pricing
 - บน mobile shell เปลี่ยนจาก 3-column layout เป็น bottom navigation + context switcher ตาม workspace
@@ -103,4 +104,5 @@ flowchart TD
 
 ## Change Log
 
+- 2026-04-23: documented Home sync pre-quota hydration guard owned by `App.tsx`
 - 2026-04-13: ขยายเอกสาร app shell ให้รวม mobile shell behavior และ UX intent

@@ -30,6 +30,8 @@ Some current product rules affect multiple workspaces at once:
   - `Free`: 30 cards
   - `Plus`: 100 cards
 - AI filter scope must match the feed cards the user can actually see.
+- Starting a Home sync should exit stale FORO Filter state before presenting refreshed feed data.
+- Home sync should not consume feed quota until durable feed-history state has hydrated.
 - RSS normal sync should suppress duplicates durably.
 - Clearing the Home feed intentionally resets RSS seen-state.
 - Article reader should reuse cached Thai translation for repeated RSS reads when possible.
