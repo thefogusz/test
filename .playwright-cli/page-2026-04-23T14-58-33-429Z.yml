@@ -1,0 +1,798 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - img "RO Logo" [ref=e6]
+      - navigation [ref=e7]:
+        - button "หน้าหลัก" [ref=e8] [cursor=pointer]:
+          - generic:
+            - img
+          - generic: สรุปข่าววันนี้
+        - button "ค้นหา" [ref=e9] [cursor=pointer]:
+          - generic:
+            - img
+          - generic: คอนเทนต์
+        - button "อ่านข่าว" [ref=e10] [cursor=pointer]:
+          - generic:
+            - img
+          - generic: อ่านข่าว
+        - button "การติดตาม" [ref=e11] [cursor=pointer]:
+          - generic:
+            - img
+          - generic: การติดตาม
+        - button "Bookmarks" [ref=e12] [cursor=pointer]:
+          - generic:
+            - img
+          - generic: Bookmarks
+        - button "โปรไฟล์" [ref=e13] [cursor=pointer]:
+          - generic:
+            - img
+          - generic: Pricing
+      - button "FG Foro Free Mockup - Free free" [ref=e16] [cursor=pointer]:
+        - generic [ref=e17]:
+          - generic [ref=e18]: FG
+          - generic [ref=e19]:
+            - generic [ref=e20]: Foro Free
+            - generic [ref=e22]: Mockup - Free
+        - generic [ref=e23]:
+          - generic [ref=e24]: free
+          - img [ref=e25]
+    - main [ref=e27]:
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic [ref=e32]:
+            - heading "หน้าหลัก" [level=1] [ref=e33]
+            - paragraph [ref=e34]: WATCHLIST FEED
+          - generic [ref=e35]:
+            - generic [ref=e38]: ทั้งหมด
+            - generic [ref=e39]:
+              - generic [ref=e73]:
+                - button "สรุป" [ref=e75] [cursor=pointer]
+                - button "หาโพสต์เด่น" [ref=e77] [cursor=pointer]
+                - button "โพสต์ไหนน่าทำคอนเทนต์" [ref=e79] [cursor=pointer]
+              - button "FORO Filter" [ref=e40] [cursor=pointer]:
+                - generic [ref=e42]: FORO Filter
+              - button "ฟีดข้อมูล" [ref=e43] [cursor=pointer]:
+                - img [ref=e44]
+                - text: ฟีดข้อมูล
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - generic [ref=e82]: โพสต์ล่าสุด
+            - generic [ref=e83]: 21 การ์ด
+          - generic [ref=e84]:
+            - button "เคลียร์ฟีด" [ref=e85] [cursor=pointer]:
+              - img [ref=e86]
+            - button "ยอดวิว" [ref=e89] [cursor=pointer]
+            - button "เอนเกจเมนต์" [ref=e90] [cursor=pointer]
+        - generic [ref=e49]:
+          - generic [ref=e91]:
+            - generic [ref=e92]:
+              - button "Sam Altman @sama" [ref=e94] [cursor=pointer]:
+                - generic [ref=e96]:
+                  - generic [ref=e98]: Sam Altman
+                  - generic [ref=e100]: "@sama"
+              - generic [ref=e101]:
+                - generic [ref=e102]: 3d
+                - button [ref=e103] [cursor=pointer]:
+                  - img [ref=e104]
+                - link [ref=e106] [cursor=pointer]:
+                  - /url: https://x.com/sama/status/old-simulated-x-card
+                  - img [ref=e107]
+            - paragraph [ref=e112]: บัตร X จำลองรุ่นเก่า
+            - generic [ref=e113]:
+              - generic [ref=e115]:
+                - generic [ref=e116]:
+                  - img [ref=e117]
+                  - generic [ref=e118]: "0"
+                - generic [ref=e119]:
+                  - img [ref=e120]
+                  - generic [ref=e122]: "0"
+                - generic [ref=e123]:
+                  - img [ref=e124]
+                  - generic [ref=e129]: "0"
+                - generic [ref=e130]:
+                  - img [ref=e131]
+                  - generic [ref=e133]: "0"
+              - button "สร้างคอนเทนต์" [ref=e135] [cursor=pointer]:
+                - img [ref=e136]
+                - generic [ref=e139]: สร้างคอนเทนต์
+          - generic [ref=e142]:
+            - generic [ref=e143]:
+              - button "OpenAI @OpenAI" [ref=e145] [cursor=pointer]:
+                - generic [ref=e147]:
+                  - generic [ref=e149]: OpenAI
+                  - generic [ref=e151]: "@OpenAI"
+              - generic [ref=e152]:
+                - generic [ref=e153]: 8d
+                - button [ref=e154] [cursor=pointer]:
+                  - img [ref=e155]
+                - link [ref=e157] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2044161908354494633
+                  - img [ref=e158]
+            - paragraph [ref=e163]: "For years, we’ve been building our cyber defense program on the principles of democratized access, iterative deployment, and ecosystem resilience. As model capabilities advance, our approach is to scale cyber defense in lockstep: broadening access for legitimate defenders while continuing to strengthen safeguards."
+            - generic [ref=e164]:
+              - generic [ref=e165]:
+                - generic [ref=e166]:
+                  - generic [ref=e167]:
+                    - img [ref=e168]
+                    - generic [ref=e169]: 270K
+                  - generic [ref=e170]:
+                    - img [ref=e171]
+                    - generic [ref=e173]: "655"
+                  - generic [ref=e174]:
+                    - img [ref=e175]
+                    - generic [ref=e180]: "17"
+                  - generic [ref=e181]:
+                    - img [ref=e182]
+                    - generic [ref=e184]: "58"
+                - generic [ref=e185]:
+                  - img [ref=e186]
+                  - generic [ref=e189]: ตอบกลับ @OpenAI
+              - button "สร้างคอนเทนต์" [ref=e191] [cursor=pointer]:
+                - img [ref=e192]
+                - generic [ref=e195]: สร้างคอนเทนต์
+          - generic [ref=e196]:
+            - generic [ref=e197]:
+              - button "OpenAI @OpenAI" [ref=e199] [cursor=pointer]:
+                - generic [ref=e201]:
+                  - generic [ref=e203]: OpenAI
+                  - generic [ref=e205]: "@OpenAI"
+              - generic [ref=e206]:
+                - generic [ref=e207]: 8d
+                - button [ref=e208] [cursor=pointer]:
+                  - img [ref=e209]
+                - link [ref=e211] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2044161906936791179
+                  - img [ref=e212]
+            - paragraph [ref=e217]: We’re expanding Trusted Access for Cyber with additional tiers for authenticated cybersecurity defenders. Customers in the highest tiers can request access to GPT-5.4-Cyber, a version of GPT-5.4 fine-tuned for cybersecurity use cases, enabling more advanced defensive workflows. https://t.co/RMMXQklFar
+            - generic [ref=e218]:
+              - generic [ref=e220]:
+                - generic [ref=e221]:
+                  - img [ref=e222]
+                  - generic [ref=e223]: 1M
+                - generic [ref=e224]:
+                  - img [ref=e225]
+                  - generic [ref=e227]: 5K
+                - generic [ref=e228]:
+                  - img [ref=e229]
+                  - generic [ref=e234]: "635"
+                - generic [ref=e235]:
+                  - img [ref=e236]
+                  - generic [ref=e238]: "456"
+              - button "สร้างคอนเทนต์" [ref=e240] [cursor=pointer]:
+                - img [ref=e241]
+                - generic [ref=e244]: สร้างคอนเทนต์
+          - generic [ref=e245]:
+            - generic [ref=e246]:
+              - button "Sam Altman @sama" [ref=e248] [cursor=pointer]:
+                - generic [ref=e250]:
+                  - generic [ref=e252]: Sam Altman
+                  - generic [ref=e254]: "@sama"
+              - generic [ref=e255]:
+                - generic [ref=e256]: 12d
+                - button [ref=e257] [cursor=pointer]:
+                  - img [ref=e258]
+                - link [ref=e260] [cursor=pointer]:
+                  - /url: https://x.com/sama/status/2042789312400363702
+                  - img [ref=e261]
+            - paragraph [ref=e266]: "@ShakeelHashim That was a bad word choice and i wish i hadn't used it. It has been a tough day and I am not thinking the most clearly that I ever have."
+            - generic [ref=e267]:
+              - generic [ref=e268]:
+                - generic [ref=e269]:
+                  - generic [ref=e270]:
+                    - img [ref=e271]
+                    - generic [ref=e272]: 332K
+                  - generic [ref=e273]:
+                    - img [ref=e274]
+                    - generic [ref=e276]: 2K
+                  - generic [ref=e277]:
+                    - img [ref=e278]
+                    - generic [ref=e283]: "30"
+                  - generic [ref=e284]:
+                    - img [ref=e285]
+                    - generic [ref=e287]: "266"
+                - generic [ref=e288]:
+                  - img [ref=e289]
+                  - generic [ref=e292]: ตอบกลับ @ShakeelHashim
+              - button "สร้างคอนเทนต์" [ref=e294] [cursor=pointer]:
+                - img [ref=e295]
+                - generic [ref=e298]: สร้างคอนเทนต์
+          - generic [ref=e299]:
+            - generic [ref=e300]:
+              - button "OpenAI @OpenAI" [ref=e302] [cursor=pointer]:
+                - generic [ref=e304]:
+                  - generic [ref=e306]: OpenAI
+                  - generic [ref=e308]: "@OpenAI"
+              - generic [ref=e309]:
+                - generic [ref=e310]: 12d
+                - button [ref=e311] [cursor=pointer]:
+                  - img [ref=e312]
+                - link [ref=e314] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2042780059363336237
+                  - img [ref=e315]
+            - paragraph [ref=e320]: "The security and privacy of your information are a top priority. We’re committed to being transparent and taking quick action when issues arise. We're sharing more technical details and FAQs here: https://t.co/RKxpzMLjL4"
+            - generic [ref=e321]:
+              - generic [ref=e322]:
+                - generic [ref=e323]:
+                  - generic [ref=e324]:
+                    - img [ref=e325]
+                    - generic [ref=e326]: 265K
+                  - generic [ref=e327]:
+                    - img [ref=e328]
+                    - generic [ref=e330]: "355"
+                  - generic [ref=e331]:
+                    - img [ref=e332]
+                    - generic [ref=e337]: "40"
+                  - generic [ref=e338]:
+                    - img [ref=e339]
+                    - generic [ref=e341]: "55"
+                - generic [ref=e342]:
+                  - img [ref=e343]
+                  - generic [ref=e346]: ตอบกลับ @OpenAI
+              - button "สร้างคอนเทนต์" [ref=e348] [cursor=pointer]:
+                - img [ref=e349]
+                - generic [ref=e352]: สร้างคอนเทนต์
+          - generic [ref=e353]:
+            - generic [ref=e354]:
+              - button "OpenAI @OpenAI" [ref=e356] [cursor=pointer]:
+                - generic [ref=e358]:
+                  - generic [ref=e360]: OpenAI
+                  - generic [ref=e362]: "@OpenAI"
+              - generic [ref=e363]:
+                - generic [ref=e364]: 12d
+                - button [ref=e365] [cursor=pointer]:
+                  - img [ref=e366]
+                - link [ref=e368] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2042780058075672703
+                  - img [ref=e369]
+            - paragraph [ref=e374]: "🔗 Atlas: https://t.co/TUXW74RWpY"
+            - generic [ref=e375]:
+              - generic [ref=e376]:
+                - generic [ref=e377]:
+                  - generic [ref=e378]:
+                    - img [ref=e379]
+                    - generic [ref=e380]: 253K
+                  - generic [ref=e381]:
+                    - img [ref=e382]
+                    - generic [ref=e384]: "183"
+                  - generic [ref=e385]:
+                    - img [ref=e386]
+                    - generic [ref=e391]: "13"
+                  - generic [ref=e392]:
+                    - img [ref=e393]
+                    - generic [ref=e395]: "25"
+                - generic [ref=e396]:
+                  - img [ref=e397]
+                  - generic [ref=e400]: ตอบกลับ @OpenAI
+              - button "สร้างคอนเทนต์" [ref=e402] [cursor=pointer]:
+                - img [ref=e403]
+                - generic [ref=e406]: สร้างคอนเทนต์
+          - generic [ref=e407]:
+            - generic [ref=e408]:
+              - button "OpenAI @OpenAI" [ref=e410] [cursor=pointer]:
+                - generic [ref=e412]:
+                  - generic [ref=e414]: OpenAI
+                  - generic [ref=e416]: "@OpenAI"
+              - generic [ref=e417]:
+                - generic [ref=e418]: 12d
+                - button [ref=e419] [cursor=pointer]:
+                  - img [ref=e420]
+                - link [ref=e422] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2042780056804811115
+                  - img [ref=e423]
+            - paragraph [ref=e428]: "🔗 Codex CLI: https://t.co/D28mu0GF8t"
+            - generic [ref=e429]:
+              - generic [ref=e430]:
+                - generic [ref=e431]:
+                  - generic [ref=e432]:
+                    - img [ref=e433]
+                    - generic [ref=e434]: 194K
+                  - generic [ref=e435]:
+                    - img [ref=e436]
+                    - generic [ref=e438]: "131"
+                  - generic [ref=e439]:
+                    - img [ref=e440]
+                    - generic [ref=e445]: "10"
+                  - generic [ref=e446]:
+                    - img [ref=e447]
+                    - generic [ref=e449]: "13"
+                - generic [ref=e450]:
+                  - img [ref=e451]
+                  - generic [ref=e454]: ตอบกลับ @OpenAI
+              - button "สร้างคอนเทนต์" [ref=e456] [cursor=pointer]:
+                - img [ref=e457]
+                - generic [ref=e460]: สร้างคอนเทนต์
+          - generic [ref=e461]:
+            - generic [ref=e462]:
+              - button "OpenAI @OpenAI" [ref=e464] [cursor=pointer]:
+                - generic [ref=e466]:
+                  - generic [ref=e468]: OpenAI
+                  - generic [ref=e470]: "@OpenAI"
+              - generic [ref=e471]:
+                - generic [ref=e472]: 12d
+                - button [ref=e473] [cursor=pointer]:
+                  - img [ref=e474]
+                - link [ref=e476] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2042780055559114993
+                  - img [ref=e477]
+            - paragraph [ref=e482]: "🔗 Codex App: https://t.co/EeHzGYzV7d"
+            - generic [ref=e483]:
+              - generic [ref=e484]:
+                - generic [ref=e485]:
+                  - generic [ref=e486]:
+                    - img [ref=e487]
+                    - generic [ref=e488]: 313K
+                  - generic [ref=e489]:
+                    - img [ref=e490]
+                    - generic [ref=e492]: "282"
+                  - generic [ref=e493]:
+                    - img [ref=e494]
+                    - generic [ref=e499]: "17"
+                  - generic [ref=e500]:
+                    - img [ref=e501]
+                    - generic [ref=e503]: "37"
+                - generic [ref=e504]:
+                  - img [ref=e505]
+                  - generic [ref=e508]: ตอบกลับ @OpenAI
+              - button "สร้างคอนเทนต์" [ref=e510] [cursor=pointer]:
+                - img [ref=e511]
+                - generic [ref=e514]: สร้างคอนเทนต์
+          - generic [ref=e515]:
+            - generic [ref=e516]:
+              - button "OpenAI @OpenAI" [ref=e518] [cursor=pointer]:
+                - generic [ref=e520]:
+                  - generic [ref=e522]: OpenAI
+                  - generic [ref=e524]: "@OpenAI"
+              - generic [ref=e525]:
+                - generic [ref=e526]: 12d
+                - button [ref=e527] [cursor=pointer]:
+                  - img [ref=e528]
+                - link [ref=e530] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2042780054015611373
+                  - img [ref=e531]
+            - paragraph [ref=e536]: "🔗 ChatGPT Desktop: https://t.co/oUI4xDBePL"
+            - generic [ref=e537]:
+              - generic [ref=e538]:
+                - generic [ref=e539]:
+                  - generic [ref=e540]:
+                    - img [ref=e541]
+                    - generic [ref=e542]: 309K
+                  - generic [ref=e543]:
+                    - img [ref=e544]
+                    - generic [ref=e546]: "295"
+                  - generic [ref=e547]:
+                    - img [ref=e548]
+                    - generic [ref=e553]: "14"
+                  - generic [ref=e554]:
+                    - img [ref=e555]
+                    - generic [ref=e557]: "17"
+                - generic [ref=e558]:
+                  - img [ref=e559]
+                  - generic [ref=e562]: ตอบกลับ @OpenAI
+              - button "สร้างคอนเทนต์" [ref=e564] [cursor=pointer]:
+                - img [ref=e565]
+                - generic [ref=e568]: สร้างคอนเทนต์
+          - generic [ref=e569]:
+            - generic [ref=e570]:
+              - button "OpenAI @OpenAI" [ref=e572] [cursor=pointer]:
+                - generic [ref=e574]:
+                  - generic [ref=e576]: OpenAI
+                  - generic [ref=e578]: "@OpenAI"
+              - generic [ref=e579]:
+                - generic [ref=e580]: 12d
+                - button [ref=e581] [cursor=pointer]:
+                  - img [ref=e582]
+                - link [ref=e584] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2042780052669239782
+                  - img [ref=e585]
+            - paragraph [ref=e590]: We recently identified a security issue involving the third-party developer library Axios that was part of a broader industry incident. We found no evidence that OpenAI user data was accessed, that our systems were compromised, or that our software was altered. Out of an abundance of caution we are taking steps to protect the process that certifies our macOS applications are legitimate OpenAI apps. We are updating our security certifications, which will require all macOS users to update their OpenAI apps to the latest versions. This helps prevent any risk—however unlikely—of someone attempting to distribute a fake app that appears to be from OpenAI. You can update safely through an in-app update or at the official links below. 🧵
+            - generic [ref=e591]:
+              - generic [ref=e593]:
+                - generic [ref=e594]:
+                  - img [ref=e595]
+                  - generic [ref=e596]: 2M
+                - generic [ref=e597]:
+                  - img [ref=e598]
+                  - generic [ref=e600]: 5K
+                - generic [ref=e601]:
+                  - img [ref=e602]
+                  - generic [ref=e607]: "517"
+                - generic [ref=e608]:
+                  - img [ref=e609]
+                  - generic [ref=e611]: "369"
+              - button "สร้างคอนเทนต์" [ref=e613] [cursor=pointer]:
+                - img [ref=e614]
+                - generic [ref=e617]: สร้างคอนเทนต์
+          - generic [ref=e618]:
+            - generic [ref=e619]:
+              - button "Sam Altman @sama" [ref=e621] [cursor=pointer]:
+                - generic [ref=e623]:
+                  - generic [ref=e625]: Sam Altman
+                  - generic [ref=e627]: "@sama"
+              - generic [ref=e628]:
+                - generic [ref=e629]: 12d
+                - button [ref=e630] [cursor=pointer]:
+                  - img [ref=e631]
+                - link [ref=e633] [cursor=pointer]:
+                  - /url: https://x.com/sama/status/2042738954550603884
+                  - img [ref=e634]
+            - paragraph [ref=e639]: "I wrote this early this morning and I wasn't sure if I would actually publish it, but here it is: https://t.co/7Dw9UFpeep"
+            - generic [ref=e640]:
+              - generic [ref=e642]:
+                - generic [ref=e643]:
+                  - img [ref=e644]
+                  - generic [ref=e645]: 6M
+                - generic [ref=e646]:
+                  - img [ref=e647]
+                  - generic [ref=e649]: 15K
+                - generic [ref=e650]:
+                  - img [ref=e651]
+                  - generic [ref=e656]: 1K
+                - generic [ref=e657]:
+                  - img [ref=e658]
+                  - generic [ref=e660]: 2K
+              - button "สร้างคอนเทนต์" [ref=e662] [cursor=pointer]:
+                - img [ref=e663]
+                - generic [ref=e666]: สร้างคอนเทนต์
+          - generic [ref=e667]:
+            - generic [ref=e668]:
+              - button "Andrej Karpathy @karpathy" [ref=e670] [cursor=pointer]:
+                - generic [ref=e672]:
+                  - generic [ref=e674]: Andrej Karpathy
+                  - generic [ref=e676]: "@karpathy"
+              - generic [ref=e677]:
+                - generic [ref=e678]: 12d
+                - button [ref=e679] [cursor=pointer]:
+                  - img [ref=e680]
+                - link [ref=e682] [cursor=pointer]:
+                  - /url: https://x.com/karpathy/status/2042628872882262316
+                  - img [ref=e683]
+            - paragraph [ref=e688]: "@karmicoder @jenzhuscott No the company physically gets you to come in, sits you down and asks you a precise set of maximally informative questions specifically designed for the best upload fidelity."
+            - generic [ref=e689]:
+              - generic [ref=e690]:
+                - generic [ref=e691]:
+                  - generic [ref=e692]:
+                    - img [ref=e693]
+                    - generic [ref=e694]: 15K
+                  - generic [ref=e695]:
+                    - img [ref=e696]
+                    - generic [ref=e698]: "101"
+                  - generic [ref=e699]:
+                    - img [ref=e700]
+                    - generic [ref=e705]: "4"
+                  - generic [ref=e706]:
+                    - img [ref=e707]
+                    - generic [ref=e709]: "23"
+                - generic [ref=e710]:
+                  - img [ref=e711]
+                  - generic [ref=e714]: ตอบกลับ @karmicoder
+              - button "สร้างคอนเทนต์" [ref=e716] [cursor=pointer]:
+                - img [ref=e717]
+                - generic [ref=e720]: สร้างคอนเทนต์
+          - generic [ref=e721]:
+            - generic [ref=e722]:
+              - button "Andrej Karpathy @karpathy" [ref=e724] [cursor=pointer]:
+                - generic [ref=e726]:
+                  - generic [ref=e728]: Andrej Karpathy
+                  - generic [ref=e730]: "@karpathy"
+              - generic [ref=e731]:
+                - generic [ref=e732]: 12d
+                - button [ref=e733] [cursor=pointer]:
+                  - img [ref=e734]
+                - link [ref=e736] [cursor=pointer]:
+                  - /url: https://x.com/karpathy/status/2042628272782286964
+                  - img [ref=e737]
+            - paragraph [ref=e742]: "@Douglance @jenzhuscott These neuroscience adjacent ideas are exotic armchair philosophy when the LLM simulation path will work really well and so much faster and it's not even remotely a contest."
+            - generic [ref=e743]:
+              - generic [ref=e744]:
+                - generic [ref=e745]:
+                  - generic [ref=e746]:
+                    - img [ref=e747]
+                    - generic [ref=e748]: 22K
+                  - generic [ref=e749]:
+                    - img [ref=e750]
+                    - generic [ref=e752]: "141"
+                  - generic [ref=e753]:
+                    - img [ref=e754]
+                    - generic [ref=e759]: "2"
+                  - generic [ref=e760]:
+                    - img [ref=e761]
+                    - generic [ref=e763]: "14"
+                - generic [ref=e764]:
+                  - img [ref=e765]
+                  - generic [ref=e768]: ตอบกลับ @Douglance
+              - button "สร้างคอนเทนต์" [ref=e770] [cursor=pointer]:
+                - img [ref=e771]
+                - generic [ref=e774]: สร้างคอนเทนต์
+          - generic [ref=e775]:
+            - generic [ref=e776]:
+              - button "Andrej Karpathy @karpathy" [ref=e778] [cursor=pointer]:
+                - generic [ref=e780]:
+                  - generic [ref=e782]: Andrej Karpathy
+                  - generic [ref=e784]: "@karpathy"
+              - generic [ref=e785]:
+                - generic [ref=e786]: 12d
+                - button [ref=e787] [cursor=pointer]:
+                  - img [ref=e788]
+                - link [ref=e790] [cursor=pointer]:
+                  - /url: https://x.com/karpathy/status/2042626702459674801
+                  - img [ref=e791]
+            - paragraph [ref=e796]: "@jenzhuscott Yes it's the tractable form of brain upload. There's a ton of scifi on brain uploads that requires way too exotic tech (scanning and simulating brains etc), when we're about to get a lossy and approximate version of that *a lot* sooner via LLM simulators. You can easily imagine a \"brain upload\" startup - you show up for a few days to carry out detailed video interviews, then they use all that data with an LLM finetuning process to \"upload\" you and give you an API endpoint of your simulation that you can talk to. Look at what's already possible with HeyGen as an example, but combine it with an LLM model that has deep knowledge and personality. Trippy and admittedly kind of dystopian but in principle quite possible around now."
+            - generic [ref=e797]:
+              - generic [ref=e798]:
+                - generic [ref=e799]:
+                  - generic [ref=e800]:
+                    - img [ref=e801]
+                    - generic [ref=e802]: 552K
+                  - generic [ref=e803]:
+                    - img [ref=e804]
+                    - generic [ref=e806]: 3K
+                  - generic [ref=e807]:
+                    - img [ref=e808]
+                    - generic [ref=e813]: "208"
+                  - generic [ref=e814]:
+                    - img [ref=e815]
+                    - generic [ref=e817]: "206"
+                - generic [ref=e818]:
+                  - img [ref=e819]
+                  - generic [ref=e822]: ตอบกลับ @jenzhuscott
+              - button "สร้างคอนเทนต์" [ref=e824] [cursor=pointer]:
+                - img [ref=e825]
+                - generic [ref=e828]: สร้างคอนเทนต์
+          - generic [ref=e829]:
+            - generic [ref=e830]:
+              - button "Andrej Karpathy @karpathy" [ref=e832] [cursor=pointer]:
+                - generic [ref=e834]:
+                  - generic [ref=e836]: Andrej Karpathy
+                  - generic [ref=e838]: "@karpathy"
+              - generic [ref=e839]:
+                - generic [ref=e840]: 13d
+                - button [ref=e841] [cursor=pointer]:
+                  - img [ref=e842]
+                - link [ref=e844] [cursor=pointer]:
+                  - /url: https://x.com/karpathy/status/2042615713219908059
+                  - img [ref=e845]
+            - paragraph [ref=e850]: "@simonw Yeah exactly. It’s such a cool concept for a product. It doesn’t seem like oai will continue pushing the direction, (which makes sense) but I hope a startup can clone it and actually give it care, iteration and make it work and imo a lot of people would really love it. More generally, the product roadmap of big labs is clear and predictable, which also leaves big pockets of opportunity for startups, one of the biggest ones is this I think."
+            - generic [ref=e851]:
+              - generic [ref=e852]:
+                - generic [ref=e853]:
+                  - generic [ref=e854]:
+                    - img [ref=e855]
+                    - generic [ref=e856]: 130K
+                  - generic [ref=e857]:
+                    - img [ref=e858]
+                    - generic [ref=e860]: 1K
+                  - generic [ref=e861]:
+                    - img [ref=e862]
+                    - generic [ref=e867]: "28"
+                  - generic [ref=e868]:
+                    - img [ref=e869]
+                    - generic [ref=e871]: "108"
+                - generic [ref=e872]:
+                  - img [ref=e873]
+                  - generic [ref=e876]: ตอบกลับ @simonw
+              - button "สร้างคอนเทนต์" [ref=e878] [cursor=pointer]:
+                - img [ref=e879]
+                - generic [ref=e882]: สร้างคอนเทนต์
+          - generic [ref=e883]:
+            - generic [ref=e884]:
+              - button "Sam Altman @sama" [ref=e886] [cursor=pointer]:
+                - generic [ref=e888]:
+                  - generic [ref=e890]: Sam Altman
+                  - generic [ref=e892]: "@sama"
+              - generic [ref=e893]:
+                - generic [ref=e894]: 13d
+                - button [ref=e895] [cursor=pointer]:
+                  - img [ref=e896]
+                - link [ref=e898] [cursor=pointer]:
+                  - /url: https://x.com/sama/status/2042342572958630332
+                  - img [ref=e899]
+            - paragraph [ref=e904]: It is very nice to see Codex getting so much love. We are launching a $100 ChatGPT Pro tier by very popular demand.
+            - generic [ref=e905]:
+              - generic [ref=e907]:
+                - generic [ref=e908]:
+                  - img [ref=e909]
+                  - generic [ref=e910]: 1M
+                - generic [ref=e911]:
+                  - img [ref=e912]
+                  - generic [ref=e914]: 11K
+                - generic [ref=e915]:
+                  - img [ref=e916]
+                  - generic [ref=e921]: "425"
+                - generic [ref=e922]:
+                  - img [ref=e923]
+                  - generic [ref=e925]: 1K
+              - button "สร้างคอนเทนต์" [ref=e927] [cursor=pointer]:
+                - img [ref=e928]
+                - generic [ref=e931]: สร้างคอนเทนต์
+          - generic [ref=e932]:
+            - generic [ref=e933]:
+              - button "Andrej Karpathy @karpathy" [ref=e935] [cursor=pointer]:
+                - generic [ref=e937]:
+                  - generic [ref=e939]: Andrej Karpathy
+                  - generic [ref=e941]: "@karpathy"
+              - generic [ref=e942]:
+                - generic [ref=e943]: 13d
+                - button [ref=e944] [cursor=pointer]:
+                  - img [ref=e945]
+                - link [ref=e947] [cursor=pointer]:
+                  - /url: https://x.com/karpathy/status/2042341482531864741
+                  - img [ref=e948]
+            - paragraph [ref=e953]: Someone recently suggested to me that the reason OpenClaw moment was so big is because it's the first time a large group of non-technical people (who otherwise only knew AI as synonymous with ChatGPT as a website) experienced the latest agentic models.
+            - generic [ref=e954]:
+              - generic [ref=e955]:
+                - generic [ref=e956]:
+                  - generic [ref=e957]:
+                    - img [ref=e958]
+                    - generic [ref=e959]: 388K
+                  - generic [ref=e960]:
+                    - img [ref=e961]
+                    - generic [ref=e963]: 3K
+                  - generic [ref=e964]:
+                    - img [ref=e965]
+                    - generic [ref=e970]: "157"
+                  - generic [ref=e971]:
+                    - img [ref=e972]
+                    - generic [ref=e974]: "246"
+                - generic [ref=e975]:
+                  - img [ref=e976]
+                  - generic [ref=e979]: ตอบกลับ @karpathy
+              - button "สร้างคอนเทนต์" [ref=e981] [cursor=pointer]:
+                - img [ref=e982]
+                - generic [ref=e985]: สร้างคอนเทนต์
+          - generic [ref=e986]:
+            - generic [ref=e987]:
+              - button "OpenAI @OpenAI" [ref=e989] [cursor=pointer]:
+                - generic [ref=e991]:
+                  - generic [ref=e993]: OpenAI
+                  - generic [ref=e995]: "@OpenAI"
+              - generic [ref=e996]:
+                - generic [ref=e997]: 13d
+                - button [ref=e998] [cursor=pointer]:
+                  - img [ref=e999]
+                - link [ref=e1001] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2042339493668163627
+                  - img [ref=e1002]
+            - paragraph [ref=e1007]: "@blaze_tora @thsottiaux Currency conversion issue on our end, should be fixed now, sorry about that!"
+            - generic [ref=e1008]:
+              - generic [ref=e1009]:
+                - generic [ref=e1010]:
+                  - generic [ref=e1011]:
+                    - img [ref=e1012]
+                    - generic [ref=e1013]: 2K
+                  - generic [ref=e1014]:
+                    - img [ref=e1015]
+                    - generic [ref=e1017]: "19"
+                  - generic [ref=e1018]:
+                    - img [ref=e1019]
+                    - generic [ref=e1024]: "0"
+                  - generic [ref=e1025]:
+                    - img [ref=e1026]
+                    - generic [ref=e1028]: "1"
+                - generic [ref=e1029]:
+                  - img [ref=e1030]
+                  - generic [ref=e1033]: ตอบกลับ @blaze_tora
+              - button "สร้างคอนเทนต์" [ref=e1035] [cursor=pointer]:
+                - img [ref=e1036]
+                - generic [ref=e1039]: สร้างคอนเทนต์
+          - generic [ref=e1040]:
+            - generic [ref=e1041]:
+              - button "Andrej Karpathy @karpathy" [ref=e1043] [cursor=pointer]:
+                - generic [ref=e1045]:
+                  - generic [ref=e1047]: Andrej Karpathy
+                  - generic [ref=e1049]: "@karpathy"
+              - generic [ref=e1050]:
+                - generic [ref=e1051]: 13d
+                - button [ref=e1052] [cursor=pointer]:
+                  - img [ref=e1053]
+                - link [ref=e1055] [cursor=pointer]:
+                  - /url: https://x.com/karpathy/status/2042334451611693415
+                  - img [ref=e1056]
+            - paragraph [ref=e1061]: "Judging by my tl there is a growing gap in understanding of AI capability. The first issue I think is around recency and tier of use. I think a lot of people tried the free tier of ChatGPT somewhere last year and allowed it to inform their views on AI a little too much. This is a group of reactions laughing at various quirks of the models, hallucinations, etc. Yes I also saw the viral videos of OpenAI's Advanced Voice mode fumbling simple queries like \"should I drive or walk to the carwash\". The thing is that these free and old/deprecated models don't reflect the capability in the latest round of state of the art agentic models of this year, especially OpenAI Codex and Claude Code. But that brings me to the second issue. Even if people paid $200/month to use the state of the art models, a lot of the capabilities are relatively \"peaky\" in highly technical areas. Typical queries around search, writing, advice, etc. are *not* the domain that has made the most noticeable and dramatic strides in capability. Partly, this is due to the technical details of reinforcement learning and its use of verifiable rewards. But partly, it's also because these use cases are not sufficiently prioritized by the companies in their hillclimbing because they don't lead to as much $$$ value. The goldmines are elsewhere, and the focus comes along. So that brings me to the second group of people, who *both* 1) pay for and use the state of the art frontier agentic models (OpenAI Codex / Claude Code) and 2) do so professionally in technical domains like programming, math and research. This group of people is subject to the highest amount of \"AI Psychosis\" because the recent improvements in these domains as of this year have been nothing short of staggering. When you hand a computer terminal to one of these models, you can now watch them melt programming problems that you'd normally expect to take days/weeks of work. It's this second group of people that assigns a much greater gravity to the capabilities, their slope, and various cyber-related repercussions. TLDR the people in these two groups are speaking past each other. It really is simultaneously the case that OpenAI's free and I think slightly orphaned (?) \"Advanced Voice Mode\" will fumble the dumbest questions in your Instagram's reels and *at the same time*, OpenAI's highest-tier and paid Codex model will go off for 1 hour to coherently restructure an entire code base, or find and exploit vulnerabilities in computer systems. This part really works and has made dramatic strides because 2 properties: 1) these domains offer explicit reward functions that are verifiable meaning they are easily amenable to reinforcement learning training (e.g. unit tests passed yes or no, in contrast to writing, which is much harder to explicitly judge), but also 2) they are a lot more valuable in b2b settings, meaning that the biggest fraction of the team is focused on improving them. So here we are."
+            - generic [ref=e1062]:
+              - generic [ref=e1064]:
+                - generic [ref=e1065]:
+                  - img [ref=e1066]
+                  - generic [ref=e1067]: 4M
+                - generic [ref=e1068]:
+                  - img [ref=e1069]
+                  - generic [ref=e1071]: 20K
+                - generic [ref=e1072]:
+                  - img [ref=e1073]
+                  - generic [ref=e1078]: 2K
+                - generic [ref=e1079]:
+                  - img [ref=e1080]
+                  - generic [ref=e1082]: 1K
+              - button "สร้างคอนเทนต์" [ref=e1084] [cursor=pointer]:
+                - img [ref=e1085]
+                - generic [ref=e1088]: สร้างคอนเทนต์
+          - generic [ref=e1089]:
+            - generic [ref=e1090]:
+              - button "Andrej Karpathy @karpathy" [ref=e1092] [cursor=pointer]:
+                - generic [ref=e1094]:
+                  - generic [ref=e1096]: Andrej Karpathy
+                  - generic [ref=e1098]: "@karpathy"
+              - generic [ref=e1099]:
+                - generic [ref=e1100]: 13d
+                - button [ref=e1101] [cursor=pointer]:
+                  - img [ref=e1102]
+                - link [ref=e1104] [cursor=pointer]:
+                  - /url: https://x.com/karpathy/status/2042296221138894876
+                  - img [ref=e1105]
+            - paragraph [ref=e1110]: "@chalish_b @kepano In my experience there are approx. one thousand different pdf converters that are all equally terrible for anything except the simplest documents. Post the converted Mythos pdf, figures, tables and all. If good, happy to retweet as this is essential and missing infrastructure."
+            - generic [ref=e1111]:
+              - generic [ref=e1112]:
+                - generic [ref=e1113]:
+                  - generic [ref=e1114]:
+                    - img [ref=e1115]
+                    - generic [ref=e1116]: 12K
+                  - generic [ref=e1117]:
+                    - img [ref=e1118]
+                    - generic [ref=e1120]: "148"
+                  - generic [ref=e1121]:
+                    - img [ref=e1122]
+                    - generic [ref=e1127]: "3"
+                  - generic [ref=e1128]:
+                    - img [ref=e1129]
+                    - generic [ref=e1131]: "30"
+                - generic [ref=e1132]:
+                  - img [ref=e1133]
+                  - generic [ref=e1136]: ตอบกลับ @chalish_b
+              - button "สร้างคอนเทนต์" [ref=e1138] [cursor=pointer]:
+                - img [ref=e1139]
+                - generic [ref=e1142]: สร้างคอนเทนต์
+          - generic [ref=e1143]:
+            - generic [ref=e1144]:
+              - button "OpenAI @OpenAI" [ref=e1146] [cursor=pointer]:
+                - generic [ref=e1148]:
+                  - generic [ref=e1150]: OpenAI
+                  - generic [ref=e1152]: "@OpenAI"
+              - generic [ref=e1153]:
+                - generic [ref=e1154]: 13d
+                - button [ref=e1155] [cursor=pointer]:
+                  - img [ref=e1156]
+                - link [ref=e1158] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2042296046009626989
+                  - img [ref=e1159]
+            - paragraph [ref=e1164]: Our existing $200 Pro tier still remains our highest usage option. And as a thank you to our existing Pro users on the $200 tier, we’re extending our 2x Codex usage promo (until May 31st) and we’ve reset your Codex rate limits (yes, again).
+            - generic [ref=e1165]:
+              - generic [ref=e1167]:
+                - generic [ref=e1168]:
+                  - img [ref=e1169]
+                  - generic [ref=e1170]: 821K
+                - generic [ref=e1171]:
+                  - img [ref=e1172]
+                  - generic [ref=e1174]: 5K
+                - generic [ref=e1175]:
+                  - img [ref=e1176]
+                  - generic [ref=e1181]: "296"
+                - generic [ref=e1182]:
+                  - img [ref=e1183]
+                  - generic [ref=e1185]: "373"
+              - button "สร้างคอนเทนต์" [ref=e1187] [cursor=pointer]:
+                - img [ref=e1188]
+                - generic [ref=e1191]: สร้างคอนเทนต์
+        - button "โหลดเพิ่มเติม" [ref=e141] [cursor=pointer]
+    - complementary [ref=e53]:
+      - generic [ref=e54]:
+        - generic [ref=e55] [cursor=pointer]:
+          - img [ref=e56]
+          - heading "Post list" [level=2] [ref=e58]
+        - button "จัดการ Post List" [ref=e60] [cursor=pointer]:
+          - img [ref=e61]
+      - generic [ref=e62]:
+        - button "สร้าง Post List" [ref=e64] [cursor=pointer]:
+          - img [ref=e65]
+          - text: สร้าง Post List
+        - generic [ref=e67]:
+          - img [ref=e68]
+          - generic [ref=e70]: ไม่มีรายการ Post list
+          - generic [ref=e71]: สร้างใหม่เพื่อจัดระเบียบแหล่งข้อมูลของคุณ
+          - button "สร้างลิสต์" [ref=e72] [cursor=pointer]
+  - status:
+    - generic:
+      - generic:
+        - generic:
+          - img
+    - generic:
+      - generic: FORO
+      - generic: อัปเดตข้อมูลเรียบร้อย • 20 โพสต์จาก X • เติมสรุปต่อในพื้นหลัง

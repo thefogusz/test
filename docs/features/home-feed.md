@@ -105,6 +105,8 @@ flowchart TD
 - การหา candidate ใหม่ใช้ checkpoint-based advanced search
 - การ refresh engagement ของการ์ดที่มีอยู่แล้ว ใช้ tweet-id lookup เฉพาะการ์ดที่กำลังมองเห็น
 - ถ้าโพสต์จาก X ที่เข้ามามีอยู่แล้วในฟีด ระบบควรอัปเดตการ์ดเดิมแทนการสร้างซ้ำ
+- X seen registry ใช้เป็นประวัติประกอบการ hydrate/mark seen แต่ต้องไม่เป็นตัว suppress candidate ใหม่เพียงลำพัง เพราะโพสต์ที่ fetch มาแล้วแต่ยังไม่เคยขึ้นการ์ดอาจถูกซ่อนไปถาวรได้
+- ถ้า checkpoint ของ X ล้ำหน้ากว่าโพสต์ล่าสุดที่ upstream ส่งกลับมา ระบบต้อง fallback จาก latest search และกู้โพสต์ในช่วง 48 ชั่วโมงล่าสุด เพื่อไม่ให้ฟีดติดอยู่ในสภาพ RSS-only
 
 ### Feed history hydration และ FORO Filter ระหว่าง sync
 
@@ -124,6 +126,7 @@ flowchart TD
 
 - การล้าง Home feed จะไม่ reset X checkpoints หรือ X seen state
 - พฤติกรรมนี้ตั้งใจไว้เพื่อให้หลังล้างฟีดแล้ว การ sync รอบถัดไปยังเน้นโพสต์ใหม่ และไม่เสียต้นทุนไปกับการประมวลผลโพสต์เก่าที่ผู้ใช้ไม่ได้เห็นแล้ว
+- ถ้า checkpoint ที่เก็บไว้ทำให้หาโพสต์ใหม่ไม่เจอทั้งที่ upstream ยังมีโพสต์ล่าสุด ระบบต้องใช้ recovery fallback ของ X แทนการปล่อยให้ RSS เป็นแหล่งเดียวที่ขึ้นการ์ด
 
 ### การกรองตาม post list
 
@@ -184,7 +187,7 @@ flowchart TD
 ### ผู้ใช้ sync ซ้ำโดยไม่ล้างฟีด
 
 - RSS ควร suppress บทความเก่าจาก source เดิมต่อไป
-- X ควรหาโพสต์ใหม่และ refresh สถิติของการ์ดที่มองเห็น โดยไม่ทำให้โพสต์เก่ากลายเป็นรายการใหม่
+- X ควรหาโพสต์ใหม่และ refresh สถิติของการ์ดที่มองเห็น โดยไม่ทำให้โพสต์เก่ากลายเป็นรายการใหม่ และไม่ให้ seen registry ซ่อนโพสต์ที่ยังไม่เคยถูกเพิ่มเข้า feed
 
 ### ผู้ใช้มี post list ที่รวม X และ RSS
 
@@ -215,6 +218,7 @@ flowchart TD
 
 ## Change Log
 
+- 2026-04-23: documented X sync recovery for ahead-of-feed checkpoints and clarified that X seen registry must not suppress unseen feed candidates by itself
 - 2026-04-23: documented feed-history hydration guard, pre-quota sync blocking, and automatic FORO Filter clearing when a fresh sync starts
 - 2026-04-13: documented first-pass `20` card sync window, cross-source chronological ordering for mixed X plus RSS lists, `Load more` overflow behavior, and background-only RSS article enrichment
 - 2026-04-12: documented durable RSS dedupe, RSS reset-on-clear behavior, X checkpoint plus visible-card stat refresh flow, post-list normalization fixes, and Home plan caps (`Free 30 / Plus 100`)

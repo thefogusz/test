@@ -39,6 +39,7 @@ type XSyncCheckpointRegistry = Record<string, string>;
 const MAX_RSS_SEEN_ITEMS_PER_SOURCE = 600;
 const MAX_X_SEEN_ITEMS = 2500;
 const X_SYNC_OVERLAP_MS = 2 * 60 * 1000;
+const X_CHECKPOINT_RECOVERY_LOOKBACK_MS = 48 * 60 * 60 * 1000;
 const buildFeedSyncQueryKey = ({
   activeListId,
   twitterHandles,
@@ -120,7 +121,7 @@ export const useHomeFeedWorkspace = ({
   const [feed, setFeed] = useState<any[]>([]);
   const [rssSeenRegistry, setRssSeenRegistry, isRssSeenRegistryHydrated] =
     useIndexedDbState<RssSeenRegistry>(STORAGE_KEYS.rssSeenRegistry, {});
-  const [xSeenRegistry, setXSeenRegistry, isXSeenRegistryHydrated] =
+  const [, setXSeenRegistry, isXSeenRegistryHydrated] =
     useIndexedDbState<XSeenRegistry>(STORAGE_KEYS.xSeenRegistry, {});
   const [xSyncCheckpoints, setXSyncCheckpoints, isXSyncCheckpointsHydrated] =
     useIndexedDbState<XSyncCheckpointRegistry>(STORAGE_KEYS.xSyncCheckpoints, {});
@@ -145,16 +146,11 @@ export const useHomeFeedWorkspace = ({
   const failedThaiSummaryIdsRef = useRef(new Set<string>());
   const enrichedImageIdsRef = useRef(new Set<string>());
   const rssSeenRegistryRef = useRef<RssSeenRegistry>({});
-  const xSeenRegistryRef = useRef<XSeenRegistry>({});
   const xSyncCheckpointsRef = useRef<XSyncCheckpointRegistry>({});
 
   useEffect(() => {
     rssSeenRegistryRef.current = rssSeenRegistry || {};
   }, [rssSeenRegistry]);
-
-  useEffect(() => {
-    xSeenRegistryRef.current = xSeenRegistry || {};
-  }, [xSeenRegistry]);
 
   useEffect(() => {
     xSyncCheckpointsRef.current = xSyncCheckpoints || {};
@@ -228,23 +224,6 @@ export const useHomeFeedWorkspace = ({
 
       return didChange ? nextRegistry : prev;
     });
-  };
-
-  const buildKnownXSeenSet = (collections: any[][] = []) => {
-    const seen = new Set<string>();
-
-    Object.keys(xSeenRegistryRef.current || {}).forEach((key) => {
-      const normalizedKey = String(key || '').trim();
-      if (normalizedKey) seen.add(normalizedKey);
-    });
-
-    collections.flat().forEach((post) => {
-      if (!isXFeedPost(post)) return;
-      const postId = getNormalizedPostId(post);
-      if (postId) seen.add(postId);
-    });
-
-    return seen;
   };
 
   const markXPostsAsSeen = (posts: any[] = []) => {
@@ -837,6 +816,15 @@ export const useHomeFeedWorkspace = ({
     return new Date(Math.max(...timestamps)).toISOString();
   };
 
+  const getLatestXPostTimestamp = (posts: any[] = []) => {
+    const timestamps = posts
+      .filter((post) => isXFeedPost(post))
+      .map((post) => Date.parse(String(post?.created_at || '')))
+      .filter((timestamp) => Number.isFinite(timestamp));
+
+    return timestamps.length > 0 ? Math.max(...timestamps) : NaN;
+  };
+
   const drainQueuedFeedSummaries = async () => {
     if (isSummarizingRef.current) return;
     isSummarizingRef.current = true;
@@ -948,13 +936,6 @@ export const useHomeFeedWorkspace = ({
       const knownRssSeenKeys = buildKnownRssSeenSet([originalFeed]);
       const persistedXPostsInScope = originalFeed.filter((post) => isXPostInActiveScope(post));
       const hasPersistedXFeedForScope = persistedXPostsInScope.length > 0;
-      const knownXSeenIds = hasPersistedXFeedForScope
-        ? buildKnownXSeenSet([originalFeed])
-        : new Set(
-          persistedXPostsInScope
-            .map((post) => getNormalizedPostId(post))
-            .filter(Boolean),
-        );
       const hasWatchlist = activeListMembers.twitterHandles.length > 0;
       const hasRss = effectiveRssSources.length > 0;
 
@@ -1042,12 +1023,38 @@ export const useHomeFeedWorkspace = ({
             },
           );
           const checkpointFloor = Math.max(0, checkpointTimestamp - X_SYNC_OVERLAP_MS);
-          twitterData = (Array.isArray(fallbackLatestResult?.data) ? fallbackLatestResult.data : []).filter((post) => {
+          const fallbackTwitterData = Array.isArray(fallbackLatestResult?.data)
+            ? fallbackLatestResult.data
+            : [];
+          const strictRecoveredTwitterData = fallbackTwitterData.filter((post) => {
             const createdAt = Date.parse(String(post?.created_at || ''));
             return Number.isFinite(createdAt) && createdAt >= checkpointFloor;
           });
+
+          twitterData = strictRecoveredTwitterData;
+
+          if (twitterData.length === 0 && fallbackTwitterData.length > 0) {
+            const latestFallbackTimestamp = getLatestXPostTimestamp(fallbackTwitterData);
+            const checkpointLooksAhead =
+              Number.isFinite(checkpointTimestamp) &&
+              Number.isFinite(latestFallbackTimestamp) &&
+              checkpointTimestamp - latestFallbackTimestamp > X_SYNC_OVERLAP_MS;
+
+            if (checkpointLooksAhead) {
+              const recoveryFloor = Date.now() - X_CHECKPOINT_RECOVERY_LOOKBACK_MS;
+              twitterData = fallbackTwitterData.filter((post) => {
+                const createdAt = Date.parse(String(post?.created_at || ''));
+                return Number.isFinite(createdAt) && createdAt >= recoveryFloor;
+              });
+              if (twitterData.length > 0) {
+                console.warn(
+                  `[Sync] Recovered ${twitterData.length} X posts after detecting an ahead-of-feed checkpoint`,
+                );
+              }
+            }
+          }
           if (twitterData.length > 0) {
-            console.info(`[Sync] Fallback recovered ${twitterData.length} X posts newer than checkpoint`);
+            console.info(`[Sync] Fallback recovered ${twitterData.length} X posts`);
           }
         } catch (fallbackError) {
           console.error('[Sync] X latest fallback failed', fallbackError);
@@ -1084,7 +1091,6 @@ export const useHomeFeedWorkspace = ({
         const postId = getNormalizedPostId(post);
         if (!postId) return false;
         if (existingIds.has(postId)) return false;
-        if (knownXSeenIds.has(postId)) return false;
         return true;
       };
       const isExistingTwitterPost = (post: any) => {

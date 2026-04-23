@@ -33,7 +33,7 @@ flowchart TD
 flowchart TD
   A[Watchlist / Post list] --> B[Advanced search]
   B --> C[candidate ใหม่]
-  C --> D[เช็ค X seen registry]
+  C --> D[เช็ค existing feed ids]
   D --> E[รวมกับโพสต์ RSS]
   E --> F[เรียงตาม created_at]
   F --> G[20 รายการแรก]
@@ -48,6 +48,8 @@ flowchart TD
 - ใช้ tweet-id lookup สำหรับ refresh engagement ของการ์ดที่มองเห็นอยู่บน Home
 - ถ้า tweet มีอยู่แล้วในฟีด ระบบควรอัปเดตการ์ดเดิมแทนการสร้างซ้ำ
 - การล้าง Home feed จะไม่ reset X checkpoints หรือ X seen state
+- X seen registry เป็น durable history ที่ต้อง hydrate ก่อน sync แต่การตัด candidate ใหม่ต้องดูว่ามี post id อยู่ในฟีดแล้วหรือไม่ ไม่ใช่ตัดทิ้งเพราะเคย fetch มาแล้วอย่างเดียว
+- ถ้า checkpoint-based search ไม่เจอรายการใหม่ แต่ latest fallback พบว่า checkpoint ล้ำหน้าโพสต์ล่าสุด ระบบต้องกู้โพสต์ X ในช่วง 48 ชั่วโมงล่าสุดกลับมาพิจารณา
 - รายการจาก X และ RSS ที่ผสมกันต้องเรียงตาม timestamp จริงก่อนตัดให้เหลือ 20 ใบแรก
 - Home sync ต้องรอ feed-history hydration ครบก่อนเริ่ม fetch เพื่อไม่ให้ seen/checkpoint state ที่ยังไม่พร้อมทำให้รอบ sync ถูกตีความผิด
 

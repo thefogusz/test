@@ -1,0 +1,838 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - img "RO Logo" [ref=e6]
+      - navigation [ref=e7]:
+        - button "หน้าหลัก" [ref=e8] [cursor=pointer]:
+          - generic:
+            - img
+          - generic: สรุปข่าววันนี้
+        - button "ค้นหา" [ref=e9] [cursor=pointer]:
+          - generic:
+            - img
+          - generic: คอนเทนต์
+        - button "อ่านข่าว" [ref=e10] [cursor=pointer]:
+          - generic:
+            - img
+          - generic: อ่านข่าว
+        - button "การติดตาม" [ref=e11] [cursor=pointer]:
+          - generic:
+            - img
+          - generic: การติดตาม
+        - button "Bookmarks" [ref=e12] [cursor=pointer]:
+          - generic:
+            - img
+          - generic: Bookmarks
+        - button "โปรไฟล์" [ref=e13] [cursor=pointer]:
+          - generic:
+            - img
+          - generic: Pricing
+      - button "FG Foro Free Mockup - Free free" [ref=e16] [cursor=pointer]:
+        - generic [ref=e17]:
+          - generic [ref=e18]: FG
+          - generic [ref=e19]:
+            - generic [ref=e20]: Foro Free
+            - generic [ref=e22]: Mockup - Free
+        - generic [ref=e23]:
+          - generic [ref=e24]: free
+          - img [ref=e25]
+    - main [ref=e27]:
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - generic [ref=e32]:
+            - heading "หน้าหลัก" [level=1] [ref=e33]
+            - paragraph [ref=e34]: WATCHLIST FEED
+          - generic [ref=e35]:
+            - generic [ref=e38]: ทั้งหมด
+            - generic [ref=e39]:
+              - generic [ref=e73]:
+                - button "สรุป" [ref=e75] [cursor=pointer]
+                - button "หาโพสต์เด่น" [ref=e77] [cursor=pointer]
+                - button "โพสต์ไหนน่าทำคอนเทนต์" [ref=e79] [cursor=pointer]
+              - button "FORO Filter" [ref=e40] [cursor=pointer]:
+                - generic [ref=e42]: FORO Filter
+              - button "ฟีดข้อมูล" [ref=e43] [cursor=pointer]:
+                - img [ref=e44]
+                - text: ฟีดข้อมูล
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - generic [ref=e82]: โพสต์ล่าสุด
+            - generic [ref=e83]: 20 การ์ด
+          - generic [ref=e84]:
+            - button "เคลียร์ฟีด" [ref=e85] [cursor=pointer]:
+              - img [ref=e86]
+            - button "ยอดวิว" [ref=e89] [cursor=pointer]
+            - button "เอนเกจเมนต์" [ref=e90] [cursor=pointer]
+        - generic [ref=e49]:
+          - generic [ref=e91]:
+            - generic [ref=e92]:
+              - button "Sam Altman @sama" [ref=e94] [cursor=pointer]:
+                - generic [ref=e96]:
+                  - generic [ref=e98]: Sam Altman
+                  - generic [ref=e100]: "@sama"
+              - generic [ref=e101]:
+                - generic [ref=e102]: 20h
+                - button [ref=e103] [cursor=pointer]:
+                  - img [ref=e104]
+                - link [ref=e106] [cursor=pointer]:
+                  - /url: https://x.com/sama/status/2047017964105597009
+                  - img [ref=e107]
+            - paragraph [ref=e112]: These are cool! I think most companies will want to use them.
+            - generic [ref=e113]:
+              - generic [ref=e115]:
+                - generic [ref=e116]:
+                  - img [ref=e117]
+                  - generic [ref=e118]: 914K
+                - generic [ref=e119]:
+                  - img [ref=e120]
+                  - generic [ref=e122]: 4K
+                - generic [ref=e123]:
+                  - img [ref=e124]
+                  - generic [ref=e129]: "187"
+                - generic [ref=e130]:
+                  - img [ref=e131]
+                  - generic [ref=e133]: "408"
+              - button "สร้างคอนเทนต์" [ref=e135] [cursor=pointer]:
+                - img [ref=e136]
+                - generic [ref=e139]: สร้างคอนเทนต์
+          - generic [ref=e140]:
+            - generic [ref=e141]:
+              - button "OpenAI @OpenAI" [ref=e143] [cursor=pointer]:
+                - generic [ref=e145]:
+                  - generic [ref=e147]: OpenAI
+                  - generic [ref=e149]: "@OpenAI"
+              - generic [ref=e150]:
+                - generic [ref=e151]: 21h
+                - button [ref=e152] [cursor=pointer]:
+                  - img [ref=e153]
+                - link [ref=e155] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2047008993760137383
+                  - img [ref=e156]
+            - paragraph [ref=e161]: Workspace agents are now available in research preview for ChatGPT Business, Enterprise, Edu, and Teachers plans. https://t.co/2ZpkJsfUas
+            - generic [ref=e162]:
+              - generic [ref=e163]:
+                - generic [ref=e164]:
+                  - generic [ref=e165]:
+                    - img [ref=e166]
+                    - generic [ref=e167]: 225K
+                  - generic [ref=e168]:
+                    - img [ref=e169]
+                    - generic [ref=e171]: "572"
+                  - generic [ref=e172]:
+                    - img [ref=e173]
+                    - generic [ref=e178]: "25"
+                  - generic [ref=e179]:
+                    - img [ref=e180]
+                    - generic [ref=e182]: "66"
+                - generic [ref=e183]:
+                  - img [ref=e184]
+                  - generic [ref=e187]: ตอบกลับ @OpenAI
+              - button "สร้างคอนเทนต์" [ref=e189] [cursor=pointer]:
+                - img [ref=e190]
+                - generic [ref=e193]: สร้างคอนเทนต์
+          - generic [ref=e194]:
+            - generic [ref=e195]:
+              - button "OpenAI @OpenAI" [ref=e197] [cursor=pointer]:
+                - generic [ref=e199]:
+                  - generic [ref=e201]: OpenAI
+                  - generic [ref=e203]: "@OpenAI"
+              - generic [ref=e204]:
+                - generic [ref=e205]: 21h
+                - button [ref=e206] [cursor=pointer]:
+                  - img [ref=e207]
+                - link [ref=e209] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2047008991944069624
+                  - img [ref=e210]
+            - generic [ref=e214]:
+              - button [ref=e215]
+              - paragraph [ref=e217]: Workspace agents can work across tools—pulling context from docs, email, chats, code, and systems, and taking approved actions like updating @Linear issues, creating docs, or sending messages. In @SlackHQ, agents can jump into a thread, understand what’s needed, pull the right context, help resolve the issue, and update the right systems. They can also keep going in the background or on a schedule, while you’re away.
+            - generic [ref=e218]:
+              - generic [ref=e219]:
+                - generic [ref=e220]:
+                  - generic [ref=e221]:
+                    - img [ref=e222]
+                    - generic [ref=e223]: 185K
+                  - generic [ref=e224]:
+                    - img [ref=e225]
+                    - generic [ref=e227]: "478"
+                  - generic [ref=e228]:
+                    - img [ref=e229]
+                    - generic [ref=e234]: "19"
+                  - generic [ref=e235]:
+                    - img [ref=e236]
+                    - generic [ref=e238]: "25"
+                - generic [ref=e239]:
+                  - img [ref=e240]
+                  - generic [ref=e243]: ตอบกลับ @OpenAI
+              - button "สร้างคอนเทนต์" [ref=e245] [cursor=pointer]:
+                - img [ref=e246]
+                - generic [ref=e249]: สร้างคอนเทนต์
+          - generic [ref=e250]:
+            - generic [ref=e251]:
+              - button "OpenAI @OpenAI" [ref=e253] [cursor=pointer]:
+                - generic [ref=e255]:
+                  - generic [ref=e257]: OpenAI
+                  - generic [ref=e259]: "@OpenAI"
+              - generic [ref=e260]:
+                - generic [ref=e261]: 21h
+                - button [ref=e262] [cursor=pointer]:
+                  - img [ref=e263]
+                - link [ref=e265] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2047008990379512047
+                  - img [ref=e266]
+            - generic [ref=e270]:
+              - button [ref=e271]
+              - paragraph [ref=e273]: Build an agent once, then share it across teams. Describe the job, and ChatGPT helps turn it into a working agent that can use your team’s best practices. Use agents for tasks like qualifying leads, routing feedback, reviewing requests, pulling reports, or researching vendors. https://t.co/TuFf14YZ4v
+            - generic [ref=e274]:
+              - generic [ref=e275]:
+                - generic [ref=e276]:
+                  - generic [ref=e277]:
+                    - img [ref=e278]
+                    - generic [ref=e279]: 164K
+                  - generic [ref=e280]:
+                    - img [ref=e281]
+                    - generic [ref=e283]: "682"
+                  - generic [ref=e284]:
+                    - img [ref=e285]
+                    - generic [ref=e290]: "28"
+                  - generic [ref=e291]:
+                    - img [ref=e292]
+                    - generic [ref=e294]: "12"
+                - generic [ref=e295]:
+                  - img [ref=e296]
+                  - generic [ref=e299]: ตอบกลับ @OpenAI
+              - button "สร้างคอนเทนต์" [ref=e301] [cursor=pointer]:
+                - img [ref=e302]
+                - generic [ref=e305]: สร้างคอนเทนต์
+          - generic [ref=e306]:
+            - generic [ref=e307]:
+              - button "OpenAI @OpenAI" [ref=e309] [cursor=pointer]:
+                - generic [ref=e311]:
+                  - generic [ref=e313]: OpenAI
+                  - generic [ref=e315]: "@OpenAI"
+              - generic [ref=e316]:
+                - generic [ref=e317]: 21h
+                - button [ref=e318] [cursor=pointer]:
+                  - img [ref=e319]
+                - link [ref=e321] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2047008988970225933
+                  - img [ref=e322]
+            - paragraph [ref=e327]: "Agents are built to help with the kind of work that takes time, context, and follow-through: coordinating across tools, tracking progress, and moving tasks forward without needing constant supervision. https://t.co/UqgvxEJgZt"
+            - generic [ref=e328]:
+              - generic [ref=e329]:
+                - generic [ref=e330]:
+                  - generic [ref=e331]:
+                    - img [ref=e332]
+                    - generic [ref=e333]: 172K
+                  - generic [ref=e334]:
+                    - img [ref=e335]
+                    - generic [ref=e337]: "821"
+                  - generic [ref=e338]:
+                    - img [ref=e339]
+                    - generic [ref=e344]: "29"
+                  - generic [ref=e345]:
+                    - img [ref=e346]
+                    - generic [ref=e348]: "22"
+                - generic [ref=e349]:
+                  - img [ref=e350]
+                  - generic [ref=e353]: ตอบกลับ @OpenAI
+              - button "สร้างคอนเทนต์" [ref=e355] [cursor=pointer]:
+                - img [ref=e356]
+                - generic [ref=e359]: สร้างคอนเทนต์
+          - generic [ref=e360]:
+            - generic [ref=e361]:
+              - button "OpenAI @OpenAI" [ref=e363] [cursor=pointer]:
+                - generic [ref=e365]:
+                  - generic [ref=e367]: OpenAI
+                  - generic [ref=e369]: "@OpenAI"
+              - generic [ref=e370]:
+                - generic "X video source" [ref=e371]:
+                  - img [ref=e372]
+                  - text: VIDEO
+                - generic [ref=e374]: 21h
+                - button [ref=e375] [cursor=pointer]:
+                  - img [ref=e376]
+                - link [ref=e378] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2047008987665809771
+                  - img [ref=e379]
+            - generic [ref=e383]:
+              - link "ดูบน X 70s" [ref=e384] [cursor=pointer]:
+                - /url: https://x.com/OpenAI/status/2047008987665809771
+                - generic [ref=e385]:
+                  - generic [ref=e386]:
+                    - img [ref=e387]
+                    - text: ดูบน X
+                  - generic [ref=e389]: 70s
+              - paragraph [ref=e391]: Introducing workspace agents in ChatGPT—shared agents that can handle complex tasks and long-running workflows across tools and teams. https://t.co/eHplfXCWlk
+            - generic [ref=e392]:
+              - generic [ref=e394]:
+                - generic [ref=e395]:
+                  - img [ref=e396]
+                  - generic [ref=e397]: 4M
+                - generic [ref=e398]:
+                  - img [ref=e399]
+                  - generic [ref=e401]: 16K
+                - generic [ref=e402]:
+                  - img [ref=e403]
+                  - generic [ref=e408]: 1K
+                - generic [ref=e409]:
+                  - img [ref=e410]
+                  - generic [ref=e412]: "696"
+              - button "สร้างคอนเทนต์" [ref=e414] [cursor=pointer]:
+                - img [ref=e415]
+                - generic [ref=e418]: สร้างคอนเทนต์
+          - generic [ref=e419]:
+            - generic [ref=e420]:
+              - button "Sam Altman @sama" [ref=e422] [cursor=pointer]:
+                - generic [ref=e424]:
+                  - generic [ref=e426]: Sam Altman
+                  - generic [ref=e428]: "@sama"
+              - generic [ref=e429]:
+                - generic [ref=e430]: 1d
+                - button [ref=e431] [cursor=pointer]:
+                  - img [ref=e432]
+                - link [ref=e434] [cursor=pointer]:
+                  - /url: https://x.com/sama/status/2046809014751883483
+                  - img [ref=e435]
+            - paragraph [ref=e440]: "@VictorTaelin we gotchu"
+            - generic [ref=e441]:
+              - generic [ref=e442]:
+                - generic [ref=e443]:
+                  - generic [ref=e444]:
+                    - img [ref=e445]
+                    - generic [ref=e446]: 174K
+                  - generic [ref=e447]:
+                    - img [ref=e448]
+                    - generic [ref=e450]: 3K
+                  - generic [ref=e451]:
+                    - img [ref=e452]
+                    - generic [ref=e457]: "62"
+                  - generic [ref=e458]:
+                    - img [ref=e459]
+                    - generic [ref=e461]: "132"
+                - generic [ref=e462]:
+                  - img [ref=e463]
+                  - generic [ref=e466]: ตอบกลับ @VictorTaelin
+              - button "สร้างคอนเทนต์" [ref=e468] [cursor=pointer]:
+                - img [ref=e469]
+                - generic [ref=e472]: สร้างคอนเทนต์
+          - generic [ref=e473]:
+            - generic [ref=e474]:
+              - button "Sam Altman @sama" [ref=e476] [cursor=pointer]:
+                - generic [ref=e478]:
+                  - generic [ref=e480]: Sam Altman
+                  - generic [ref=e482]: "@sama"
+              - generic [ref=e483]:
+                - generic [ref=e484]: 1d
+                - button [ref=e485] [cursor=pointer]:
+                  - img [ref=e486]
+                - link [ref=e488] [cursor=pointer]:
+                  - /url: https://x.com/sama/status/2046808900301975576
+                  - img [ref=e489]
+            - paragraph [ref=e494]: "@ns123abc @gabeeegoooh change urs it sucks"
+            - generic [ref=e495]:
+              - generic [ref=e496]:
+                - generic [ref=e497]:
+                  - generic [ref=e498]:
+                    - img [ref=e499]
+                    - generic [ref=e500]: 90K
+                  - generic [ref=e501]:
+                    - img [ref=e502]
+                    - generic [ref=e504]: 1K
+                  - generic [ref=e505]:
+                    - img [ref=e506]
+                    - generic [ref=e511]: "32"
+                  - generic [ref=e512]:
+                    - img [ref=e513]
+                    - generic [ref=e515]: "111"
+                - generic [ref=e516]:
+                  - img [ref=e517]
+                  - generic [ref=e520]: ตอบกลับ @ns123abc
+              - button "สร้างคอนเทนต์" [ref=e522] [cursor=pointer]:
+                - img [ref=e523]
+                - generic [ref=e526]: สร้างคอนเทนต์
+          - generic [ref=e527]:
+            - generic [ref=e528]:
+              - button "Sam Altman @sama" [ref=e530] [cursor=pointer]:
+                - generic [ref=e532]:
+                  - generic [ref=e534]: Sam Altman
+                  - generic [ref=e536]: "@sama"
+              - generic [ref=e537]:
+                - generic [ref=e538]: 1d
+                - button [ref=e539] [cursor=pointer]:
+                  - img [ref=e540]
+                - link [ref=e542] [cursor=pointer]:
+                  - /url: https://x.com/sama/status/2046808785042477518
+                  - img [ref=e543]
+            - paragraph [ref=e548]: "@michpokrass easily"
+            - generic [ref=e549]:
+              - generic [ref=e550]:
+                - generic [ref=e551]:
+                  - generic [ref=e552]:
+                    - img [ref=e553]
+                    - generic [ref=e554]: 39K
+                  - generic [ref=e555]:
+                    - img [ref=e556]
+                    - generic [ref=e558]: "345"
+                  - generic [ref=e559]:
+                    - img [ref=e560]
+                    - generic [ref=e565]: "3"
+                  - generic [ref=e566]:
+                    - img [ref=e567]
+                    - generic [ref=e569]: "17"
+                - generic [ref=e570]:
+                  - img [ref=e571]
+                  - generic [ref=e574]: ตอบกลับ @michpokrass
+              - button "สร้างคอนเทนต์" [ref=e576] [cursor=pointer]:
+                - img [ref=e577]
+                - generic [ref=e580]: สร้างคอนเทนต์
+          - generic [ref=e581]:
+            - generic [ref=e582]:
+              - button "Sam Altman @sama" [ref=e584] [cursor=pointer]:
+                - generic [ref=e586]:
+                  - generic [ref=e588]: Sam Altman
+                  - generic [ref=e590]: "@sama"
+              - generic [ref=e591]:
+                - generic [ref=e592]: 1d
+                - button [ref=e593] [cursor=pointer]:
+                  - img [ref=e594]
+                - link [ref=e596] [cursor=pointer]:
+                  - /url: https://x.com/sama/status/2046808596969853103
+                  - img [ref=e597]
+            - paragraph [ref=e602]: "@rohanvarma how about a rate limit reset in a week or so?"
+            - generic [ref=e603]:
+              - generic [ref=e604]:
+                - generic [ref=e605]:
+                  - generic [ref=e606]:
+                    - img [ref=e607]
+                    - generic [ref=e608]: 135K
+                  - generic [ref=e609]:
+                    - img [ref=e610]
+                    - generic [ref=e612]: 1K
+                  - generic [ref=e613]:
+                    - img [ref=e614]
+                    - generic [ref=e619]: "17"
+                  - generic [ref=e620]:
+                    - img [ref=e621]
+                    - generic [ref=e623]: "73"
+                - generic [ref=e624]:
+                  - img [ref=e625]
+                  - generic [ref=e628]: ตอบกลับ @rohanvarma
+              - button "สร้างคอนเทนต์" [ref=e630] [cursor=pointer]:
+                - img [ref=e631]
+                - generic [ref=e634]: สร้างคอนเทนต์
+          - generic [ref=e635]:
+            - generic [ref=e636]:
+              - button "Sam Altman @sama" [ref=e638] [cursor=pointer]:
+                - generic [ref=e640]:
+                  - generic [ref=e642]: Sam Altman
+                  - generic [ref=e644]: "@sama"
+              - generic [ref=e645]:
+                - generic [ref=e646]: 1d
+                - button [ref=e647] [cursor=pointer]:
+                  - img [ref=e648]
+                - link [ref=e650] [cursor=pointer]:
+                  - /url: https://x.com/sama/status/2046808217133670800
+                  - img [ref=e651]
+            - paragraph [ref=e656]: "@kyliebytes tongiht i have had a couple of drinks https://t.co/SumpJ45kBc"
+            - generic [ref=e657]:
+              - generic [ref=e658]:
+                - generic [ref=e659]:
+                  - generic [ref=e660]:
+                    - img [ref=e661]
+                    - generic [ref=e662]: 1M
+                  - generic [ref=e663]:
+                    - img [ref=e664]
+                    - generic [ref=e666]: 4K
+                  - generic [ref=e667]:
+                    - img [ref=e668]
+                    - generic [ref=e673]: "121"
+                  - generic [ref=e674]:
+                    - img [ref=e675]
+                    - generic [ref=e677]: "227"
+                - generic [ref=e678]:
+                  - img [ref=e679]
+                  - generic [ref=e682]: ตอบกลับ @kyliebytes
+              - button "สร้างคอนเทนต์" [ref=e684] [cursor=pointer]:
+                - img [ref=e685]
+                - generic [ref=e688]: สร้างคอนเทนต์
+          - generic [ref=e689]:
+            - generic [ref=e690]:
+              - button "Sam Altman @sama" [ref=e692] [cursor=pointer]:
+                - generic [ref=e694]:
+                  - generic [ref=e696]: Sam Altman
+                  - generic [ref=e698]: "@sama"
+              - generic [ref=e699]:
+                - generic [ref=e700]: 1d
+                - button [ref=e701] [cursor=pointer]:
+                  - img [ref=e702]
+                - link [ref=e704] [cursor=pointer]:
+                  - /url: https://x.com/sama/status/2046808114561974567
+                  - img [ref=e705]
+            - paragraph [ref=e710]: "@TheAmolAvasare ok boomer"
+            - generic [ref=e711]:
+              - generic [ref=e712]:
+                - generic [ref=e713]:
+                  - generic [ref=e714]:
+                    - img [ref=e715]
+                    - generic [ref=e716]: 5M
+                  - generic [ref=e717]:
+                    - img [ref=e718]
+                    - generic [ref=e720]: 12K
+                  - generic [ref=e721]:
+                    - img [ref=e722]
+                    - generic [ref=e727]: "386"
+                  - generic [ref=e728]:
+                    - img [ref=e729]
+                    - generic [ref=e731]: "599"
+                - generic [ref=e732]:
+                  - img [ref=e733]
+                  - generic [ref=e736]: ตอบกลับ @TheAmolAvasare
+              - button "สร้างคอนเทนต์" [ref=e738] [cursor=pointer]:
+                - img [ref=e739]
+                - generic [ref=e742]: สร้างคอนเทนต์
+          - generic [ref=e743]:
+            - generic [ref=e744]:
+              - button "Sam Altman @sama" [ref=e746] [cursor=pointer]:
+                - generic [ref=e748]:
+                  - generic [ref=e750]: Sam Altman
+                  - generic [ref=e752]: "@sama"
+              - generic [ref=e753]:
+                - generic [ref=e754]: 1d
+                - button [ref=e755] [cursor=pointer]:
+                  - img [ref=e756]
+                - link [ref=e758] [cursor=pointer]:
+                  - /url: https://x.com/sama/status/2046798393918505024
+                  - img [ref=e759]
+            - paragraph [ref=e764]: "@Suolar_ @scaling01 🫡"
+            - generic [ref=e765]:
+              - generic [ref=e766]:
+                - generic [ref=e767]:
+                  - generic [ref=e768]:
+                    - img [ref=e769]
+                    - generic [ref=e770]: 377K
+                  - generic [ref=e771]:
+                    - img [ref=e772]
+                    - generic [ref=e774]: 1K
+                  - generic [ref=e775]:
+                    - img [ref=e776]
+                    - generic [ref=e781]: "61"
+                  - generic [ref=e782]:
+                    - img [ref=e783]
+                    - generic [ref=e785]: "46"
+                - generic [ref=e786]:
+                  - img [ref=e787]
+                  - generic [ref=e790]: ตอบกลับ @Suolar_
+              - button "สร้างคอนเทนต์" [ref=e792] [cursor=pointer]:
+                - img [ref=e793]
+                - generic [ref=e796]: สร้างคอนเทนต์
+          - generic [ref=e797]:
+            - generic [ref=e798]:
+              - button "Sam Altman @sama" [ref=e800] [cursor=pointer]:
+                - generic [ref=e802]:
+                  - generic [ref=e804]: Sam Altman
+                  - generic [ref=e806]: "@sama"
+              - generic [ref=e807]:
+                - generic [ref=e808]: 1d
+                - button [ref=e809] [cursor=pointer]:
+                  - img [ref=e810]
+                - link [ref=e812] [cursor=pointer]:
+                  - /url: https://x.com/sama/status/2046798302990205365
+                  - img [ref=e813]
+            - paragraph [ref=e818]: "@John62528183606 @scaling01 @grok it sounds like it"
+            - generic [ref=e819]:
+              - generic [ref=e820]:
+                - generic [ref=e821]:
+                  - generic [ref=e822]:
+                    - img [ref=e823]
+                    - generic [ref=e824]: 31K
+                  - generic [ref=e825]:
+                    - img [ref=e826]
+                    - generic [ref=e828]: "481"
+                  - generic [ref=e829]:
+                    - img [ref=e830]
+                    - generic [ref=e835]: "5"
+                  - generic [ref=e836]:
+                    - img [ref=e837]
+                    - generic [ref=e839]: "15"
+                - generic [ref=e840]:
+                  - img [ref=e841]
+                  - generic [ref=e844]: ตอบกลับ @John62528183606
+              - button "สร้างคอนเทนต์" [ref=e846] [cursor=pointer]:
+                - img [ref=e847]
+                - generic [ref=e850]: สร้างคอนเทนต์
+          - generic [ref=e851]:
+            - generic [ref=e852]:
+              - button "Sam Altman @sama" [ref=e854] [cursor=pointer]:
+                - generic [ref=e856]:
+                  - generic [ref=e858]: Sam Altman
+                  - generic [ref=e860]: "@sama"
+              - generic [ref=e861]:
+                - generic [ref=e862]: 1d
+                - button [ref=e863] [cursor=pointer]:
+                  - img [ref=e864]
+                - link [ref=e866] [cursor=pointer]:
+                  - /url: https://x.com/sama/status/2046764594505592884
+                  - img [ref=e867]
+            - paragraph [ref=e872]: "@scaling01 come to the light side"
+            - generic [ref=e873]:
+              - generic [ref=e874]:
+                - generic [ref=e875]:
+                  - generic [ref=e876]:
+                    - img [ref=e877]
+                    - generic [ref=e878]: 298K
+                  - generic [ref=e879]:
+                    - img [ref=e880]
+                    - generic [ref=e882]: 4K
+                  - generic [ref=e883]:
+                    - img [ref=e884]
+                    - generic [ref=e889]: "92"
+                  - generic [ref=e890]:
+                    - img [ref=e891]
+                    - generic [ref=e893]: "202"
+                - generic [ref=e894]:
+                  - img [ref=e895]
+                  - generic [ref=e898]: ตอบกลับ @scaling01
+              - button "สร้างคอนเทนต์" [ref=e900] [cursor=pointer]:
+                - img [ref=e901]
+                - generic [ref=e904]: สร้างคอนเทนต์
+          - generic [ref=e905]:
+            - generic [ref=e906]:
+              - button "Sam Altman @sama" [ref=e908] [cursor=pointer]:
+                - generic [ref=e910]:
+                  - generic [ref=e912]: Sam Altman
+                  - generic [ref=e914]: "@sama"
+              - generic [ref=e915]:
+                - generic [ref=e916]: 1d
+                - button [ref=e917] [cursor=pointer]:
+                  - img [ref=e918]
+                - link [ref=e920] [cursor=pointer]:
+                  - /url: https://x.com/sama/status/2046752492093165708
+                  - img [ref=e921]
+            - paragraph [ref=e926]: We want you to have a lot of AI!
+            - generic [ref=e927]:
+              - generic [ref=e929]:
+                - generic [ref=e930]:
+                  - img [ref=e931]
+                  - generic [ref=e932]: 727K
+                - generic [ref=e933]:
+                  - img [ref=e934]
+                  - generic [ref=e936]: 5K
+                - generic [ref=e937]:
+                  - img [ref=e938]
+                  - generic [ref=e943]: "172"
+                - generic [ref=e944]:
+                  - img [ref=e945]
+                  - generic [ref=e947]: "582"
+              - button "สร้างคอนเทนต์" [ref=e949] [cursor=pointer]:
+                - img [ref=e950]
+                - generic [ref=e953]: สร้างคอนเทนต์
+          - generic [ref=e954]:
+            - generic [ref=e955]:
+              - button "OpenAI @OpenAI" [ref=e957] [cursor=pointer]:
+                - generic [ref=e959]:
+                  - generic [ref=e961]: OpenAI
+                  - generic [ref=e963]: "@OpenAI"
+              - generic [ref=e964]:
+                - generic "X video source" [ref=e965]:
+                  - img [ref=e966]
+                  - text: VIDEO
+                - generic [ref=e968]: 1d
+                - button [ref=e969] [cursor=pointer]:
+                  - img [ref=e970]
+                - link [ref=e972] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2046691653453562341
+                  - img [ref=e973]
+            - generic [ref=e977]:
+              - link "ดูบน X 151s" [ref=e978] [cursor=pointer]:
+                - /url: https://x.com/OpenAI/status/2046691653453562341
+                - generic [ref=e979]:
+                  - generic [ref=e980]:
+                    - img [ref=e981]
+                    - text: ดูบน X
+                  - generic [ref=e983]: 151s
+              - paragraph [ref=e985]: Aspect Ratios &amp; Resolution in ChatGPT Images 2.0, demonstrated by @dibyayB https://t.co/K6pbscNZtL
+            - generic [ref=e986]:
+              - generic [ref=e987]:
+                - generic [ref=e988]:
+                  - generic [ref=e989]:
+                    - img [ref=e990]
+                    - generic [ref=e991]: 133K
+                  - generic [ref=e992]:
+                    - img [ref=e993]
+                    - generic [ref=e995]: "269"
+                  - generic [ref=e996]:
+                    - img [ref=e997]
+                    - generic [ref=e1002]: "18"
+                  - generic [ref=e1003]:
+                    - img [ref=e1004]
+                    - generic [ref=e1006]: "10"
+                - generic [ref=e1007]:
+                  - img [ref=e1008]
+                  - generic [ref=e1011]: ตอบกลับ @OpenAI
+              - button "สร้างคอนเทนต์" [ref=e1013] [cursor=pointer]:
+                - img [ref=e1014]
+                - generic [ref=e1017]: สร้างคอนเทนต์
+          - generic [ref=e1018]:
+            - generic [ref=e1019]:
+              - button "OpenAI @OpenAI" [ref=e1021] [cursor=pointer]:
+                - generic [ref=e1023]:
+                  - generic [ref=e1025]: OpenAI
+                  - generic [ref=e1027]: "@OpenAI"
+              - generic [ref=e1028]:
+                - generic "X video source" [ref=e1029]:
+                  - img [ref=e1030]
+                  - text: VIDEO
+                - generic [ref=e1032]: 1d
+                - button [ref=e1033] [cursor=pointer]:
+                  - img [ref=e1034]
+                - link [ref=e1036] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2046691651767476579
+                  - img [ref=e1037]
+            - generic [ref=e1041]:
+              - link "ดูบน X 126s" [ref=e1042] [cursor=pointer]:
+                - /url: https://x.com/OpenAI/status/2046691651767476579
+                - generic [ref=e1043]:
+                  - generic [ref=e1044]:
+                    - img [ref=e1045]
+                    - text: ดูบน X
+                  - generic [ref=e1047]: 126s
+              - paragraph [ref=e1049]: Slides &amp; Infographics in ChatGPT Images 2.0, demonstrated by @yuguang_yang https://t.co/yQUviVxMAr
+            - generic [ref=e1050]:
+              - generic [ref=e1051]:
+                - generic [ref=e1052]:
+                  - generic [ref=e1053]:
+                    - img [ref=e1054]
+                    - generic [ref=e1055]: 116K
+                  - generic [ref=e1056]:
+                    - img [ref=e1057]
+                    - generic [ref=e1059]: "259"
+                  - generic [ref=e1060]:
+                    - img [ref=e1061]
+                    - generic [ref=e1066]: "13"
+                  - generic [ref=e1067]:
+                    - img [ref=e1068]
+                    - generic [ref=e1070]: "7"
+                - generic [ref=e1071]:
+                  - img [ref=e1072]
+                  - generic [ref=e1075]: ตอบกลับ @OpenAI
+              - button "สร้างคอนเทนต์" [ref=e1077] [cursor=pointer]:
+                - img [ref=e1078]
+                - generic [ref=e1081]: สร้างคอนเทนต์
+          - generic [ref=e1082]:
+            - generic [ref=e1083]:
+              - button "OpenAI @OpenAI" [ref=e1085] [cursor=pointer]:
+                - generic [ref=e1087]:
+                  - generic [ref=e1089]: OpenAI
+                  - generic [ref=e1091]: "@OpenAI"
+              - generic [ref=e1092]:
+                - generic "X video source" [ref=e1093]:
+                  - img [ref=e1094]
+                  - text: VIDEO
+                - generic [ref=e1096]: 1d
+                - button [ref=e1097] [cursor=pointer]:
+                  - img [ref=e1098]
+                - link [ref=e1100] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2046691650202902681
+                  - img [ref=e1101]
+            - generic [ref=e1105]:
+              - link "ดูบน X 138s" [ref=e1106] [cursor=pointer]:
+                - /url: https://x.com/OpenAI/status/2046691650202902681
+                - generic [ref=e1107]:
+                  - generic [ref=e1108]:
+                    - img [ref=e1109]
+                    - text: ดูบน X
+                  - generic [ref=e1111]: 138s
+              - paragraph [ref=e1113]: Multilingual &amp; Text Rendering in ChatGPT Images 2.0, demonstrated by @BoyuanChen0 https://t.co/5RQFFqwr5j
+            - generic [ref=e1114]:
+              - generic [ref=e1115]:
+                - generic [ref=e1116]:
+                  - generic [ref=e1117]:
+                    - img [ref=e1118]
+                    - generic [ref=e1119]: 42K
+                  - generic [ref=e1120]:
+                    - img [ref=e1121]
+                    - generic [ref=e1123]: "337"
+                  - generic [ref=e1124]:
+                    - img [ref=e1125]
+                    - generic [ref=e1130]: "16"
+                  - generic [ref=e1131]:
+                    - img [ref=e1132]
+                    - generic [ref=e1134]: "3"
+                - generic [ref=e1135]:
+                  - img [ref=e1136]
+                  - generic [ref=e1139]: ตอบกลับ @OpenAI
+              - button "สร้างคอนเทนต์" [ref=e1141] [cursor=pointer]:
+                - img [ref=e1142]
+                - generic [ref=e1145]: สร้างคอนเทนต์
+          - generic [ref=e1146]:
+            - generic [ref=e1147]:
+              - button "OpenAI @OpenAI" [ref=e1149] [cursor=pointer]:
+                - generic [ref=e1151]:
+                  - generic [ref=e1153]: OpenAI
+                  - generic [ref=e1155]: "@OpenAI"
+              - generic [ref=e1156]:
+                - generic "X video source" [ref=e1157]:
+                  - img [ref=e1158]
+                  - text: VIDEO
+                - generic [ref=e1160]: 1d
+                - button [ref=e1161] [cursor=pointer]:
+                  - img [ref=e1162]
+                - link [ref=e1164] [cursor=pointer]:
+                  - /url: https://x.com/OpenAI/status/2046691648604905588
+                  - img [ref=e1165]
+            - generic [ref=e1169]:
+              - link "ดูบน X 135s" [ref=e1170] [cursor=pointer]:
+                - /url: https://x.com/OpenAI/status/2046691648604905588
+                - generic [ref=e1171]:
+                  - generic [ref=e1172]:
+                    - img [ref=e1173]
+                    - text: ดูบน X
+                  - generic [ref=e1175]: 135s
+              - paragraph [ref=e1177]: Instruction Following in ChatGPT Images 2.0, demonstrated by @jianfw https://t.co/PBwaQOl9Pi
+            - generic [ref=e1178]:
+              - generic [ref=e1179]:
+                - generic [ref=e1180]:
+                  - generic [ref=e1181]:
+                    - img [ref=e1182]
+                    - generic [ref=e1183]: 64K
+                  - generic [ref=e1184]:
+                    - img [ref=e1185]
+                    - generic [ref=e1187]: "452"
+                  - generic [ref=e1188]:
+                    - img [ref=e1189]
+                    - generic [ref=e1194]: "19"
+                  - generic [ref=e1195]:
+                    - img [ref=e1196]
+                    - generic [ref=e1198]: "6"
+                - generic [ref=e1199]:
+                  - img [ref=e1200]
+                  - generic [ref=e1203]: ตอบกลับ @OpenAI
+              - button "สร้างคอนเทนต์" [ref=e1205] [cursor=pointer]:
+                - img [ref=e1206]
+                - generic [ref=e1209]: สร้างคอนเทนต์
+        - button "โหลดเพิ่มเติม" [ref=e1211] [cursor=pointer]
+    - complementary [ref=e53]:
+      - generic [ref=e54]:
+        - generic [ref=e55] [cursor=pointer]:
+          - img [ref=e56]
+          - heading "Post list" [level=2] [ref=e58]
+        - button "จัดการ Post List" [ref=e60] [cursor=pointer]:
+          - img [ref=e61]
+      - generic [ref=e62]:
+        - button "สร้าง Post List" [ref=e64] [cursor=pointer]:
+          - img [ref=e65]
+          - text: สร้าง Post List
+        - generic [ref=e67]:
+          - img [ref=e68]
+          - generic [ref=e70]: ไม่มีรายการ Post list
+          - generic [ref=e71]: สร้างใหม่เพื่อจัดระเบียบแหล่งข้อมูลของคุณ
+          - button "สร้างลิสต์" [ref=e72] [cursor=pointer]
+  - status:
+    - generic:
+      - generic:
+        - generic:
+          - img
+    - generic:
+      - generic: FORO
+      - generic: อัปเดตข้อมูลเรียบร้อย • 20 โพสต์จาก X • เติมสรุปต่อในพื้นหลัง

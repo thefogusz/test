@@ -24,6 +24,7 @@ These behaviors are user-facing contract and should be treated as documentation-
 - Clearing the Home feed intentionally resets RSS seen-state.
 - Reopening the same RSS article should reuse cached Thai translation when available.
 - X discovery and stats refresh are handled as separate concerns.
+- X sync must not let seen history suppress posts that were fetched but never added to the feed, and must recover if a stored checkpoint is ahead of upstream results.
 
 ## Architecture At A Glance
 
