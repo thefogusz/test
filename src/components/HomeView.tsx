@@ -112,6 +112,7 @@ const HomeView = ({
   freshFeedIds,
   activeFilterPrompt,
   isFiltered,
+  isFeedHistoryHydrated = true,
   activeFilters,
   visibleQuickPresets,
   isFilterPrimed,
@@ -325,10 +326,10 @@ const HomeView = ({
         </button>
         <button
           onClick={onSync}
-          disabled={loading}
+          disabled={loading || !isFeedHistoryHydrated}
           className="btn-pill primary"
         >
-          {isSyncing ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} ฟีดข้อมูล
+          {isSyncing || !isFeedHistoryHydrated ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} ฟีดข้อมูล
         </button>
       </div>
     </div>

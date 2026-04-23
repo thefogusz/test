@@ -135,6 +135,8 @@ export const useHomeFeedWorkspace = ({
   const [isFilterPrimed, setIsFilterPrimed] = useState(false);
   const [freshFeedIds, setFreshFeedIds] = useState<string[]>([]);
   const homeFeedCardLimit = HOME_FEED_CARD_LIMITS[activePlanId] ?? HOME_FEED_CARD_LIMITS.free;
+  const isFeedHistoryHydrated =
+    isRssSeenRegistryHydrated && isXSeenRegistryHydrated && isXSyncCheckpointsHydrated;
 
   const isSummarizingRef = useRef(false);
   const queuedSummaryBatchesRef = useRef<any[][]>([]);
@@ -928,7 +930,7 @@ export const useHomeFeedWorkspace = ({
 
   const syncMutation = useMutation({
     mutationFn: async () => {
-      if (!isRssSeenRegistryHydrated || !isXSeenRegistryHydrated || !isXSyncCheckpointsHydrated) {
+      if (!isFeedHistoryHydrated) {
         setStatus('กำลังโหลดประวัติฟีด...');
         return;
       }
@@ -962,6 +964,14 @@ export const useHomeFeedWorkspace = ({
       }
 
       setStatus('กำลังเชื่อมต่อฐานข้อมูล... ดึงฟีดข่าวล่าสุด');
+
+      if (isFiltered || activeFilterPrompt || aiFilterSummary || aiFilterBrief) {
+        setIsFiltered(false);
+        setAiFilterBrief(null);
+        setAiFilterSummary('');
+        setActiveFilterPrompt('');
+        setIsFilterPrimed(false);
+      }
 
       const checkpointTimestamp = Date.parse(currentXSyncCheckpoint);
       const xSinceTime = hasPersistedXFeedForScope && Number.isFinite(checkpointTimestamp)
@@ -1400,6 +1410,7 @@ export const useHomeFeedWorkspace = ({
     handleSort,
     handleSync: syncMutation.mutateAsync,
     handleUndo,
+    isFeedHistoryHydrated,
     isFiltered,
     isFilterPrimed,
     isFiltering: aiFilterMutation.isPending,

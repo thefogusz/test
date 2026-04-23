@@ -201,6 +201,7 @@ const App = () => {
     handleUndo,
     hasReachedFeedCardLimit,
     homeFeedCardLimit,
+    isFeedHistoryHydrated,
     isFiltered,
     isFilterPrimed,
     isFiltering,
@@ -351,6 +352,10 @@ const App = () => {
   };
 
   const handlePlanSync = async () => {
+    if (!isFeedHistoryHydrated) {
+      setStatus('กำลังโหลดประวัติฟีด... รอสักครู่แล้วลองอีกครั้ง');
+      return;
+    }
     if (!tryConsumeFeature('feed')) return;
     await handleSync();
   };
@@ -446,6 +451,7 @@ const App = () => {
     isFiltered,
     isFilterPrimed,
     isFiltering,
+    isFeedHistoryHydrated,
     isGeneratingContent,
     isLatestMode,
     isLiveSearching,
