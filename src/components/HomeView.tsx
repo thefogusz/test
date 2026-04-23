@@ -340,7 +340,7 @@ const HomeView = ({
       <header className="dashboard-header dashboard-header-home dashboard-header-home-layout">
         <div className="dashboard-header-top dashboard-header-top-layout">
           <div className="mobile-only-flex home-mobile-logo home-mobile-logo-layout">
-            <img src="logo.png" alt="FO" className="home-mobile-logo-img" loading="eager" />
+            <img src="logo.png" alt="FORO Logo" className="home-mobile-logo-img" loading="eager" />
           </div>
           <div className="dashboard-header-title-block dashboard-header-title-stack">
             <h1 className="hero-search-title" style={{ margin: 0 }}>

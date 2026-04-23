@@ -278,7 +278,7 @@ const Sidebar = ({
       >
         <img
           src={logoSrc}
-          alt="RO Logo"
+          alt="FORO Logo"
           width={LOGO_WIDTH}
           height={LOGO_HEIGHT}
           style={{
