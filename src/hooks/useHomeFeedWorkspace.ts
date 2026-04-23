@@ -461,15 +461,6 @@ export const useHomeFeedWorkspace = ({
     setPendingFeed([]);
   }, [activeListId, activeView, setPendingFeed]);
 
-  useEffect(() => {
-    setPendingFeed((prev) => {
-      if (!Array.isArray(prev) || prev.length === 0) return prev;
-
-      const nextPendingFeed = prev.filter((post) => isXFeedPost(post));
-      return nextPendingFeed.length === prev.length ? prev : nextPendingFeed;
-    });
-  }, [setPendingFeed]);
-
   const isThaiNativeRssPost = (post: any) => {
     if (String(post?.sourceType || '').trim().toLowerCase() !== 'rss') return false;
 
@@ -1114,11 +1105,13 @@ export const useHomeFeedWorkspace = ({
           : [...refillTwitterDisplay].sort(
             (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
           );
-      const postsToStage = [...xDisplayBatch, ...newRssPosts].sort(
+      const mergedDisplayBatch = [...xDisplayBatch, ...newRssPosts].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
+      const postsToStage = mergedDisplayBatch.slice(0, MAX_INITIAL_DISPLAY);
+      const overflowDisplayBatch = mergedDisplayBatch.slice(MAX_INITIAL_DISPLAY);
       const nextFreshFeedIds =
-        [...newTwitterDisplay, ...newRssPosts]
+        postsToStage
           .map((post) => getNormalizedPostId(post))
           .filter(Boolean);
       const postsToMerge = Array.from(
@@ -1131,16 +1124,18 @@ export const useHomeFeedWorkspace = ({
       );
 
       setPendingFeed(
-        [...nextTwitterPending].sort(
+        [...overflowDisplayBatch, ...nextTwitterPending].sort(
           (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
         ),
       );
 
-      const rssCount = newRssPosts.length;
-      const twitterCount = newTwitterDisplay.length;
+      const rssCount = postsToStage.filter((post) => getNormalizedFeedSourceType(post) === 'rss').length;
+      const twitterCount = postsToStage.filter((post) => isXFeedPost(post)).length;
+      const pendingCount = overflowDisplayBatch.length + nextTwitterPending.length;
       const statusParts = [];
       if (twitterCount > 0) statusParts.push(`${twitterCount} โพสต์จาก X`);
       if (rssCount > 0) statusParts.push(`${rssCount} ข่าวจาก RSS`);
+      if (pendingCount > 0) statusParts.push(`เก็บไว้โหลดเพิ่ม ${pendingCount} การ์ด`);
 
       if (postsToMerge.length > 0) {
         mergeIncomingPosts(postsToMerge);
