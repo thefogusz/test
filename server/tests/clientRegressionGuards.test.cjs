@@ -60,6 +60,21 @@ test('home feed first sync windows merged X and RSS candidates together', () => 
   assert.doesNotMatch(source, /prev\.filter\(\(post\) => isXFeedPost\(post\)\)/);
 });
 
+test('home feed latest sync does not send until timestamp to X search', () => {
+  const source = readSource('src/hooks/useHomeFeedWorkspace.ts');
+  const initialSyncCall = source.match(
+    /return fetchWatchlistFeed\(\s*targetAccounts,\s*'',\s*'Latest',\s*\{[\s\S]*?preferPerHandleLatest: true,[\s\S]*?\}\s*\);/,
+  );
+  const fallbackSyncCall = source.match(
+    /const fallbackLatestResult = await fetchWatchlistFeed\(\s*activeListMembers\.twitterHandles,\s*'',\s*'Latest',\s*\{[\s\S]*?preferPerHandleLatest: true,[\s\S]*?\}\s*,?\s*\);/,
+  );
+
+  assert.ok(initialSyncCall, 'initial Latest sync call should be present');
+  assert.ok(fallbackSyncCall, 'fallback Latest sync call should be present');
+  assert.doesNotMatch(initialSyncCall[0], /untilTime:\s*syncStartedAt/);
+  assert.doesNotMatch(fallbackSyncCall[0], /untilTime:\s*syncStartedAt/);
+});
+
 test('reduced motion disables shared animation utilities and mobile overlays', () => {
   const source = readSource('src/index.css');
 

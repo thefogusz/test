@@ -966,7 +966,6 @@ export const useHomeFeedWorkspace = ({
 
         return fetchWatchlistFeed(targetAccounts, '', 'Latest', {
           sinceTime: xSinceTime,
-          untilTime: syncStartedAt,
           preferPerHandleLatest: true,
         });
       })();
@@ -1009,7 +1008,6 @@ export const useHomeFeedWorkspace = ({
             '',
             'Latest',
             {
-              untilTime: syncStartedAt,
               preferPerHandleLatest: true,
             },
           );
