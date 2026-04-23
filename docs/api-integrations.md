@@ -1,6 +1,6 @@
 # API Integrations และเว็บไซต์ต้นทาง
 
-> อัปเดต: 12 เมษายน 2026
+> อัปเดต: 23 เมษายน 2026
 > ขอบเขต: APIs และเว็บไซต์ภายนอกที่ใช้งานจริงในโปรเจ็กต์นี้
 
 ## ภาพรวม
@@ -25,12 +25,20 @@
 - `src/hooks/useHomeFeedWorkspace.ts`
 - `src/components/CreateContent.tsx`
 
+## แหล่งอ้างอิงหลักของโปรเจก FORO
+
+ถ้าต้องอ้างอิง provider สำหรับโปรเจกแชทนี้ ให้ใช้ชุดนี้เป็นค่าเริ่มต้น:
+
+- ฝั่ง X API: `twitterapi.io` โดยอิง docs หลักจาก `https://docs.twitterapi.io/introduction`
+- ฝั่ง LLM: `Grok / xAI` โดยอิง docs ของ xAI เป็นหลัก
+- ฝั่ง web grounding และ research: `Tavily`
+
 ## แผนที่ Integration
 
 | Local Route / SDK | Upstream | Provider | การใช้งานหลัก |
 |---|---|---|---|
 | `/api/twitter/*` | `https://api.twitterapi.io/twitter/*` | twitterapi.io | X search, tweet lookup, profile lookup, feed sync |
-| `/api/xai/*` | `https://api.x.ai/*` | xAI | text generation, reasoning, summaries, tool use |
+| `/api/xai/*` | `https://api.x.ai/*` | xAI / Grok | text generation, reasoning, summaries, tool use |
 | `/api/tavily/search` | `https://api.tavily.com/search` | Tavily | web search และ source grounding |
 
 ---
@@ -84,10 +92,11 @@ https://api.twitterapi.io/twitter
 ### เว็บไซต์และ Docs
 
 - เว็บหลัก: [twitterapi.io](https://twitterapi.io/)
+- Docs หลักที่ควรอ้างอิงสำหรับโปรเจกนี้: [docs.twitterapi.io/introduction](https://docs.twitterapi.io/introduction)
 
 ---
 
-## 2. xAI
+## 2. xAI / Grok
 
 ### Local SDK / Proxy
 
@@ -126,7 +135,7 @@ https://api.x.ai
 - วิเคราะห์วิดีโอและรูปภาพจาก X
 - ค้นหาและจัดลำดับ expert
 
-### Workflow หลักของ xAI
+### Workflow หลักของ xAI / Grok
 
 **1. Text Generation** — ใช้ `generateText` / `streamText`
 
@@ -151,6 +160,7 @@ Tools: `x_search`, `view_x_video`
 ### เว็บไซต์และ Docs
 
 - เว็บหลัก: [x.ai](https://x.ai/)
+- LLM หลักของโปรเจกนี้: Grok ผ่าน xAI API
 - ราคา API: [x.ai/api](https://x.ai/api)
 - Developer docs: [docs.x.ai](https://docs.x.ai/)
 - Models: [docs.x.ai/developers/models](https://docs.x.ai/developers/models)
