@@ -11310,3 +11310,39 @@ h6,
     box-shadow: none !important;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  .animate-fade-in,
+  .animate-spin,
+  .right-sidebar.mobile-visible,
+  .mobile-backdrop,
+  .status-toast.is-processing,
+  .status-toast__media.is-processing,
+  .status-toast__icon.is-processing,
+  .status-toast__icon.is-processing .status-toast__icon-core,
+  .status-toast__media.is-processing .status-toast__icon-glow,
+  .status-toast__rail::after {
+    animation: none !important;
+  }
+
+  .animate-fade-in {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .status-toast,
+  .status-toast.visible {
+    transition: none !important;
+  }
+}

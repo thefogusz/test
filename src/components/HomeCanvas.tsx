@@ -1,9 +1,21 @@
 import { useEffect, useRef } from 'react';
 
+type Particle = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  r: number;
+  hue: number;
+  opacity: number;
+};
+
+const OFFSCREEN_POINTER = { x: -9999, y: -9999 };
+
 export default function HomeCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animRef = useRef<number | null>(null);
-  const mouseRef = useRef({ x: -9999, y: -9999 });
+  const mouseRef = useRef(OFFSCREEN_POINTER);
   const clickRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
@@ -11,18 +23,23 @@ export default function HomeCanvas() {
     if (!canvas) return undefined;
     const ctx = canvas.getContext('2d');
     if (!ctx) return undefined;
-    let width, height;
-    const particles: Array<{ x: number; y: number; vx: number; vy: number; r: number; hue: number; opacity: number }> = [];
+
+    let width = 0;
+    let height = 0;
+    let isAnimating = false;
+    let interactionsAttached = false;
+    const particles: Particle[] = [];
     const COUNT = 60;
     const MAX_DIST = 140;
     const MOUSE_R = 130;
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 
     function resize() {
       width = canvas.width = canvas.offsetWidth;
       height = canvas.height = canvas.offsetHeight;
     }
 
-    function spawn(x?: number, y?: number) {
+    function spawn(x?: number, y?: number): Particle {
       return {
         x: x ?? Math.random() * width,
         y: y ?? Math.random() * height,
@@ -39,56 +56,61 @@ export default function HomeCanvas() {
       for (let i = 0; i < COUNT; i++) particles.push(spawn());
     }
 
-    function draw() {
+    function draw(advanceParticles: boolean) {
       ctx.clearRect(0, 0, width, height);
       const mx = mouseRef.current.x;
       const my = mouseRef.current.y;
-      const click = clickRef.current;
+      const click = advanceParticles ? clickRef.current : null;
 
       particles.forEach(p => {
-        // Mouse gravity
-        const dx = mx - p.x, dy = my - p.y;
-        const d = Math.hypot(dx, dy);
-        if (d < MOUSE_R && d > 0) {
-          const f = ((MOUSE_R - d) / MOUSE_R) * 0.025;
-          p.vx += (dx / d) * f;
-          p.vy += (dy / d) * f;
-        }
-
-        // Click ripple burst
-        if (click) {
-          const cdx = click.x - p.x, cdy = click.y - p.y;
-          const cd = Math.hypot(cdx, cdy);
-          if (cd < 200 && cd > 0) {
-            const bf = ((200 - cd) / 200) * 2.5;
-            p.vx -= (cdx / cd) * bf;
-            p.vy -= (cdy / cd) * bf;
+        if (advanceParticles) {
+          const dx = mx - p.x;
+          const dy = my - p.y;
+          const d = Math.hypot(dx, dy);
+          if (d < MOUSE_R && d > 0) {
+            const f = ((MOUSE_R - d) / MOUSE_R) * 0.025;
+            p.vx += (dx / d) * f;
+            p.vy += (dy / d) * f;
           }
+
+          if (click) {
+            const cdx = click.x - p.x;
+            const cdy = click.y - p.y;
+            const cd = Math.hypot(cdx, cdy);
+            if (cd < 200 && cd > 0) {
+              const bf = ((200 - cd) / 200) * 2.5;
+              p.vx -= (cdx / cd) * bf;
+              p.vy -= (cdy / cd) * bf;
+            }
+          }
+
+          p.vx *= 0.985;
+          p.vy *= 0.985;
+
+          const spd = Math.hypot(p.vx, p.vy);
+          if (spd > 1.8) {
+            p.vx = (p.vx / spd) * 1.8;
+            p.vy = (p.vy / spd) * 1.8;
+          }
+
+          p.x += p.vx;
+          p.y += p.vy;
+
+          if (p.x < -20) p.x = width + 20;
+          if (p.x > width + 20) p.x = -20;
+          if (p.y < -20) p.y = height + 20;
+          if (p.y > height + 20) p.y = -20;
         }
-
-        // Dampen
-        p.vx *= 0.985;
-        p.vy *= 0.985;
-
-        // Speed cap
-        const spd = Math.hypot(p.vx, p.vy);
-        if (spd > 1.8) { p.vx = (p.vx / spd) * 1.8; p.vy = (p.vy / spd) * 1.8; }
-
-        p.x += p.vx; p.y += p.vy;
-
-        // Soft wrap
-        if (p.x < -20) p.x = width + 20;
-        if (p.x > width + 20) p.x = -20;
-        if (p.y < -20) p.y = height + 20;
-        if (p.y > height + 20) p.y = -20;
       });
 
-      clickRef.current = null;
+      if (advanceParticles) {
+        clickRef.current = null;
+      }
 
-      // Connections
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
-          const a = particles[i], b = particles[j];
+          const a = particles[i];
+          const b = particles[j];
           const dd = Math.hypot(a.x - b.x, a.y - b.y);
           if (dd < MAX_DIST) {
             const op = (1 - dd / MAX_DIST) * 0.22;
@@ -102,7 +124,6 @@ export default function HomeCanvas() {
         }
       }
 
-      // Particles
       particles.forEach(p => {
         const dd = Math.hypot(mx - p.x, my - p.y);
         const near = dd < 70;
@@ -123,38 +144,106 @@ export default function HomeCanvas() {
         ctx.fillStyle = `hsla(${p.hue},80%,72%,${near ? 1 : p.opacity})`;
         ctx.fill();
       });
-
-      animRef.current = requestAnimationFrame(draw);
     }
 
-    resize();
-    init();
-    draw();
+    function stopAnimation() {
+      isAnimating = false;
+      if (animRef.current !== null) {
+        cancelAnimationFrame(animRef.current);
+        animRef.current = null;
+      }
+    }
 
-    const onResize = () => { resize(); };
+    function renderFrame() {
+      if (!isAnimating) return;
+      draw(true);
+      animRef.current = requestAnimationFrame(renderFrame);
+    }
+
+    function startAnimation() {
+      if (isAnimating) return;
+      isAnimating = true;
+      renderFrame();
+    }
+
     const onMove = (e: MouseEvent) => {
       const r = canvas.getBoundingClientRect();
       mouseRef.current = { x: e.clientX - r.left, y: e.clientY - r.top };
     };
-    const onLeave = () => { mouseRef.current = { x: -9999, y: -9999 }; };
+    const onLeave = () => {
+      mouseRef.current = OFFSCREEN_POINTER;
+    };
     const onClick = (e: MouseEvent) => {
       const r = canvas.getBoundingClientRect();
       clickRef.current = { x: e.clientX - r.left, y: e.clientY - r.top };
     };
 
-    window.addEventListener('resize', onResize);
-    canvas.addEventListener('mousemove', onMove);
-    canvas.addEventListener('mouseleave', onLeave);
-    canvas.addEventListener('click', onClick);
+    function addInteractionListeners() {
+      if (interactionsAttached) return;
+      canvas.addEventListener('mousemove', onMove);
+      canvas.addEventListener('mouseleave', onLeave);
+      canvas.addEventListener('click', onClick);
+      interactionsAttached = true;
+    }
 
-    return () => {
-      if (animRef.current) {
-        cancelAnimationFrame(animRef.current);
-      }
-      window.removeEventListener('resize', onResize);
+    function removeInteractionListeners() {
+      if (!interactionsAttached) return;
       canvas.removeEventListener('mousemove', onMove);
       canvas.removeEventListener('mouseleave', onLeave);
       canvas.removeEventListener('click', onClick);
+      interactionsAttached = false;
+      mouseRef.current = OFFSCREEN_POINTER;
+      clickRef.current = null;
+    }
+
+    function renderStatic() {
+      stopAnimation();
+      removeInteractionListeners();
+      mouseRef.current = OFFSCREEN_POINTER;
+      clickRef.current = null;
+      draw(false);
+    }
+
+    function applyMotionPreference() {
+      if (motionQuery.matches) {
+        renderStatic();
+      } else {
+        addInteractionListeners();
+        startAnimation();
+      }
+    }
+
+    const onResize = () => {
+      resize();
+      if (motionQuery.matches) {
+        init();
+        renderStatic();
+      }
+    };
+    const onMotionPreferenceChange = () => {
+      applyMotionPreference();
+    };
+
+    resize();
+    init();
+    applyMotionPreference();
+
+    window.addEventListener('resize', onResize);
+    if (motionQuery.addEventListener) {
+      motionQuery.addEventListener('change', onMotionPreferenceChange);
+    } else {
+      motionQuery.addListener(onMotionPreferenceChange);
+    }
+
+    return () => {
+      stopAnimation();
+      window.removeEventListener('resize', onResize);
+      if (motionQuery.removeEventListener) {
+        motionQuery.removeEventListener('change', onMotionPreferenceChange);
+      } else {
+        motionQuery.removeListener(onMotionPreferenceChange);
+      }
+      removeInteractionListeners();
     };
   }, []);
 
