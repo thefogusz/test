@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { STORAGE_KEYS } from '../constants/storageKeys';
 import { getUserInfo } from '../services/TwitterService';
 import { deserializeWatchlist } from '../utils/appPersistence';
+import { buildAlreadyInWatchlistMessage } from '../utils/watchlistMessages';
 import { usePersistentState } from './usePersistentState';
 
 const normalizeHandle = (value = '') => String(value || '').trim().replace(/^@/, '').toLowerCase();
@@ -74,7 +75,7 @@ export const useWatchlist = ({ currentPlan, openPricingWithStatus, setStatus }: 
     if (!username) return;
     if (!hasWatchlistRoomFor(username)) return;
     if (watchlistHandleSet.has(username)) {
-      setStatus(`@${username} à¸­à¸¢à¸¹à¹ˆà¹ƒà¸™ Watchlist à¹à¸¥à¹‰à¸§`);
+      setStatus(buildAlreadyInWatchlistMessage(username));
       return;
     }
 

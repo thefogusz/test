@@ -46,6 +46,6 @@ export const deserializeStoredCollection = (saved) =>
 export const deserializeAttachedSource = (saved) =>
   sanitizeStoredSingle(safeParse(saved, null));
 
-export const deserializePostLists = (saved) => safeParse(saved, []);
+export const deserializePostLists = (saved) => sanitizePostLists(safeParse(saved, []));
 
 export { normalizePostListMember, resolveRssSourceId, supportedRssSourceIds };

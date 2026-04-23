@@ -6,7 +6,6 @@ import { getUserInfo } from '../services/TwitterService';
 import {
   deserializePostLists,
   getInvalidPostListMembers,
-  getMigratedPostListMembers,
   resolveRssSourceId,
   sanitizePostListMembers,
 } from '../utils/appPersistence';
@@ -98,139 +97,6 @@ export const usePostLists = ({
   }, [subscribedSources]);
 
   useEffect(() => {
-    let nextWarningsFromCleanup = null;
-    let invalidCountFromCleanup = 0;
-    let migratedCountFromCleanup = 0;
-    let resolvedRssMembersFromCleanup = [];
-
-    setPostLists((prev) => {
-      if (!Array.isArray(prev) || prev.length === 0) return prev;
-
-      let changed = false;
-      const warningsForLists = {};
-      const next = prev.map((list) => {
-        const invalidMembers = getInvalidPostListMembers(list?.members);
-        const migratedMembers = getMigratedPostListMembers(list?.members);
-        const sanitizedMembers = sanitizePostListMembers(list?.members);
-        const originalMembers = Array.isArray(list?.members) ? list.members : [];
-        const normalizedOriginalMembers = originalMembers
-          .map((member) => normalizeMemberHandle(member))
-          .filter(Boolean);
-
-        if (invalidMembers.length > 0 && list?.id) {
-          warningsForLists[list.id] = {
-            invalidRssMembers: invalidMembers,
-          };
-          invalidCountFromCleanup += invalidMembers.length;
-        }
-
-        if (migratedMembers.length > 0) {
-          migratedCountFromCleanup += migratedMembers.length;
-        }
-
-        sanitizedMembers
-          .filter((member) => member.startsWith('rss:'))
-          .forEach((member) => {
-            resolvedRssMembersFromCleanup.push(member);
-          });
-
-        if (
-          sanitizedMembers.length === normalizedOriginalMembers.length &&
-          sanitizedMembers.every((member, index) => member === normalizedOriginalMembers[index])
-        ) {
-          return list;
-        }
-
-        changed = true;
-        return {
-          ...list,
-          members: sanitizedMembers,
-        };
-      });
-
-      nextWarningsFromCleanup = warningsForLists;
-
-      return changed ? next : prev;
-    });
-
-    if (nextWarningsFromCleanup) {
-      setPostListWarnings((current) => {
-        const validWarnings = Object.fromEntries(
-          Object.entries(current || {}).filter(([listId]) => nextWarningsFromCleanup[listId]),
-        );
-        const nextWarnings = {
-          ...validWarnings,
-          ...nextWarningsFromCleanup,
-        };
-        const currentSerialized = JSON.stringify(current || {});
-        const nextSerialized = JSON.stringify(nextWarnings);
-        return currentSerialized === nextSerialized ? current : nextWarnings;
-      });
-    }
-
-    if (resolvedRssMembersFromCleanup.length > 0) {
-      const resolvedSourceIds = Array.from(
-        new Set(
-          resolvedRssMembersFromCleanup
-            .map((member) => resolveRssSourceId(member.slice(4)))
-            .filter(Boolean),
-        ),
-      );
-
-      if (resolvedSourceIds.length > 0) {
-        setSubscribedSources((prev) => {
-          const next = Array.isArray(prev) ? [...prev] : [];
-          const seenIds = new Set(
-            next.map((source) => String(source?.id || '').trim().toLowerCase()).filter(Boolean),
-          );
-          let didChange = false;
-
-          resolvedSourceIds.forEach((sourceId) => {
-            const source = rssSourceLookup.get(sourceId);
-            if (!source || seenIds.has(sourceId)) return;
-            next.push(source);
-            seenIds.add(sourceId);
-            didChange = true;
-          });
-
-          return didChange ? next : prev;
-        });
-      }
-    }
-
-    if (invalidCountFromCleanup > 0) {
-      const statusParts = [];
-      if (migratedCountFromCleanup > 0) {
-        statusParts.push(`แก้ RSS source ให้ตรงกับ source จริง ${migratedCountFromCleanup} รายการ`);
-      }
-      statusParts.push(`ล้าง RSS source ที่ไม่รองรับออกจาก Post List ${invalidCountFromCleanup} รายการ`);
-      setStatus(statusParts.join(' • '));
-      return;
-    }
-
-    if (migratedCountFromCleanup > 0) {
-      setStatus(`แก้ RSS source ให้ตรงกับ source จริง ${migratedCountFromCleanup} รายการ`);
-    }
-  }, [rssSourceLookup, setPostLists, setStatus, setSubscribedSources]);
-
-  useEffect(() => {
-    const validListIds = new Set(
-      (Array.isArray(postLists) ? postLists : [])
-        .map((list) => String(list?.id || '').trim())
-        .filter(Boolean),
-    );
-
-    setPostListWarnings((prev) => {
-      const next = Object.fromEntries(
-        Object.entries(prev || {}).filter(([listId]) => validListIds.has(String(listId || ''))),
-      );
-      const prevSerialized = JSON.stringify(prev || {});
-      const nextSerialized = JSON.stringify(next);
-      return prevSerialized === nextSerialized ? prev : next;
-    });
-  }, [postLists]);
-
-  useEffect(() => {
     const resolvedSourceIds = Array.from(
       new Set(
         (Array.isArray(postLists) ? postLists : [])
@@ -306,7 +172,7 @@ export const usePostLists = ({
       addedCount: sourcesToAdd.length,
       missingCount: normalizedHandles.length - sourcesToAdd.length,
     };
-  }, [normalizeMemberHandle, rssSourceLookup, setSubscribedSources, subscribedSources]);
+  }, [rssSourceLookup, setSubscribedSources, subscribedSources]);
 
   const syncImportedTwitterMembersToWatchlist = useCallback((handles: string[]) => {
     const normalizedHandles = Array.from(

@@ -1,12 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
-
-const PROCESSING_PATTERN =
-  /(กำลัง|เชื่อมต่อ|โหลด|ค้นหา|วิเคราะห์|คัด|อัปเดต|สรุป|loading|processing|searching|preparing|analyzing|analysing|filtering|syncing)/i;
-
-const WARNING_PATTERN =
-  /(warning|invalid|not found|à¹„à¸¡à¹ˆà¸žà¸š|à¹„à¸¡à¹ˆà¸£à¸­à¸‡à¸£à¸±à¸š|rss issue|rss source)/i;
+import { PROCESSING_PATTERN, WARNING_PATTERN } from '../utils/statusMessagePatterns';
 
 const StatusToast = ({ status, message, hidden }) => {
   const [isVisible, setIsVisible] = useState(() => Boolean(status) && !hidden);
