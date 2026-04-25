@@ -7,7 +7,14 @@ import { discoverTopExpertsStrict } from '../services/GrokService';
 import { usePersistentState } from './usePersistentState';
 
 const normalizeAudienceQuery = (value = '') => String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
-const normalizeHandle = (value = '') => String(value || '').replace(/^@/, '').trim().toLowerCase();
+const normalizeHandle = (value = '') =>
+  String(value || '')
+    .trim()
+    .replace(/^https?:\/\/(?:www\.)?(?:x|twitter)\.com\//i, '')
+    .replace(/^@/, '')
+    .split(/[/?#\s]/)[0]
+    .trim()
+    .toLowerCase();
 const AUDIENCE_LOAD_MORE_MAX_ATTEMPTS = 3;
 const AUDIENCE_INITIAL_RESULT_TARGET = 6;
 const buildAudienceExpansionQueries = (query = '') => {
@@ -131,6 +138,7 @@ export const useAudienceSearch = ({
   const [aiSearchError, setAiSearchError] = useState('');
   const [manualQuery, setManualQuery] = useState('');
   const [manualPreview, setManualPreview] = useState(null);
+  const [manualSearchError, setManualSearchError] = useState('');
   const effectiveWatchlistHandleSet = useMemo(
     () =>
       watchlistHandleSet ??
@@ -352,10 +360,25 @@ export const useAudienceSearch = ({
 
   const handleManualSearch = async (e) => {
     if (e) e.preventDefault();
+    const normalizedUsername = normalizeHandle(manualQuery);
+    setManualSearchError('');
+    setManualPreview(null);
+
+    if (!normalizedUsername) {
+      setManualSearchError('กรอก X username ก่อนค้นหา');
+      return null;
+    }
+
     try {
-      await manualSearchMutation.mutateAsync(manualQuery);
+      const user = await manualSearchMutation.mutateAsync(normalizedUsername);
+      if (!user) {
+        setManualSearchError(`ไม่พบบัญชี @${normalizedUsername}`);
+      }
+      return user;
     } catch (err) {
       console.error(err);
+      setManualSearchError(`ไม่พบบัญชี @${normalizedUsername} หรือเชื่อมต่อ X ไม่สำเร็จ`);
+      return null;
     }
   };
 
@@ -386,6 +409,8 @@ export const useAudienceSearch = ({
     manualQuery,
     setManualQuery,
     manualPreview,
+    manualSearchError,
+    manualSearchLoading: manualSearchMutation.isPending,
     handleAiSearchAudience,
     handleManualSearch,
     handleAddUser,

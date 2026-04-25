@@ -278,8 +278,8 @@ const safeJson = async (response, fallback = {}) => {
  */
 export const getUserInfo = async (username) => {
   try {
-    const handle = username.startsWith('@') ? username.substring(1) : username;
-    const response = await apiFetch(`${BASE_URL}/user/info?userName=${handle}`, {
+    const handle = String(username || '').trim().replace(/^@/, '');
+    const response = await apiFetch(`${BASE_URL}/user/info?userName=${encodeURIComponent(handle)}`, {
       method: 'GET',
     });
 

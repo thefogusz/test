@@ -79,6 +79,23 @@ test('home feed sort controls survive X and RSS merge limits', () => {
   assert.match(hookSource, /setFeed\(sortFeedByActiveFilters\(filteredResult, activeFilters\)\);/);
 });
 
+test('audience manual username search gives feedback for existing and failed lookups', () => {
+  const hookSource = readSource('src/hooks/useAudienceSearch.ts');
+  const componentSource = readSource('src/components/AudienceWorkspace.tsx');
+  const twitterSource = readSource('src/services/TwitterService.ts');
+
+  assert.match(hookSource, /const \[manualSearchError, setManualSearchError\] = useState\(''\);/);
+  assert.match(hookSource, /manualSearchLoading: manualSearchMutation\.isPending/);
+  assert.match(hookSource, /setManualPreview\(null\);/);
+  assert.match(hookSource, /ไม่พบบัญชี @\$\{normalizedUsername\}/);
+  assert.match(componentSource, /manualSearchLoading \? <RefreshCw size=\{15\} className="animate-spin" \/>/);
+  assert.match(componentSource, /manualSearchError && !manualSearchLoading/);
+  assert.match(componentSource, /manualPreview && \(/);
+  assert.doesNotMatch(componentSource, /manualPreview && !isManualPreviewAdded/);
+  assert.match(componentSource, /อยู่ใน Watchlist แล้ว/);
+  assert.match(twitterSource, /encodeURIComponent\(handle\)/);
+});
+
 test('home feed latest sync does not send until timestamp to X search', () => {
   const source = readSource('src/hooks/useHomeFeedWorkspace.ts');
   const initialSyncCall = source.match(

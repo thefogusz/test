@@ -206,6 +206,8 @@ const AudienceWorkspace = ({
   suggestions,
   handleManualSearch,
   manualPreview,
+  manualSearchError = '',
+  manualSearchLoading = false,
   handleAddUser,
   handleRemoveAccountGlobal,
   subscribedSources = [],
@@ -734,6 +736,7 @@ const AudienceWorkspace = ({
                   <input
                     placeholder={'\u0e01\u0e23\u0e2d\u0e01 X Username (\u0e40\u0e0a\u0e48\u0e19 elonmusk)...'}
                     value={manualQuery}
+                    disabled={manualSearchLoading}
                     onChange={(e) => {
                       setManualQuery(e.target.value);
                       setShowSuggestions(true);
@@ -754,6 +757,7 @@ const AudienceWorkspace = ({
                   {manualQuery && (
                     <button
                       type="button"
+                      disabled={manualSearchLoading}
                       onClick={() => {
                         setManualQuery('');
                         setShowSuggestions(false);
@@ -765,8 +769,8 @@ const AudienceWorkspace = ({
                     </button>
                   )}
                 </div>
-                <button type="submit" className="btn-sync-premium" style={{ height: '44px', padding: '0 28px' }}>
-                  {'\u0e04\u0e49\u0e19\u0e2b\u0e32'}
+                <button type="submit" className="btn-sync-premium" style={{ height: '44px', padding: '0 28px' }} disabled={manualSearchLoading}>
+                  {manualSearchLoading ? <RefreshCw size={15} className="animate-spin" /> : '\u0e04\u0e49\u0e19\u0e2b\u0e32'}
                 </button>
 
                 {showSuggestions && suggestions.length > 0 && (
@@ -780,7 +784,17 @@ const AudienceWorkspace = ({
                   </div>
                 )}
               </form>
-              {manualPreview && !isManualPreviewAdded && (
+              {manualSearchError && !manualSearchLoading && (
+                <div style={{ marginTop: '12px', fontSize: '12px', color: '#fda4af', lineHeight: 1.45 }}>
+                  {manualSearchError}
+                </div>
+              )}
+              {manualSearchLoading && (
+                <div style={{ marginTop: '12px', fontSize: '12px', color: 'rgba(255,255,255,0.58)', lineHeight: 1.45 }}>
+                  กำลังค้นหาบัญชีนี้...
+                </div>
+              )}
+              {manualPreview && (
                 <div className="preview-card" style={{ padding: '20px', borderRadius: '16px', marginTop: '24px' }}>
                   <img
                     src={manualPreview.profile_image_url}
@@ -794,8 +808,8 @@ const AudienceWorkspace = ({
                     <div style={{ fontWeight: '800', fontSize: '16px' }}>{manualPreview.name}</div>
                     <div style={{ color: 'var(--accent-secondary)', fontWeight: '700' }}>@{manualPreview.username}</div>
                   </div>
-                  <button onClick={() => handleAddUser(manualPreview)} className="btn-pill primary" style={{ height: '40px', padding: '0 24px' }}>
-                    {'+ \u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e02\u0e49\u0e32 Watchlist'}
+                  <button onClick={() => handleAddUser(manualPreview)} disabled={isManualPreviewAdded} className={`btn-pill primary ${isManualPreviewAdded ? 'added' : ''}`} style={{ height: '40px', padding: '0 24px' }}>
+                    {isManualPreviewAdded ? 'อยู่ใน Watchlist แล้ว' : '+ \u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e02\u0e49\u0e32 Watchlist'}
                   </button>
                 </div>
               )}
