@@ -60,6 +60,25 @@ test('home feed first sync windows merged X and RSS candidates together', () => 
   assert.doesNotMatch(source, /prev\.filter\(\(post\) => isXFeedPost\(post\)\)/);
 });
 
+test('home feed sort controls survive X and RSS merge limits', () => {
+  const hookSource = readSource('src/hooks/useHomeFeedWorkspace.ts');
+  const appUtilsSource = readSource('src/utils/appUtils.ts');
+
+  assert.match(appUtilsSource, /export const sortFeedByActiveFilters = \(feed = \[\], activeFilters[\s\S]*= \{\}\) =>/);
+  assert.match(appUtilsSource, /sortByViews \? toNumber\(left\?\.view_count\) : 0/);
+  assert.match(appUtilsSource, /sortByEngagement \? getEngagementTotal\(left\) : 0/);
+  assert.match(appUtilsSource, /return getCreatedAtTime\(right\) - getCreatedAtTime\(left\);/);
+  assert.match(
+    hookSource,
+    /const nextFeed = \[[\s\S]*\.\.\.xVisibleFeedCandidates,[\s\S]*\.\.\.rssVisibleFeedCandidates\.slice\(0, homeFeedCardLimit\),[\s\S]*\];[\s\S]*return sortFeedByActiveFilters\(nextFeed, activeFilters\);/,
+  );
+  assert.match(
+    hookSource,
+    /if \(!isFiltered\) return;[\s\S]*setFeed\(\(prevFeed\) => sortFeedByActiveFilters\(prevFeed, activeFilters\)\);/,
+  );
+  assert.match(hookSource, /setFeed\(sortFeedByActiveFilters\(filteredResult, activeFilters\)\);/);
+});
+
 test('home feed latest sync does not send until timestamp to X search', () => {
   const source = readSource('src/hooks/useHomeFeedWorkspace.ts');
   const initialSyncCall = source.match(

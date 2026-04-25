@@ -28,6 +28,7 @@ import {
   hasSubstantialThaiContent,
   hasUsefulThaiSummary,
   sanitizeStoredPost,
+  sortFeedByActiveFilters,
 } from '../utils/appUtils';
 import { canonicalizePostListMember } from '../utils/rssSourceResolver';
 
@@ -498,14 +499,15 @@ export const useHomeFeedWorkspace = ({
   );
 
   const limitedVisibleFeed = useMemo(
-    () =>
-      [
+    () => {
+      const nextFeed = [
         ...xVisibleFeedCandidates,
         ...rssVisibleFeedCandidates.slice(0, homeFeedCardLimit),
-      ].sort(
-        (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
-      ),
-    [homeFeedCardLimit, rssVisibleFeedCandidates, xVisibleFeedCandidates],
+      ];
+
+      return sortFeedByActiveFilters(nextFeed, activeFilters);
+    },
+    [activeFilters, homeFeedCardLimit, rssVisibleFeedCandidates, xVisibleFeedCandidates],
   );
 
   const visibleFeedTotalCount = limitedVisibleFeed.length;
@@ -520,6 +522,12 @@ export const useHomeFeedWorkspace = ({
 
     setFeed(limitedVisibleFeed);
   }, [activeView, isFiltered, limitedVisibleFeed]);
+
+  useEffect(() => {
+    if (!isFiltered) return;
+
+    setFeed((prevFeed) => sortFeedByActiveFilters(prevFeed, activeFilters));
+  }, [activeFilters, isFiltered]);
 
   const translatePostsToThai = async (
     posts: any[] = [],
@@ -949,7 +957,6 @@ export const useHomeFeedWorkspace = ({
       const xSinceTime = hasPersistedXFeedForScope && Number.isFinite(checkpointTimestamp)
         ? new Date(Math.max(0, checkpointTimestamp - X_SYNC_OVERLAP_MS)).toISOString()
         : null;
-      const syncStartedAt = new Date().toISOString();
 
       const feedSyncCacheKey = buildFeedSyncQueryKey({
         activeListId,
@@ -1307,7 +1314,7 @@ export const useHomeFeedWorkspace = ({
             }),
         );
 
-      setFeed(filteredResult);
+      setFeed(sortFeedByActiveFilters(filteredResult, activeFilters));
       setIsFiltered(true);
 
       if (filteredResult.length > 0) {

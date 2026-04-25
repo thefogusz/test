@@ -412,6 +412,36 @@ export const getEngagementTotal = (post) =>
   toNumber(post?.like_count) +
   toNumber(post?.quote_count);
 
+type FeedSortFilters = {
+  view?: boolean;
+  engagement?: boolean;
+};
+
+const getCreatedAtTime = (post) => {
+  const timestamp = new Date(post?.created_at || post?.createdAt || 0).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+};
+
+export const sortFeedByActiveFilters = (feed = [], activeFilters: FeedSortFilters = {}) => {
+  const sortByViews = Boolean(activeFilters.view);
+  const sortByEngagement = Boolean(activeFilters.engagement);
+
+  return [...feed].sort((left, right) => {
+    if (sortByViews || sortByEngagement) {
+      const leftScore =
+        (sortByViews ? toNumber(left?.view_count) : 0) +
+        (sortByEngagement ? getEngagementTotal(left) : 0);
+      const rightScore =
+        (sortByViews ? toNumber(right?.view_count) : 0) +
+        (sortByEngagement ? getEngagementTotal(right) : 0);
+
+      if (rightScore !== leftScore) return rightScore - leftScore;
+    }
+
+    return getCreatedAtTime(right) - getCreatedAtTime(left);
+  });
+};
+
 const MAX_RSS_FEED_AGE_DAYS = 30;
 
 const isSupportedFreshRssPost = (post, subscribedSources = []) => {
@@ -487,20 +517,7 @@ export const deriveVisibleFeed = ({
     );
   }
 
-  if (activeFilters.view || activeFilters.engagement) {
-    result = [...result].sort((left, right) => {
-      const leftScore =
-        (activeFilters.view ? toNumber(left.view_count) : 0) +
-        (activeFilters.engagement ? getEngagementTotal(left) : 0);
-      const rightScore =
-        (activeFilters.view ? toNumber(right.view_count) : 0) +
-        (activeFilters.engagement ? getEngagementTotal(right) : 0);
-
-      return rightScore - leftScore;
-    });
-  }
-
-  return result;
+  return sortFeedByActiveFilters(result, activeFilters);
 };
 
 export const mergePlanLabelsIntoQuery = (requestedQuery, topicLabels = []) =>
