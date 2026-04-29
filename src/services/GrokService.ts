@@ -31,6 +31,7 @@ import {
   hasSourceLedNarrative,
   hasWeakDataDumpOpening,
 } from './contentQualityGuards.js';
+import { isExplicitlyLocalSearchQuery } from '../utils/searchQueryPlanning.js';
 
 const grok = createXai({
   apiKey: 'local-proxy',
@@ -2598,10 +2599,8 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
   const cacheKey = buildCacheKey('expand-search-query', { originalQuery, isLatest });
   const cached = getCachedValue(responseCache, cacheKey);
   if (cached) return cached;
-  const globalByDefault =
-    !/\u0E44\u0E17\u0E22|thai|\u0E1B\u0E23\u0E30\u0E40\u0E17\u0E28\u0E44\u0E17\u0E22|bangkok|thailand|local|asia|asian|ญี่ปุ่น|japan|เกาหลี|korea|จีน|china/i.test(
-      String(originalQuery || ''),
-    );
+  const globalByDefault = !isExplicitlyLocalSearchQuery(originalQuery) &&
+    !/local|asia|asian|ญี่ปุ่น|japan|เกาหลี|korea|จีน|china/i.test(String(originalQuery || ''));
 
   try {
     const { object } = await generateObject({

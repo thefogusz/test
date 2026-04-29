@@ -1,6 +1,11 @@
 // @ts-nocheck
 import { toNumber } from '../utils/appUtils';
 import { TOPIC_TRIGGERS } from '../config/topics';
+import {
+  getMarketTopicHints,
+  isExplicitlyLocalSearchQuery,
+  isMarketPriceSearchIntent,
+} from '../utils/searchQueryPlanning.js';
 
 export const RECENT_WINDOW_HOURS = 24;
 
@@ -123,7 +128,7 @@ export const isBroadDiscoveryIntent = (query = '') => {
     return true;
   }
 
-  return BROAD_TOPIC_HINTS.some((group) =>
+  return isMarketPriceSearchIntent(query) || BROAD_TOPIC_HINTS.some((group) =>
     group.triggers.some((trigger) => normalized.includes(trigger)),
   );
 };
@@ -134,13 +139,12 @@ export const getBroadTopicHints = (query = '') => {
     .filter((group) => group.triggers.some((trigger) => normalized.includes(trigger)))
     .flatMap((group) => group.hints);
 
-  return Array.from(new Set(hints));
+  return Array.from(new Set([...hints, ...getMarketTopicHints(query)]));
 };
 
 const getTweetTextOnly = (tweet) => String(tweet?.text || '').toLowerCase();
 
-export const isExplicitlyLocalQuery = (query = '') =>
-  /\u0E44\u0E17\u0E22|thai|\u0E1B\u0E23\u0E30\u0E40\u0E17\u0E28\u0E44\u0E17\u0E22|bangkok|thailand/i.test(String(query || ''));
+export const isExplicitlyLocalQuery = (query = '') => isExplicitlyLocalSearchQuery(query);
 
 export const isThaiDominantPost = (tweet) => {
   const text = [
@@ -176,13 +180,13 @@ export const buildQueryProfile = (rawQuery = '') => {
   const broadIntent = isBroadDiscoveryIntent(rawQuery);
   const queryTerms = normalizeSearchTerms(rawQuery);
   const broadHints = getBroadTopicHints(rawQuery);
-  const preferGlobal = broadIntent && !isExplicitlyLocalQuery(rawQuery);
+  const isMarketPriceQuery = isMarketPriceSearchIntent(rawQuery);
+  const preferGlobal = (broadIntent || isMarketPriceQuery) && !isExplicitlyLocalQuery(rawQuery);
 
   const isAiQuery =
     normalizedQuery === 'ai' ||
     /\b(artificial intelligence|machine learning|llm|gpt|genai|generative ai|ai)\b/i.test(normalizedQuery) ||
     /(?:\u0e40\u0e2d\u0e44\u0e2d|\u0e1b\u0e31\u0e0d\u0e0d\u0e32\u0e1b\u0e23\u0e30\u0e14\u0e34\u0e29\u0e10\u0e4c)/i.test(normalizedQuery);
-
   const isGamingQuery =
     /เกม|gaming|games|\bgame\b/i.test(normalizedQuery);
 
@@ -297,6 +301,21 @@ export const buildQueryProfile = (rawQuery = '') => {
         'stream now',
         'vote now',
       ],
+    };
+  }
+
+  if (isMarketPriceQuery) {
+    const marketHints = getMarketTopicHints(rawQuery);
+
+    return {
+      key: 'market_price',
+      broadIntent: true,
+      preferGlobal,
+      queryTerms,
+      exactTerms: Array.from(new Set([...queryTerms, ...marketHints.slice(0, 6)])),
+      primaryHints: marketHints,
+      secondaryHints: broadHints,
+      softNegativeHints: ['giveaway', 'airdrop', 'presale', 'casino', 'whatsapp', 'telegram', 'referral'],
     };
   }
 

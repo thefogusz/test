@@ -38,6 +38,11 @@ import {
   normalizeSearchText,
   sanitizeStoredPost,
 } from '../utils/appUtils';
+import {
+  buildTopEngagementBackfillQuery,
+  getLocalFallbackQueries,
+  hasThaiSearchText,
+} from '../utils/searchQueryPlanning.js';
 import { deserializeStoredCollection } from '../utils/appPersistence';
 import { fetchAllSubscribedFeeds, type RssSourceInfo } from '../services/RssService';
 import { RSS_CATALOG } from '../config/rssCatalog';
@@ -96,6 +101,7 @@ const buildWebSearchQuery = (query: string, mediaType: SearchMediaType) =>
     .replace(/\bfilter:videos\b/gi, ' ')
     .replace(/\bmin_faves:\d+\b/gi, ' ')
     .replace(/\bsince:\d{4}-\d{2}-\d{2}\b/gi, ' ')
+    .replace(/\blang:[a-z]{2,3}\b/gi, ' ')
     .replace(/\b-filter:replies\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -309,11 +315,29 @@ const getInferredRssSources = (query: string) => {
     .filter((source) => source.type !== 'community');
 };
 
-const getRssSearchSources = (query: string, subscribedSources: RssSourceInfo[] = []) =>
-  uniqueBySourceId([
+const isThaiLocalRssSource = (source: RssSourceInfo) => {
+  if (source.lang === 'th') return true;
+
+  const id = String(source.id || '').toLowerCase();
+  const url = `${source.url || ''} ${source.siteUrl || ''}`.toLowerCase();
+
+  return (
+    id.includes('bangkok-post') ||
+    id.includes('thestandard') ||
+    id.includes('matichon') ||
+    /\.co\.th|\.or\.th|\.go\.th|\.ac\.th|\.in\.th/.test(url)
+  );
+};
+
+const getRssSearchSources = (query: string, subscribedSources: RssSourceInfo[] = []) => {
+  const allowLocalRssSources = isExplicitlyLocalQuery(query);
+  return uniqueBySourceId([
     ...subscribedSources,
     ...getInferredRssSources(query),
-  ]).slice(0, RSS_SEARCH_FALLBACK_SOURCE_LIMIT);
+  ])
+    .filter((source) => allowLocalRssSources || !isThaiLocalRssSource(source))
+    .slice(0, RSS_SEARCH_FALLBACK_SOURCE_LIMIT);
+};
 
 const buildRssQueryTerms = (query: string): string[] => {
   const normalizedQuery = normalizeSearchText(query);
@@ -845,6 +869,10 @@ export const useSearchWorkspace = ({
       const effectiveFocus = activeSearchFocus;
       const effectiveBroadDiscoveryQuery = queryIntent.broadDiscoveryIntent || legacyBroadDiscoveryQuery;
       const effectiveLatestMode = isLatestMode || queryIntent.forceLatestMode;
+      const shouldTranslateThaiGlobalQuery =
+        hasThaiSearchText(requestedQuery) && !isExplicitlyLocalQuery(requestedQuery);
+      const shouldRunExactBroadSearch =
+        effectiveBroadDiscoveryQuery && !shouldTranslateThaiGlobalQuery;
       const shouldFetchWebContext = shouldUseSearchWebContext({
         queryIntent,
         isComplexQuery,
@@ -852,12 +880,13 @@ export const useSearchWorkspace = ({
         isBroadDiscoveryQuery: effectiveBroadDiscoveryQuery,
         mediaType: searchMediaType,
       });
-      const shouldExpandQuery = shouldUseSearchExpansion({
-        isComplexQuery,
-        isLatestMode: effectiveLatestMode,
-        isBroadDiscoveryQuery: effectiveBroadDiscoveryQuery,
-        mediaType: searchMediaType,
-      });
+      const shouldExpandQuery =
+        shouldUseSearchExpansion({
+          isComplexQuery,
+          isLatestMode: effectiveLatestMode,
+          isBroadDiscoveryQuery: effectiveBroadDiscoveryQuery,
+          mediaType: searchMediaType,
+        }) || shouldTranslateThaiGlobalQuery;
       const onlyNews = searchMediaType !== 'videos' && queryIntent.queryKey !== 'viral_video' && !/video|คลิป/i.test(requestedQuery);
       const searchQueryType = effectiveLatestMode ? 'Latest' : 'Top';
       const cacheKey = getSearchCacheKey(`${requestedQuery}::${searchMediaType}`, searchQueryType);
@@ -888,12 +917,21 @@ export const useSearchWorkspace = ({
         let searchPlan = activeSearchPlan;
         let resolvedSearchWebSources: any[] = [];
         let webFallbackResults: any[] = [];
-        const broadBlueprint = effectiveBroadDiscoveryQuery
+        const allowGlobalBlueprintQueries = !isExplicitlyLocalQuery(requestedQuery);
+        const shouldUseBlueprintQueries =
+          allowGlobalBlueprintQueries && (effectiveBroadDiscoveryQuery || queryIntent.intentType === 'price');
+        const broadBlueprint = shouldUseBlueprintQueries
           ? getBroadQueryBlueprint(requestedQuery)
           : null;
-        const broadFallbackQueries = effectiveBroadDiscoveryQuery
+        const broadFallbackQueries = shouldUseBlueprintQueries
           ? getBroadFallbackQueries(requestedQuery)
           : [];
+        const localFallbackQueries = allowGlobalBlueprintQueries
+          ? []
+          : getLocalFallbackQueries(requestedQuery);
+        const fallbackSearchQueries = shouldUseBlueprintQueries
+          ? broadFallbackQueries
+          : localFallbackQueries;
         const shouldUseAdaptivePlan = isComplexQuery && !effectiveBroadDiscoveryQuery;
         const rawDataChunks: any[][] = [];
         let rssSearchResults: any[] = [];
@@ -939,20 +977,6 @@ export const useSearchWorkspace = ({
 
         if (!isMore) {
           setStatus('[Phase 2] Async Parallel Fetch: Search Context + Broad X Search...');
-          const webSearchQuery = buildWebSearchQuery(requestedQuery, searchMediaType);
-
-          const tavilyPromise =
-            shouldFetchWebContext
-              ? tavilySearch(webSearchQuery || requestedQuery, effectiveLatestMode)
-              : Promise.resolve({ results: [], answer: '' });
-          const rssSearchPromise = buildRssSearchResults(
-            requestedQuery,
-            subscribedSources,
-            searchMediaType,
-          ).catch((error) => {
-            console.warn(`[Search] Failed RSS search: ${requestedQuery}`, error);
-            return [];
-          });
           const expandedBroadQueryPromise = shouldExpandQuery
             ? expandSearchQuery(
               effectiveRequestedQuery,
@@ -962,7 +986,30 @@ export const useSearchWorkspace = ({
               return effectiveRequestedQuery;
             })
             : Promise.resolve(effectiveRequestedQuery);
-          const exactSearchPromise = effectiveBroadDiscoveryQuery
+          const globalSearchQueryPromise = shouldTranslateThaiGlobalQuery
+            ? expandedBroadQueryPromise
+            : Promise.resolve(requestedQuery);
+          const webSearchQueryPromise = globalSearchQueryPromise.then((globalSearchQuery) =>
+            buildWebSearchQuery(globalSearchQuery || requestedQuery, searchMediaType),
+          );
+
+          const tavilyPromise =
+            shouldFetchWebContext
+              ? webSearchQueryPromise.then((webSearchQuery) =>
+                tavilySearch(webSearchQuery || requestedQuery, effectiveLatestMode),
+              )
+              : Promise.resolve({ results: [], answer: '' });
+          const rssSearchPromise = globalSearchQueryPromise.then((globalSearchQuery) =>
+            buildRssSearchResults(
+              buildWebSearchQuery(globalSearchQuery || requestedQuery, searchMediaType) || requestedQuery,
+              subscribedSources,
+              searchMediaType,
+            ),
+          ).catch((error) => {
+            console.warn(`[Search] Failed RSS search: ${requestedQuery}`, error);
+            return [];
+          });
+          const exactSearchPromise = shouldRunExactBroadSearch
             ? searchEverythingDeep(
               getScopedQuery(effectiveRequestedQuery, 'exact'),
               null,
@@ -991,7 +1038,7 @@ export const useSearchWorkspace = ({
             });
           });
           const entitySearchPromise =
-            effectiveBroadDiscoveryQuery && broadBlueprint?.entityQuery
+            shouldUseBlueprintQueries && broadBlueprint?.entityQuery
               ? searchEverythingDeep(
                 getScopedQuery(
                   buildSearchRequestQuery(broadBlueprint.entityQuery, searchMediaType),
@@ -1007,7 +1054,7 @@ export const useSearchWorkspace = ({
               })
               : Promise.resolve({ data: [], meta: {} });
           const viralSearchPromise =
-            effectiveBroadDiscoveryQuery && broadBlueprint?.viralQuery
+            shouldUseBlueprintQueries && broadBlueprint?.viralQuery
               ? searchEverythingDeep(
                 getScopedQuery(
                   buildSearchRequestQuery(broadBlueprint.viralQuery, searchMediaType),
@@ -1022,13 +1069,46 @@ export const useSearchWorkspace = ({
                 return { data: [], meta: {} };
               })
               : Promise.resolve({ data: [], meta: {} });
+          const topEngagementBackfillPromise =
+            queryIntent.intentType === 'price'
+              ? expandedBroadQueryPromise.then((expandedBroadQuery) => {
+                const topEngagementQuery = buildTopEngagementBackfillQuery(
+                  broadBlueprint?.engagementQuery ||
+                    broadBlueprint?.viralQuery ||
+                    expandedBroadQuery ||
+                    effectiveRequestedQuery,
+                );
 
-          const [webData, exactResult, broadResult, entityResult, viralResult, resolvedRssSearchResults] = await Promise.all([
+                if (!topEngagementQuery) return { data: [], meta: {} };
+
+                return searchEverythingDeep(
+                  topEngagementQuery,
+                  null,
+                  onlyNews,
+                  'Top',
+                  2,
+                ).catch((error) => {
+                  console.warn(`[Search] Failed Top engagement backfill: ${topEngagementQuery}`, error);
+                  return { data: [], meta: {} };
+                });
+              })
+              : Promise.resolve({ data: [], meta: {} });
+
+          const [
+            webData,
+            exactResult,
+            broadResult,
+            entityResult,
+            viralResult,
+            topEngagementResult,
+            resolvedRssSearchResults,
+          ] = await Promise.all([
             tavilyPromise,
             exactSearchPromise,
             broadSearchPromise,
             entitySearchPromise,
             viralSearchPromise,
+            topEngagementBackfillPromise,
             rssSearchPromise,
           ]);
           rssSearchResults = resolvedRssSearchResults;
@@ -1037,16 +1117,18 @@ export const useSearchWorkspace = ({
           if (broadResult.data?.length) rawDataChunks.push(broadResult.data);
           if (entityResult.data?.length) rawDataChunks.push(entityResult.data);
           if (viralResult.data?.length) rawDataChunks.push(viralResult.data);
+          if (topEngagementResult.data?.length) rawDataChunks.push(topEngagementResult.data);
           if (!finalCursor && readNextCursor(broadResult.meta)) finalCursor = readNextCursor(broadResult.meta);
           if (!finalCursor && readNextCursor(exactResult.meta)) finalCursor = readNextCursor(exactResult.meta);
           if (!finalCursor && readNextCursor(entityResult.meta)) finalCursor = readNextCursor(entityResult.meta);
           if (!finalCursor && readNextCursor(viralResult.meta)) finalCursor = readNextCursor(viralResult.meta);
+          if (!finalCursor && readNextCursor(topEngagementResult.meta)) finalCursor = readNextCursor(topEngagementResult.meta);
 
           const initialMergedBroadData = mergeUniquePostsById(...rawDataChunks);
-          if (effectiveBroadDiscoveryQuery && initialMergedBroadData.length < 8 && broadFallbackQueries.length > 0) {
+          if (fallbackSearchQueries.length > 0 && initialMergedBroadData.length < 8) {
             setStatus('[Fallback] ลองขยายคำค้นหาอัตโนมัติด้วยคำที่ใกล้เคียง...');
             const fallbackResults = await Promise.all(
-              broadFallbackQueries.map((fallbackQuery, index) =>
+              fallbackSearchQueries.map((fallbackQuery, index) =>
                 searchEverythingDeep(
                   getScopedQuery(
                     buildSearchRequestQuery(fallbackQuery, searchMediaType),

@@ -1,5 +1,9 @@
 import { TOPIC_TRIGGERS } from '../config/topics';
 import { normalizeSearchText, safeParse } from './appUtils';
+import {
+  getMarketFallbackQueries,
+  getMarketQueryBlueprint,
+} from './searchQueryPlanning.js';
 
 export const MAX_SEARCH_PRESETS = 3;
 
@@ -271,7 +275,7 @@ export const getBroadQueryBlueprint = (query = '') => {
 
   return BROAD_QUERY_BLUEPRINTS.find((blueprint) =>
     blueprint.triggers.some((trigger) => normalized.includes(normalizeSearchText(trigger))),
-  ) || null;
+  ) || getMarketQueryBlueprint(query) || null;
 };
 
 export const getBroadFallbackQueries = (query = '') => {
@@ -282,7 +286,7 @@ export const getBroadFallbackQueries = (query = '') => {
     group.triggers.some((trigger) => normalized.includes(normalizeSearchText(trigger))),
   );
 
-  return match ? match.queries : [];
+  return match ? match.queries : getMarketFallbackQueries(query);
 };
 
 export const buildDynamicSearchTags = ({
