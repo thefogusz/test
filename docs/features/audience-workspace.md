@@ -77,6 +77,14 @@ flowchart TD
 - การเพิ่มบัญชีที่แนะนำเข้า watchlist ต้องยังเคารพกติกาเรื่องแพ็กเกจและ capacity
 - Audience discovery ไม่มีสิทธิ์ bypass shared watchlist limits
 
+### manual search ของบัญชี X
+
+- manual search ต้อง normalize input ได้ทั้ง `username`, `@username`, และ URL โปรไฟล์จาก `x.com` หรือ `twitter.com`
+- ถ้ายังกรอกไม่ครบหรือกรอกว่าง ระบบต้องขึ้นข้อความให้กรอก username ก่อนค้นหา แทนการยิง request เปล่า
+- ระหว่างค้นหา ระบบต้อง disable ช่องกรอก ปุ่มล้าง และปุ่มค้นหา พร้อมแสดงสถานะว่ากำลังค้นหาบัญชีนี้
+- ถ้าค้นหาไม่พบบัญชีหรือคุยกับ X ไม่สำเร็จ ข้อความ error ต้องอ้างถึง handle ที่ผู้ใช้เพิ่งค้นหา เพื่อให้แก้หรือ retry ได้ตรงจุด
+- ถ้า preview ที่ค้นหาได้มีอยู่ใน watchlist แล้ว ปุ่มเพิ่มต้องเปลี่ยนเป็นสถานะ `อยู่ใน Watchlist แล้ว` และกดซ้ำไม่ได้
+
 ## ลำดับการใช้งานหลัก
 
 1. ผู้ใช้เปิด Audience Workspace
@@ -97,10 +105,17 @@ flowchart TD
 - ผลลัพธ์ของ Audience อาจมาจากหลายโหมดการค้นหา
 - action เพิ่มเข้า watchlist ต้องรักษา semantics เดียวกัน ไม่ว่า candidate จะมาจาก AI search หรือ manual search
 
+### manual search ที่ผู้ใช้กรอกหลายรูปแบบ
+
+- ถ้าผู้ใช้ paste ลิงก์โปรไฟล์ X/Twitter มา ระบบต้องแปลงกลับเป็น handle เดียวกับที่ service ใช้ค้นหา
+- ถ้าบัญชีถูกเพิ่มเข้า watchlist ไปแล้ว preview card ต้องสะท้อนสถานะเดิมทันที ไม่เปิดทางให้กดเพิ่มซ้ำ
+- loading state และ error state ของ manual search ต้องไม่ไปล้าง semantics ของ AI tab หรือ source discovery tab อื่น
+
 ## ไฟล์หลักที่เกี่ยวข้อง
 
 - `src/components/AudienceWorkspace.tsx`
 - `src/hooks/useAudienceSearch.ts`
+- `src/services/TwitterService.ts`
 - `src/hooks/useWatchlist.ts`
 
 ## เมื่อไรต้องอัปเดตหน้านี้
@@ -111,7 +126,9 @@ flowchart TD
 - layout หรือ visual hierarchy ของ audience card
 - gating ของการเพิ่มเข้า watchlist
 - ความสัมพันธ์ระหว่างแท็บ AI, manual และ source
+- loading, error, หรือ normalization flow ของ manual search
 
 ## Change Log
 
+- 2026-04-26: documented manual X username search normalization, loading and error feedback, and watchlist-aware preview state
 - 2026-04-12: documented Thai fallback reasoning and redesigned recommendation-card expectations for AI audience discovery

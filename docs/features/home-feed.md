@@ -76,6 +76,7 @@ flowchart TD
 - sync รอบแรกมี soft window สำหรับการประมวลผลที่ `20` รายการล่าสุดต่อครั้ง แม้ active post list จะรวมทั้ง X และ RSS
 - ถ้าหลัง merge และ sort ตามเวลาแล้วมีรายการใหม่เกิน `20` ระบบต้องแสดงแค่ `20` ใบแรกก่อน และเก็บส่วนเกินไว้ใน `pendingFeed`
 - `Load more` จะหยุดเมื่อถึงเพดานของแพ็กเกจนั้น
+- ถ้าผู้ใช้เปิด sort อย่าง `ยอดวิว` หรือ `เอนเกจเมนต์` ระบบต้องเรียงเฉพาะชุดการ์ดที่มองเห็นได้หลังผ่านการ merge, ตัดรอบแรก, และเพดานแพ็กเกจแล้ว โดยถ้าคะแนนเท่ากันให้กลับไปตัดสินด้วย `created_at`
 - AI filter ใช้ขอบเขตเดียวกับการ์ดที่มองเห็นอยู่ และจะไม่ไปรันบนชุดข้อมูลที่ซ่อนไว้ใหญ่กว่า
 
 ### ลำดับการแสดงผลของ X และ RSS
@@ -103,6 +104,7 @@ flowchart TD
   - หาโพสต์ใหม่ที่เพิ่งถูกเผยแพร่
   - refresh สถิติของการ์ดที่กำลังแสดงอยู่บน Home
 - การหา candidate ใหม่ใช้ checkpoint-based advanced search
+- latest sync ของ X ใช้ `sinceTime` จาก checkpoint overlap ได้ แต่ไม่ควรส่ง `untilTime` ของเวลาที่กด sync เพราะจะเสี่ยงตัดโพสต์ใหม่สุดที่ upstream เพิ่งส่งกลับ
 - การ refresh engagement ของการ์ดที่มีอยู่แล้ว ใช้ tweet-id lookup เฉพาะการ์ดที่กำลังมองเห็น
 - ถ้าโพสต์จาก X ที่เข้ามามีอยู่แล้วในฟีด ระบบควรอัปเดตการ์ดเดิมแทนการสร้างซ้ำ
 - X seen registry ใช้เป็นประวัติประกอบการ hydrate/mark seen แต่ต้องไม่เป็นตัว suppress candidate ใหม่เพียงลำพัง เพราะโพสต์ที่ fetch มาแล้วแต่ยังไม่เคยขึ้นการ์ดอาจถูกซ่อนไปถาวรได้
@@ -218,6 +220,7 @@ flowchart TD
 
 ## Change Log
 
+- 2026-04-26: documented visible-feed sort semantics after merge plus plan limits, and clarified that latest X sync must not clamp results with `untilTime`
 - 2026-04-23: documented X sync recovery for ahead-of-feed checkpoints and clarified that X seen registry must not suppress unseen feed candidates by itself
 - 2026-04-23: documented feed-history hydration guard, pre-quota sync blocking, and automatic FORO Filter clearing when a fresh sync starts
 - 2026-04-13: documented first-pass `20` card sync window, cross-source chronological ordering for mixed X plus RSS lists, `Load more` overflow behavior, and background-only RSS article enrichment

@@ -54,6 +54,19 @@ flowchart TD
 - โหมด search ใช้สำหรับหา source candidate และ inspect ข้อมูล
 - โหมด create ใช้สำหรับสร้างหรือ regenerate คอนเทนต์จาก context ที่เลือกไว้
 
+### พฤติกรรมของ content search
+
+- ถ้าผู้ใช้พิมพ์หัวข้อเป็นภาษาไทย แต่ไม่ได้ระบุ scope แบบ local ชัดเจน เช่น `ในไทย`, `Thailand`, `คนไทย` หรือบริบทประเทศ/ภูมิภาคอื่น ระบบต้องถือว่า search นี้เป็น global-first
+- global-first search ต้องขยาย query ไปทางภาษาอังกฤษหรือคำค้นสากลก่อน ทั้งสำหรับ X search, web context และ query planning แทนการล็อกอยู่กับคำไทยตรง ๆ
+- Thai-local RSS sources ต้องไม่ถูกดึงมาเป็น fallback โดยอัตโนมัติสำหรับ global-first search เพื่อไม่ให้ผลลัพธ์ local กลบหัวข้อสากล
+- ถ้าผู้ใช้ระบุ scope ไทยหรือ local ชัดเจน ระบบค่อยเปิดใช้ local fallback queries และ RSS sources ที่เป็นไทยได้
+
+### market price search
+
+- search intent ประเภทแนวโน้มราคา เช่นทองหรือ silver ต้องมี deterministic query lane สำหรับ X เป็นภาษาอังกฤษโดยตรง เพื่อไม่ให้ผลลัพธ์แกว่งตามการตีความ prompt แต่ละครั้ง
+- lane นี้แยกอย่างน้อยเป็น entity/market query และ viral-or-engagement query เพื่อจับทั้งโพสต์อัปเดตราคาและโพสต์ที่มีสัญญาณแรง
+- สำหรับ market price intent ระบบต้องมี Top engagement backfill อีกชั้น โดยขยายช่วงเวลาและยก `min_faves` ขึ้น เพื่อเก็บโพสต์วิเคราะห์หรือสรุปภาพใหญ่ที่ไม่ได้อยู่แค่ในหน้าต่างล่าสุด
+
 ### พฤติกรรมการแนบ source
 
 - source ที่เลือกสามารถ attach แล้วพกต่อเข้าไปใน flow สร้างคอนเทนต์ได้
@@ -117,14 +130,17 @@ layout ที่คาดหวังตอนนี้คือ:
 - `src/components/ContentWorkspace.tsx`
 - `src/components/CreateContent.tsx`
 - `src/components/ArticleReaderModal.tsx`
+- `src/hooks/useSearchWorkspace.ts`
 - `src/services/GrokService.ts`
 - `src/services/ArticleService.ts`
+- `src/utils/searchQueryPlanning.js`
 
 ## เมื่อไรต้องอัปเดตหน้านี้
 
 อัปเดตหน้านี้เมื่อมีการเปลี่ยน:
 
 - การ persist ของ attached source
+- พฤติกรรม query planning, fallback, หรือ scope ของ content search
 - พฤติกรรมการแปลใน article reader
 - พฤติกรรมของ translation cache
 - gating ของ create mode หรือสิทธิ์ premium
@@ -132,4 +148,5 @@ layout ที่คาดหวังตอนนี้คือ:
 
 ## Change Log
 
+- 2026-04-29: documented global-first search defaults for Thai input, Thai-local RSS fallback gating, and deterministic market-price X query lanes with Top engagement backfill
 - 2026-04-12: documented durable article translation reuse and compact attached-source layout expectations in create mode
