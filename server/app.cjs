@@ -182,10 +182,17 @@ const createServerApp = ({
   app.get(
     '/api/rss',
     asyncRoute(async (req, res) => {
-      const feedUrl = req.query.url;
-
-      if (!feedUrl) {
+      if (!req.query.url) {
         return res.status(400).json({ error: 'Missing url parameter' });
+      }
+
+      let feedUrl;
+      try {
+        feedUrl = normalizeExternalUrl(req.query.url, 'feed url');
+      } catch (error) {
+        return res.status(error.statusCode || 400).json({
+          error: error.message || 'Invalid feed url',
+        });
       }
 
       try {

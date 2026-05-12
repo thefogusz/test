@@ -43,6 +43,7 @@ import {
   getLocalFallbackQueries,
   hasThaiSearchText,
 } from '../utils/searchQueryPlanning.js';
+import { CONTENT_DISCOVERY_TOPICS } from '../utils/contentDiscoveryTopics.js';
 import { deserializeStoredCollection } from '../utils/appPersistence';
 import { fetchAllSubscribedFeeds, type RssSourceInfo } from '../services/RssService';
 import { RSS_CATALOG } from '../config/rssCatalog';
@@ -254,6 +255,12 @@ const RSS_SEARCH_STOP_TERMS = new Set([
 const RSS_SEARCH_FALLBACK_SOURCE_LIMIT = 14;
 
 const RSS_TOPIC_HINTS = [
+  ...CONTENT_DISCOVERY_TOPICS
+    .filter(({ rssTopics }) => Array.isArray(rssTopics) && rssTopics.length > 0)
+    .map(({ triggerPattern, rssTopics }) => ({
+      pattern: triggerPattern,
+      topics: rssTopics,
+    })),
   {
     pattern: /(ทอง|ทองคำ|ตลาด|ราคา|หุ้น|การเงิน|ลงทุน|เงินบาท|ดอลลาร์|เศรษฐกิจ|gold|bullion|market|price|finance|stock|invest|dollar|fed|commodity)/i,
     topics: ['finance', 'business', 'news'],
@@ -273,6 +280,12 @@ const RSS_TOPIC_HINTS = [
 ];
 
 const RSS_SEARCH_SYNONYM_GROUPS = [
+  ...CONTENT_DISCOVERY_TOPICS
+    .filter(({ rssSynonyms }) => Array.isArray(rssSynonyms) && rssSynonyms.length > 0)
+    .map(({ triggerPattern, rssSynonyms }) => ({
+      pattern: triggerPattern,
+      terms: rssSynonyms,
+    })),
   {
     pattern: /(ทอง|ทองคำ|gold|bullion)/i,
     terms: ['ทองคำ', 'ทอง', 'gold', 'bullion', 'gold price', 'gold market'],

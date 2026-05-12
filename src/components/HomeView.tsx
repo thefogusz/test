@@ -432,6 +432,7 @@ const HomeView = ({
               className="icon-btn-large"
               style={{ width: '32px', height: '32px' }}
               title="คัดลอกผลลัพธ์"
+              aria-label="คัดลอกผลลัพธ์"
             >
               <Copy size={14} />
             </button>

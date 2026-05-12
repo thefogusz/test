@@ -85,6 +85,14 @@ const safeReadStoredValue = (key, fallbackValue) => {
   }
 };
 
+const getArticleHostLabel = (url) => {
+  try {
+    return new URL(String(url || '')).hostname.replace('www.', '');
+  } catch {
+    return '';
+  }
+};
+
 const FEED_CARD_FOOTER_STYLE: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
@@ -245,6 +253,7 @@ const FeedCard = ({
   const [optimisticInWatchlist, setOptimisticInWatchlist] = useState(false);
   const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [failedImageUrls, setFailedImageUrls] = useState<Set<string>>(() => new Set());
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const displayTweet = tweet.repostedPost || tweet;
   const isRepost = Boolean(tweet.isRepost || tweet.repostedPost);
@@ -279,6 +288,14 @@ const FeedCard = ({
       ),
     [displayTweet.imageUrls, previewImageUrl],
   );
+  const imageUrlKey = imageUrls.join('\n');
+  const visibleImageUrls = useMemo(
+    () => imageUrls.filter((url) => !failedImageUrls.has(url)),
+    [failedImageUrls, imageUrls],
+  );
+  const activePreviewImageUrl = visibleImageUrls[0] || '';
+  const previewImageFailed = Boolean(previewImageUrl) && visibleImageUrls.length === 0;
+  const mediaPreviewAlt = displayTitle || displayTweet.text || displayTweet.summary || 'article image';
   const shouldShowRssSummary =
     isArticleCard &&
     !!String(rssSummaryText || '').trim();
@@ -291,6 +308,7 @@ const FeedCard = ({
     () => displayTweet.url || `https://x.com/${displayTweet.author?.username || 'i'}/status/${displayTweet.id}`,
     [displayTweet.author?.username, displayTweet.id, displayTweet.url],
   );
+  const articleHostLabel = getArticleHostLabel(tweet.url);
   const fallbackPostLists = useMemo(() => {
     if (Array.isArray(postLists)) return postLists;
     const storedPostLists = safeReadStoredValue(STORAGE_KEYS.postLists, []);
@@ -313,6 +331,20 @@ const FeedCard = ({
   useEffect(() => {
     setRelativeTimeState(getRelativeTimeState(tweet?.created_at || tweet?.createdAt));
   }, [tweet?.created_at, tweet?.createdAt]);
+
+  useEffect(() => {
+    setFailedImageUrls(new Set());
+    setActiveImageIndex(0);
+  }, [imageUrlKey]);
+
+  useEffect(() => {
+    if (visibleImageUrls.length === 0) {
+      if (activeImageIndex !== 0) setActiveImageIndex(0);
+      return;
+    }
+    if (activeImageIndex < visibleImageUrls.length) return;
+    setActiveImageIndex(Math.max(0, visibleImageUrls.length - 1));
+  }, [activeImageIndex, visibleImageUrls.length]);
 
   useEffect(() => {
     if (!nextUpdateMs) return undefined;
@@ -362,14 +394,14 @@ const FeedCard = ({
         return;
       }
 
-      if (imageUrls.length <= 1) return;
+      if (visibleImageUrls.length <= 1) return;
 
       if (event.key === 'ArrowLeft') {
-        setActiveImageIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length);
+        setActiveImageIndex((prev) => (prev - 1 + visibleImageUrls.length) % visibleImageUrls.length);
       }
 
       if (event.key === 'ArrowRight') {
-        setActiveImageIndex((prev) => (prev + 1) % imageUrls.length);
+        setActiveImageIndex((prev) => (prev + 1) % visibleImageUrls.length);
       }
     };
 
@@ -378,7 +410,7 @@ const FeedCard = ({
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [imageUrls.length, isImageViewerOpen]);
+  }, [isImageViewerOpen, visibleImageUrls.length]);
 
   const handleBookmark = () => {
     const next = !bookmarked;
@@ -398,12 +430,17 @@ const FeedCard = ({
   };
 
   const openImageViewer = (index = 0) => {
-    if (imageUrls.length === 0) return;
-    setActiveImageIndex(Math.max(0, Math.min(index, imageUrls.length - 1)));
+    if (visibleImageUrls.length === 0) return;
+    setActiveImageIndex(Math.max(0, Math.min(index, visibleImageUrls.length - 1)));
     setIsImageViewerOpen(true);
   };
 
-  const activeImageUrl = imageUrls[activeImageIndex] || previewImageUrl;
+  const handlePreviewImageError = () => {
+    if (!activePreviewImageUrl) return;
+    setFailedImageUrls((previous) => new Set(previous).add(activePreviewImageUrl));
+  };
+
+  const activeImageUrl = visibleImageUrls[activeImageIndex] || activePreviewImageUrl;
   const closeImageViewer = () => setIsImageViewerOpen(false);
   const stopImageViewerPropagation = (event) => event.stopPropagation();
 
@@ -542,7 +579,7 @@ const FeedCard = ({
                 </div>
               </div>
               <div style={{ color: 'var(--text-dim)', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                <span>{isArticleCard && tweet.url ? new URL(tweet.url).hostname.replace('www.', '') : `@${displayTweet.author?.username}`}</span>
+                <span>{isArticleCard && articleHostLabel ? articleHostLabel : `@${displayTweet.author?.username}`}</span>
               </div>
             </div>
           </button>
@@ -693,8 +730,10 @@ const FeedCard = ({
           </div>
 
           <button
+            type="button"
             onClick={handleBookmark}
             className="icon-hover"
+            aria-label={bookmarked ? 'ลบออกจาก Bookmarks' : 'บันทึกลง Bookmarks'}
             style={{
               background: 'transparent',
               border: 'none',
@@ -716,6 +755,7 @@ const FeedCard = ({
             href={isArticleCard ? (tweet.url || '#') : `https://x.com/${displayTweet.author?.username || 'i'}/status/${displayTweet.id}`}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label={isArticleCard ? 'เปิดต้นฉบับ' : 'เปิดโพสต์บน X'}
             style={{
               width: '26px',
               height: '26px',
@@ -837,6 +877,7 @@ const FeedCard = ({
           <button
             type="button"
             onClick={() => openImageViewer(0)}
+            aria-label={previewImageFailed ? 'Image unavailable' : 'Open image preview'}
             style={{
               display: 'block',
               position: 'relative',
@@ -846,14 +887,50 @@ const FeedCard = ({
               overflow: 'hidden',
               textDecoration: 'none',
               border: '1px solid rgba(255,255,255,0.08)',
-              background: `linear-gradient(180deg, rgba(2,6,23,0.04) 0%, rgba(2,6,23,0.22) 100%), url(${previewImageUrl}) center/cover`,
+              background: 'linear-gradient(135deg, rgba(21,32,49,0.96) 0%, rgba(12,18,28,0.98) 100%)',
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
-              cursor: 'zoom-in',
+              cursor: previewImageFailed ? 'default' : 'zoom-in',
               padding: 0,
             }}
           >
             {/* ดูภาพใน FORO badge removed as per request */}
-            {imageUrls.length > 1 && (
+            {activePreviewImageUrl ? (
+              <img
+                key={activePreviewImageUrl}
+                className="feed-card-media-image"
+                src={activePreviewImageUrl}
+                alt={mediaPreviewAlt}
+                loading="lazy"
+                decoding="async"
+                onError={handlePreviewImageError}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+            ) : (
+              <div
+                className="feed-card-media-fallback"
+                aria-hidden="true"
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'rgba(255,255,255,0.32)',
+                  background:
+                    'linear-gradient(135deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.015) 100%)',
+                }}
+              >
+                <ImageIcon size={24} strokeWidth={1.8} />
+              </div>
+            )}
+            {visibleImageUrls.length > 1 && (
               <div
                 style={{
                   position: 'absolute',
@@ -867,7 +944,7 @@ const FeedCard = ({
                   fontWeight: '800',
                 }}
               >
-                1/{imageUrls.length}
+                1/{visibleImageUrls.length}
               </div>
             )}
           </button>
@@ -1023,7 +1100,7 @@ const FeedCard = ({
                     : `รูปภาพจาก @${tweet.author?.username || 'x'}`}
                 </div>
                 <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.68)' }}>
-                  {imageUrls.length > 1 ? `รูป ${activeImageIndex + 1} จาก ${imageUrls.length}` : 'รูปภาพเต็มในโหมดอ่าน'}
+                  {visibleImageUrls.length > 1 ? `รูป ${activeImageIndex + 1} จาก ${visibleImageUrls.length}` : 'รูปภาพเต็มในโหมดอ่าน'}
                 </div>
               </div>
               <div onClick={stopImageViewerPropagation} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1038,8 +1115,10 @@ const FeedCard = ({
                   {isArticleCard ? 'เปิดต้นฉบับ' : 'เปิดบน X'}
                 </a>
                 <button
+                  type="button"
                   className="modal-close-btn"
                   onClick={closeImageViewer}
+                  aria-label="ปิดตัวอย่างรูป"
                   style={{
                     position: 'static',
                     background: 'rgba(255,255,255,0.06)',
@@ -1091,13 +1170,14 @@ const FeedCard = ({
                   }}
                 />
 
-                {imageUrls.length > 1 && (
+                {visibleImageUrls.length > 1 && (
                   <>
                     <button
                       type="button"
+                      aria-label="รูปก่อนหน้า"
                       onClick={(event) => {
                         event.stopPropagation();
-                        setActiveImageIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length);
+                        setActiveImageIndex((prev) => (prev - 1 + visibleImageUrls.length) % visibleImageUrls.length);
                       }}
                       style={{
                         position: 'absolute',
@@ -1120,9 +1200,10 @@ const FeedCard = ({
                     </button>
                     <button
                       type="button"
+                      aria-label="รูปถัดไป"
                       onClick={(event) => {
                         event.stopPropagation();
-                        setActiveImageIndex((prev) => (prev + 1) % imageUrls.length);
+                        setActiveImageIndex((prev) => (prev + 1) % visibleImageUrls.length);
                       }}
                       style={{
                         position: 'absolute',

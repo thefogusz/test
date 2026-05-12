@@ -18,11 +18,14 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks(id) {
-            if (!id.includes('node_modules')) return
-            if (id.includes('react') || id.includes('scheduler')) return 'react-vendor'
-            if (id.includes('lucide-react')) return 'icons'
-            if (id.includes('@ai-sdk') || id.includes('/ai/')) return 'ai-vendor'
-            if (id.includes('marked') || id.includes('dompurify')) return 'markdown-vendor'
+            const normalizedId = id.replace(/\\/g, '/')
+            if (normalizedId.includes('/src/services/GrokService')) return 'grok-service'
+            if (normalizedId.includes('/src/services/TwitterService')) return 'twitter-service'
+            if (!normalizedId.includes('node_modules')) return
+            if (normalizedId.includes('react') || normalizedId.includes('scheduler')) return 'react-vendor'
+            if (normalizedId.includes('lucide-react')) return 'icons'
+            if (normalizedId.includes('@ai-sdk') || normalizedId.includes('/ai/')) return 'ai-vendor'
+            if (normalizedId.includes('marked') || normalizedId.includes('dompurify')) return 'markdown-vendor'
           },
         },
       },
@@ -32,6 +35,16 @@ export default defineConfig(({ mode }) => {
       {
         name: 'local-secret-api-middleware',
         configureServer(server) {
+          const normalizeProxyUrl = (value) => {
+            try {
+              const parsed = new URL(String(value || '').trim())
+              if (!['http:', 'https:'].includes(parsed.protocol)) return null
+              return parsed.toString()
+            } catch {
+              return null
+            }
+          }
+
           // Internal auth guard for all /api/* in dev
           server.middlewares.use('/api', (req, res, next) => {
             if (internalApiSecret && req.headers['x-internal-token'] !== internalApiSecret) {
@@ -49,12 +62,19 @@ export default defineConfig(({ mode }) => {
 
             try {
               const urlObj = new URL(req.url, 'http://localhost')
-              const feedUrl = urlObj.searchParams.get('url')
+              const feedUrl = normalizeProxyUrl(urlObj.searchParams.get('url'))
+
+              if (!urlObj.searchParams.get('url')) {
+                res.statusCode = 400
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify({ error: 'Missing url parameter' }))
+                return
+              }
 
               if (!feedUrl) {
                 res.statusCode = 400
                 res.setHeader('Content-Type', 'application/json')
-                res.end(JSON.stringify({ error: 'Missing url parameter' }))
+                res.end(JSON.stringify({ error: 'Invalid feed url' }))
                 return
               }
 
@@ -86,12 +106,19 @@ export default defineConfig(({ mode }) => {
             try {
               const { extractArticleFromHtml } = _require('./server/lib/articleExtractor.cjs')
               const urlObj = new URL(req.url, 'http://localhost')
-              const articleUrl = urlObj.searchParams.get('url')
+              const articleUrl = normalizeProxyUrl(urlObj.searchParams.get('url'))
+
+              if (!urlObj.searchParams.get('url')) {
+                res.statusCode = 400
+                res.setHeader('Content-Type', 'application/json')
+                res.end(JSON.stringify({ error: 'Missing url parameter' }))
+                return
+              }
 
               if (!articleUrl) {
                 res.statusCode = 400
                 res.setHeader('Content-Type', 'application/json')
-                res.end(JSON.stringify({ error: 'Missing url parameter' }))
+                res.end(JSON.stringify({ error: 'Invalid article url' }))
                 return
               }
 

@@ -98,18 +98,18 @@ const NAV_ITEMS: NavItemConfig[] = [
   {
     view: 'audience',
     label: 'การติดตาม',
+    mobileLabel: 'ติดตาม',
     Icon: UsersRound,
     isActive: (activeView) => activeView === 'audience',
     isBusy: (backgroundTasks) => Boolean(backgroundTasks.audienceSearch),
     spinner: 'loader',
-    hideOnMobile: true,
   },
   {
     view: 'bookmarks',
     label: 'Bookmarks',
+    mobileLabel: 'บันทึก',
     Icon: Bookmark,
     isActive: (activeView) => activeView === 'bookmarks',
-    hideOnMobile: true,
   },
   {
     view: 'pricing',

@@ -109,6 +109,119 @@ const MARKET_ASSET_BLUEPRINTS = [
       'demand',
     ],
   },
+  {
+    key: 'bitcoin',
+    triggers: [/\bbitcoin\b/i, /\bbtc\b/i],
+    entityQuery:
+      '("bitcoin price" OR BTC OR "bitcoin market" OR "BTC chart" OR "spot bitcoin ETF") lang:en min_faves:5 -filter:replies',
+    viralQuery:
+      '(bitcoin OR BTC OR "bitcoin price" OR "spot bitcoin ETF") (price OR breakout OR chart OR rally OR inflows OR forecast) lang:en min_faves:100 -filter:replies',
+    fallbackQueries: [
+      '("bitcoin price" OR BTC OR "BTC chart") lang:en min_faves:5 -filter:replies',
+      '(bitcoin OR BTC) (breakout OR rally OR forecast OR ETF OR inflows) lang:en min_faves:25 -filter:replies',
+      '("spot bitcoin ETF" OR "bitcoin market" OR "crypto market") lang:en min_faves:25 -filter:replies',
+    ],
+    hints: [
+      'bitcoin price',
+      'btc',
+      'bitcoin market',
+      'btc chart',
+      'spot bitcoin etf',
+      'crypto market',
+      'breakout',
+      'rally',
+      'inflows',
+      'forecast',
+    ],
+  },
+  {
+    key: 'ethereum',
+    triggers: [/\bethereum\b/i, /\beth\b/i],
+    entityQuery:
+      '("ethereum price" OR ETH OR "ethereum market" OR "ETH chart" OR "spot ethereum ETF") lang:en min_faves:5 -filter:replies',
+    viralQuery:
+      '(ethereum OR ETH OR "ethereum price" OR "spot ethereum ETF") (price OR breakout OR chart OR rally OR inflows OR forecast) lang:en min_faves:100 -filter:replies',
+    fallbackQueries: [
+      '("ethereum price" OR ETH OR "ETH chart") lang:en min_faves:5 -filter:replies',
+      '(ethereum OR ETH) (breakout OR rally OR forecast OR ETF OR inflows) lang:en min_faves:25 -filter:replies',
+      '("spot ethereum ETF" OR "ethereum market" OR "crypto market") lang:en min_faves:25 -filter:replies',
+    ],
+    hints: [
+      'ethereum price',
+      'eth',
+      'ethereum market',
+      'eth chart',
+      'spot ethereum etf',
+      'crypto market',
+      'breakout',
+      'rally',
+      'inflows',
+      'forecast',
+    ],
+  },
+  {
+    key: 'oil',
+    triggers: [/\boil\b/i, /\bcrude\b/i, /\bbrent\b/i, /\bwti\b/i],
+    entityQuery:
+      '("oil price" OR "crude oil" OR Brent OR WTI OR "oil futures" OR "energy market") lang:en min_faves:5 -filter:replies',
+    viralQuery:
+      '(oil OR "crude oil" OR Brent OR WTI OR "oil price") (price OR breakout OR chart OR rally OR forecast OR supply) lang:en min_faves:100 -filter:replies',
+    fallbackQueries: [
+      '("oil price" OR "crude oil" OR Brent OR WTI) lang:en min_faves:5 -filter:replies',
+      '(oil OR "crude oil" OR Brent OR WTI) (chart OR breakout OR forecast OR supply OR rally) lang:en min_faves:25 -filter:replies',
+      '("energy market" OR "oil futures" OR OPEC) lang:en min_faves:25 -filter:replies',
+    ],
+    hints: [
+      'oil price',
+      'crude oil',
+      'brent',
+      'wti',
+      'oil futures',
+      'energy market',
+      'opec',
+      'breakout',
+      'forecast',
+      'supply',
+    ],
+  },
+  {
+    key: 'stocks',
+    triggers: [
+      /\bstock\b/i,
+      /\bstocks\b/i,
+      /\bequity\b/i,
+      /\bequities\b/i,
+      /\bnasdaq\b/i,
+      /\bspx\b/i,
+      /\bs&p(?:\s*500)?\b/i,
+      /\bnvda\b/i,
+      /\btesla\b/i,
+      /\btsla\b/i,
+    ],
+    entityQuery:
+      '("stock market" OR stocks OR equities OR Nasdaq OR "S&P 500" OR NVDA OR TSLA) lang:en min_faves:5 -filter:replies',
+    viralQuery:
+      '(stocks OR equities OR Nasdaq OR "S&P 500" OR NVDA OR TSLA) (price OR earnings OR breakout OR rally OR selloff OR forecast) lang:en min_faves:100 -filter:replies',
+    fallbackQueries: [
+      '("stock market" OR stocks OR equities OR Nasdaq OR "S&P 500") lang:en min_faves:5 -filter:replies',
+      '(stocks OR equities OR Nasdaq OR NVDA OR TSLA) (earnings OR breakout OR forecast OR rally OR selloff) lang:en min_faves:25 -filter:replies',
+      '(Fed OR inflation OR earnings OR "market breadth") lang:en min_faves:25 -filter:replies',
+    ],
+    hints: [
+      'stock market',
+      'stocks',
+      'equities',
+      'nasdaq',
+      's&p 500',
+      'nvda',
+      'tsla',
+      'earnings',
+      'breakout',
+      'forecast',
+      'rally',
+      'selloff',
+    ],
+  },
 ];
 
 const unique = (items = []) => Array.from(new Set(items.filter(Boolean)));

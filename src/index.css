@@ -10611,8 +10611,8 @@ h6,
   }
 
   .nav-item {
-    width: 25% !important;
-    flex: 0 0 25% !important;
+    width: 16.66% !important;
+    flex: 0 0 16.66% !important;
     min-width: 0 !important;
     padding: 8px 4px 10px !important;
     margin: 0 !important;
@@ -10642,8 +10642,16 @@ h6,
     order: 3;
   }
 
-  .nav-item-pricing {
+  .nav-item-audience {
     order: 4;
+  }
+
+  .nav-item-bookmarks {
+    order: 5;
+  }
+
+  .nav-item-pricing {
+    order: 6;
   }
 
   .nav-icon-shell {

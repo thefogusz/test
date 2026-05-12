@@ -204,6 +204,8 @@ const ContentWorkspace = ({
                       onClick={() => setIsLatestMode(!isLatestMode)}
                       className={`zap-toggle-btn ${isLatestMode ? 'active' : ''}`}
                       title={'\u0e04\u0e2d\u0e19\u0e40\u0e17\u0e19\u0e15\u0e4c\u0e43\u0e2b\u0e21\u0e48'}
+                      aria-label={isLatestMode ? 'ปิดโหมดคอนเทนต์ใหม่' : 'เปิดโหมดคอนเทนต์ใหม่'}
+                      aria-pressed={isLatestMode}
                     >
                       <Zap size={18} fill={isLatestMode ? 'currentColor' : 'none'} />
                     </button>
@@ -214,6 +216,7 @@ const ContentWorkspace = ({
                           setSearchQuery('');
                         }}
                         className="hero-clear-btn"
+                        aria-label="ล้างคำค้นหา"
                       >
                         <X size={16} />
                       </button>
@@ -226,6 +229,7 @@ const ContentWorkspace = ({
                         setShowSuggestions(false);
                       }}
                       disabled={isSearching}
+                      aria-label={isSearching ? 'กำลังค้นหา' : 'ค้นหา'}
                     >
                       {isSearching ? <Loader2 size={18} className="animate-spin" /> : <span className="btn-text">{'\u0e04\u0e49\u0e19\u0e2b\u0e32'}</span>}
                     </button>
@@ -540,6 +544,7 @@ const ContentWorkspace = ({
                       className="icon-btn-large"
                       style={{ width: '32px', height: '32px' }}
                       title="คัดลอกสรุป"
+                      aria-label="คัดลอกสรุป"
                     >
                       <Copy size={14} />
                     </button>

@@ -43,6 +43,24 @@ test('home canvas honors reduced motion without starting interactive animation',
   assert.match(source, /removeInteractionListeners\(\)/);
 });
 
+test('feed card media preview has a visible fallback when remote image loading fails', () => {
+  const source = readSource('src/components/FeedCard.tsx');
+
+  assert.match(source, /previewImageFailed/);
+  assert.match(source, /handlePreviewImageError/);
+  assert.match(source, /<img[\s\S]*className="feed-card-media-image"[\s\S]*onError=\{handlePreviewImageError\}/);
+  assert.match(source, /feed-card-media-fallback/);
+});
+
+test('feed card does not construct article host labels inline during render', () => {
+  const source = readSource('src/components/FeedCard.tsx');
+
+  assert.match(source, /const getArticleHostLabel = \(url\) =>/);
+  assert.match(source, /catch\s*\{\s*return '';\s*\}/);
+  assert.match(source, /const articleHostLabel = getArticleHostLabel\(tweet\.url\);/);
+  assert.doesNotMatch(source, /new URL\(tweet\.url\)\.hostname/);
+});
+
 test('home feed first sync windows merged X and RSS candidates together', () => {
   const source = readSource('src/hooks/useHomeFeedWorkspace.ts');
 
@@ -117,4 +135,43 @@ test('reduced motion disables shared animation utilities and mobile overlays', (
   assert.match(source, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.animate-fade-in,[\s\S]*\.animate-spin[\s\S]*animation: none !important/);
   assert.match(source, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.right-sidebar\.mobile-visible,[\s\S]*\.mobile-backdrop[\s\S]*animation: none !important/);
   assert.match(source, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.status-toast[\s\S]*transition: none !important/);
+});
+
+test('icon-only controls keep accessible labels across UX-critical surfaces', () => {
+  const contentSource = readSource('src/components/ContentWorkspace.tsx');
+  const feedCardSource = readSource('src/components/FeedCard.tsx');
+  const homeSource = readSource('src/components/HomeView.tsx');
+  const listModalSource = readSource('src/components/ListModal.tsx');
+
+  assert.match(contentSource, /aria-label=\{isLatestMode \? '[^']+' : '[^']+'\}/);
+  assert.match(contentSource, /aria-pressed=\{isLatestMode\}/);
+  assert.match(contentSource, /aria-label="ล้างคำค้นหา"/);
+  assert.match(contentSource, /aria-label=\{isSearching \? '[^']+' : 'ค้นหา'\}/);
+  assert.match(contentSource, /aria-label="คัดลอกสรุป"/);
+
+  assert.match(feedCardSource, /aria-label=\{bookmarked \? '[^']+' : '[^']+'\}/);
+  assert.match(feedCardSource, /aria-label=\{isArticleCard \? '[^']+' : '[^']+'\}/);
+  assert.match(feedCardSource, /aria-label="ปิดตัวอย่างรูป"/);
+  assert.match(feedCardSource, /aria-label="รูปก่อนหน้า"/);
+  assert.match(feedCardSource, /aria-label="รูปถัดไป"/);
+
+  assert.match(homeSource, /aria-label="คัดลอกผลลัพธ์"/);
+  assert.match(listModalSource, /role="dialog"/);
+  assert.match(listModalSource, /aria-modal="true"/);
+});
+
+test('mobile bottom navigation keeps all primary workspaces reachable', () => {
+  const sidebarSource = readSource('src/components/Sidebar.tsx');
+  const cssSource = readSource('src/index.css');
+  const audienceNavItem = sidebarSource.match(/view:\s*'audience'[\s\S]*?(?=\n\s*\{\s*view:)/);
+  const bookmarksNavItem = sidebarSource.match(/view:\s*'bookmarks'[\s\S]*?(?=\n\s*\{\s*view:)/);
+
+  assert.ok(audienceNavItem, 'audience nav item should exist');
+  assert.ok(bookmarksNavItem, 'bookmarks nav item should exist');
+  assert.doesNotMatch(audienceNavItem[0], /hideOnMobile:\s*true/);
+  assert.doesNotMatch(bookmarksNavItem[0], /hideOnMobile:\s*true/);
+  assert.match(sidebarSource, /view:\s*'audience'[\s\S]*mobileLabel:\s*'ติดตาม'/);
+  assert.match(sidebarSource, /view:\s*'bookmarks'[\s\S]*mobileLabel:\s*'บันทึก'/);
+  assert.doesNotMatch(cssSource, /\.nav-item\s*\{[\s\S]*?width:\s*25% !important/);
+  assert.match(cssSource, /\.nav-item\s*\{[\s\S]*?width:\s*16\.66% !important/);
 });

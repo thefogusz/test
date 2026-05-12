@@ -1,5 +1,8 @@
-import { TOPIC_TRIGGERS } from '../config/topics';
 import { normalizeSearchText, safeParse } from './appUtils';
+import {
+  getContentFallbackQueries,
+  getContentQueryBlueprint,
+} from './contentDiscoveryTopics.js';
 import {
   getMarketFallbackQueries,
   getMarketQueryBlueprint,
@@ -187,106 +190,21 @@ export const extractInterestTopics = (items = []) => {
     .slice(0, 6);
 };
 
-const BROAD_QUERY_BLUEPRINTS = [
-  {
-    triggers: ['ai video', 'generative ai video', 'text to video', 'text-to-video', 'runway', 'sora', 'kling'],
-    entityQuery: '(sora OR runway OR "gen-3" OR kling OR hailuo OR luma OR "text-to-video" OR "ai video" OR "generative video") (generate OR prompt OR model OR release) lang:en',
-    viralQuery: '(sora OR runway OR kling OR luma OR "ai video") (insane OR crazy OR mindblowing OR "looks so real" OR generating) lang:en min_faves:1000',
-  },
-  {
-    triggers: TOPIC_TRIGGERS.ai,
-    entityQuery: '(openai OR anthropic OR claude OR gemini OR chatgpt OR "gpt-4" OR mistral OR "language model" OR llm OR "ai model" OR "generative ai")',
-    viralQuery: '(ai OR "artificial intelligence" OR openai OR chatgpt) (breakthrough OR update OR launch OR crazy OR future) lang:en min_faves:1000',
-  },
-  {
-    triggers: ['viral', 'funny', 'meme', 'clip', 'video', 'ไวรัล', 'ฮา', 'ตลก', 'ขำ', 'คลิป', 'มีม'],
-    entityQuery: '("viral video" OR "funny video" OR meme OR "internet culture" OR hilarious OR comedy OR "must watch") lang:en',
-    viralQuery: '("viral video" OR "funny clip" OR meme OR hilarious OR comedy OR "internet culture") lang:en min_faves:1000',
-  },
-  {
-    triggers: TOPIC_TRIGGERS.gaming,
-    entityQuery: '(Nintendo OR PlayStation OR Xbox OR Steam OR "Switch 2" OR GTA OR Pokemon OR Zelda OR Mario OR "Monster Hunter" OR "Game Awards")',
-    viralQuery: '(gaming OR videogames OR Nintendo OR PlayStation OR Xbox OR Steam OR "Switch 2" OR GTA) min_faves:500',
-  },
-  {
-    triggers: TOPIC_TRIGGERS.football,
-    entityQuery: '(Premier League OR Champions League OR FIFA OR UEFA OR Arsenal OR Liverpool OR Real Madrid OR Barcelona)',
-    viralQuery: '(football OR soccer OR Premier League OR Champions League OR FIFA OR UEFA) min_faves:500',
-  },
-  {
-    triggers: TOPIC_TRIGGERS.crypto,
-    entityQuery: '(Bitcoin OR BTC OR Ethereum OR ETH OR Solana OR Binance OR Coinbase OR ETF)',
-    viralQuery: '(crypto OR bitcoin OR btc OR ethereum OR eth OR solana) min_faves:500',
-  },
-];
-
-const BROAD_QUERY_FALLBACKS = [
-  {
-    triggers: ['ai video', 'generative ai video', 'text to video', 'text-to-video', 'runway', 'sora', 'kling'],
-    queries: [
-      '("ai video" OR "generative video" OR "text to video" OR "ai film") lang:en',
-      '(sora OR runway OR "gen-3" OR kling OR hailuo OR luma) (video OR ai) lang:en',
-      '("ai generation" OR "generating video") (prompt OR tool OR free) lang:en min_faves:500',
-    ],
-  },
-  {
-    triggers: TOPIC_TRIGGERS.ai,
-    queries: [
-      '(ai OR "artificial intelligence" OR "generative ai" OR genai OR llm) lang:en',
-      '(openai OR anthropic OR claude OR gemini OR chatgpt OR copilot) lang:en',
-      '("prompt engineering" OR "ai tool" OR "ai tools" OR "ai model") lang:en min_faves:500',
-    ],
-  },
-  {
-    triggers: ['viral', 'funny', 'meme', 'clip', 'video', 'ไวรัล', 'ฮา', 'ตลก', 'ขำ', 'คลิป', 'มีม'],
-    queries: [
-      '("viral video" OR "funny video" OR meme OR comedy OR hilarious) lang:en',
-      '("viral clip" OR "funniest video" OR "must watch" OR "internet culture") lang:en',
-      '(meme OR hilarious OR comedy OR funny OR viral) lang:en min_faves:500',
-    ],
-  },
-  {
-    triggers: TOPIC_TRIGGERS.gaming,
-    queries: [
-      '(game OR gaming OR videogame OR videogames OR เกม OR วงการเกม)',
-      '(Nintendo OR PlayStation OR Xbox OR Steam OR PS5 OR GTA OR Pokemon OR Zelda OR Mario OR "Monster Hunter" OR "Game Awards")',
-      '(esports OR gamedev OR "game dev" OR studio OR trailer OR launch)',
-    ],
-  },
-  {
-    triggers: TOPIC_TRIGGERS.football,
-    queries: [
-      '(football OR soccer OR ฟุตบอล)',
-      '(Premier League OR Champions League OR FIFA OR UEFA OR Arsenal OR Liverpool OR Real Madrid OR Barcelona)',
-    ],
-  },
-  {
-    triggers: TOPIC_TRIGGERS.crypto,
-    queries: [
-      '(crypto OR bitcoin OR btc OR ethereum OR eth OR คริปโต)',
-      '(Solana OR Binance OR Coinbase OR ETF OR blockchain OR web3)',
-    ],
-  },
-];
-
 export const getBroadQueryBlueprint = (query = '') => {
   const normalized = normalizeSearchText(query);
   if (!normalized) return null;
 
-  return BROAD_QUERY_BLUEPRINTS.find((blueprint) =>
-    blueprint.triggers.some((trigger) => normalized.includes(normalizeSearchText(trigger))),
-  ) || getMarketQueryBlueprint(query) || null;
+  return getMarketQueryBlueprint(query) || getContentQueryBlueprint(query) || null;
 };
 
 export const getBroadFallbackQueries = (query = '') => {
   const normalized = normalizeSearchText(query);
   if (!normalized) return [];
 
-  const match = BROAD_QUERY_FALLBACKS.find((group) =>
-    group.triggers.some((trigger) => normalized.includes(normalizeSearchText(trigger))),
-  );
+  const marketFallbacks = getMarketFallbackQueries(query);
+  if (marketFallbacks.length) return marketFallbacks;
 
-  return match ? match.queries : getMarketFallbackQueries(query);
+  return getContentFallbackQueries(query);
 };
 
 export const buildDynamicSearchTags = ({

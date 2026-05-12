@@ -20,25 +20,33 @@ const ListModal = ({ listModal, onChange, onClose, onConfirm }) => {
   if (!listModal.show) return null;
 
   const copy = LIST_MODAL_COPY[listModal.mode] || LIST_MODAL_COPY.create;
+  const titleId = `list-modal-title-${listModal.mode || 'create'}`;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(event) => event.stopPropagation()}>
-        <div className="modal-title">{copy.title}</div>
+      <div
+        className="modal-content"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div id={titleId} className="modal-title">{copy.title}</div>
         <div className="modal-subtitle">{copy.subtitle}</div>
         <input
           className="modal-input"
           autoFocus
+          aria-label={copy.title}
           placeholder={copy.placeholder}
           value={listModal.value}
           onChange={(event) => onChange(event.target.value)}
           onKeyDown={(event) => event.key === 'Enter' && onConfirm()}
         />
         <div className="modal-actions">
-          <button className="modal-btn modal-btn-secondary" onClick={onClose}>
+          <button type="button" className="modal-btn modal-btn-secondary" onClick={onClose}>
             ยกเลิก
           </button>
-          <button className="modal-btn modal-btn-primary" onClick={onConfirm}>
+          <button type="button" className="modal-btn modal-btn-primary" onClick={onConfirm}>
             ยืนยัน
           </button>
         </div>

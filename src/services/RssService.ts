@@ -50,6 +50,26 @@ const normalizeComparableUrl = (value: string) => {
   }
 };
 
+const decodeXmlEntities = (value: string) =>
+  String(value || '')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .trim();
+
+const normalizeRssImageUrl = (value?: string | null): string | null => {
+  const decoded = decodeXmlEntities(value || '');
+  if (!decoded) return null;
+
+  if (decoded.startsWith('//')) {
+    return `https:${decoded}`;
+  }
+
+  return decoded;
+};
+
 const buildRssFingerprint = (item: RssItem, source: RssSourceInfo) => {
   const normalizedGuid = normalizeWhitespace(item.guid || '');
   const normalizedLink = normalizeComparableUrl(item.link || '');
@@ -78,7 +98,7 @@ const extractImageFromContent = (content: string): string | null => {
     if (url.includes(',')) url = url.split(',')[0].split(' ')[0]; // Handle srcset
     // Skip common tracking pixels or tiny icons
     if (url.includes('pixel') || url.includes('tracker') || url.includes('feedburner') || url.includes('doubleclick')) continue;
-    return url;
+    return normalizeRssImageUrl(url);
   }
   return null;
 };
@@ -89,7 +109,7 @@ const extractImageFromEnclosure = (item: Element): string | null => {
     const type = enclosure.getAttribute('type') || '';
     const url = enclosure.getAttribute('url');
     if (url && (type.startsWith('image/') || /\.(jpg|jpeg|png|webp|gif)(?:\?.*)?$/i.test(url))) {
-      return url;
+      return normalizeRssImageUrl(url);
     }
   }
   return null;
@@ -101,22 +121,22 @@ const extractMediaThumbnail = (item: Element, rawXml = ''): string | null => {
   // 1. Try media:content (very common for TechCrunch, etc.)
   const mediaContentRegex = /<(?:media:content|content)[^>]+url=["']([^"']+)["']/i;
   const mediaContentMatch = itemXml.match(mediaContentRegex);
-  if (mediaContentMatch?.[1]) return mediaContentMatch[1];
+  if (mediaContentMatch?.[1]) return normalizeRssImageUrl(mediaContentMatch[1]);
 
   // 2. Try media:thumbnail
   const mediaThumbRegex = /<(?:media:thumbnail|thumbnail)[^>]+url=["']([^"']+)["']/i;
   const mediaThumbMatch = itemXml.match(mediaThumbRegex);
-  if (mediaThumbMatch?.[1]) return mediaThumbMatch[1];
+  if (mediaThumbMatch?.[1]) return normalizeRssImageUrl(mediaThumbMatch[1]);
 
   // 3. Try featured image tags
   const featuredRegex = /<(?:featured_image|image|img)[^>]*>([\s\S]*?)<\/(?:featured_image|image|img)>/i;
   const featuredMatch = itemXml.match(featuredRegex);
-  if (featuredMatch?.[1]?.startsWith('http')) return featuredMatch[1];
+  if (featuredMatch?.[1]?.startsWith('http')) return normalizeRssImageUrl(featuredMatch[1]);
 
   // 4. Try Atom-style links (rel="enclosure" or rel="image" or rel="prefetch")
   const atomLinkRegex = /<link[^>]+rel=["'](?:enclosure|image|prefetch|alternate)["'][^>]+href=["']([^"']+)["'][^>]*type=["']image\//i;
   const atomLinkMatch = itemXml.match(atomLinkRegex);
-  if (atomLinkMatch?.[1]) return atomLinkMatch[1];
+  if (atomLinkMatch?.[1]) return normalizeRssImageUrl(atomLinkMatch[1]);
 
   return null;
 };
@@ -240,7 +260,8 @@ const rssItemToPost = (item: RssItem, source: RssSourceInfo): Post => {
     .filter(Boolean)
     .join('\n\n')
     .trim();
-  const imageUrls = item.imageUrl ? [item.imageUrl] : [];
+  const normalizedImageUrl = normalizeRssImageUrl(item.imageUrl);
+  const imageUrls = normalizedImageUrl ? [normalizedImageUrl] : [];
 
   return {
     id: rssFingerprint,
@@ -253,7 +274,7 @@ const rssItemToPost = (item: RssItem, source: RssSourceInfo): Post => {
     title: item.title,
     url: item.link,
     created_at: createdAt,
-    primaryImageUrl: item.imageUrl || undefined,
+    primaryImageUrl: normalizedImageUrl || undefined,
     imageUrls,
     author: {
       id: `rss-${source.id}`,

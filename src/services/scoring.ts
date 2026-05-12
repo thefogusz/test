@@ -1,6 +1,9 @@
 // @ts-nocheck
 import { toNumber } from '../utils/appUtils';
-import { TOPIC_TRIGGERS } from '../config/topics';
+import {
+  getContentDiscoveryTopic,
+  getContentTopicHints,
+} from '../utils/contentDiscoveryTopics.js';
 import {
   getMarketTopicHints,
   isExplicitlyLocalSearchQuery,
@@ -32,33 +35,6 @@ export const SEARCH_STOPWORDS = new Set([
   'for',
   'with',
 ]);
-
-const BROAD_TOPIC_HINTS = [
-  {
-    triggers: TOPIC_TRIGGERS.ai,
-    hints: [
-      'artificial intelligence', 'machine learning', 'generative ai', 'genai', 'llm', 'gpt',
-      'openai', 'anthropic', 'claude', 'gemini', 'deepmind', 'mistral', 'prompt engineering',
-      'ai agent', 'reasoning model', 'multimodal', 'inference', 'fine-tuning', 'rag',
-    ],
-  },
-  {
-    triggers: TOPIC_TRIGGERS.gaming,
-    hints: [
-      'nintendo', 'switch', 'switch 2', 'playstation', 'ps5', 'xbox', 'steam', 'pc gaming',
-      'esports', 'game awards', 'gta', 'minecraft', 'fortnite', 'monster hunter', 'pokemon',
-      'zelda', 'mario', 'capcom', 'square enix', 'bandai namco', 'fromsoftware',
-    ],
-  },
-  {
-    triggers: TOPIC_TRIGGERS.football,
-    hints: ['premier league', 'champions league', 'fifa', 'uefa', 'goal', 'matchday', 'liverpool', 'man utd'],
-  },
-  {
-    triggers: TOPIC_TRIGGERS.crypto,
-    hints: ['solana', 'binance', 'altcoin', 'defi', 'web3', 'token', 'coinbase', 'blockchain'],
-  },
-];
 
 const LOW_SIGNAL_PATTERNS = [
   /\bairdrop\b/i,
@@ -128,16 +104,11 @@ export const isBroadDiscoveryIntent = (query = '') => {
     return true;
   }
 
-  return isMarketPriceSearchIntent(query) || BROAD_TOPIC_HINTS.some((group) =>
-    group.triggers.some((trigger) => normalized.includes(trigger)),
-  );
+  return isMarketPriceSearchIntent(query) || Boolean(getContentDiscoveryTopic(query));
 };
 
 export const getBroadTopicHints = (query = '') => {
-  const normalized = String(query || '').toLowerCase();
-  const hints = BROAD_TOPIC_HINTS
-    .filter((group) => group.triggers.some((trigger) => normalized.includes(trigger)))
-    .flatMap((group) => group.hints);
+  const hints = getContentTopicHints(query);
 
   return Array.from(new Set([...hints, ...getMarketTopicHints(query)]));
 };
@@ -175,12 +146,41 @@ export const normalizeSearchTerms = (query = '') => {
   );
 };
 
+const LEGACY_TOPIC_PROFILE_KEYS = new Set(['ai', 'gaming', 'viral_video']);
+
+const buildContentTopicProfile = ({
+  contentTopic,
+  preferGlobal,
+  queryTerms,
+  broadHints,
+}) => {
+  const exactTerms = Array.from(
+    new Set([
+      ...queryTerms,
+      ...(contentTopic.exactTerms || []),
+    ]),
+  );
+  const primaryHints = Array.from(new Set([...(contentTopic.hints || []), ...broadHints]));
+
+  return {
+    key: contentTopic.key,
+    broadIntent: true,
+    preferGlobal,
+    queryTerms,
+    exactTerms,
+    primaryHints,
+    secondaryHints: broadHints,
+    softNegativeHints: contentTopic.softNegativeHints || [],
+  };
+};
+
 export const buildQueryProfile = (rawQuery = '') => {
   const normalizedQuery = String(rawQuery || '').toLowerCase().trim();
   const broadIntent = isBroadDiscoveryIntent(rawQuery);
   const queryTerms = normalizeSearchTerms(rawQuery);
   const broadHints = getBroadTopicHints(rawQuery);
   const isMarketPriceQuery = isMarketPriceSearchIntent(rawQuery);
+  const contentTopic = getContentDiscoveryTopic(rawQuery);
   const preferGlobal = (broadIntent || isMarketPriceQuery) && !isExplicitlyLocalQuery(rawQuery);
 
   const isAiQuery =
@@ -189,6 +189,15 @@ export const buildQueryProfile = (rawQuery = '') => {
     /(?:\u0e40\u0e2d\u0e44\u0e2d|\u0e1b\u0e31\u0e0d\u0e0d\u0e32\u0e1b\u0e23\u0e30\u0e14\u0e34\u0e29\u0e10\u0e4c)/i.test(normalizedQuery);
   const isGamingQuery =
     /เกม|gaming|games|\bgame\b/i.test(normalizedQuery);
+
+  if (contentTopic && !LEGACY_TOPIC_PROFILE_KEYS.has(contentTopic.key)) {
+    return buildContentTopicProfile({
+      contentTopic,
+      preferGlobal,
+      queryTerms,
+      broadHints,
+    });
+  }
 
   if (isAiQuery) {
     return {
@@ -319,6 +328,15 @@ export const buildQueryProfile = (rawQuery = '') => {
     };
   }
 
+  if (contentTopic) {
+    return buildContentTopicProfile({
+      contentTopic,
+      preferGlobal,
+      queryTerms,
+      broadHints,
+    });
+  }
+
   return {
     key: 'generic',
     broadIntent,
@@ -401,6 +419,11 @@ export const getBroadTopicPenalty = (tweet, queryProfile) => {
   const softNegativeMatches = queryProfile.softNegativeHints.filter((hint) => text.includes(hint)).length;
   const promoMatches = (text.match(/giveaway|sweepstakes|win a|free steam|gaming pc|rtx|steam deck|follow \+|repost \+|like and follow/gi) || []).length;
   const esportsMatches = (text.match(/esports|valorant|league of legends|lolesports|faze|counter-strike|tournament|coach|scrim/gi) || []).length;
+  const aiToolPromoMatches = (text.match(/looking to connect|dropshipping|coupon|50\+ ai tools|100\+ ai tools|replace your tedious work|bookmark this|thread/gi) || []).length;
+
+  if (queryProfile.key === 'ai_tools' && aiToolPromoMatches > 0) {
+    return Math.min(4.5, 1.4 + aiToolPromoMatches * 0.85 + softNegativeMatches * 0.45);
+  }
 
   if (softNegativeMatches === 0) return 0;
   if (queryProfile.key === 'gaming' && queryProfile.preferGlobal) {
