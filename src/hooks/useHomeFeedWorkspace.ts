@@ -331,6 +331,51 @@ export const useHomeFeedWorkspace = ({
     });
   };
 
+  const mergeTranslatedReadArchivePosts = (translatedPosts: any[] = []) => {
+    if (!translatedPosts.length) return;
+
+    setReadArchive((prev) => {
+      const postMap = new Map(prev.map((post) => [post.id, sanitizeStoredPost(post)]));
+      let didChange = false;
+
+      translatedPosts.forEach((translatedPost) => {
+        const postId = getNormalizedPostId(translatedPost);
+        if (!postId) return;
+
+        const normalizedTranslatedPost = sanitizeStoredPost(translatedPost);
+        const existingPost = postMap.get(postId);
+
+        if (!existingPost) {
+          postMap.set(postId, normalizedTranslatedPost);
+          didChange = true;
+          return;
+        }
+
+        const mergedPost = sanitizeStoredPost({
+          ...existingPost,
+          ...normalizedTranslatedPost,
+          summary: normalizedTranslatedPost.summary || existingPost.summary,
+          primaryImageUrl: existingPost.primaryImageUrl || normalizedTranslatedPost.primaryImageUrl,
+          imageUrls:
+            Array.isArray(existingPost.imageUrls) && existingPost.imageUrls.length > 0
+              ? existingPost.imageUrls
+              : normalizedTranslatedPost.imageUrls,
+        });
+
+        if (JSON.stringify(existingPost) !== JSON.stringify(mergedPost)) {
+          postMap.set(postId, mergedPost);
+          didChange = true;
+        }
+      });
+
+      if (!didChange) return prev;
+
+      return Array.from(postMap.values()).sort(
+        (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
+      );
+    });
+  };
+
   const activeListMembers = useMemo(() => {
     if (!activeListId) {
       const listMembers = Array.isArray(postLists)
@@ -763,12 +808,7 @@ export const useHomeFeedWorkspace = ({
           return nextList;
         });
 
-        setReadArchive((prev) => {
-          const existingIds = new Set(prev.map((post) => post.id));
-          const newItems = summarizedChunk.filter((post) => !existingIds.has(post.id));
-          if (newItems.length > 0) return [...newItems, ...prev];
-          return prev;
-        });
+        mergeTranslatedReadArchivePosts(summarizedChunk);
       }
     } finally {
       isSummarizingRef.current = false;
@@ -893,6 +933,8 @@ export const useHomeFeedWorkspace = ({
               (left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime(),
             );
           });
+
+          mergeTranslatedReadArchivePosts(summarizedChunk);
         }
       }
     } finally {

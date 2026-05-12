@@ -175,3 +175,14 @@ test('mobile bottom navigation keeps all primary workspaces reachable', () => {
   assert.doesNotMatch(cssSource, /\.nav-item\s*\{[\s\S]*?width:\s*25% !important/);
   assert.match(cssSource, /\.nav-item\s*\{[\s\S]*?width:\s*16\.66% !important/);
 });
+
+test('read archive cards receive Thai summaries after background translation finishes', () => {
+  const source = readSource('src/hooks/useHomeFeedWorkspace.ts');
+
+  assert.match(source, /mergeTranslatedReadArchivePosts/);
+  assert.doesNotMatch(
+    source,
+    /const existingIds = new Set\(prev\.map\(\(post\) => post\.id\)\);[\s\S]*?const newItems = summarizedChunk\.filter\(\(post\) => !existingIds\.has\(post\.id\)\);[\s\S]*?if \(newItems\.length > 0\) return \[\.\.\.newItems, \.\.\.prev\];[\s\S]*?return prev;/,
+    'readArchive must update existing staged cards, not only insert missing translated posts',
+  );
+});
