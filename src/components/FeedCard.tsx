@@ -486,6 +486,7 @@ const FeedCard = ({
   const showRepostBanner = false;
   const showInlineReplyBanner = false;
   const feedCardClassName = `feed-card animate-fade-in${showProfileMenu ? ' feed-card-menu-open' : ''}`;
+  const bodyCopyClassName = `feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}${isArticleCard ? ' article-card-full' : ''}`;
   const footerClassName = `feed-card-footer${isReadableArticle ? ' feed-card-footer-priority' : ''}`;
   const handleReadArticle = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -854,7 +855,7 @@ const FeedCard = ({
 
           <div className="feed-card-media-copy" style={{ minWidth: 0, paddingTop: '2px' }}>
             <p
-              className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
+              className={bodyCopyClassName}
               style={{
                 ...FEED_CARD_BODY_COPY_STYLE,
               }}
@@ -969,12 +970,14 @@ const FeedCard = ({
             )}
             {(!isArticleCard || shouldShowRssSummary || !shouldShowRssTitle) && (
               <p
-                className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
+                className={bodyCopyClassName}
                 style={{
                   ...FEED_CARD_BODY_COPY_STYLE,
                   lineHeight: isArticleCard ? '1.58' : FEED_CARD_BODY_COPY_STYLE.lineHeight,
                   color: isArticleCard ? 'rgba(255, 255, 255, 0.78)' : FEED_CARD_BODY_COPY_STYLE.color,
-                  WebkitLineClamp: isArticleCard ? (rssCardPresentation?.summaryLineClamp || 3) : FEED_CARD_BODY_COPY_STYLE.WebkitLineClamp,
+                  display: isArticleCard ? 'block' : FEED_CARD_BODY_COPY_STYLE.display,
+                  overflow: isArticleCard ? 'visible' : FEED_CARD_BODY_COPY_STYLE.overflow,
+                  WebkitLineClamp: isArticleCard ? 'unset' : FEED_CARD_BODY_COPY_STYLE.WebkitLineClamp,
                 }}
               >
                 {isArticleCard ? (rssSummaryText || displayTitle) : displayText}
@@ -1003,12 +1006,14 @@ const FeedCard = ({
           )}
           {(!isArticleCard || shouldShowRssSummary || !shouldShowRssTitle) && (
             <p
-              className={`feed-card-body-copy ${hasMediaPreview ? 'has-media' : 'no-media'}`}
+              className={bodyCopyClassName}
               style={{
                 ...FEED_CARD_BODY_COPY_STYLE,
                 lineHeight: isArticleCard ? '1.58' : FEED_CARD_BODY_COPY_STYLE.lineHeight,
                 color: isArticleCard ? 'rgba(255, 255, 255, 0.78)' : FEED_CARD_BODY_COPY_STYLE.color,
-                WebkitLineClamp: isArticleCard ? (rssCardPresentation?.summaryLineClamp || 3) : FEED_CARD_BODY_COPY_STYLE.WebkitLineClamp,
+                display: isArticleCard ? 'block' : FEED_CARD_BODY_COPY_STYLE.display,
+                overflow: isArticleCard ? 'visible' : FEED_CARD_BODY_COPY_STYLE.overflow,
+                WebkitLineClamp: isArticleCard ? 'unset' : FEED_CARD_BODY_COPY_STYLE.WebkitLineClamp,
               }}
             >
               {isArticleCard ? (rssSummaryText || displayTitle) : displayText}

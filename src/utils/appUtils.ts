@@ -70,13 +70,6 @@ export const mergeUniquePostsById = (...collections) => {
 const THAI_CHAR_REGEX = /[\u0E00-\u0E7F]/;
 const UNICODE_LETTER_REGEX = /\p{L}/gu;
 const EDGE_QUOTES_REGEX = /^[\s"'`\u2018\u2019\u201C\u201D]+|[\s"'`\u2018\u2019\u201C\u201D]+$/g;
-const RSS_TITLE_ONLY_MAX_TITLE_WITH_MEDIA = 82;
-const RSS_TITLE_ONLY_MAX_TITLE_NO_MEDIA = 100;
-const RSS_TITLE_ONLY_MAX_SUMMARY_WITH_MEDIA = 72;
-const RSS_TITLE_ONLY_MAX_SUMMARY_NO_MEDIA = 88;
-const RSS_TITLE_ONLY_MAX_COMBINED_WITH_MEDIA = 150;
-const RSS_TITLE_ONLY_MAX_COMBINED_NO_MEDIA = 172;
-
 export const hasThaiCharacters = (value) => THAI_CHAR_REGEX.test((value || '').trim());
 
 export const hasSubstantialThaiContent = (
@@ -174,45 +167,6 @@ const splitSummarySegments = (value = '') =>
         .filter(Boolean),
     );
 
-const trimSummaryToBudget = (value = '', maxChars = 88) => {
-  const cleaned = cleanCardCopy(value);
-  if (!cleaned || cleaned.length <= maxChars) return cleaned;
-
-  const sentenceLikeSegments = splitSummarySegments(cleaned);
-  const selectedSegments: string[] = [];
-
-  for (const segment of sentenceLikeSegments) {
-    const nextValue = cleanCardCopy([...selectedSegments, segment].join(' '));
-    if (nextValue.length > maxChars) break;
-    selectedSegments.push(segment);
-  }
-
-  if (selectedSegments.length > 0) {
-    return cleanCardCopy(selectedSegments.join(' '));
-  }
-
-  const clauseMatches = cleaned
-    .split(/[,;:]\s+/)
-    .map((segment) => cleanCardCopy(segment))
-    .filter(Boolean);
-
-  const selectedClauses: string[] = [];
-  for (const clause of clauseMatches) {
-    const nextValue = cleanCardCopy([...selectedClauses, clause].join(', '));
-    if (nextValue.length > maxChars) break;
-    selectedClauses.push(clause);
-  }
-
-  if (selectedClauses.length > 0) {
-    return cleanCardCopy(selectedClauses.join(', '));
-  }
-
-  const hardTrimmed = cleaned.slice(0, maxChars + 1);
-  const lastWhitespace = hardTrimmed.lastIndexOf(' ');
-  const boundaryIndex = lastWhitespace >= Math.floor(maxChars * 0.65) ? lastWhitespace : maxChars;
-  return cleanCardCopy(hardTrimmed.slice(0, boundaryIndex));
-};
-
 const stripLeadingHeadlineCopy = (summary = '', title = '') => {
   const cleanedSummary = cleanCardCopy(summary);
   const rawCleanTitle = cleanCardCopy(title);
@@ -297,9 +251,8 @@ export const getPreferredPostSummary = (post) => {
 
 export const getRssCardPresentation = (
   post,
-  options: { hasMediaPreview?: boolean } = {},
+  _options: { hasMediaPreview?: boolean } = {},
 ) => {
-  const hasMediaPreview = Boolean(options?.hasMediaPreview);
   const rawTitle = cleanCardCopy(getPreferredPostTitle(post));
   const rawSummary = cleanCardCopy(getPreferredPostSummary(post));
   
@@ -314,25 +267,12 @@ export const getRssCardPresentation = (
     };
   }
 
-  const maxSummaryChars = hasMediaPreview
-    ? RSS_TITLE_ONLY_MAX_SUMMARY_WITH_MEDIA
-    : RSS_TITLE_ONLY_MAX_SUMMARY_NO_MEDIA;
-  const maxCombinedChars = hasMediaPreview
-    ? RSS_TITLE_ONLY_MAX_COMBINED_WITH_MEDIA
-    : RSS_TITLE_ONLY_MAX_COMBINED_NO_MEDIA;
-  const remainingSummaryBudget = Math.max(32, maxCombinedChars - rawTitle.length);
-  const normalizedSummaryBudget = Math.max(
-    32,
-    Math.min(maxSummaryChars, remainingSummaryBudget),
-  );
-  const condensedSummary = trimSummaryToBudget(rawSummary, normalizedSummaryBudget);
-
   return {
     title: rawTitle,
-    summary: condensedSummary,
+    summary: rawSummary,
     isTitleOnly: false,
     titleLineClamp: 2,
-    summaryLineClamp: 4,
+    summaryLineClamp: null,
   };
 };
 
