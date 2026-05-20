@@ -118,8 +118,8 @@ https://api.x.ai
 
 กำหนดใน `src/config/aiModels.ts`:
 
-- `grok-4-1-fast-non-reasoning`
-- `grok-4-1-fast-reasoning`
+- `grok-4.3` + `reasoning_effort: "none"` สำหรับ fast / non-reasoning workloads
+- `grok-4.3` + `reasoning_effort: "low"` สำหรับ reasoning / writer workloads
 
 ### ฟีเจอร์ที่ใช้
 
@@ -142,7 +142,7 @@ https://api.x.ai
 ใช้ใน: สรุปบทความ, แปลบทความ, เขียนบทความ, rewrite
 
 หมายเหตุการแปลบทความ:
-- ใช้ `grok-4-1-fast-non-reasoning`
+- ใช้ `grok-4.3` + `reasoning_effort: "none"`
 - แปล `title` และ `body` แยกกัน
 - body ยาวถูก chunk ก่อนแปล
 - ผลลัพธ์ผ่าน post-process cleanup

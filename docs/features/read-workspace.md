@@ -46,7 +46,7 @@ flowchart TD
 - ใช้ `FeedCard` เป็นการ์ดรายการหลัก ทำให้ bookmark ซ้ำ เปิดอ่านต่อ หรือส่งไปสร้างคอนเทนต์ได้
 - รองรับการโหลดเพิ่มทีละ batch ผ่าน `visibleReadCount`
 - สำหรับ RSS / web article ที่กดอ่านเต็ม ระบบจะเปิด `ArticleReaderModal` เพื่อโหลด reader view จากต้นทาง
-- ถ้าต้นฉบับไม่ได้เป็นภาษาไทย ระบบจะแปลเป็นไทยอัตโนมัติด้วย `grok-4-1-fast-non-reasoning`
+- ถ้าต้นฉบับไม่ได้เป็นภาษาไทย ระบบจะแปลเป็นไทยอัตโนมัติด้วย `grok-4.3` + `reasoning_effort: "none"`
 - การแปลบทความยาวจะแยก `title` ออกจาก `body` และ split body เป็น chunk ตามย่อหน้าเพื่อลดอาการแปลแข็งหรือสรุปเอง
 - มี post-process cleanup สำหรับคำแปลเพี้ยนที่เจอบ่อยในข่าวภาษาอังกฤษ
 
@@ -111,4 +111,5 @@ flowchart TD
 ## Change Log
 
 - 2026-04-09: สร้างเอกสาร baseline สำหรับ Read Workspace
-- 2026-04-11: อัปเดต article reader translation flow ให้ตรงกับ `grok-4-1-fast-non-reasoning`, chunking บทความยาว, และ cleanup หลังแปล
+- 2026-04-11: อัปเดต article reader translation flow ให้ตรงกับ fast/non-reasoning Grok profile, chunking บทความยาว, และ cleanup หลังแปล
+- 2026-05-21: เปลี่ยน fast/non-reasoning Grok profile เป็น `grok-4.3` + `reasoning_effort: "none"` ตาม xAI model migration ล่าสุด

@@ -244,7 +244,7 @@ function addTag(slide, text, x, y, color) {
   // Details cards
   const details = [
     { label: 'API', value: 'api.twitterapi.io\n/twitter/tweet/advanced_search', color: C.accentYellow },
-    { label: 'Model', value: 'grok-4-1-fast-non-reasoning\n(MODEL_NEWS_FAST)', color: C.accent },
+    { label: 'Model', value: 'grok-4.3 + none\n(MODEL_NEWS_FAST)', color: C.accent },
     { label: 'Technique', value: 'Thai char detection (U+0E00–U+0E7F)\nBatch 10 posts/LLM call', color: C.accentPurple },
     { label: 'Storage', value: 'localStorage:\nforo_home_feed_v1', color: C.accentOrange },
   ];
@@ -357,7 +357,7 @@ function addTag(slide, text, x, y, color) {
 
   // Model + technique footer
   s.addShape(pres.shapes.RECTANGLE, { x: 0.4, y: 5.07, w: 9.2, h: 0.35, fill: { color: C.bgCard }, line: { color: C.border, width: 1 } });
-  s.addText('Model: grok-4-1-fast-reasoning  ·  generateObject() + Zod schema  ·  Fact caching (ป้องกัน duplicate API calls)', {
+  s.addText('Model: grok-4.3 + reasoning_effort low  ·  generateObject() + Zod schema  ·  Fact caching (ป้องกัน duplicate API calls)', {
     x: 0.6, y: 5.1, w: 9.0, h: 0.28, fontSize: 10, color: C.accent, fontFace: 'Consolas', margin: 0
   });
 }
@@ -379,7 +379,7 @@ function addTag(slide, text, x, y, color) {
   });
 
   s.addText('Model', { x: 0.6, y: 2.6, w: 4, h: 0.3, fontSize: 11, bold: true, color: C.accentYellow, fontFace: 'Calibri', margin: 0 });
-  s.addText('grok-4-1-fast-reasoning\n(MODEL_REASONING_FAST)', { x: 0.6, y: 2.9, w: 4, h: 0.5, fontSize: 11, color: C.white, fontFace: 'Consolas', margin: 0 });
+  s.addText('grok-4.3 + low\n(MODEL_REASONING_FAST)', { x: 0.6, y: 2.9, w: 4, h: 0.5, fontSize: 11, color: C.white, fontFace: 'Consolas', margin: 0 });
 
   s.addText('Technique', { x: 0.6, y: 3.5, w: 4, h: 0.3, fontSize: 11, bold: true, color: C.accentYellow, fontFace: 'Calibri', margin: 0 });
   s.addText('generateObject() + Zod schema\n→ Typed JSON output (ไม่ใช่ free-form text)', { x: 0.6, y: 3.8, w: 4, h: 0.5, fontSize: 11, color: C.white, fontFace: 'Consolas', margin: 0 });
@@ -419,7 +419,7 @@ function addTag(slide, text, x, y, color) {
   // Left: model + technique
   addCard(s, 0.4, 1.1, 4.4, 2.3, C.accent);
   s.addText('Model & Technique', { x: 0.6, y: 1.22, w: 4.0, h: 0.35, fontSize: 14, bold: true, color: C.accent, fontFace: 'Calibri', margin: 0 });
-  s.addText('grok-4-1-fast-reasoning\n(MODEL_WRITER)', { x: 0.6, y: 1.62, w: 4.0, h: 0.5, fontSize: 12, color: C.white, fontFace: 'Consolas', margin: 0 });
+  s.addText('grok-4.3 + low\n(MODEL_WRITER)', { x: 0.6, y: 1.62, w: 4.0, h: 0.5, fontSize: 12, color: C.white, fontFace: 'Consolas', margin: 0 });
   s.addText('streamText()\n→ Real-time chunks ส่งตรงไปยัง UI\nผู้ใช้เห็น content ขณะ AI กำลังเขียน', { x: 0.6, y: 2.18, w: 4.0, h: 0.7, fontSize: 12, color: C.textMuted, fontFace: 'Calibri', margin: 0 });
 
   // Right: options
@@ -467,7 +467,7 @@ function addTag(slide, text, x, y, color) {
     { text: '\nevalResult:', options: { bold: true, color: C.accentPurple } },
     { text: ' auto-reject/revise\nหาก facts ไม่ตรงหรือมี hallucination\n\n', options: {} },
     { text: 'Temperature:', options: { bold: true, color: C.accentPurple } },
-    { text: ' 0.2 (conservative)\n\nModels: grok-4-1-fast-reasoning', options: {} },
+    { text: ' 0.2 (conservative)\n\nModels: grok-4.3 + reasoning_effort low', options: {} },
   ], { x: 0.6, y: 1.55, w: 4.0, h: 2.6, fontSize: 11.5, color: C.white, fontFace: 'Calibri', margin: 0 });
 
   // Stage 5
@@ -503,7 +503,7 @@ function addTag(slide, text, x, y, color) {
   addCard(s, 0.4, 1.1, 4.4, 2.25, C.accentOrange);
   s.addText('Function & Model', { x: 0.6, y: 1.22, w: 4.0, h: 0.35, fontSize: 14, bold: true, color: C.accentOrange, fontFace: 'Calibri', margin: 0 });
   s.addText('discoverTopExperts(\n  categoryQuery,\n  excludeUsernames\n)', { x: 0.6, y: 1.65, w: 4.0, h: 0.75, fontSize: 11, color: C.white, fontFace: 'Consolas', margin: 0 });
-  s.addText('Model: grok-4-1-fast-reasoning\nTechnique: generateObject() + Zod schema\n→ strict rules baked into system prompt', { x: 0.6, y: 2.45, w: 4.0, h: 0.65, fontSize: 11, color: C.textMuted, fontFace: 'Calibri', margin: 0 });
+  s.addText('Model: grok-4.3 + reasoning_effort low\nTechnique: generateObject() + Zod schema\n→ strict rules baked into system prompt', { x: 0.6, y: 2.45, w: 4.0, h: 0.65, fontSize: 11, color: C.textMuted, fontFace: 'Calibri', margin: 0 });
 
   // Rules
   addCard(s, 5.1, 1.1, 4.5, 2.25, C.accentOrange);
@@ -571,7 +571,7 @@ function addTag(slide, text, x, y, color) {
 
   // Model & API
   s.addShape(pres.shapes.RECTANGLE, { x: 0.35, y: 3.85, w: 9.3, h: 0.65, fill: { color: C.bgCard }, line: { color: C.accentYellow, width: 1 } });
-  s.addText('Model: grok-4-1-fast-non-reasoning (fast filter + summary)', { x: 0.55, y: 3.92, w: 9.0, h: 0.28, fontSize: 11, bold: true, color: C.accentYellow, fontFace: 'Calibri', margin: 0 });
+  s.addText('Model: grok-4.3 + reasoning_effort none (fast filter + summary)', { x: 0.55, y: 3.92, w: 9.0, h: 0.28, fontSize: 11, bold: true, color: C.accentYellow, fontFace: 'Calibri', margin: 0 });
   s.addText('API: api.twitterapi.io → /twitter/tweet/advanced_search  ·  queryType: Top | Latest', { x: 0.55, y: 4.2, w: 9.0, h: 0.25, fontSize: 10.5, color: C.textMuted, fontFace: 'Calibri', margin: 0 });
 
   // Filter options
@@ -600,17 +600,17 @@ function addTag(slide, text, x, y, color) {
     ],
     [
       { text: 'MODEL_NEWS_FAST', options: { bold: true, color: C.accentYellow, fontSize: 11.5 } },
-      { text: 'grok-4-1-fast-non-reasoning', options: { color: C.white, fontSize: 11.5 } },
+      { text: 'grok-4.3 + reasoning_effort none', options: { color: C.white, fontSize: 11.5 } },
       { text: 'Feed summary · Search filter · Executive summary', options: { color: C.textMuted, fontSize: 11 } },
     ],
     [
       { text: 'MODEL_REASONING_FAST', options: { bold: true, color: C.accent, fontSize: 11.5 } },
-      { text: 'grok-4-1-fast-reasoning', options: { color: C.white, fontSize: 11.5 } },
+      { text: 'grok-4.3 + reasoning_effort low', options: { color: C.white, fontSize: 11.5 } },
       { text: 'Content brief · Expert discovery (generateObject)', options: { color: C.textMuted, fontSize: 11 } },
     ],
     [
       { text: 'MODEL_WRITER', options: { bold: true, color: C.accentGreen, fontSize: 11.5 } },
-      { text: 'grok-4-1-fast-reasoning', options: { color: C.white, fontSize: 11.5 } },
+      { text: 'grok-4.3 + reasoning_effort low', options: { color: C.white, fontSize: 11.5 } },
       { text: 'Streaming content draft (streamText)', options: { color: C.textMuted, fontSize: 11 } },
     ],
     [

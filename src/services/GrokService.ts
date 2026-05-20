@@ -3,10 +3,14 @@ import { createXai } from '@ai-sdk/xai';
 import { generateObject, generateText, streamText } from 'ai';
 import { z } from 'zod';
 import {
-  MODEL_MULTI_AGENT,
+  GROK_REASONING_EFFORT_HEADER,
   MODEL_NEWS_FAST,
+  MODEL_NEWS_FAST_PROVIDER_OPTIONS,
   MODEL_REASONING_FAST,
+  MODEL_REASONING_FAST_PROVIDER_OPTIONS,
   MODEL_WRITER,
+  MODEL_WRITER_PROVIDER_OPTIONS,
+  getGrokRequestHeaders,
 } from '../config/aiModels';
 import { curateSearchResults, searchEverything, fetchTweetById } from './TwitterService';
 import { apiFetch, INTERNAL_TOKEN } from '../utils/apiFetch';
@@ -33,12 +37,42 @@ import {
 } from './contentQualityGuards.js';
 import { isExplicitlyLocalSearchQuery } from '../utils/searchQueryPlanning.js';
 
+const applyGrokReasoningEffortToRequest = async (input, init = {}) => {
+  const headers = new Headers(init.headers || {});
+  const reasoningEffort = headers.get(GROK_REASONING_EFFORT_HEADER);
+  headers.delete(GROK_REASONING_EFFORT_HEADER);
+
+  if (!reasoningEffort || typeof init.body !== 'string') {
+    return fetch(input, { ...init, headers });
+  }
+
+  try {
+    const payload = JSON.parse(init.body);
+    const url = typeof input === 'string' ? input : input?.url || '';
+
+    if (url.endsWith('/responses')) {
+      payload.reasoning = { ...(payload.reasoning || {}), effort: reasoningEffort };
+    } else {
+      payload.reasoning_effort = reasoningEffort;
+    }
+
+    return fetch(input, { ...init, headers, body: JSON.stringify(payload) });
+  } catch {
+    return fetch(input, { ...init, headers });
+  }
+};
+
+const NEWS_FAST_HEADERS = getGrokRequestHeaders(MODEL_NEWS_FAST_PROVIDER_OPTIONS);
+const REASONING_FAST_HEADERS = getGrokRequestHeaders(MODEL_REASONING_FAST_PROVIDER_OPTIONS);
+const WRITER_HEADERS = getGrokRequestHeaders(MODEL_WRITER_PROVIDER_OPTIONS);
+
 const grok = createXai({
   apiKey: 'local-proxy',
   baseURL: '/api/xai/v1',
   headers: {
     'x-internal-token': INTERNAL_TOKEN,
   },
+  fetch: applyGrokReasoningEffortToRequest,
 });
 
 const responseCache = new Map();
@@ -1204,6 +1238,7 @@ export const normalizeContentIntent = async ({ input = '', customInstructions = 
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
+      headers: NEWS_FAST_HEADERS,
       system: `You normalize user intent for a Thai content-generation workflow.
 Return JSON only.
 Rules:
@@ -1317,6 +1352,7 @@ const buildContentBrief = async ({ factSheet, length, tone, format, customInstru
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
+      headers: NEWS_FAST_HEADERS,
       system: 'Return a concise Thai content brief as JSON only. Stay grounded in the fact sheet.',
       prompt: buildContentBriefPrompt({ factSheet, length, tone, format, customInstructions, intentProfile }),
       schema: CONTENT_BRIEF_SCHEMA,
@@ -1346,6 +1382,7 @@ const callGrok = async ({
   system,
   prompt,
   modelName = MODEL_NEWS_FAST,
+  modelProviderOptions = MODEL_NEWS_FAST_PROVIDER_OPTIONS,
   providerOptions,
   temperature = 0.7,
   topP = 0.85,
@@ -1357,6 +1394,7 @@ const callGrok = async ({
   try {
     const { text } = await generateText({
       model: grok(modelName),
+      headers: getGrokRequestHeaders(modelProviderOptions),
       system,
       prompt,
       providerOptions,
@@ -1400,6 +1438,7 @@ const deriveResearchQuery = async (input, context = '') => {
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
+      headers: NEWS_FAST_HEADERS,
       system:
         'สกัดหนึ่งหัวข้อค้นหาที่กระชับจากคำขอและบริบทพยายามรักษาชื่อสำคัญ, ผลิตภัณฑ์, บริษัท และหัวข้อหลักไว้ หากบริบทมีเนื้อหาเยอะ ให้เลือกจุดที่สำคัญที่สุดเพื่อใช้ค้นหาข่าวที่เกี่ยวข้อง ห้ามใช้ URL เป็นคำค้นหา ส่งผลลัพธ์เป็น JSON เท่านั้น',
       prompt: combinedInput.slice(0, 1500),
@@ -1495,6 +1534,7 @@ export const generateArticleInsights = async ({
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
+      headers: NEWS_FAST_HEADERS,
       system: `You create ultra-compact AI insight cards for a news reader UI. You are a versatile professional analyst distilling news articles and social posts.
 
  Rules:
@@ -1597,6 +1637,7 @@ const extractTranslationGlossary = async ({
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
+      headers: NEWS_FAST_HEADERS,
       system: 'You analyze a news article and extract translation metadata for a Thai localization pipeline. Return JSON only.',
       prompt: `${sample}\n\nExtract:\n1. The article domain\n2. Appropriate Thai register\n3. Up to 10 key terms that need consistent Thai translation — focus on idioms, jargon, metaphors, or domain-specific phrases commonly mistranslated literally. For each provide the correct Thai equivalent, or an empty string to keep the English term as-is.`,
       schema: z.object({
@@ -1655,7 +1696,8 @@ export const translateArticleToThai = async ({
       glossaryPromise,
       generateObject({
         model: grok(MODEL_REASONING_FAST),
-      system: `You translate article headlines into natural, publication-quality Thai for an in-app news reader.
+        headers: REASONING_FAST_HEADERS,
+        system: `You translate article headlines into natural, publication-quality Thai for an in-app news reader.
 
 Rules:
 - Translate the title only. Do not summarize, expand, or add context.
@@ -1700,6 +1742,7 @@ Rules:
 
       const { text } = await generateText({
         model: grok(MODEL_NEWS_FAST),
+        headers: NEWS_FAST_HEADERS,
         system: TRANSLATION_BODY_SYSTEM,
         prompt: [
           PROPER_NAME_PRESERVATION_RULES,
@@ -1778,6 +1821,7 @@ export const generateGrokBatch = async (stories) => {
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
+      headers: NEWS_FAST_HEADERS,
       _legacySystem: `คุณคือบรรณาธิการข่าวผู้เชี่ยวชาญ หน้าที่คือสรุปข่าวภาษาไทยสั้นๆ 1-2 ประโยคต่อเรื่อง
 กฎเหล็ก:
 - ห้ามระบุชื่อ X หรือ Twitter
@@ -1864,6 +1908,7 @@ export const agentFilterFeed = async (tweetsData, userPrompt, options = {}) => {
     const safeWebCtx = webContext ? sanitizeForPrompt(webContext, 2000) : '';
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
+      headers: NEWS_FAST_HEADERS,
       system: `You are filtering a private watchlist feed for the user's intent: "${safePrompt}".
 ${safeWebCtx ? `Use this WEB CONTEXT as a source of truth to prioritize tweets that discuss confirmed events or high-quality topics:\n${safeWebCtx}\n` : ''}
 Rules:
@@ -2160,6 +2205,7 @@ export const generateForoFilterBrief = async (validTweets, userQuery, options = 
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
+      headers: NEWS_FAST_HEADERS,
       system: `You create a compact "FORO Filter" result brief for a feed UI.
 
 Rules:
@@ -2565,6 +2611,7 @@ ${PROPER_NAME_PRESERVATION_RULES}`;
     try {
       const { textStream } = await streamText({
         model: grok(MODEL_REASONING_FAST),
+        headers: REASONING_FAST_HEADERS,
         system: finalSummarySystem,
         prompt: contentToAnalyze,
         maxTokens: 600,
@@ -2605,6 +2652,7 @@ export const expandSearchQuery = async (originalQuery, isLatest = false) => {
   try {
     const { object } = await generateObject({
       model: grok(MODEL_REASONING_FAST),
+      headers: REASONING_FAST_HEADERS,
       system: `เปลี่ยนหัวข้อของผู้ใช้ให้เป็นคำค้นหาขั้นสูง (Advanced Search) บน X เพื่อหาข้อมูลระดับสากล
 กฎ:
 - รักษาเจตนาเดิมของหัวข้อที่ต้องการค้นหา
@@ -2655,6 +2703,7 @@ export const buildSearchPlan = async (originalQuery, isLatest = false, webContex
   try {
     const { object } = await generateObject({
       model: grok(isComplexQuery ? MODEL_REASONING_FAST : MODEL_NEWS_FAST),
+      headers: isComplexQuery ? REASONING_FAST_HEADERS : NEWS_FAST_HEADERS,
       system: `คุณคือสถาปนิกการค้นหาระดับพระกาฬ (Elite Search Architect)
 ภารกิจ: เฟ้นหาคอนเทนต์ที่เป็น "ที่สุด" (Masterpieces) โดยใช้เทคนิค "Keyword Explosion" ยัดคีย์เวิร์ดให้แน่นที่สุด
 ตอนนี้คุณกำลังทำ Adaptive RAG (News-Anchored Search)
@@ -2749,6 +2798,7 @@ export const discoverTopExperts = async (categoryQuery, excludeUsernames = []) =
 
     const { object } = await generateObject({
       model: grok(MODEL_REASONING_FAST),
+      headers: REASONING_FAST_HEADERS,
       system: `คุณคือ "นักล่าดาวรุ่งและปรมาจารย์ระดับโลก" (Global Headhunter AI)
 ภารกิจ: แนะนำบัญชี Twitter (X) สุดยอดผู้เชี่ยวชาญในหัวข้อ "${categoryQuery}" จำนวนสูงสุด 6 บัญชี
 ${activeContext ? activeContext : '\n[คำเตือน: ไม่มีข้อมูลอัปเดตแบบ Real-time ในหัวข้อนี้ กรุณาอิงเฉพาะบัญชีระดับโลกของแท้เท่านั้น]\n'}
@@ -3037,6 +3087,7 @@ const interpretExpertDiscoveryIntent = async (rawQuery = '') => {
   try {
     const { object } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
+      headers: NEWS_FAST_HEADERS,
       temperature: 0,
       system: `You translate messy Thai/English user requests into an expert-discovery plan for finding Twitter/X accounts.
 
@@ -3991,6 +4042,7 @@ export const discoverTopExpertsStrict = async (categoryQuery, excludeUsernames =
       ? { experts: [] }
       : (await withTimeoutFallback(generateObject({
       model: grok(MODEL_NEWS_FAST),
+      headers: NEWS_FAST_HEADERS,
       temperature: 0,
       system: `You are the world's best Twitter/X account recommender for the topic "${topicLabel}".
 
@@ -4239,6 +4291,7 @@ Hard rules:
       try {
         const { object: rerankObject } = await withTimeoutFallback(generateObject({
           model: grok(MODEL_NEWS_FAST),
+          headers: NEWS_FAST_HEADERS,
           temperature: 0,
           system: `You are selecting the final 6 Twitter/X experts for "${topicLabel}" from a pre-verified candidate list.
 
@@ -4632,6 +4685,7 @@ export const researchAndPreventHallucination = async (input, interactionData = '
     const todayDate = new Date().toISOString().split('T')[0];
     const { object: factSheetObj } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
+      headers: NEWS_FAST_HEADERS,
       system: `คุณคือหัวหน้าทีมนักวิจัย (Lead Investigator) ที่รับผิดชอบความถูกต้องของข้อมูล (Fact-Check) 100%
 เป้าหมาย: สร้าง Fact Sheet ฉบับสมบูรณ์ที่แม่นยำที่สุด โดยห้ามมี Hallucination เด็ดขาด ส่งออกเป็น JSON ตามโครงสร้างที่กำหนดเท่านั้น
 [TODAY'S DATE: ${todayDate}]
@@ -4730,6 +4784,7 @@ export const generateStructuredContent = async (
     try {
       const { textStream } = await streamText({
         model: grok(MODEL_WRITER),
+        headers: WRITER_HEADERS,
         system: draftSystemPrompt,
         prompt: draftUserPrompt,
         temperature: 0.7,
@@ -4753,6 +4808,7 @@ export const generateStructuredContent = async (
 
   const contentDraft = await callGrok({
     modelName: MODEL_WRITER,
+    modelProviderOptions: MODEL_WRITER_PROVIDER_OPTIONS,
     system: draftSystemPrompt,
     prompt: draftUserPrompt,
     temperature: 0.7,
@@ -4765,6 +4821,7 @@ export const generateStructuredContent = async (
   try {
     const { object: evalResult } = await generateObject({
       model: grok(MODEL_REASONING_FAST),
+      headers: REASONING_FAST_HEADERS,
       system: `ตรวจสอบว่าร่างเนื้อหานี้ยังคงรักษาความถูกต้องตามข้อมูลข้อเท็จจริง (Fact Sheet) หรือไม่
 ส่งค่า passed=true เฉพาะเมื่อร่างเนื้อหานี้อ้างอิงจากข้อเท็จจริงและมีโทนที่ถูกต้องเท่านั้น
 ถ้าไม่ผ่าน ให้ระบุเหตุผลสั้นๆ`,
@@ -4779,6 +4836,7 @@ export const generateStructuredContent = async (
       return cleanMarkdown(
         await callGrok({
           modelName: MODEL_WRITER,
+          modelProviderOptions: MODEL_WRITER_PROVIDER_OPTIONS,
           system: draftSystemPrompt,
           prompt: `[ข้อมูลข้อเท็จจริง]\n${factSheet}\n\n[ร่างเนื้อหาปัจจุบัน]\n${contentDraft}\n\n[ข้อเสนอแนะจากบรรณาธิการ]\n${evalResult.reason || 'กรุณาปรับปรุงความถูกต้องและโทนของเนื้อหา'
             }\n\nกรุณาเขียนเนื้อหาใหม่เพื่อให้สอดคล้องกับข้อเท็จจริงทั้งหมด`,
@@ -4885,6 +4943,7 @@ Hard rules:
     try {
       const { textStream } = await streamText({
         model: grok(MODEL_WRITER),
+        headers: WRITER_HEADERS,
         system: draftSystemPrompt,
         prompt: draftUserPrompt,
         temperature: writerTemperature,
@@ -4916,6 +4975,7 @@ Hard rules:
       console.error('[GrokService] Streaming error (v2), falling back to non-streaming:', error);
       const fallbackDraft = await callGrok({
         modelName: MODEL_WRITER,
+        modelProviderOptions: MODEL_WRITER_PROVIDER_OPTIONS,
         system: draftSystemPrompt,
         prompt: draftUserPrompt,
         temperature: writerTemperature,
@@ -4932,6 +4992,7 @@ Hard rules:
 
   const contentDraft = await callGrok({
     modelName: MODEL_WRITER,
+    modelProviderOptions: MODEL_WRITER_PROVIDER_OPTIONS,
     system: draftSystemPrompt,
     prompt: draftUserPrompt,
     temperature: writerTemperature,
@@ -4948,6 +5009,7 @@ Hard rules:
   try {
     const { object: evalResult } = await generateObject({
       model: grok(MODEL_NEWS_FAST),
+      headers: NEWS_FAST_HEADERS,
       system: `Evaluate whether the Thai draft is safe to ship.
 Set passed=true only if:
 - it stays faithful to the fact sheet
@@ -4972,6 +5034,7 @@ Do not fail a draft just because it chose a different but valid narrative stance
         'Revise the draft so it stays grounded in the fact sheet and reads like natural Thai written by a real person.';
       const revisedDraft = await callGrok({
         modelName: MODEL_WRITER,
+        modelProviderOptions: MODEL_WRITER_PROVIDER_OPTIONS,
         system: draftSystemPrompt,
         prompt: `[RAW USER REQUEST]\n${rawUserInput || 'None'}\n\n[RAW USER INSTRUCTIONS]\n${customInstructions || 'None'}\n\n[FACT SHEET]\n${activeFactSheet}\n\n[BRIEF]\n${JSON.stringify(brief, null, 2)}\n\n[CURRENT DRAFT]\n${contentDraft}\n\n[EDITOR FEEDBACK]\n${evalFeedback}\n\nRewrite only where needed.\n- Keep the facts intact.\n- Remove AI-sounding phrasing, forced hooks, and filler conclusions.\n- Remove repeated publisher/site attribution unless it is essential to understanding the story.\n- Replace weak data-dump openings with a sharper but still factual opening when the piece needs more momentum.\n- Make sure the voice still matches the selected format and tone instead of collapsing into generic news-summary prose.\n- Merge paragraphs if the draft feels over-segmented.\n- Keep the wording plain, natural, and specific.`,
         temperature: 0.62,

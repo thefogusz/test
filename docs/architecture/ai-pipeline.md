@@ -76,7 +76,7 @@ pipeline ด้านบนเป็น flow สำหรับ `content generat
 
 สำหรับ article translation ปัจจุบัน:
 
-- ใช้ `grok-4-1-fast-non-reasoning`
+- ใช้ `grok-4.3` + `reasoning_effort: "none"`
 - แปล headline แยกจาก body
 - split body เป็น chunk ตามย่อหน้าเมื่อบทความยาว
 - มี cleanup หลังแปลสำหรับคำแปลแข็งหรือเพี้ยนที่เจอบ่อย

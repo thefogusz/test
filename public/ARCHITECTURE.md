@@ -390,10 +390,10 @@ const diversifyByAuthor = (tweets, protectedWindow = 12) => {
 
 ```typescript
 // GrokService.ts:8-11
-const MODEL_NEWS_FAST      = 'grok-4-1-fast-non-reasoning';  // summarization, fast
-const MODEL_REASONING_FAST = 'grok-4-1-fast-reasoning';     // analysis, planning
-const MODEL_WRITER         = 'grok-4-1-fast-reasoning';     // content writing
-const MODEL_MULTI_AGENT    = 'grok-4-1-fast-reasoning';     // agent tasks
+const MODEL_NEWS_FAST      = 'grok-4.3';  // summarization, fast, reasoning_effort: none
+const MODEL_REASONING_FAST = 'grok-4.3';  // analysis, planning, reasoning_effort: low
+const MODEL_WRITER         = 'grok-4.3';  // content writing, reasoning_effort: low
+const MODEL_MULTI_AGENT    = 'grok-4.3';  // agent tasks, reasoning_effort: low
 ```
 
 ### xAI Client Setup
@@ -481,7 +481,8 @@ const sanitizeForPrompt = (text = '', maxLen = 500) =>
 
 ```
 POST /api/xai/v1/chat/completions
-model: grok-4-1-fast-non-reasoning
+model: grok-4.3
+reasoning_effort: none
 system: SUMMARY_RULES (Thai summarization rules)
 user: tweet text
 → cache TTL: 12 hours

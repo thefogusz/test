@@ -8,6 +8,26 @@ const projectRoot = path.resolve(__dirname, '..', '..');
 const readSource = (relativePath) =>
   fs.readFileSync(path.join(projectRoot, relativePath), 'utf8');
 
+test('xAI model config uses Grok 4.3 with explicit reasoning modes', () => {
+  const source = readSource('src/config/aiModels.ts');
+
+  assert.match(source, /GROK_43_MODEL\s*=\s*'grok-4\.3'/);
+  assert.match(source, /MODEL_NEWS_FAST\s*=\s*GROK_43_MODEL/);
+  assert.match(source, /MODEL_REASONING_FAST\s*=\s*GROK_43_MODEL/);
+  assert.match(source, /MODEL_WRITER\s*=\s*GROK_43_MODEL/);
+  assert.match(source, /MODEL_MULTI_AGENT\s*=\s*GROK_43_MODEL/);
+  assert.match(source, /MODEL_NEWS_FAST_PROVIDER_OPTIONS[\s\S]*reasoningEffort:\s*'none'/);
+  assert.match(source, /MODEL_REASONING_FAST_PROVIDER_OPTIONS[\s\S]*reasoningEffort:\s*'low'/);
+  assert.doesNotMatch(source, /grok-4-1-fast-(?:non-)?reasoning/);
+
+  const serviceSource = readSource('src/services/GrokService.ts');
+  assert.match(serviceSource, /GROK_REASONING_EFFORT_HEADER/);
+  assert.match(serviceSource, /payload\.reasoning_effort\s*=\s*reasoningEffort/);
+  assert.match(serviceSource, /payload\.reasoning\s*=\s*\{\s*\.\.\.\(payload\.reasoning \|\| \{\}\),\s*effort:\s*reasoningEffort\s*\}/);
+  assert.match(serviceSource, /headers:\s*NEWS_FAST_HEADERS/);
+  assert.match(serviceSource, /headers:\s*REASONING_FAST_HEADERS/);
+});
+
 test('deserializePostLists sanitizes persisted lists during hydrate', () => {
   const source = readSource('src/utils/appPersistence.ts');
 
