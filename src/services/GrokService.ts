@@ -9,6 +9,8 @@ import {
   MODEL_REASONING_FAST,
   MODEL_REASONING_FAST_PROVIDER_OPTIONS,
   MODEL_WRITER,
+  MODEL_WRITER_FAST,
+  MODEL_WRITER_FAST_PROVIDER_OPTIONS,
   MODEL_WRITER_PROVIDER_OPTIONS,
   getGrokRequestHeaders,
 } from '../config/aiModels';
@@ -64,6 +66,7 @@ const applyGrokReasoningEffortToRequest = async (input, init = {}) => {
 
 const NEWS_FAST_HEADERS = getGrokRequestHeaders(MODEL_NEWS_FAST_PROVIDER_OPTIONS);
 const REASONING_FAST_HEADERS = getGrokRequestHeaders(MODEL_REASONING_FAST_PROVIDER_OPTIONS);
+const WRITER_FAST_HEADERS = getGrokRequestHeaders(MODEL_WRITER_FAST_PROVIDER_OPTIONS);
 const WRITER_HEADERS = getGrokRequestHeaders(MODEL_WRITER_PROVIDER_OPTIONS);
 
 const grok = createXai({
@@ -1222,6 +1225,26 @@ const shouldSkipReviewPass = ({ format = '', tone = '', intentProfile = null, cu
   return isShortFormat && isNonViralTone && hasLowRiskInstructions && noInteractiveRisk && !hasOpenQuestions && !hasReportedClaims;
 };
 
+const FAST_WRITER_DRAFT_FORMAT_SET = new Set(['สคริปต์วิดีโอสั้น']);
+const FAST_WRITER_DRAFT_BLOCKED_TONES = new Set([
+  'ทางการ/วิชาการ',
+  'ดุดัน/วิจารณ์เชิงลึก',
+  'ฮาร์ดเซลล์/ขายของ',
+]);
+
+const shouldUseFastWriterDraft = ({ format = '', length = '', tone = '', intentProfile = null, customInstructions = '' } = {}) => {
+  const normalizedInstructions = normalizeCacheText(customInstructions);
+  const noInteractiveRisk = intentProfile?.forbidInteractiveDetours !== false;
+
+  return (
+    FAST_WRITER_DRAFT_FORMAT_SET.has(format) &&
+    length !== 'long' &&
+    !FAST_WRITER_DRAFT_BLOCKED_TONES.has(tone) &&
+    normalizedInstructions.length <= 120 &&
+    noInteractiveRisk
+  );
+};
+
 export const normalizeContentIntent = async ({ input = '', customInstructions = '', sourceContext = '' } = {}) => {
   const cacheKey = buildCacheKey('content-intent', {
     input: normalizeCacheText(input),
@@ -1386,8 +1409,6 @@ const callGrok = async ({
   providerOptions,
   temperature = 0.7,
   topP = 0.85,
-  frequencyPenalty = 0.35,
-  presencePenalty = 0.1,
   maxTokens,
   allowEmoji = false,
 }) => {
@@ -1400,8 +1421,6 @@ const callGrok = async ({
       providerOptions,
       temperature,
       topP,
-      frequencyPenalty,
-      presencePenalty,
       maxTokens,
     });
 
@@ -1409,7 +1428,7 @@ const callGrok = async ({
   } catch (error) {
     console.error(`[GrokService] Error calling ${modelName}:`, error);
     if (error.status === 400) {
-      console.warn('[GrokService] Bad Request. Check parameters/reasoningEffort for model:', modelName);
+      console.warn('[GrokService] Bad Request. Check parameters/model:', modelName);
     }
     throw error;
   }
@@ -1702,6 +1721,7 @@ export const translateArticleToThai = async ({
 Rules:
 - Translate the title only. Do not summarize, expand, or add context.
 - Keep names, organizations, product names, dates, numbers, and quoted terms exactly as they appear.
+- Translate descriptive role/category phrases into natural Thai; preserve Latin script only for proper names, product names, tickers, and technical terms that read better untranslated.
 - Write Thai that sounds like a real Thai newspaper headline — concise, punchy, and natural.
 - If a term has no clean Thai equivalent, keep the original term in parentheses after the Thai phrase.
 - Output only the Thai title in the JSON field.
@@ -2833,7 +2853,7 @@ ${activeContext ? activeContext : '\n[คำเตือน: ไม่มีข�
   } catch (error) {
     console.error('[GrokService] Expert discovery LLM error:', error);
     if (error.status === 400) {
-      console.warn('[GrokService] 400 Bad Request in discovery. Check parameters/reasoningEffort for model.');
+      console.warn('[GrokService] 400 Bad Request in discovery. Check parameters/model.');
     }
     return [];
   }
@@ -4353,7 +4373,7 @@ Rules:
   } catch (error) {
     console.error('[GrokService] Strict expert discovery LLM error:', error);
     if (error.status === 400) {
-      console.warn('[GrokService] 400 Bad Request in strict discovery. Check parameters/reasoningEffort for model.');
+      console.warn('[GrokService] 400 Bad Request in strict discovery. Check parameters/model.');
     }
     return [];
   }
@@ -4789,8 +4809,6 @@ export const generateStructuredContent = async (
         prompt: draftUserPrompt,
         temperature: 0.7,
         topP: 0.85,
-        frequencyPenalty: 0.35,
-        presencePenalty: 0.1,
       });
 
       let fullContent = '';
@@ -4813,8 +4831,6 @@ export const generateStructuredContent = async (
     prompt: draftUserPrompt,
     temperature: 0.7,
     topP: 0.85,
-    frequencyPenalty: 0.35,
-    presencePenalty: 0.1,
     allowEmoji,
   });
 
@@ -4878,15 +4894,17 @@ export const generateStructuredContentV2 = async (
     'ฮาร์ดเซลล์/ขายของ': -0.03,
   };
   const writerTemperature = Math.min(0.95, Math.max(0.56, (FORMAT_BASE_TEMP[format] ?? 0.76) + (TONE_TEMP_DELTA[tone] ?? 0)));
-  const isViralTone = tone === 'กระตือรือร้น/ไวรัล';
-  // Lower frequency penalty: Thai writing naturally repeats key terms for clarity;
-  // over-penalising causes unnatural vocabulary substitutions that break flow
-  const writerFrequencyPenalty = isViralTone ? 0.12 : 0.18;
   const lengthInstruction = getLengthInstruction(length);
   const profile = buildFormatProfile(format);
   const brief = await buildContentBrief({ factSheet, length, tone, format, customInstructions, intentProfile });
   const activeFactSheet = compressFactSheetForFormat(factSheet, format);
   const skipReviewPass = shouldSkipReviewPass({ format, tone, intentProfile, customInstructions, factSheet: activeFactSheet });
+  const useFastWriterDraft = shouldUseFastWriterDraft({ format, length, tone, intentProfile, customInstructions });
+  const draftModel = useFastWriterDraft ? MODEL_WRITER_FAST : MODEL_WRITER;
+  const draftHeaders = useFastWriterDraft ? WRITER_FAST_HEADERS : WRITER_HEADERS;
+  const draftProviderOptions = useFastWriterDraft
+    ? MODEL_WRITER_FAST_PROVIDER_OPTIONS
+    : MODEL_WRITER_PROVIDER_OPTIONS;
   const adaptiveStyleDirectives = buildAdaptiveWritingDirectives({
     format,
     tone,
@@ -4942,14 +4960,12 @@ Hard rules:
   if (onStreamChunk) {
     try {
       const { textStream } = await streamText({
-        model: grok(MODEL_WRITER),
-        headers: WRITER_HEADERS,
+        model: grok(draftModel),
+        headers: draftHeaders,
         system: draftSystemPrompt,
         prompt: draftUserPrompt,
         temperature: writerTemperature,
         topP: 0.85,
-        frequencyPenalty: writerFrequencyPenalty,
-        presencePenalty: 0.1,
         abortSignal: options.signal,
       });
 
@@ -4974,14 +4990,12 @@ Hard rules:
       if (error.name === 'AbortError') throw error;
       console.error('[GrokService] Streaming error (v2), falling back to non-streaming:', error);
       const fallbackDraft = await callGrok({
-        modelName: MODEL_WRITER,
-        modelProviderOptions: MODEL_WRITER_PROVIDER_OPTIONS,
+        modelName: draftModel,
+        modelProviderOptions: draftProviderOptions,
         system: draftSystemPrompt,
         prompt: draftUserPrompt,
         temperature: writerTemperature,
         topP: 0.85,
-        frequencyPenalty: writerFrequencyPenalty,
-        presencePenalty: 0.1,
         allowEmoji,
       });
       const fallbackResult = polishThaiContent(fallbackDraft, { format, customInstructions, allowEmoji, tone });
@@ -4991,14 +5005,12 @@ Hard rules:
   }
 
   const contentDraft = await callGrok({
-    modelName: MODEL_WRITER,
-    modelProviderOptions: MODEL_WRITER_PROVIDER_OPTIONS,
+    modelName: draftModel,
+    modelProviderOptions: draftProviderOptions,
     system: draftSystemPrompt,
     prompt: draftUserPrompt,
     temperature: writerTemperature,
     topP: 0.85,
-    frequencyPenalty: writerFrequencyPenalty,
-    presencePenalty: 0.1,
     allowEmoji,
   });
 

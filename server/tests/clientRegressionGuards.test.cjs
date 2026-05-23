@@ -4,28 +4,79 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 const projectRoot = path.resolve(__dirname, '..', '..');
+const allowedGrokModelSlugs = new Set([
+  'grok-4.3',
+  'grok-4.20-multi-agent-0309',
+]);
+const grokModelSlugPattern = /\bgrok-(?:\d[a-z0-9._-]*|build-[a-z0-9._-]+|code-[a-z0-9._-]+|imagine-[a-z0-9._-]+)(?!\\)/gi;
+const textFilePattern = /\.(?:cjs|mjs|js|jsx|ts|tsx|json|md|html|txt|css)$/i;
+const ignoredDirectories = new Set(['.git', 'dist', 'build', 'node_modules', 'coverage']);
 
 const readSource = (relativePath) =>
   fs.readFileSync(path.join(projectRoot, relativePath), 'utf8');
 
-test('xAI model config uses Grok 4.3 with explicit reasoning modes', () => {
+const collectTextFiles = (directory) => {
+  const absoluteDirectory = path.join(projectRoot, directory);
+  const files = [];
+
+  for (const entry of fs.readdirSync(absoluteDirectory, { withFileTypes: true })) {
+    if (ignoredDirectories.has(entry.name)) continue;
+
+    const absolutePath = path.join(absoluteDirectory, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...collectTextFiles(path.relative(projectRoot, absolutePath)));
+    } else if (entry.isFile() && textFilePattern.test(entry.name)) {
+      files.push(absolutePath);
+    }
+  }
+
+  return files;
+};
+
+test('xAI model config uses supported Grok profiles and avoids retired model parameters', () => {
   const source = readSource('src/config/aiModels.ts');
 
   assert.match(source, /GROK_43_MODEL\s*=\s*'grok-4\.3'/);
+  assert.match(source, /GROK_420_MULTI_AGENT_MODEL\s*=\s*'grok-4\.20-multi-agent-0309'/);
   assert.match(source, /MODEL_NEWS_FAST\s*=\s*GROK_43_MODEL/);
   assert.match(source, /MODEL_REASONING_FAST\s*=\s*GROK_43_MODEL/);
+  assert.match(source, /MODEL_WRITER_FAST\s*=\s*GROK_43_MODEL/);
   assert.match(source, /MODEL_WRITER\s*=\s*GROK_43_MODEL/);
-  assert.match(source, /MODEL_MULTI_AGENT\s*=\s*GROK_43_MODEL/);
+  assert.match(source, /MODEL_MULTI_AGENT\s*=\s*GROK_420_MULTI_AGENT_MODEL/);
   assert.match(source, /MODEL_NEWS_FAST_PROVIDER_OPTIONS[\s\S]*reasoningEffort:\s*'none'/);
   assert.match(source, /MODEL_REASONING_FAST_PROVIDER_OPTIONS[\s\S]*reasoningEffort:\s*'low'/);
-  assert.doesNotMatch(source, /grok-4-1-fast-(?:non-)?reasoning/);
+  assert.match(source, /MODEL_WRITER_FAST_PROVIDER_OPTIONS\s*=\s*MODEL_NEWS_FAST_PROVIDER_OPTIONS/);
 
   const serviceSource = readSource('src/services/GrokService.ts');
   assert.match(serviceSource, /GROK_REASONING_EFFORT_HEADER/);
   assert.match(serviceSource, /payload\.reasoning_effort\s*=\s*reasoningEffort/);
   assert.match(serviceSource, /payload\.reasoning\s*=\s*\{\s*\.\.\.\(payload\.reasoning \|\| \{\}\),\s*effort:\s*reasoningEffort\s*\}/);
+  assert.doesNotMatch(serviceSource, /presencePenalty|frequencyPenalty/);
   assert.match(serviceSource, /headers:\s*NEWS_FAST_HEADERS/);
   assert.match(serviceSource, /headers:\s*REASONING_FAST_HEADERS/);
+  assert.match(serviceSource, /FAST_WRITER_DRAFT_FORMAT_SET\s*=\s*new Set\(\['สคริปต์วิดีโอสั้น'\]\)/);
+  assert.match(serviceSource, /draftModel\s*=\s*useFastWriterDraft\s*\?\s*MODEL_WRITER_FAST\s*:\s*MODEL_WRITER/);
+});
+
+test('project only references current supported Grok model slugs', () => {
+  const filesToScan = [
+    ...collectTextFiles('src'),
+    ...collectTextFiles('server'),
+    ...collectTextFiles('public'),
+  ];
+  const unsupportedReferences = [];
+
+  for (const file of filesToScan) {
+    const source = fs.readFileSync(file, 'utf8');
+    for (const match of source.matchAll(grokModelSlugPattern)) {
+      const slug = match[0];
+      if (!allowedGrokModelSlugs.has(slug)) {
+        unsupportedReferences.push(`${path.relative(projectRoot, file)} -> ${slug}`);
+      }
+    }
+  }
+
+  assert.deepEqual(unsupportedReferences, []);
 });
 
 test('deserializePostLists sanitizes persisted lists during hydrate', () => {

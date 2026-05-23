@@ -393,7 +393,7 @@ const diversifyByAuthor = (tweets, protectedWindow = 12) => {
 const MODEL_NEWS_FAST      = 'grok-4.3';  // summarization, fast, reasoning_effort: none
 const MODEL_REASONING_FAST = 'grok-4.3';  // analysis, planning, reasoning_effort: low
 const MODEL_WRITER         = 'grok-4.3';  // content writing, reasoning_effort: low
-const MODEL_MULTI_AGENT    = 'grok-4.3';  // agent tasks, reasoning_effort: low
+const MODEL_MULTI_AGENT    = 'grok-4.20-multi-agent-0309';  // deep research / multi-agent tasks
 ```
 
 ### xAI Client Setup
