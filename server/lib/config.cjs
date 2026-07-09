@@ -35,9 +35,11 @@ const resolveStateStorageMode = (value) =>
 
 const loadServerConfig = (rootDir) => {
   loadEnvFile(rootDir);
+  const nodeEnv = process.env.NODE_ENV || 'development';
 
   return {
     rootDir,
+    nodeEnv,
     port: parsePositiveInteger(process.env.PORT, 8000),
     upstreamTimeoutMs: parsePositiveInteger(process.env.UPSTREAM_TIMEOUT_MS, 120000),
     apiLogThresholdMs: parsePositiveInteger(process.env.API_LOG_THRESHOLD_MS, 250),
@@ -46,7 +48,9 @@ const loadServerConfig = (rootDir) => {
     tavilyApiKey: process.env.TAVILY_API_KEY || '',
     internalApiSecret: process.env.INTERNAL_API_SECRET || '',
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || '',
-    stripePlusPriceId: process.env.STRIPE_PLUS_PRICE_ID || DEFAULT_STRIPE_PLUS_PRICE_ID,
+    stripePlusPriceId:
+      process.env.STRIPE_PLUS_PRICE_ID ||
+      (nodeEnv === 'production' ? '' : DEFAULT_STRIPE_PLUS_PRICE_ID),
     stripeCheckoutBaseUrl: process.env.STRIPE_CHECKOUT_BASE_URL || '',
     stateStorageMode: resolveStateStorageMode(process.env.APP_STATE_STORAGE),
     stateStorageFile: process.env.APP_STATE_FILE

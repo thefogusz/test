@@ -15,6 +15,7 @@ import { STORAGE_KEYS } from '../constants/storageKeys';
 import { usePersistentState } from '../hooks/usePersistentState';
 import { renderMarkdownToHtml } from '../utils/markdown';
 import { getPostSummarySourceText, getPreferredPostTitle } from '../utils/appUtils';
+import { normalizeSafeExternalUrl } from '../utils/urlSafety';
 import ContentTabSwitcher from './ContentTabSwitcher';
 
 const THINKING_PHASES = {
@@ -159,8 +160,11 @@ const extractUrlsFromValue = (value, depth = 0, seen = new Set()) => {
 };
 
 const isExternalArticleUrl = (url = '') => {
+  const safeUrl = normalizeSafeExternalUrl(url);
+  if (!safeUrl) return false;
+
   try {
-    const parsed = new URL(url);
+    const parsed = new URL(safeUrl);
     const hostname = parsed.hostname.replace(/^www\./, '').toLowerCase();
     const pathname = parsed.pathname.toLowerCase();
 
@@ -183,8 +187,11 @@ const isExternalArticleUrl = (url = '') => {
 };
 
 const isXPostUrl = (url = '') => {
+  const safeUrl = normalizeSafeExternalUrl(url);
+  if (!safeUrl) return false;
+
   try {
-    const parsed = new URL(url);
+    const parsed = new URL(safeUrl);
     const hostname = parsed.hostname.replace(/^www\./, '').toLowerCase();
     return ['x.com', 'twitter.com'].includes(hostname) && /\/status(?:es)?\/\d+/i.test(parsed.pathname);
   } catch {
@@ -196,12 +203,21 @@ const isCitationSourceUrl = (url = '') => isExternalArticleUrl(url) || isXPostUr
 
 const extractPrimarySourceUrlsFromNode = (sourceNode) =>
   Array.from(
-    new Set(extractUrlsFromValue(sourceNode).filter((url) => isExternalArticleUrl(url))),
+    new Set(
+      extractUrlsFromValue(sourceNode)
+        .map((url) => normalizeSafeExternalUrl(url))
+        .filter((url) => url && isExternalArticleUrl(url)),
+    ),
   ).slice(0, 3);
 
 const sanitizeBookmarkSources = (sources = []) =>
   sources
     .filter((source) => source && source.url && isCitationSourceUrl(source.url))
+    .map((source) => ({
+      ...source,
+      url: normalizeSafeExternalUrl(source.url),
+    }))
+    .filter((source) => source.url)
     .filter((source, idx, self) => idx === self.findIndex((item) => item.url === source.url))
     .map((source) => ({
       title: source.title || source.url,

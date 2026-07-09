@@ -9,6 +9,7 @@ const { createAppStateStore } = require('../lib/appStateStore.cjs');
 
 const INTERNAL_TOKEN = 'test-internal-token';
 const ROOT_DIR = path.resolve(__dirname, '..', '..');
+const PUBLIC_DNS_RESULT = [{ address: '93.184.216.34', family: 4 }];
 
 const createTestConfig = () => ({
   rootDir: ROOT_DIR,
@@ -26,12 +27,16 @@ const createTestConfig = () => ({
   stateStorageFile: path.join(os.tmpdir(), 'foro-article-api-test.json'),
 });
 
-const startTestServer = async (fetchImpl) => {
+const startTestServer = async (
+  fetchImpl,
+  { dnsLookupImpl = async () => PUBLIC_DNS_RESULT } = {},
+) => {
   const { app } = createServerApp({
     rootDir: ROOT_DIR,
     config: createTestConfig(),
     stateStore: createAppStateStore({ mode: 'memory' }),
     fetchImpl,
+    dnsLookupImpl,
   });
   const server = http.createServer(app);
 
@@ -47,6 +52,99 @@ const startTestServer = async (fetchImpl) => {
     baseUrl: `http://127.0.0.1:${address.port}`,
   };
 };
+
+test('article API rejects private and local article URLs before fetching upstream', async (t) => {
+  let fetchCalled = false;
+  const { server, baseUrl } = await startTestServer(async () => {
+    fetchCalled = true;
+    throw new Error('fetch should not be called for private article URLs');
+  });
+
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  for (const articleUrl of [
+    'http://localhost/story',
+    'http://127.0.0.1/story',
+    'http://172.16.0.5/story',
+    'http://169.254.169.254/latest/meta-data',
+  ]) {
+    const response = await fetch(
+      `${baseUrl}/api/article?url=${encodeURIComponent(articleUrl)}`,
+      {
+        headers: {
+          'x-internal-token': INTERNAL_TOKEN,
+        },
+      },
+    );
+
+    assert.equal(response.status, 400, articleUrl);
+    assert.deepEqual(await response.json(), { error: 'Invalid article url' });
+  }
+
+  assert.equal(fetchCalled, false);
+});
+
+test('article API rejects article hostnames that resolve to private IPs', async (t) => {
+  let fetchCalled = false;
+  const { server, baseUrl } = await startTestServer(
+    async () => {
+      fetchCalled = true;
+      throw new Error('fetch should not be called for private DNS results');
+    },
+    {
+      dnsLookupImpl: async () => [{ address: '10.0.0.4', family: 4 }],
+    },
+  );
+
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  const response = await fetch(
+    `${baseUrl}/api/article?url=${encodeURIComponent('https://example.com/story')}`,
+    {
+      headers: {
+        'x-internal-token': INTERNAL_TOKEN,
+      },
+    },
+  );
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: 'Invalid article url' });
+  assert.equal(fetchCalled, false);
+});
+
+test('article API rejects redirects to private article URLs', async (t) => {
+  const fetchedUrls = [];
+  const { server, baseUrl } = await startTestServer(async (url) => {
+    fetchedUrls.push(url);
+    return new Response('', {
+      status: 301,
+      headers: {
+        location: 'http://169.254.169.254/latest/meta-data',
+      },
+    });
+  });
+
+  t.after(async () => {
+    await new Promise((resolve) => server.close(resolve));
+  });
+
+  const response = await fetch(
+    `${baseUrl}/api/article?url=${encodeURIComponent('https://example.com/story')}`,
+    {
+      headers: {
+        'x-internal-token': INTERNAL_TOKEN,
+      },
+    },
+  );
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: 'Invalid article url' });
+  assert.deepEqual(fetchedUrls, ['https://example.com/story']);
+});
 
 test('article API extracts readable article content from HTML', async (t) => {
   const html = `

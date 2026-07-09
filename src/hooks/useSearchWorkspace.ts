@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { STORAGE_KEYS } from '../constants/storageKeys';
 import {
@@ -680,6 +680,15 @@ export const useSearchWorkspace = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [isLiveSearching, setIsLiveSearching] = useState(false);
+  const searchRunIdRef = useRef(0);
+
+  const createSearchRunId = () => {
+    searchRunIdRef.current += 1;
+    return searchRunIdRef.current;
+  };
+
+  const isSearchRunCurrent = (summaryRunId?: number | null) =>
+    !summaryRunId || searchRunIdRef.current === summaryRunId;
 
   const progressivelyTranslateSearchResults = (posts: any[] = []) => {
     const translationCandidates = mergeUniquePostsById(posts)
@@ -797,6 +806,7 @@ export const useSearchWorkspace = ({
     preferXSummary,
     focusMode,
     summaryMode,
+    summaryRunId = null,
     cacheKey = null,
     cachedWebSources = [],
   }: {
@@ -806,6 +816,7 @@ export const useSearchWorkspace = ({
     preferXSummary: boolean;
     focusMode: SearchFocusMode | null;
     summaryMode: SearchSummaryMode;
+    summaryRunId?: number | null;
     cacheKey?: ReturnType<typeof getSearchCacheKey> | null;
     cachedWebSources?: any[];
   }) => {
@@ -813,6 +824,7 @@ export const useSearchWorkspace = ({
       summaryCandidates,
       requestedQuery,
       (_, fullText) => {
+        if (!isSearchRunCurrent(summaryRunId)) return;
         setSearchSummary(fullText);
       },
       webContext,
@@ -825,6 +837,7 @@ export const useSearchWorkspace = ({
     );
 
     if (summaryText) {
+      if (!isSearchRunCurrent(summaryRunId)) return '';
       setSearchSummary(summaryText);
 
       if (cacheKey) {
@@ -852,6 +865,7 @@ export const useSearchWorkspace = ({
       overrideQuery?: string;
     }) => {
       const requestedQuery = overrideQuery || searchQuery;
+      const searchRunId = isMore ? searchRunIdRef.current : createSearchRunId();
       const effectiveRequestedQuery = buildSearchRequestQuery(requestedQuery, searchMediaType);
       const normalizedRequestedQueryLabel = normalizeSearchLabel(requestedQuery);
 
@@ -1282,6 +1296,7 @@ export const useSearchWorkspace = ({
             preferXSummary: false,
             focusMode: effectiveFocus,
             summaryMode: effectiveSummaryMode,
+            summaryRunId: searchRunId,
             cacheKey,
             cachedWebSources: resolvedSearchWebSources,
           })
@@ -1327,6 +1342,7 @@ export const useSearchWorkspace = ({
             preferXSummary: false,
             focusMode: effectiveFocus,
             summaryMode: effectiveSummaryMode,
+            summaryRunId: searchRunId,
             cacheKey,
             cachedWebSources: resolvedSearchWebSources,
           })
@@ -1484,6 +1500,7 @@ export const useSearchWorkspace = ({
               preferXSummary: shouldPreferXSummary,
               focusMode: effectiveFocus,
               summaryMode: effectiveSummaryMode,
+              summaryRunId: searchRunId,
               cacheKey,
               cachedWebSources: resolvedSearchWebSources,
             })
@@ -1500,7 +1517,9 @@ export const useSearchWorkspace = ({
         console.error(error);
         setStatus('เกิดข้อผิดพลาดในการค้นหา');
       } finally {
-        setIsLiveSearching(false);
+        if (isMore || isSearchRunCurrent(searchRunId)) {
+          setIsLiveSearching(false);
+        }
       }
     },
   });
@@ -1596,6 +1615,7 @@ export const useSearchWorkspace = ({
     setStatus(`ปรับมุมมองผลค้นหาเป็น "${SEARCH_FOCUS_LABELS[focus]}" แล้ว`);
 
     if (reranked.length > 0) {
+      const summaryRunId = createSearchRunId();
       setSearchSummary('');
       const shouldPreferXSummary =
         searchMediaType === 'videos' || currentQueryIntent.queryKey === 'viral_video';
@@ -1614,9 +1634,10 @@ export const useSearchWorkspace = ({
           requestedQuery: normalizedLabel || searchQuery,
           webContext,
           preferXSummary: shouldPreferXSummary,
-          focusMode: focus,
-          summaryMode: effectiveSummaryMode,
-        });
+            focusMode: focus,
+            summaryMode: effectiveSummaryMode,
+            summaryRunId,
+          });
       } catch (error) {
         console.warn('[Search] Focus summary refresh failed:', error);
       }

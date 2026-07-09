@@ -3,6 +3,10 @@ import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
 const _require = createRequire(import.meta.url)
+const {
+  fetchExternalUrl,
+  readUpstreamTextWithLimit,
+} = _require('./server/lib/externalFetch.cjs')
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -35,16 +39,6 @@ export default defineConfig(({ mode }) => {
       {
         name: 'local-secret-api-middleware',
         configureServer(server) {
-          const normalizeProxyUrl = (value) => {
-            try {
-              const parsed = new URL(String(value || '').trim())
-              if (!['http:', 'https:'].includes(parsed.protocol)) return null
-              return parsed.toString()
-            } catch {
-              return null
-            }
-          }
-
           // Internal auth guard for all /api/* in dev
           server.middlewares.use('/api', (req, res, next) => {
             if (internalApiSecret && req.headers['x-internal-token'] !== internalApiSecret) {
@@ -60,42 +54,47 @@ export default defineConfig(({ mode }) => {
           server.middlewares.use('/api/rss', async (req, res, next) => {
             if (req.method !== 'GET') { next(); return }
 
+            let upstreamFetch
             try {
               const urlObj = new URL(req.url, 'http://localhost')
-              const feedUrl = normalizeProxyUrl(urlObj.searchParams.get('url'))
+              const requestedFeedUrl = urlObj.searchParams.get('url')
 
-              if (!urlObj.searchParams.get('url')) {
+              if (!requestedFeedUrl) {
                 res.statusCode = 400
                 res.setHeader('Content-Type', 'application/json')
                 res.end(JSON.stringify({ error: 'Missing url parameter' }))
                 return
               }
 
-              if (!feedUrl) {
-                res.statusCode = 400
-                res.setHeader('Content-Type', 'application/json')
-                res.end(JSON.stringify({ error: 'Invalid feed url' }))
-                return
-              }
-
-              const upstreamResponse = await fetch(feedUrl, {
-                headers: {
-                  'User-Agent':
-                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 FORO/1.0',
-                  'Accept': 'application/rss+xml, application/xml, text/xml, application/atom+xml, */*',
+              upstreamFetch = await fetchExternalUrl(requestedFeedUrl, {
+                fetcher: fetch,
+                label: 'feed url',
+                fetchOptions: {
+                  headers: {
+                    'User-Agent':
+                      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 FORO/1.0',
+                    'Accept': 'application/rss+xml, application/xml, text/xml, application/atom+xml, */*',
+                  },
+                  signal: AbortSignal.timeout(15000),
                 },
-                signal: AbortSignal.timeout(15000),
               })
 
-              const responseText = await upstreamResponse.text()
+              const { response: upstreamResponse } = upstreamFetch
+              const responseText = await readUpstreamTextWithLimit(upstreamResponse, 2 * 1024 * 1024)
               res.statusCode = upstreamResponse.status
               res.setHeader('Content-Type', 'text/xml; charset=utf-8')
               res.setHeader('Cache-Control', 'public, max-age=300')
               res.end(responseText)
-            } catch {
-              res.statusCode = 502
+            } catch (error) {
+              res.statusCode = Number.isInteger(error?.statusCode) && error.statusCode < 500
+                ? error.statusCode
+                : 502
               res.setHeader('Content-Type', 'application/json')
-              res.end(JSON.stringify({ error: 'Failed to fetch RSS feed' }))
+              res.end(JSON.stringify({
+                error: res.statusCode < 500 ? error.message : 'Failed to fetch RSS feed',
+              }))
+            } finally {
+              await upstreamFetch?.cleanup?.()
             }
           })
 
@@ -106,34 +105,47 @@ export default defineConfig(({ mode }) => {
             try {
               const { extractArticleFromHtml } = _require('./server/lib/articleExtractor.cjs')
               const urlObj = new URL(req.url, 'http://localhost')
-              const articleUrl = normalizeProxyUrl(urlObj.searchParams.get('url'))
+              const requestedArticleUrl = urlObj.searchParams.get('url')
+              let articleUrl = requestedArticleUrl
 
-              if (!urlObj.searchParams.get('url')) {
+              if (!requestedArticleUrl) {
                 res.statusCode = 400
                 res.setHeader('Content-Type', 'application/json')
                 res.end(JSON.stringify({ error: 'Missing url parameter' }))
                 return
               }
 
-              if (!articleUrl) {
-                res.statusCode = 400
-                res.setHeader('Content-Type', 'application/json')
-                res.end(JSON.stringify({ error: 'Invalid article url' }))
-                return
-              }
-
               let html
+              let upstream
               try {
-                const upstream = await fetch(articleUrl, {
-                  headers: {
-                    'User-Agent': 'Mozilla/5.0 FORO/1.0',
-                    Accept: 'text/html,*/*',
+                upstream = await fetchExternalUrl(requestedArticleUrl, {
+                  fetcher: fetch,
+                  label: 'article url',
+                  fetchOptions: {
+                    headers: {
+                      'User-Agent': 'Mozilla/5.0 FORO/1.0',
+                      Accept: 'text/html,*/*',
+                    },
+                    signal: AbortSignal.timeout(8000),
                   },
-                  signal: AbortSignal.timeout(8000),
                 })
-                html = upstream.ok ? await upstream.text() : null
-              } catch {
+                articleUrl = upstream.url
+                if (upstream.response.ok) {
+                  html = await readUpstreamTextWithLimit(upstream.response, 5 * 1024 * 1024)
+                } else {
+                  await upstream.response.body?.cancel?.().catch(() => {})
+                  html = null
+                }
+              } catch (error) {
+                if (Number.isInteger(error?.statusCode) && error.statusCode < 500) {
+                  res.statusCode = error.statusCode
+                  res.setHeader('Content-Type', 'application/json')
+                  res.end(JSON.stringify({ error: error.message }))
+                  return
+                }
                 html = null
+              } finally {
+                await upstream?.cleanup?.()
               }
 
               // Fall back to a mock article so translation can be tested in dev

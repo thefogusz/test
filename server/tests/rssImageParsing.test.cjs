@@ -39,6 +39,21 @@ const loadRssService = (apiFetch) => {
       return { apiFetch };
     }
 
+    if (parent === serviceModule && request === '../utils/urlSafety') {
+      return {
+        normalizeSafeExternalUrl: (value = '') => {
+          const source = String(value || '').trim();
+          const candidate = source.startsWith('//') ? `https:${source}` : source;
+          try {
+            const parsed = new URL(candidate);
+            return ['http:', 'https:'].includes(parsed.protocol) ? parsed.toString() : '';
+          } catch {
+            return '';
+          }
+        },
+      };
+    }
+
     return originalLoad(request, parent, isMain);
   };
 

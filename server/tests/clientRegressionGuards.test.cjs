@@ -257,3 +257,29 @@ test('read archive cards receive Thai summaries after background translation fin
     'readArchive must update existing staged cards, not only insert missing translated posts',
   );
 });
+
+test('external URLs are normalized through a shared http-only helper', () => {
+  const urlSafetySource = readSource('src/utils/urlSafety.ts');
+  const rssSource = readSource('src/services/RssService.ts');
+  const feedCardSource = readSource('src/components/FeedCard.tsx');
+  const createContentSource = readSource('src/components/CreateContent.tsx');
+
+  assert.match(urlSafetySource, /export const normalizeSafeExternalUrl = /);
+  assert.match(urlSafetySource, /parsed\.protocol !== 'http:' && parsed\.protocol !== 'https:'/);
+  assert.match(urlSafetySource, /startsWith\('\/\/'\)/);
+  assert.match(rssSource, /normalizeSafeExternalUrl/);
+  assert.match(feedCardSource, /normalizeSafeExternalUrl/);
+  assert.match(createContentSource, /normalizeSafeExternalUrl/);
+  assert.match(createContentSource, /const safeUrl = normalizeSafeExternalUrl\(url\)/);
+  assert.match(createContentSource, /if \(!safeUrl\) return false/);
+});
+
+test('search summary updates are guarded against stale searches', () => {
+  const source = readSource('src/hooks/useSearchWorkspace.ts');
+
+  assert.match(source, /searchRunIdRef/);
+  assert.match(source, /createSearchRunId/);
+  assert.match(source, /summaryRunId/);
+  assert.match(source, /isSearchRunCurrent/);
+  assert.match(source, /if \(!isSearchRunCurrent\(summaryRunId\)\) return/);
+});

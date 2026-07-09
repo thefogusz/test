@@ -5,14 +5,44 @@ const { createProxyMiddleware, fixRequestBody } = require('http-proxy-middleware
 const { loadServerConfig } = require('./lib/config.cjs');
 const { createAppStateStore } = require('./lib/appStateStore.cjs');
 const { extractArticleFromHtml } = require('./lib/articleExtractor.cjs');
+const {
+  fetchExternalUrl,
+  readUpstreamTextWithLimit,
+} = require('./lib/externalFetch.cjs');
+
+const validateServerConfig = (config) => {
+  if (config.nodeEnv !== 'production') return;
+
+  const exposesProtectedRoutes = Boolean(
+    config.twitterApiKey ||
+      config.xaiApiKey ||
+      config.tavilyApiKey ||
+      config.stripeSecretKey ||
+      config.stateStorageMode !== 'memory',
+  );
+
+  if (exposesProtectedRoutes && !config.internalApiSecret) {
+    throw new Error('INTERNAL_API_SECRET is required in production');
+  }
+
+  if (config.stripeSecretKey && !config.stripeCheckoutBaseUrl) {
+    throw new Error('STRIPE_CHECKOUT_BASE_URL is required in production');
+  }
+
+  if (config.stripeSecretKey && !config.stripePlusPriceId) {
+    throw new Error('STRIPE_PLUS_PRICE_ID is required in production');
+  }
+};
 
 const createServerApp = ({
   rootDir = path.resolve(__dirname, '..'),
   config: configOverride,
   stateStore: stateStoreOverride,
   fetchImpl,
+  dnsLookupImpl,
 } = {}) => {
   const config = configOverride || loadServerConfig(rootDir);
+  validateServerConfig(config);
   const app = express();
   const fetcher = fetchImpl || fetch;
   const stateStore =
@@ -67,23 +97,6 @@ const createServerApp = ({
     }
 
     return normalized;
-  };
-
-  const normalizeExternalUrl = (value, label = 'url') => {
-    const normalized = String(value || '').trim();
-
-    try {
-      const parsed = new URL(normalized);
-      if (!['http:', 'https:'].includes(parsed.protocol)) {
-        throw new Error('Unsupported protocol');
-      }
-
-      return parsed.toString();
-    } catch {
-      const error = new Error(`Invalid ${label}`);
-      error.statusCode = 400;
-      throw error;
-    }
   };
 
   const resolveAppBaseUrl = (req) => {
@@ -186,38 +199,41 @@ const createServerApp = ({
         return res.status(400).json({ error: 'Missing url parameter' });
       }
 
-      let feedUrl;
+      let upstreamFetch;
       try {
-        feedUrl = normalizeExternalUrl(req.query.url, 'feed url');
-      } catch (error) {
-        return res.status(error.statusCode || 400).json({
-          error: error.message || 'Invalid feed url',
-        });
-      }
-
-      try {
-        const upstreamResponse = await fetcher(feedUrl, {
-          headers: {
-            'User-Agent':
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-            'Accept-Language': 'en-US,en;q=0.9',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache',
-            'Referer': 'https://www.google.com/',
-            'Upgrade-Insecure-Requests': '1',
+        upstreamFetch = await fetchExternalUrl(req.query.url, {
+          fetcher,
+          dnsLookup: dnsLookupImpl,
+          label: 'feed url',
+          fetchOptions: {
+            headers: {
+              'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+              'Accept-Language': 'en-US,en;q=0.9',
+              'Cache-Control': 'no-cache',
+              'Pragma': 'no-cache',
+              'Referer': 'https://www.google.com/',
+              'Upgrade-Insecure-Requests': '1',
+            },
+            signal: AbortSignal.timeout(15000),
           },
-          signal: AbortSignal.timeout(15000),
         });
 
-        const responseText = await upstreamResponse.text();
+        const { response: upstreamResponse } = upstreamFetch;
+        const responseText = await readUpstreamTextWithLimit(upstreamResponse, 2 * 1024 * 1024);
         res.status(upstreamResponse.status);
         res.type('text/xml; charset=utf-8');
         res.set('Cache-Control', 'public, max-age=300');
         res.send(responseText);
       } catch (error) {
+        if (Number.isInteger(error?.statusCode) && error.statusCode < 500) {
+          return res.status(error.statusCode).json({ error: error.message });
+        }
         console.error('[server] RSS proxy error:', error);
-        res.status(502).json({ error: 'Failed to fetch RSS feed' });
+        return res.status(502).json({ error: 'Failed to fetch RSS feed' });
+      } finally {
+        await upstreamFetch?.cleanup?.();
       }
     }),
   );
@@ -312,27 +328,34 @@ const createServerApp = ({
   app.get(
     '/api/article',
     asyncRoute(async (req, res) => {
-      const articleUrl = normalizeExternalUrl(req.query.url, 'article url');
-
+      let upstreamFetch;
       try {
-        const upstreamResponse = await fetcher(articleUrl, {
-          headers: {
-            'User-Agent':
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 FORO/1.0',
-            Accept:
-              'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        upstreamFetch = await fetchExternalUrl(req.query.url, {
+          fetcher,
+          dnsLookup: dnsLookupImpl,
+          label: 'article url',
+          fetchOptions: {
+            headers: {
+              'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36 FORO/1.0',
+              Accept:
+                'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            },
+            signal: AbortSignal.timeout(config.upstreamTimeoutMs),
           },
-          redirect: 'follow',
-          signal: AbortSignal.timeout(config.upstreamTimeoutMs),
         });
 
+        const { response: upstreamResponse, url: articleUrl } = upstreamFetch;
         if (!upstreamResponse.ok) {
+          if (upstreamResponse.body?.cancel) {
+            await upstreamResponse.body.cancel().catch(() => {});
+          }
           return res.status(upstreamResponse.status).json({
             error: `Failed to fetch article (${upstreamResponse.status})`,
           });
         }
 
-        const html = await upstreamResponse.text();
+        const html = await readUpstreamTextWithLimit(upstreamResponse, 5 * 1024 * 1024);
         const article = extractArticleFromHtml({
           html,
           url: articleUrl,
@@ -345,14 +368,21 @@ const createServerApp = ({
           ...article,
         });
       } catch (error) {
-        console.error('[server] Article extraction error:', error);
         const statusCode = Number.isInteger(error?.statusCode) ? error.statusCode : 502;
+        if (statusCode >= 500) {
+          console.error('[server] Article extraction error:', error);
+        }
+
         return res.status(statusCode).json({
           error:
-            statusCode === 422
+            statusCode === 400 || statusCode === 413
+              ? error.message
+              : statusCode === 422
               ? 'Could not extract readable article content'
               : 'Failed to fetch article',
         });
+      } finally {
+        await upstreamFetch?.cleanup?.();
       }
     }),
   );
@@ -400,33 +430,35 @@ const createServerApp = ({
     }),
   );
 
-  app.get(
-    '/api/debug/env-check',
-    asyncRoute(async (req, res) => {
-      const maskValue = (value) => {
-        const normalized = String(value || '').trim();
-        if (!normalized) return null;
-        if (normalized.length <= 8) return `${normalized.slice(0, 2)}***`;
-        return `${normalized.slice(0, 6)}...${normalized.slice(-4)}`;
-      };
+  if (config.nodeEnv !== 'production') {
+    app.get(
+      '/api/debug/env-check',
+      asyncRoute(async (req, res) => {
+        const maskValue = (value) => {
+          const normalized = String(value || '').trim();
+          if (!normalized) return null;
+          if (normalized.length <= 8) return `${normalized.slice(0, 2)}***`;
+          return `${normalized.slice(0, 6)}...${normalized.slice(-4)}`;
+        };
 
-      return res.json({
-        ok: true,
-        env: {
-          hasInternalApiSecret: Boolean(config.internalApiSecret),
-          hasStripeSecretKey: Boolean(config.stripeSecretKey),
-          hasStripePlusPriceId: Boolean(config.stripePlusPriceId),
-          hasStripeCheckoutBaseUrl: Boolean(config.stripeCheckoutBaseUrl),
-          hasViteStripePublishableKey: Boolean(process.env.VITE_STRIPE_PUBLISHABLE_KEY),
-        },
-        redacted: {
-          stripeSecretKey: maskValue(config.stripeSecretKey),
-          stripePlusPriceId: maskValue(config.stripePlusPriceId),
-          viteStripePublishableKey: maskValue(process.env.VITE_STRIPE_PUBLISHABLE_KEY),
-        },
-      });
-    }),
-  );
+        return res.json({
+          ok: true,
+          env: {
+            hasInternalApiSecret: Boolean(config.internalApiSecret),
+            hasStripeSecretKey: Boolean(config.stripeSecretKey),
+            hasStripePlusPriceId: Boolean(config.stripePlusPriceId),
+            hasStripeCheckoutBaseUrl: Boolean(config.stripeCheckoutBaseUrl),
+            hasViteStripePublishableKey: Boolean(process.env.VITE_STRIPE_PUBLISHABLE_KEY),
+          },
+          redacted: {
+            stripeSecretKey: maskValue(config.stripeSecretKey),
+            stripePlusPriceId: maskValue(config.stripePlusPriceId),
+            viteStripePublishableKey: maskValue(process.env.VITE_STRIPE_PUBLISHABLE_KEY),
+          },
+        });
+      }),
+    );
+  }
 
   app.get(
     '/api/billing/checkout-session-status',
@@ -487,7 +519,9 @@ const createServerApp = ({
 
   app.use((error, req, res, next) => {
     const statusCode = Number.isInteger(error?.statusCode) ? error.statusCode : 500;
-    console.error('[server] Unhandled error:', error);
+    if (statusCode >= 500) {
+      console.error('[server] Unhandled error:', error);
+    }
 
     if (res.headersSent) {
       return next(error);

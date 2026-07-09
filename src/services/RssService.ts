@@ -1,6 +1,7 @@
 // @ts-nocheck
 import type { Post } from '../types/domain';
 import { apiFetch } from '../utils/apiFetch';
+import { normalizeSafeExternalUrl } from '../utils/urlSafety';
 
 const RSS_PROXY_URL = '/api/rss';
 const RSS_LATEST_LOOKBACK_HOURS = 24;
@@ -63,11 +64,7 @@ const normalizeRssImageUrl = (value?: string | null): string | null => {
   const decoded = decodeXmlEntities(value || '');
   if (!decoded) return null;
 
-  if (decoded.startsWith('//')) {
-    return `https:${decoded}`;
-  }
-
-  return decoded;
+  return normalizeSafeExternalUrl(decoded) || null;
 };
 
 const buildRssFingerprint = (item: RssItem, source: RssSourceInfo) => {
@@ -261,6 +258,7 @@ const rssItemToPost = (item: RssItem, source: RssSourceInfo): Post => {
     .join('\n\n')
     .trim();
   const normalizedImageUrl = normalizeRssImageUrl(item.imageUrl);
+  const normalizedItemUrl = normalizeSafeExternalUrl(item.link);
   const imageUrls = normalizedImageUrl ? [normalizedImageUrl] : [];
 
   return {
@@ -272,7 +270,7 @@ const rssItemToPost = (item: RssItem, source: RssSourceInfo): Post => {
     text: normalizedDescription || normalizedTitle,
     full_text: fullText || normalizedTitle,
     title: item.title,
-    url: item.link,
+    url: normalizedItemUrl,
     created_at: createdAt,
     primaryImageUrl: normalizedImageUrl || undefined,
     imageUrls,

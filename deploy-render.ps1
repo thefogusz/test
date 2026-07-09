@@ -1,3 +1,10 @@
-Invoke-WebRequest -Uri "https://api.render.com/deploy/srv-d7c0n3vavr4c73ah3nbg?key=gxsvsf4Nm3c"
+$deployHookUrl = $env:RENDER_DEPLOY_HOOK_URL
+
+if (-not $deployHookUrl) {
+  Write-Error "Set RENDER_DEPLOY_HOOK_URL before running this script."
+  exit 1
+}
+
+Invoke-WebRequest -Uri $deployHookUrl
 Write-Host ""
 Write-Host "Deploy request sent to Render."

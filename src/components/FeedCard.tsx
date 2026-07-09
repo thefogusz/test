@@ -27,6 +27,7 @@ import {
   hasUsefulThaiSummary,
   extractFirstImageUrl,
 } from '../utils/appUtils';
+import { normalizeSafeExternalUrl } from '../utils/urlSafety';
 
 const getRelativeTimeState = (dateString) => {
   if (!dateString) return { label: '', nextUpdateMs: null };
@@ -86,8 +87,11 @@ const safeReadStoredValue = (key, fallbackValue) => {
 };
 
 const getArticleHostLabel = (url) => {
+  const safeUrl = normalizeSafeExternalUrl(url);
+  if (!safeUrl) return '';
+
   try {
-    return new URL(String(url || '')).hostname.replace('www.', '');
+    return new URL(safeUrl).hostname.replace('www.', '');
   } catch {
     return '';
   }
@@ -284,7 +288,9 @@ const FeedCard = ({
         new Set([
           previewImageUrl,
           ...(Array.isArray(displayTweet.imageUrls) ? displayTweet.imageUrls : []),
-        ].filter(Boolean)),
+        ]
+          .map((url) => normalizeSafeExternalUrl(url))
+          .filter(Boolean)),
       ),
     [displayTweet.imageUrls, previewImageUrl],
   );
@@ -299,14 +305,18 @@ const FeedCard = ({
   const shouldShowRssSummary =
     isArticleCard &&
     !!String(rssSummaryText || '').trim();
+  const safeArticleUrl = normalizeSafeExternalUrl(displayTweet.url);
+  const fallbackXPostUrl = normalizeSafeExternalUrl(
+    `https://x.com/${displayTweet.author?.username || 'i'}/status/${displayTweet.id}`,
+  );
   const isReadableArticle =
     Boolean(onReadArticle) &&
     isArticleCard &&
-    Boolean(displayTweet.url);
+    Boolean(safeArticleUrl);
   const authorUsername = (displayTweet.author?.username || '').trim().replace(/^@/, '').toLowerCase();
   const postUrl = useMemo(
-    () => displayTweet.url || `https://x.com/${displayTweet.author?.username || 'i'}/status/${displayTweet.id}`,
-    [displayTweet.author?.username, displayTweet.id, displayTweet.url],
+    () => safeArticleUrl || fallbackXPostUrl || '#',
+    [fallbackXPostUrl, safeArticleUrl],
   );
   const articleHostLabel = getArticleHostLabel(tweet.url);
   const fallbackPostLists = useMemo(() => {
@@ -490,7 +500,7 @@ const FeedCard = ({
   const footerClassName = `feed-card-footer${isReadableArticle ? ' feed-card-footer-priority' : ''}`;
   const handleReadArticle = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
-    onReadArticle?.(displayTweet);
+    onReadArticle?.({ ...displayTweet, url: safeArticleUrl });
   };
 
   const handleCreateContent = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -753,7 +763,7 @@ const FeedCard = ({
           </button>
 
           <a
-            href={isArticleCard ? (tweet.url || '#') : `https://x.com/${displayTweet.author?.username || 'i'}/status/${displayTweet.id}`}
+            href={isArticleCard ? (safeArticleUrl || '#') : (fallbackXPostUrl || '#')}
             target="_blank"
             rel="noopener noreferrer"
             aria-label={isArticleCard ? 'เปิดต้นฉบับ' : 'เปิดโพสต์บน X'}
