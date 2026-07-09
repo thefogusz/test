@@ -36,6 +36,8 @@ const resolveStateStorageMode = (value) =>
 const loadServerConfig = (rootDir) => {
   loadEnvFile(rootDir);
   const nodeEnv = process.env.NODE_ENV || 'development';
+  const stripeCheckoutBaseUrl =
+    process.env.STRIPE_CHECKOUT_BASE_URL || process.env.RENDER_EXTERNAL_URL || '';
 
   return {
     rootDir,
@@ -51,7 +53,7 @@ const loadServerConfig = (rootDir) => {
     stripePlusPriceId:
       process.env.STRIPE_PLUS_PRICE_ID ||
       (nodeEnv === 'production' ? '' : DEFAULT_STRIPE_PLUS_PRICE_ID),
-    stripeCheckoutBaseUrl: process.env.STRIPE_CHECKOUT_BASE_URL || '',
+    stripeCheckoutBaseUrl,
     stateStorageMode: resolveStateStorageMode(process.env.APP_STATE_STORAGE),
     stateStorageFile: process.env.APP_STATE_FILE
       ? path.resolve(rootDir, process.env.APP_STATE_FILE)

@@ -3,6 +3,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const { createServerApp } = require('../app.cjs');
+const { loadServerConfig } = require('../lib/config.cjs');
 const packageJson = require('../../package.json');
 
 const ROOT_DIR = path.resolve(__dirname, '..', '..');
@@ -68,6 +69,29 @@ test('production Stripe checkout requires an explicit checkout base URL', () => 
       }),
     /STRIPE_CHECKOUT_BASE_URL/,
   );
+});
+
+test('production Stripe checkout accepts Render external URL as the stable base URL', () => {
+  const previousEnv = { ...process.env };
+  try {
+    process.env.NODE_ENV = 'production';
+    process.env.INTERNAL_API_SECRET = 'test-internal-token';
+    process.env.STRIPE_SECRET_KEY = 'sk_test_123';
+    process.env.STRIPE_PLUS_PRICE_ID = 'price_test';
+    delete process.env.STRIPE_CHECKOUT_BASE_URL;
+    process.env.RENDER_EXTERNAL_URL = 'https://foro-test.onrender.com';
+
+    const config = loadServerConfig(ROOT_DIR);
+    assert.equal(config.stripeCheckoutBaseUrl, 'https://foro-test.onrender.com');
+    assert.doesNotThrow(() =>
+      createServerApp({
+        rootDir: ROOT_DIR,
+        config,
+      }),
+    );
+  } finally {
+    process.env = previousEnv;
+  }
 });
 
 test('npm start forces production config validation on hosted deployments', () => {
