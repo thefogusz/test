@@ -132,19 +132,14 @@ test('feed card does not construct article host labels inline during render', ()
   assert.doesNotMatch(source, /new URL\(tweet\.url\)\.hostname/);
 });
 
-test('home feed first sync windows merged X and RSS candidates together', () => {
+test('home feed first sync reserves initial cards across X accounts and RSS sources', () => {
   const source = readSource('src/hooks/useHomeFeedWorkspace.ts');
 
-  assert.match(
-    source,
-    /const mergedDisplayBatch = \[\.\.\.xDisplayBatch, \.\.\.newRssPosts\]\.sort\(/,
-  );
-  assert.match(source, /const postsToStage = mergedDisplayBatch\.slice\(0, MAX_INITIAL_DISPLAY\);/);
-  assert.match(source, /const overflowDisplayBatch = mergedDisplayBatch\.slice\(MAX_INITIAL_DISPLAY\);/);
-  assert.match(
-    source,
-    /\[\.\.\.overflowDisplayBatch, \.\.\.nextTwitterPending\]\.sort\(\s*\(\s*a,\s*b\s*\)\s*=>\s*new Date\(b\.created_at\)\.getTime\(\) - new Date\(a\.created_at\)\.getTime\(\),\s*\)/,
-  );
+  assert.match(source, /import \{ selectBalancedInitialFeedPosts \} from '\.\.\/utils\/feedSelection';/);
+  assert.match(source, /const incomingCandidates = \[\.\.\.newTwitterPosts, \.\.\.newRssPosts\]\.sort\(/);
+  assert.match(source, /const postsToStage = selectBalancedInitialFeedPosts\(incomingCandidates, MAX_INITIAL_DISPLAY\);/);
+  assert.match(source, /const overflowDisplayBatch = incomingCandidates\.filter\(/);
+  assert.match(source, /setPendingFeed\(\s*overflowDisplayBatch\.sort\(/);
   assert.match(source, /nextBatch = workingPendingFeed\.slice\(0, MAX_SYNC\);/);
   assert.doesNotMatch(source, /prev\.filter\(\(post\) => isXFeedPost\(post\)\)/);
 });

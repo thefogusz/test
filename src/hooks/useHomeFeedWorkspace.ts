@@ -31,6 +31,7 @@ import {
   sortFeedByActiveFilters,
 } from '../utils/appUtils';
 import { canonicalizePostListMember } from '../utils/rssSourceResolver';
+import { selectBalancedInitialFeedPosts } from '../utils/feedSelection';
 
 type SetState<T> = Dispatch<SetStateAction<T>>;
 type RssSeenRegistry = Record<string, Record<string, string>>;
@@ -1123,8 +1124,6 @@ export const useHomeFeedWorkspace = ({
       });
 
       const MAX_INITIAL_DISPLAY = 20;
-      const twitterDisplay = twitterData.slice(0, MAX_INITIAL_DISPLAY);
-      const twitterRemaining = twitterData.slice(MAX_INITIAL_DISPLAY);
       const isNewTwitterPost = (post: any) => {
         const postId = getNormalizedPostId(post);
         if (!postId) return false;
@@ -1136,33 +1135,22 @@ export const useHomeFeedWorkspace = ({
         return Boolean(postId && existingIds.has(postId));
       };
 
-      const newTwitterDisplay = twitterDisplay.filter(isNewTwitterPost);
-      const existingTwitterDisplay = twitterDisplay.filter(isExistingTwitterPost);
-      const nextTwitterPending = twitterRemaining.filter(isNewTwitterPost);
-      const refillTwitterDisplay =
-        !hasPersistedXFeedForScope && newTwitterDisplay.length === 0
-          ? twitterDisplay.filter((post) => {
-            const postId = getNormalizedPostId(post);
-            return Boolean(postId) && !existingIds.has(postId);
-          })
-          : [];
-      const xDisplayBatch =
-        newTwitterDisplay.length > 0
-          ? newTwitterDisplay
-          : [...refillTwitterDisplay].sort(
-            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-          );
-      const mergedDisplayBatch = [...xDisplayBatch, ...newRssPosts].sort(
+      const newTwitterPosts = twitterData.filter(isNewTwitterPost);
+      const existingTwitterPosts = twitterData.filter(isExistingTwitterPost);
+      const incomingCandidates = [...newTwitterPosts, ...newRssPosts].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
-      const postsToStage = mergedDisplayBatch.slice(0, MAX_INITIAL_DISPLAY);
-      const overflowDisplayBatch = mergedDisplayBatch.slice(MAX_INITIAL_DISPLAY);
+      const postsToStage = selectBalancedInitialFeedPosts(incomingCandidates, MAX_INITIAL_DISPLAY);
+      const stagedPostIds = new Set(postsToStage.map((post) => getNormalizedPostId(post)).filter(Boolean));
+      const overflowDisplayBatch = incomingCandidates.filter(
+        (post) => !stagedPostIds.has(getNormalizedPostId(post)),
+      );
       const nextFreshFeedIds =
         postsToStage
           .map((post) => getNormalizedPostId(post))
           .filter(Boolean);
       const postsToMerge = Array.from(
-        [...existingTwitterDisplay, ...(refreshedVisibleXPosts || [])].reduce((postMap, post) => {
+        [...existingTwitterPosts, ...(refreshedVisibleXPosts || [])].reduce((postMap, post) => {
           const postId = getNormalizedPostId(post);
           if (!postId) return postMap;
           postMap.set(postId, post);
@@ -1171,14 +1159,14 @@ export const useHomeFeedWorkspace = ({
       );
 
       setPendingFeed(
-        [...overflowDisplayBatch, ...nextTwitterPending].sort(
+        overflowDisplayBatch.sort(
           (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
         ),
       );
 
       const rssCount = postsToStage.filter((post) => getNormalizedFeedSourceType(post) === 'rss').length;
       const twitterCount = postsToStage.filter((post) => isXFeedPost(post)).length;
-      const pendingCount = overflowDisplayBatch.length + nextTwitterPending.length;
+      const pendingCount = overflowDisplayBatch.length;
       const statusParts = [];
       if (twitterCount > 0) statusParts.push(`${twitterCount} โพสต์จาก X`);
       if (rssCount > 0) statusParts.push(`${rssCount} ข่าวจาก RSS`);
@@ -1192,14 +1180,14 @@ export const useHomeFeedWorkspace = ({
         queueFeedSummaries(postsToStage);
       }
 
-      if (newTwitterDisplay.length === 0 && newRssPosts.length === 0) {
+      if (newTwitterPosts.length === 0 && newRssPosts.length === 0) {
         setStatus('ไม่มีข้อมูลใหม่');
       } else if (statusParts.length > 0) {
         setStatus(`อัปเดตข้อมูลเรียบร้อย • ${statusParts.join(' + ')} • เติมสรุปต่อในพื้นหลัง`);
       } else {
         setStatus('อัปเดตข้อมูลเรียบร้อย');
       }
-      if (newTwitterDisplay.length === 0 && newRssPosts.length === 0 && postsToStage.length > 0) {
+      if (newTwitterPosts.length === 0 && newRssPosts.length === 0 && postsToStage.length > 0) {
         setStatus('รีเฟรชฟีดเรียบร้อย - แสดงโพสต์ล่าสุดเดิมพร้อมสถิติล่าสุด');
       }
       setFreshFeedIds(nextFreshFeedIds);
