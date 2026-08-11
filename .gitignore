@@ -24,6 +24,7 @@ playwright-home.png
 .codex/environments/
 *.local
 docs/.vitepress/cache/
+docs/.vitepress/.temp/
 docs/.vitepress/data/docs-status.json
 docs/.vitepress/data/docs-changelog.json
 docs/.vitepress/data/docs-draft.json

@@ -2612,9 +2612,7 @@ You may expand to 5 bullets only if there are clearly more than 3 major storylin
 - Each bullet must describe a distinct major development, not minor examples of the same development.
 - Tone: compact, factual, serious, no fluff.
 - If X and web context conflict, prioritize what is actually supported and make uncertainty clear.
-- Use markdown bold only for the most important terms relevant to the query.
-- End with a confidence tag on the final line in this exact format:
-[CONFIDENCE_SCORE: 85%]`;
+- Use markdown bold only for the most important terms relevant to the query.`;
   const enhancedSummarySystem = `${summarySystem}
 
 Additional citation rules:

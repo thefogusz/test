@@ -36,7 +36,7 @@
     "@tanstack/react-query": "^5.96.1",
     "ai": "^6.0.185",
     "clsx": "^2.1.1",
-    "dompurify": "^3.4.11",
+    "dompurify": "^3.4.13",
     "express": "^4.22.2",
     "http-proxy-middleware": "^3.0.7",
     "idb": "^8.0.3",
@@ -48,7 +48,7 @@
     "stripe": "^22.0.0",
     "tailwind-merge": "^3.5.0",
     "turndown": "^7.2.4",
-    "undici": "^7.28.0",
+    "undici": "^7.29.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {

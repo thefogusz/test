@@ -734,6 +734,15 @@ const AudienceWorkspace = ({
                 <div className="custom-input-wrapper">
                   <Search size={16} />
                   <input
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-controls="audience-manual-suggestions"
+                    aria-expanded={showSuggestions && suggestions.length > 0}
+                    aria-activedescendant={
+                      activeSuggestionIndex >= 0
+                        ? `audience-manual-suggestion-${activeSuggestionIndex}`
+                        : undefined
+                    }
                     placeholder={'\u0e01\u0e23\u0e2d\u0e01 X Username (\u0e40\u0e0a\u0e48\u0e19 elonmusk)...'}
                     value={manualQuery}
                     disabled={manualSearchLoading}
@@ -745,8 +754,16 @@ const AudienceWorkspace = ({
                     onFocus={() => setShowSuggestions(true)}
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                     onKeyDown={(e) => {
-                      if (e.key === 'ArrowDown') setActiveSuggestionIndex((prev) => Math.min(prev + 1, suggestions.length - 1));
-                      else if (e.key === 'ArrowUp') setActiveSuggestionIndex((prev) => Math.max(prev - 1, -1));
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setActiveSuggestionIndex((prev) => Math.min(prev + 1, suggestions.length - 1));
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setActiveSuggestionIndex((prev) => Math.max(prev - 1, -1));
+                      } else if (e.key === 'Escape') {
+                        setShowSuggestions(false);
+                        setActiveSuggestionIndex(-1);
+                      }
                       else if (e.key === 'Enter' && activeSuggestionIndex >= 0) {
                         const sel = suggestions[activeSuggestionIndex];
                         setManualQuery(sel);
@@ -774,9 +791,17 @@ const AudienceWorkspace = ({
                 </button>
 
                 {showSuggestions && suggestions.length > 0 && (
-                  <div className="search-suggestions-dropdown" style={{ top: '100%', left: 0, right: 0, marginTop: '8px', zIndex: 1000 }}>
+                  <div id="audience-manual-suggestions" className="search-suggestions-dropdown" role="listbox" aria-label="บัญชีที่แนะนำ" style={{ top: '100%', left: 0, right: 0, marginTop: '8px', zIndex: 1000 }}>
                     {suggestions.map((item, idx) => (
-                      <div key={item} className={`suggestion-item ${idx === activeSuggestionIndex ? 'active' : ''}`} onClick={() => { setManualQuery(item); setShowSuggestions(false); }}>
+                      <div
+                        key={item}
+                        id={`audience-manual-suggestion-${idx}`}
+                        role="option"
+                        aria-selected={idx === activeSuggestionIndex}
+                        className={`suggestion-item ${idx === activeSuggestionIndex ? 'active' : ''}`}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => { setManualQuery(item); setShowSuggestions(false); }}
+                      >
                         <Search size={14} className="suggestion-icon" />
                         <span>{item}</span>
                       </div>
@@ -790,7 +815,7 @@ const AudienceWorkspace = ({
                 </div>
               )}
               {manualSearchLoading && (
-                <div style={{ marginTop: '12px', fontSize: '12px', color: 'rgba(255,255,255,0.58)', lineHeight: 1.45 }}>
+                <div role="status" aria-live="polite" style={{ marginTop: '12px', fontSize: '12px', color: 'rgba(255,255,255,0.58)', lineHeight: 1.45 }}>
                   กำลังค้นหาบัญชีนี้...
                 </div>
               )}

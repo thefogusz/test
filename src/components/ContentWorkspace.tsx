@@ -1,7 +1,6 @@
 ﻿// @ts-nocheck
 import React from 'react';
 import {
-  Activity,
   Copy,
   ExternalLink,
   FileText,
@@ -15,7 +14,7 @@ import {
   X,
   Zap,
 } from 'lucide-react';
-import { AI_WORKSPACES } from '../config/aiWorkspaces';
+import { isExplicitlyLocalQuery } from '../services/TwitterService';
 import { cleanMarkdownForClipboard, normalizeSummaryMarkdown, renderMarkdownToHtml } from '../utils/markdown';
 import { getSummaryDateLabel } from '../utils/summaryDates';
 import ContentErrorBoundary from './ContentErrorBoundary';
@@ -23,6 +22,19 @@ import ContentTabSwitcher from './ContentTabSwitcher';
 import CreateContent from './CreateContent';
 import FeedCard from './FeedCard';
 import SearchInlineStatus from './SearchInlineStatus';
+
+const toFriendlySearchStatusMessage = (status = '') => {
+  const normalizedStatus = String(status || '').trim();
+
+  if (!normalizedStatus) return 'กำลังเตรียมการค้นหา...';
+  if (/\[Phase 2\]|\[API\]/i.test(normalizedStatus)) return 'กำลังค้นหาข้อมูลจากหลายแหล่ง...';
+  if (/\[Fallback\]/i.test(normalizedStatus)) return 'กำลังขยายคำค้นด้วยคำที่เกี่ยวข้อง...';
+  if (/\[Quality Gate\]|\[Agent 2\/3\]/i.test(normalizedStatus)) return 'กำลังคัดกรองผลลัพธ์ที่เกี่ยวข้อง...';
+  if (/\[Agent 3\/3\]|Generating executive summary/i.test(normalizedStatus)) return 'กำลังสรุปประเด็นสำคัญจากหลักฐาน...';
+  if (/Found \d+ web articles/i.test(normalizedStatus)) return 'พบแหล่งข้อมูลจากเว็บแล้ว กำลังเรียงลำดับ...';
+
+  return normalizedStatus.replace(/^\[[^\]]+\]\s*/, '');
+};
 
 const ContentWorkspace = ({
   isVisible,
@@ -89,9 +101,25 @@ const ContentWorkspace = ({
   activePlanId: _activePlanId,
 }) => {
   const summaryDateLabel = getSummaryDateLabel(searchResults, 10);
-  const summaryTrustLabel = isLatestMode
-    ? 'สรุปโดย FORO จากข้อมูลสดในช่วง 24-48 ชั่วโมงที่ผ่านมา'
-    : 'สรุปโดย FORO จากโพสต์และแหล่งอ้างอิงที่เกี่ยวข้อง';
+  const searchContextQuery = lastSubmittedSearchQuery || searchQuery;
+  const searchScopeLabel = isExplicitlyLocalQuery(searchContextQuery) ? 'ไทย/ท้องถิ่น' : 'ทั่วโลก';
+  const searchRankingLabel = activeSearchFocus
+    ? searchChoiceOptions.find((option) => option.id === activeSearchFocus)?.label || 'ความเกี่ยวข้อง'
+    : isLatestMode
+      ? 'ล่าสุด'
+      : 'ความเกี่ยวข้อง';
+  const searchEvidenceTypes = Array.from(
+    new Set(
+      searchResults.map((item) => {
+        const sourceType = String(item?.sourceType || '').toLowerCase();
+        if (sourceType === 'rss') return 'RSS';
+        if (sourceType === 'web_article') return 'เว็บ';
+        if (sourceType === 'x_video') return 'วิดีโอจาก X';
+        return 'โพสต์จาก X';
+      }),
+    ),
+  );
+  const searchEvidenceLabel = searchEvidenceTypes.length ? searchEvidenceTypes.join(' + ') : 'กำลังรวบรวม';
   const normalizedCurrentSearchQuery = (searchQuery || '').trim().replace(/\s+/g, ' ');
   const shouldShowEmptySearchState =
     Boolean(normalizedCurrentSearchQuery) &&
@@ -106,6 +134,10 @@ const ContentWorkspace = ({
   const summaryWebCitationIds = Array.from(
     new Set((summarySafe.match(/\[W\d{1,2}\]/g) || []).map((token) => token.replaceAll('[', '').replaceAll(']', ''))),
   );
+  const summaryEvidenceCitationIds = Array.from(
+    new Set((summarySafe.match(/\[(?:F|W)\d{1,2}\]/g) || []).map((token) => token.replaceAll('[', '').replaceAll(']', ''))),
+  );
+  const referencedEvidenceCount = summaryEvidenceCitationIds.length;
   const referencedWebSources = webSourcesWithCitationIds.filter((src) =>
     summaryWebCitationIds.includes(String(src.citation_id || '').replaceAll('[', '').replaceAll(']', '')),
   );
@@ -169,6 +201,15 @@ const ContentWorkspace = ({
                   <input
                     type="text"
                     className="hero-search-input"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-controls="content-search-suggestions"
+                    aria-expanded={showSuggestions && suggestions.length > 0}
+                    aria-activedescendant={
+                      activeSuggestionIndex >= 0
+                        ? `content-search-suggestion-${activeSuggestionIndex}`
+                        : undefined
+                    }
                     placeholder={'\u0e1e\u0e34\u0e21\u0e1e\u0e4c\u0e04\u0e35\u0e22\u0e4c\u0e40\u0e27\u0e34\u0e23\u0e4c\u0e14...'}
                     value={searchQuery}
                     onChange={(e) => {
@@ -182,9 +223,14 @@ const ContentWorkspace = ({
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                     onKeyDown={(e) => {
                       if (e.key === 'ArrowDown') {
+                        e.preventDefault();
                         setActiveSuggestionIndex((prev) => Math.min(prev + 1, suggestions.length - 1));
                       } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
                         setActiveSuggestionIndex((prev) => Math.max(prev - 1, -1));
+                      } else if (e.key === 'Escape') {
+                        setShowSuggestions(false);
+                        setActiveSuggestionIndex(-1);
                       } else if (e.key === 'Enter') {
                         if (activeSuggestionIndex >= 0) {
                           const selectedSuggestion = suggestions[activeSuggestionIndex];
@@ -302,24 +348,28 @@ const ContentWorkspace = ({
                 </div>
                 {shouldInlineSearchStatus && !isSearching && (
                   <SearchInlineStatus
-                    badge={isSearching ? AI_WORKSPACES.langGraph.role : AI_WORKSPACES.langChain.role}
-                    message={searchStatusMessage}
+                    badge="สถานะการค้นหา"
+                    message={toFriendlySearchStatusMessage(searchStatusMessage)}
                     hint={
                       isSearching
-                        ? 'Broad searches may take around 10-30 seconds while the system expands sources and ranks signal quality.'
-                        : 'Results are ready. The summary is still being refined in the background.'
+                        ? 'การค้นหาที่กว้างอาจใช้เวลาราว 10-30 วินาทีเพื่อรวบรวมและจัดลำดับหลักฐาน'
+                        : 'ผลลัพธ์พร้อมแล้ว หากมีสรุประบบจะปรับปรุงต่ออยู่เบื้องหลัง'
                     }
                     loading={isSearching}
                   />
                 )}
                 {showSuggestions && suggestions.length > 0 && (
-                  <div className="search-suggestions-dropdown">
+                  <div id="content-search-suggestions" className="search-suggestions-dropdown" role="listbox" aria-label="คำค้นแนะนำ">
                     {suggestions.map((item, idx) => {
                       if (typeof item !== 'string') return null;
                       return (
                         <div
                           key={`${item}-${idx}`}
+                          id={`content-search-suggestion-${idx}`}
+                          role="option"
+                          aria-selected={idx === activeSuggestionIndex}
                           className={`suggestion-item ${idx === activeSuggestionIndex ? 'active' : ''}`}
+                          onMouseDown={(event) => event.preventDefault()}
                           onClick={() => {
                             setSearchQuery(item);
                             handleSearch(null, false, item);
@@ -348,10 +398,10 @@ const ContentWorkspace = ({
                         <div className="search-minimal-loader-line search-minimal-loader-line-short"></div>
                       </div>
                     </div>
-                    <div className="search-loading-label">{AI_WORKSPACES.langGraph.title} {'\u0e01\u0e33\u0e25\u0e31\u0e07\u0e02\u0e22\u0e32\u0e22\u0e41\u0e2b\u0e25\u0e48\u0e07\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25'}</div>
+                    <div className="search-loading-label">กำลังค้นหาและรวบรวมหลักฐาน</div>
                     <div className="search-narrative">
                       <div className="narrative-item" style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '500' }}>
-                        {searchStatusMessage || 'Preparing the next search stage...'}
+                        {toFriendlySearchStatusMessage(searchStatusMessage)}
                       </div>
                     </div>
                   </div>
@@ -422,6 +472,25 @@ const ContentWorkspace = ({
           </div>
           {searchResults.length > 0 && (
             <div className="search-results-container">
+              <div
+                role="status"
+                aria-live="polite"
+                style={{
+                  display: 'flex',
+                  gap: '8px',
+                  flexWrap: 'wrap',
+                  marginBottom: '16px',
+                  fontSize: '11px',
+                  color: 'var(--text-dim)',
+                  fontWeight: '700',
+                }}
+              >
+                <span>ขอบเขต: {searchScopeLabel}</span>
+                <span aria-hidden="true">·</span>
+                <span>การเรียง: {searchRankingLabel}</span>
+                <span aria-hidden="true">·</span>
+                <span>แหล่งหลักฐาน: {searchEvidenceLabel}</span>
+              </div>
               {shouldShowSearchChoices && searchChoiceOptions.length > 1 && (
                 <div
                   className="animate-fade-in"
@@ -551,8 +620,6 @@ const ContentWorkspace = ({
                   </div>
 
                   {(() => {
-                    const confMatch = searchSummary.match(/\[CONFIDENCE_SCORE:\s*([^\]]+)\]/i);
-                    const confidenceScore = confMatch ? confMatch[1] : null;
                     const cleanSummary = normalizeSummaryMarkdown(searchSummary);
 
                     return (
@@ -576,25 +643,10 @@ const ContentWorkspace = ({
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', flexWrap: 'wrap' }}>
-                            <ShieldCheck size={12} className="text-accent" /> {summaryTrustLabel}
-                            {confidenceScore && (
-                              <span
-                                style={{
-                                  marginLeft: '4px',
-                                  padding: '2px 8px',
-                                  borderRadius: '100px',
-                                  background: 'rgba(16, 185, 129, 0.15)',
-                                  color: '#10b981',
-                                  border: '1px solid rgba(16, 185, 129, 0.3)',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  letterSpacing: '0.02em',
-                                }}
-                              >
-                                <Activity size={10} /> {'\u0e2d\u0e31\u0e15\u0e23\u0e32\u0e04\u0e27\u0e32\u0e21\u0e41\u0e21\u0e48\u0e19\u0e22\u0e33 (Confidence)'} {confidenceScore}
-                              </span>
-                            )}
+                            <ShieldCheck size={12} className="text-accent" />
+                            {referencedEvidenceCount > 0
+                              ? `สรุปนี้อ้างอิงจาก ${referencedEvidenceCount} หลักฐานที่เปิดตรวจได้`
+                              : 'สรุปนี้ไม่มีหลักฐานที่ระบุชัดเจน'}
                           </div>
 
                           {referencedWebSources.length > 0 && (

@@ -54,11 +54,11 @@ const BookmarksWorkspace = ({
         <div className="reader-header-top">
           <div className="reader-header-copy">
             <h1 className="hero-search-title" style={getListTitleTextStyle(currentActiveList?.color)}>
-              Bookmarks
+              บันทึกไว้ใช้ต่อ
             </h1>
-            <p className="hero-search-subtitle">{'\u0e04\u0e25\u0e31\u0e07\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e17\u0e35\u0e48\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e44\u0e27\u0e49\u0e41\u0e22\u0e01\u0e15\u0e32\u0e21\u0e1b\u0e23\u0e30\u0e40\u0e20\u0e17'}</p>
+            <p className="hero-search-subtitle">เก็บข่าวและบทความที่อยากกลับมาอ้างอิงหรือทำคอนเทนต์ต่อ</p>
           </div>
-          <button className="mobile-only-flex icon-btn-large" onClick={() => setIsMobilePostListOpen(true)}>
+          <button type="button" className="mobile-only-flex icon-btn-large" onClick={() => setIsMobilePostListOpen(true)} aria-label="เปิดรายการ">
             <List size={20} />
           </button>
         </div>
@@ -66,10 +66,10 @@ const BookmarksWorkspace = ({
       </header>
 
       <div className="bookmark-tabs">
-        <button onClick={() => setBookmarkTab('news')} className={`bookmark-tab-btn ${bookmarkTab === 'news' ? 'active' : ''}`}>
+        <button type="button" onClick={() => setBookmarkTab('news')} aria-pressed={bookmarkTab === 'news'} className={`bookmark-tab-btn ${bookmarkTab === 'news' ? 'active' : ''}`}>
           {'\ud83d\udcf0 \u0e02\u0e48\u0e32\u0e27'}
         </button>
-        <button onClick={() => setBookmarkTab('article')} className={`bookmark-tab-btn ${bookmarkTab === 'article' ? 'active' : ''}`}>
+        <button type="button" onClick={() => setBookmarkTab('article')} aria-pressed={bookmarkTab === 'article'} className={`bookmark-tab-btn ${bookmarkTab === 'article' ? 'active' : ''}`}>
           {'\ud83d\udcdd \u0e1a\u0e17\u0e04\u0e27\u0e32\u0e21'}
         </button>
       </div>
@@ -95,7 +95,7 @@ const BookmarksWorkspace = ({
               }}
             />
             {readSearchQuery && (
-              <button type="button" className="reader-search-clear" onClick={() => setReadSearchQuery('')}>
+              <button type="button" className="reader-search-clear" onClick={() => setReadSearchQuery('')} aria-label="ล้างคำค้นหา">
                 <X size={14} />
               </button>
             )}
@@ -118,7 +118,7 @@ const BookmarksWorkspace = ({
               onReadArticle={onReadArticle}
             />
           ) : (
-            <div key={item.id} className="article-card" onClick={() => onReadArticle(item)}>
+            <article key={item.id} className="article-card">
               <div className="article-card-header">
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', minWidth: 0, flex: 1 }}>
                   {shouldShowGeneratedFromContentBadge(item) && (
@@ -169,6 +169,7 @@ const BookmarksWorkspace = ({
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (window.confirm('\u0e04\u0e38\u0e13\u0e15\u0e49\u0e2d\u0e07\u0e01\u0e32\u0e23\u0e25\u0e1a\u0e1a\u0e17\u0e04\u0e27\u0e32\u0e21\u0e19\u0e35\u0e49\u0e43\u0e0a\u0e48\u0e2b\u0e23\u0e37\u0e2d\u0e44\u0e21\u0e48?')) {
@@ -177,6 +178,7 @@ const BookmarksWorkspace = ({
                   }}
                   className="btn-mini-ghost text-red"
                   style={{ padding: '4px 8px', flexShrink: 0 }}
+                  aria-label={`ลบ ${item.title || item.name || 'บทความ'}`}
                 >
                   <Trash2 size={12} />
                 </button>
@@ -194,11 +196,17 @@ const BookmarksWorkspace = ({
                 {(item.summary || item.text || '').replace(/[#*`]/g, '').trim()}
               </div>
               <div className="article-card-footer" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
-                <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--accent-secondary)' }}>
+                <button
+                  type="button"
+                  onClick={() => onReadArticle(item)}
+                  className="btn-mini-ghost"
+                  aria-label={`อ่าน ${item.title || item.name || 'บทความ'}`}
+                  style={{ fontSize: '12px', fontWeight: '700', color: 'var(--accent-secondary)' }}
+                >
                   {'\u0e2d\u0e48\u0e32\u0e19\u0e40\u0e1e\u0e34\u0e48\u0e21\u0e40\u0e15\u0e34\u0e21 \u2192'}
-                </span>
+                </button>
               </div>
-            </div>
+            </article>
           ),
         )}
         {filteredBookmarks.length === 0 && readSearchQuery && (

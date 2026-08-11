@@ -180,6 +180,15 @@ test('audience manual username search gives feedback for existing and failed loo
   assert.match(twitterSource, /encodeURIComponent\(handle\)/);
 });
 
+test('RSS subscriptions use source-specific language and accessible removal controls', () => {
+  const source = readSource('src/components/NewsSourcesTab.tsx');
+
+  assert.match(source, /อยู่ในแหล่งข่าวที่ติดตามแล้ว/);
+  assert.match(source, /\+ ติดตามแหล่งข่าว/);
+  assert.match(source, /▮ แหล่งข่าวที่ติดตาม \(\{subscribedSources\.length\}\)/);
+  assert.match(source, /<button[\s\S]*?onClick=\{\(\) => onToggleSource\(source\)\}[\s\S]*?aria-label=\{`เลิกติดตาม \$\{source\.name\}`\}/);
+});
+
 test('home feed latest sync does not send until timestamp to X search', () => {
   const source = readSource('src/hooks/useHomeFeedWorkspace.ts');
   const initialSyncCall = source.match(
@@ -193,6 +202,26 @@ test('home feed latest sync does not send until timestamp to X search', () => {
   assert.ok(fallbackSyncCall, 'fallback Latest sync call should be present');
   assert.doesNotMatch(initialSyncCall[0], /untilTime:\s*syncStartedAt/);
   assert.doesNotMatch(fallbackSyncCall[0], /untilTime:\s*syncStartedAt/);
+});
+
+test('home sync communicates whether the feed is preparing, updating, or ready', () => {
+  const source = readSource('src/components/HomeView.tsx');
+
+  assert.match(source, /const syncButtonLabel = !isFeedHistoryHydrated/);
+  assert.match(source, /'กำลังเตรียมฟีด'/);
+  assert.match(source, /'กำลังอัปเดตฟีด'/);
+  assert.match(source, /'อัปเดตฟีด'/);
+  assert.match(source, /aria-label=\{syncButtonLabel\}/);
+  assert.match(source, /aria-label=\{title\}/);
+});
+
+test('read and bookmarks describe their different jobs', () => {
+  const readWorkspaceSource = readSource('src/components/ReadWorkspace.tsx');
+  const bookmarksSource = readSource('src/components/BookmarksWorkspace.tsx');
+
+  assert.match(readWorkspaceSource, /คิวสำหรับอ่านเชิงลึกจากฟีดที่คุณสนใจ/);
+  assert.match(bookmarksSource, /บันทึกไว้ใช้ต่อ/);
+  assert.match(bookmarksSource, /เก็บข่าวและบทความที่อยากกลับมาอ้างอิงหรือทำคอนเทนต์ต่อ/);
 });
 
 test('reduced motion disables shared animation utilities and mobile overlays', () => {
@@ -277,4 +306,65 @@ test('search summary updates are guarded against stale searches', () => {
   assert.match(source, /summaryRunId/);
   assert.match(source, /isSearchRunCurrent/);
   assert.match(source, /if \(!isSearchRunCurrent\(summaryRunId\)\) return/);
+});
+
+test('content search makes its scope, ranking, and evidence visible without numeric confidence claims', () => {
+  const workspaceSource = readSource('src/components/ContentWorkspace.tsx');
+  const grokSource = readSource('src/services/GrokService.ts');
+
+  assert.match(workspaceSource, /const searchScopeLabel = isExplicitlyLocalQuery\(searchContextQuery\)/);
+  assert.match(workspaceSource, /ขอบเขต: \{searchScopeLabel\}/);
+  assert.match(workspaceSource, /การเรียง: \{searchRankingLabel\}/);
+  assert.match(workspaceSource, /แหล่งหลักฐาน: \{searchEvidenceLabel\}/);
+  assert.match(workspaceSource, /สรุปนี้อ้างอิงจาก \$\{referencedEvidenceCount\} หลักฐานที่เปิดตรวจได้/);
+  assert.doesNotMatch(workspaceSource, /CONFIDENCE_SCORE/);
+  assert.doesNotMatch(grokSource, /\[CONFIDENCE_SCORE:/);
+});
+
+test('content search suggestions follow the accessible combobox pattern and announce search progress', () => {
+  const workspaceSource = readSource('src/components/ContentWorkspace.tsx');
+  const statusSource = readSource('src/components/SearchInlineStatus.tsx');
+
+  assert.match(workspaceSource, /role="combobox"/);
+  assert.match(workspaceSource, /aria-autocomplete="list"/);
+  assert.match(workspaceSource, /aria-controls="content-search-suggestions"/);
+  assert.match(workspaceSource, /id="content-search-suggestions"/);
+  assert.match(workspaceSource, /role="listbox"/);
+  assert.match(workspaceSource, /role="option"/);
+  assert.match(workspaceSource, /if \(e\.key === 'Escape'\)/);
+  assert.match(statusSource, /role="status"/);
+  assert.match(statusSource, /aria-live="polite"/);
+});
+
+test('home feed makes the current X and RSS mix visible alongside the feed count', () => {
+  const source = readSource('src/components/HomeView.tsx');
+
+  assert.match(source, /const feedSourceBreakdown = useMemo/);
+  assert.match(source, /const feedSourceSummary =/);
+  assert.match(source, /จาก X/);
+  assert.match(source, /จาก RSS/);
+  assert.match(source, /\{feedSourceSummary &&/);
+});
+
+test('audience username suggestions use the accessible combobox pattern', () => {
+  const source = readSource('src/components/AudienceWorkspace.tsx');
+
+  assert.match(source, /aria-controls="audience-manual-suggestions"/);
+  assert.match(source, /id="audience-manual-suggestions"/);
+  assert.match(source, /role="listbox"/);
+  assert.match(source, /role="option"/);
+  assert.match(source, /if \(e\.key === 'Escape'\)/);
+  assert.match(source, /role="status"/);
+});
+
+test('read and bookmark controls expose their state and use an explicit article-reading action', () => {
+  const readWorkspaceSource = readSource('src/components/ReadWorkspace.tsx');
+  const bookmarksSource = readSource('src/components/BookmarksWorkspace.tsx');
+
+  assert.match(readWorkspaceSource, /aria-pressed=\{readFilters\.view\}/);
+  assert.match(readWorkspaceSource, /aria-pressed=\{readFilters\.engagement\}/);
+  assert.match(bookmarksSource, /aria-pressed=\{bookmarkTab === 'news'\}/);
+  assert.match(bookmarksSource, /aria-label="เปิดรายการ"/);
+  assert.match(bookmarksSource, /aria-label=\{`อ่าน \$\{item\.title \|\| item\.name \|\| 'บทความ'\}`\}/);
+  assert.doesNotMatch(bookmarksSource, /className="article-card" onClick=\{\(\) => onReadArticle\(item\)\}/);
 });

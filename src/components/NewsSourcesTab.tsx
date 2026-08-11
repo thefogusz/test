@@ -637,6 +637,7 @@ const SourceCard = ({
       </div>
 
       <button
+        type="button"
         onClick={onToggle}
         className={`expert-follow-btn ${isSubscribed ? 'added' : ''}`}
         style={{
@@ -649,7 +650,7 @@ const SourceCard = ({
           gap: '6px',
         }}
       >
-        {isSubscribed ? 'อยู่ใน Watchlist แล้ว' : '+ เพิ่มเข้า Watchlist'}
+        {isSubscribed ? 'อยู่ในแหล่งข่าวที่ติดตามแล้ว' : '+ ติดตามแหล่งข่าว'}
       </button>
     </div>
   );
@@ -960,7 +961,7 @@ const NewsSourcesTab = ({
               letterSpacing: '0.05em',
             }}
           >
-            ▮ รายการใน Watchlist ({subscribedSources.length})
+            ▮ แหล่งข่าวที่ติดตาม ({subscribedSources.length})
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {subscribedSources.map((source) => (
@@ -1013,17 +1014,24 @@ const NewsSourcesTab = ({
                     TH
                   </span>
                 )}
-                <span
+                <button
+                  type="button"
                   onClick={() => onToggleSource(source)}
+                  aria-label={`เลิกติดตาม ${source.name}`}
+                  title={`เลิกติดตาม ${source.name}`}
                   style={{
                     color: 'rgba(255,255,255,0.15)',
                     cursor: 'pointer',
                     fontSize: '12px',
                     marginLeft: '2px',
+                    border: 0,
+                    background: 'transparent',
+                    padding: 0,
+                    display: 'inline-flex',
                   }}
                 >
                   <X size={12} />
-                </span>
+                </button>
               </div>
             ))}
           </div>

@@ -31,7 +31,7 @@ const ReadWorkspace = ({
             <div className="reader-header-top">
               <div className="reader-header-copy">
                 <h1 className="hero-search-title">{'\u0e2d\u0e48\u0e32\u0e19\u0e02\u0e48\u0e32\u0e27'}</h1>
-                <p className="hero-search-subtitle">{'\u0e1a\u0e17\u0e04\u0e27\u0e32\u0e21\u0e41\u0e25\u0e30\u0e02\u0e48\u0e32\u0e27\u0e2a\u0e32\u0e23\u0e17\u0e35\u0e48\u0e04\u0e38\u0e13\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e44\u0e27\u0e49\u0e2d\u0e48\u0e32\u0e19\u0e41\u0e1a\u0e1a Deep Read'}</p>
+                <p className="hero-search-subtitle">คิวสำหรับอ่านเชิงลึกจากฟีดที่คุณสนใจ</p>
               </div>
               <button className="mobile-only-flex icon-btn-large" onClick={() => setIsMobilePostListOpen(true)}>
                 <List size={20} />
@@ -88,11 +88,13 @@ const ReadWorkspace = ({
                   )}
                 </div>
                 <div className="reader-toolbar-actions-group">
-                  <button onClick={() => setReadFilters((p) => ({ ...p, view: !p.view }))} className={`btn-pill ${readFilters.view ? 'active' : ''}`}>
+                  <button type="button" onClick={() => setReadFilters((p) => ({ ...p, view: !p.view }))} aria-pressed={readFilters.view} className={`btn-pill ${readFilters.view ? 'active' : ''}`}>
                     {'\u0e22\u0e2d\u0e14\u0e27\u0e34\u0e27'}
                   </button>
                   <button
+                    type="button"
                     onClick={() => setReadFilters((p) => ({ ...p, engagement: !p.engagement }))}
+                    aria-pressed={readFilters.engagement}
                     className={`btn-pill ${readFilters.engagement ? 'active' : ''}`}
                   >
                     {'\u0e40\u0e2d\u0e47\u0e19\u0e40\u0e01\u0e08\u0e40\u0e21\u0e19\u0e15\u0e4c'}

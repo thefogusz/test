@@ -173,10 +173,31 @@ const HomeView = ({
     [watchlistHandleSet],
   );
   const freshFeedIdSet = useMemo(() => new Set((freshFeedIds ?? []).map((id) => String(id))), [freshFeedIds]);
+  const feedSourceBreakdown = useMemo(
+    () => feed.reduce(
+      (counts, item) => {
+        const sourceType = String(item?.sourceType || '').toLowerCase();
+        if (sourceType === 'rss') counts.rss += 1;
+        else counts.x += 1;
+        return counts;
+      },
+      { x: 0, rss: 0 },
+    ),
+    [feed],
+  );
   const hasVisibleFeed = feed.length > 0;
   const liveFeedCount = isFiltered ? feed.length : visibleFeedTotalCount;
+  const syncButtonLabel = !isFeedHistoryHydrated
+    ? 'กำลังเตรียมฟีด'
+    : isSyncing
+      ? 'กำลังอัปเดตฟีด'
+      : 'อัปเดตฟีด';
   const shouldShowFeedCount = liveFeedCount > 0 || hasVisibleFeed || isSyncing || isFiltering;
   const feedCountLabel = `${liveFeedCount} การ์ด`;
+  const feedSourceSummary = [
+    feedSourceBreakdown.x > 0 ? `${feedSourceBreakdown.x} จาก X` : '',
+    feedSourceBreakdown.rss > 0 ? `${feedSourceBreakdown.rss} จาก RSS` : '',
+  ].filter(Boolean).join(' · ');
   const incomingSkeletonCount = isCompactSkeletonLayout ? 2 : 4;
   const shouldShowPrependedSkeletons = hadVisibleFeedBeforeSync && isSyncing;
   const shouldShowAppendedSkeletons = hasVisibleFeed && isLoadingMore;
@@ -241,7 +262,14 @@ const HomeView = ({
     if (!canUndoFeedClear && !canClearFeed) return null;
 
     return (
-      <button onClick={onClick} className={className} style={FEED_ACTION_BUTTON_STYLE} title={title}>
+      <button
+        type="button"
+        onClick={onClick}
+        className={className}
+        style={FEED_ACTION_BUTTON_STYLE}
+        title={title}
+        aria-label={title}
+      >
         <Icon size={14} />
       </button>
     );
@@ -269,6 +297,11 @@ const HomeView = ({
           {shouldShowFeedCount && (
             <span className="home-feed-count-badge" aria-live="polite">
               {feedCountLabel}
+            </span>
+          )}
+          {feedSourceSummary && (
+            <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '700' }}>
+              {feedSourceSummary}
             </span>
           )}
           {activeListId && <div className="active-list-pills" style={{ fontSize: '12px', padding: '4px 10px' }}>กำลังกรองตาม: {currentActiveList?.name}</div>}
@@ -325,11 +358,13 @@ const HomeView = ({
           <span className="home-ai-filter-btn-label">{isFilterProcessing ? 'กำลังคัดการ์ด' : 'FORO Filter'}</span>
         </button>
         <button
+          type="button"
           onClick={onSync}
           disabled={loading || !isFeedHistoryHydrated}
           className="btn-pill primary"
+          aria-label={syncButtonLabel}
         >
-          {isSyncing || !isFeedHistoryHydrated ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} ฟีดข้อมูล
+          {isSyncing || !isFeedHistoryHydrated ? <RefreshCw size={16} className="animate-spin" /> : <RefreshCw size={16} />} {syncButtonLabel}
         </button>
       </div>
     </div>
@@ -367,6 +402,11 @@ const HomeView = ({
             {shouldShowFeedCount && (
               <span className="home-feed-count-badge" aria-live="polite">
                 {feedCountLabel}
+              </span>
+            )}
+            {feedSourceSummary && (
+              <span style={{ fontSize: '11px', color: 'var(--text-dim)', fontWeight: '700' }}>
+                {feedSourceSummary}
               </span>
             )}
             {isFiltered && <AiFilteredBadge onClear={onClearAiFilter} clearTitle="ล้างตัวกรอง" />}
