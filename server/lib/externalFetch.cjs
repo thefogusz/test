@@ -163,20 +163,27 @@ const assertResolvedHostnameIsPublic = async (url, label, dnsLookup) => {
   await getPublicHostnameRecords(parsed.hostname, label, dnsLookup);
 };
 
+const createSafeDnsLookup = ({ label, dnsLookup }) => (hostname, options, callback) => {
+  getPublicHostnameRecords(hostname, label, dnsLookup)
+    .then((records) => {
+      if (options?.all) {
+        callback(null, records);
+        return;
+      }
+
+      const record =
+        records.find((candidate) => candidate.family === 4) ||
+        records.find((candidate) => candidate.family === 6) ||
+        records[0];
+      callback(null, record.address, record.family);
+    })
+    .catch((error) => callback(error));
+};
+
 const createSafeFetchDispatcher = ({ label, dnsLookup }) =>
   new Agent({
     connect: {
-      lookup(hostname, options, callback) {
-        getPublicHostnameRecords(hostname, label, dnsLookup)
-          .then((records) => {
-            const record =
-              records.find((candidate) => candidate.family === 4) ||
-              records.find((candidate) => candidate.family === 6) ||
-              records[0];
-            callback(null, record.address, record.family);
-          })
-          .catch((error) => callback(error));
-      },
+      lookup: createSafeDnsLookup({ label, dnsLookup }),
     },
   });
 
@@ -319,6 +326,7 @@ const readUpstreamTextWithLimit = async (upstreamResponse, maxBytes) => {
 };
 
 module.exports = {
+  createSafeDnsLookup,
   fetchExternalUrl,
   isBlockedExternalHostname,
   normalizeExternalUrl,
